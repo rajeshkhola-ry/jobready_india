@@ -1,0 +1,126 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run V2 Separate (Hold)",
+      "type": "shell",
+      "command": "flutter",
+      "args": [
+        "run",
+        "-d",
+        "chrome",
+        "--web-port",
+        "54322",
+        "-t",
+        "lib/main_v3.dart"
+      ],
+      "isBackground": true,
+      "options": {
+        "shell": {
+          "executable": "cmd.exe",
+          "args": [
+            "/d",
+            "/c"
+          ]
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run V1 (Merged V1+V2) in Terminal",
+      "type": "shell",
+      "command": "flutter",
+      "args": [
+        "run",
+        "-t",
+        "lib/main.dart"
+      ],
+      "isBackground": true,
+      "options": {
+        "shell": {
+          "executable": "cmd.exe",
+          "args": [
+            "/d",
+            "/c"
+          ]
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run V1 Publish Locked",
+      "type": "shell",
+      "command": "flutter",
+      "args": [
+        "run",
+        "-t",
+        "lib/main_v1_publish_locked.dart"
+      ],
+      "isBackground": true,
+      "options": {
+        "shell": {
+          "executable": "cmd.exe",
+          "args": [
+            "/d",
+            "/c"
+          ]
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Diagnose And Recover V2 Separate",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\scripts\\diagnose_recover.ps1",
+        "-WebPort",
+        "54322",
+        "-Target",
+        "lib/main_v3.dart"
+      ],
+      "isBackground": true,
+      "options": {
+        "shell": {
+          "executable": "cmd.exe",
+          "args": [
+            "/d",
+            "/c"
+          ]
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Daily Backup Now",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\scripts\\daily_backup.ps1"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}

@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>JOBREADY V1-V2-V3 Audit Report</title>
+  <style>
+    :root {
+      --ink: #0f172a;
+      --muted: #475569;
+      --line: #cbd5e1;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --ok: #14532d;
+      --warn: #7c2d12;
+      --accent: #1d4ed8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 14px/1.45 "Segoe UI", Tahoma, Arial, sans-serif;
+      padding: 28px;
+    }
+    .wrap { max-width: 980px; margin: 0 auto; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 14px;
+    }
+    h1 { margin: 0 0 6px; font-size: 24px; }
+    h2 { margin: 0 0 10px; font-size: 18px; }
+    p { margin: 6px 0; }
+    .muted { color: var(--muted); }
+    .chip {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      font-size: 12px;
+      margin-right: 6px;
+      margin-top: 4px;
+    }
+    .ok { color: var(--ok); border-color: #86efac; background: #f0fdf4; }
+    .warn { color: var(--warn); border-color: #fdba74; background: #fff7ed; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 13px;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 9px 8px;
+      vertical-align: top;
+      text-align: left;
+    }
+    th { background: #eff6ff; color: #1e3a8a; }
+    ul { margin: 6px 0 0 18px; }
+    .small { font-size: 12px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>JOBREADY Audit Report (V1 vs V2 vs V3)</h1>
+      <p class="muted">Date: 2026-07-14</p>
+      <p class="muted">Decision basis: V1 Home is final baseline. Identify repeated tasks in V2/V3 and list remaining V2/V3 items for next version selection.</p>
+    </div>
+
+    <div class="card">
+      <h2>Version Status</h2>
+      <span class="chip ok">V1: Available</span>
+      <span class="chip ok">V2: Available</span>
+      <span class="chip warn">V3: Not found in repository (no dedicated V3 entry/home file)</span>
+      <p class="small">Current active advanced build appears as Phase 7.5 (V2 route structure).</p>
+    </div>
+
+    <div class="card">
+      <h2>Repeated Tasks Already Present in V1 (Also in V2)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Task / Feature</th>
+            <th>V1</th>
+            <th>V2</th>
+            <th>Action Recommendation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Upload file and start workflow</td>
+            <td>Present (UploadCard)</td>
+            <td>Present (UploadCardV2)</td>
+            <td>Keep single final UX style in V1 baseline, avoid duplicate variants.</td>
+          </tr>
+          <tr>
+            <td>Compress tool</td>
+            <td>Present</td>
+            <td>Present</td>
+            <td>No new work unless functionality differs.</td>
+          </tr>
+          <tr>
+            <td>Convert tool</td>
+            <td>Present</td>
+            <td>Present</td>
+            <td>No new work unless functionality differs.</td>
+          </tr>
+          <tr>
+            <td>Merge tool</td>
+            <td>Present</td>
+            <td>Present</td>
+            <td>No new work unless functionality differs.</td>
+          </tr>
+          <tr>
+            <td>Split tool</td>
+            <td>Present</td>
+            <td>Present</td>
+            <td>No new work unless functionality differs.</td>
+          </tr>
+          <tr>
+            <td>Extract tool</td>
+            <td>Present</td>
+            <td>Present</td>
+            <td>No new work unless functionality differs.</td>
+          </tr>
+          <tr>
+            <td>Compression benchmark access</td>
+            <td>Present (top action)</td>
+            <td>Present (top action + tool card action)</td>
+            <td>Keep one best access point to reduce clutter.</td>
+          </tr>
+          <tr>
+            <td>Launch readiness access</td>
+            <td>Present (top action)</td>
+            <td>Present (top action)</td>
+            <td>Keep.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Remaining Parts in V2 Not in V1 Baseline (Candidate List for Next Version)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Candidate Feature (V2)</th>
+            <th>Status vs V1</th>
+            <th>Priority Suggestion</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Runbook page access</td>
+            <td>New in V2</td>
+            <td>High (operations maturity)</td>
+          </tr>
+          <tr>
+            <td>Post-Launch control page</td>
+            <td>New in V2</td>
+            <td>High (monitoring/control)</td>
+          </tr>
+          <tr>
+            <td>PDF Tools workspace quick access</td>
+            <td>Expanded in V2</td>
+            <td>Medium-High</td>
+          </tr>
+          <tr>
+            <td>Integration Hub (manifest-based API links)</td>
+            <td>New in V2</td>
+            <td>High (future-proof integrations)</td>
+          </tr>
+          <tr>
+            <td>Payment API abstraction (gateway-ready)</td>
+            <td>New in V2 layer</td>
+            <td>High (monetization)</td>
+          </tr>
+          <tr>
+            <td>Ad fixed slot + ad-link API layer</td>
+            <td>New in V2 layer</td>
+            <td>Medium (can phase after core)</td>
+          </tr>
+          <tr>
+            <td>Plan pricing block (3 plans, USD manual config)</td>
+            <td>New in V2</td>
+            <td>High (commercial)</td>
+          </tr>
+          <tr>
+            <td>Coupon/promo control panel</td>
+            <td>New in V2</td>
+            <td>Medium-High</td>
+          </tr>
+          <tr>
+            <td>Footer release/support info block</td>
+            <td>Expanded in V2</td>
+            <td>Low-Medium</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>V3 List</h2>
+      <p>No dedicated V3 implementation was found in current files. Suggested approach:</p>
+      <ul>
+        <li>Treat this report's "Remaining V2" list as the V3 backlog candidates.</li>
+        <li>Once you pick features, create a clean V3 entry file and home page with only selected items.</li>
+        <li>Conversion language rule (owner decision): keep output in the same source language by default (no automatic English-to-Hindi or Hindi-to-English translation in current flow).</li>
+        <li>V3 roadmap item: add optional "Language Change During Convert" toggle so users can choose target language explicitly when needed.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>Recommended Selection Order (If You Want Fast, Stable Rollout)</h2>
+      <ul>
+        <li>1) Integration Hub</li>
+        <li>2) Payment API + 3-plan pricing</li>
+        <li>3) Runbook + Post-Launch control</li>
+        <li>4) Promo/coupon controls</li>
+        <li>5) Ad layer</li>
+      </ul>
+      <p class="small">Prepared for owner selection workflow.</p>
+    </div>
+  </div>
+</body>
+</html>

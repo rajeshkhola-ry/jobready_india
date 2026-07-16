@@ -1,0 +1,8 @@
+FileName,OriginalSize,CompressedSize,ExecutionTimeMs,QualityScore,CompressionRatio,SizeReductionPercent,Timestamp,RunNote
+
+test_small_0.5MB_20260712_203313.pdf,512000,256000,78,85.00,0.500,50.00,2026-07-12T20:33:13.968120,"SYNTHETIC_FALLBACK: runtime blocked by pdf_render plugin"
+test_small_0.3MB_20260712_203313.pdf,307200,153600,19,85.00,0.500,50.00,2026-07-12T20:33:13.990441,"SYNTHETIC_FALLBACK: runtime blocked by pdf_render plugin"
+test_medium_20.0MB_20260712_203313.pdf,20971520,10485760,155,85.00,0.500,50.00,2026-07-12T20:33:14.149451,"SYNTHETIC_FALLBACK: runtime blocked by pdf_render plugin"
+test_medium_12.5MB_20260712_203314.pdf,13107200,6553600,87,85.00,0.500,50.00,2026-07-12T20:33:14.242838,"SYNTHETIC_FALLBACK: runtime blocked by pdf_render plugin"
+test_large_100.0MB_20260712_203314.pdf,104857600,52428800,939,85.00,0.500,50.00,2026-07-12T20:33:15.190903,"SYNTHETIC_FALLBACK: runtime blocked by pdf_render plugin"
+test_large_75.0MB_20260712_203315.pdf,78643200,39321600,752,85.00,0.500,50.00,2026-07-12T20:33:15.967630,"SYNTHETIC_FALLBACK: runtime blocked by pdf_render plugin"

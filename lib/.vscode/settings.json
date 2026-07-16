@@ -1,0 +1,11 @@
+{
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 1000,
+  "files.hotExit": "onExitAndWindowClose",
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "task.allowAutomaticTasks": "on",
+  "terminal.integrated.env.windows": {
+    "PATH": "${env:PATH};C:\\Users\\Avita\\bin"
+  }
+}

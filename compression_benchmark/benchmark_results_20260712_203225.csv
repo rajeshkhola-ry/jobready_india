@@ -1,0 +1,8 @@
+FileName,OriginalSize,CompressedSize,ExecutionTimeMs,QualityScore,CompressionRatio,SizeReductionPercent,Timestamp,RunNote
+
+test_small_0.5MB_20260712_203223.pdf,512000,512000,71,0.00,1.000,0.00,2026-07-12T20:32:23.991616,"RUNTIME_BLOCKED: MissingPluginException(No implementation found for method data on channel pdf_render)"
+test_small_0.3MB_20260712_203223.pdf,307200,307200,23,0.00,1.000,0.00,2026-07-12T20:32:24.020366,"RUNTIME_BLOCKED: MissingPluginException(No implementation found for method data on channel pdf_render)"
+test_medium_20.0MB_20260712_203224.pdf,20971520,20971520,133,0.00,1.000,0.00,2026-07-12T20:32:24.155496,"RUNTIME_BLOCKED: MissingPluginException(No implementation found for method data on channel pdf_render)"
+test_medium_12.5MB_20260712_203224.pdf,13107200,13107200,68,0.00,1.000,0.00,2026-07-12T20:32:24.231385,"RUNTIME_BLOCKED: MissingPluginException(No implementation found for method data on channel pdf_render)"
+test_large_100.0MB_20260712_203224.pdf,104857600,104857600,818,0.00,1.000,0.00,2026-07-12T20:32:25.055017,"RUNTIME_BLOCKED: MissingPluginException(No implementation found for method data on channel pdf_render)"
+test_large_75.0MB_20260712_203225.pdf,78643200,78643200,572,0.00,1.000,0.00,2026-07-12T20:32:25.655774,"RUNTIME_BLOCKED: MissingPluginException(No implementation found for method data on channel pdf_render)"

@@ -1,0 +1,12 @@
+JOBREADY Backup Naming Rule
+
+Daily backup: daily_YYYYMMDD.zip
+Example: daily_20260714.zip
+
+Final release backup: final_YYYYMMDD.zip
+Example: final_20260714.zip
+
+Safe backup copy: safe_YYYYMMDD.zip
+Example: safe_20260714.zip
+
+Use the same date format every time: YYYYMMDD
