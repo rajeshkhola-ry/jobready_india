@@ -6,6 +6,7 @@ import 'Services/public_brand_config.dart';
 import 'Pages/coming_soon_page.dart';
 import 'Pages/pdf_tools_page.dart';
 import 'Pages/home_page_v2.dart';
+import 'Pages/admin_gate_page.dart';
 import 'Pages/system_check_page.dart';
 // ===============================
 // GLOBAL RESUME DATA MODEL
@@ -48,6 +49,7 @@ initialRoute: '/',
 routes: {
   '/': (_) => const HomePageV2(),
   '/home': (_) => const HomePageV2(),
+  '/admin': (_) => const AdminGatePage(targetRoute: '/system-check'),
   '/coming-soon': (_) => const ComingSoonPage(),
   '/system-check': (_) => const SystemCheckPage(),
 },
