@@ -10,10 +10,17 @@ import '../Services/api_config.dart';
 import '../Services/coupon_service.dart';
 import '../Services/document_history_service.dart';
 import '../Services/integration_hub_service.dart';
+import '../Services/owner_admin_access_service.dart';
 import '../Services/support_ticket_service.dart';
 import '../Services/user_rating_service.dart';
 import '../Services/user_account_service.dart';
 import '../Services/usage_quota_service.dart';
+import 'compression_tool_page.dart';
+import 'convert_tool_page.dart';
+import 'merge_tool_page.dart';
+import 'split_tool_page.dart';
+import 'pdf_edit_page.dart';
+import 'pdf_tools_page.dart';
 import 'compression_benchmark_page.dart';
 import 'launch_readiness_page.dart';
 import 'launch_runbook_page.dart';
@@ -117,6 +124,7 @@ class _HomePageV2State extends State<HomePageV2> {
   bool _showLiveOfferBanner = false;
   String _liveOfferText = '';
   static const String _ownerOfferCode = 'JR-OWNER-2026';
+  bool get _showAdminControls => OwnerAdminAccessService.isUnlocked;
 
   // Manual pricing control: update these values any time.
   // INR Pricing
@@ -467,7 +475,6 @@ class _HomePageV2State extends State<HomePageV2> {
               _LiveOfferBanner(text: _liveOfferText),
               const SizedBox(height: 10),
             ],
-            const _WhyChooseAdSection(),
             const SizedBox(height: 12),
             const SizedBox(height: 4),
             const SizedBox(height: 12),
@@ -545,34 +552,6 @@ class _HomePageV2State extends State<HomePageV2> {
               ),
             ),
             const SizedBox(height: 12),
-            _GatewayControlPanel(
-              activeGateway: _activeGateway,
-              onGatewayChanged: (gateway) {
-                setState(() {
-                  _activeGateway = gateway;
-                });
-              },
-            ),
-            const SizedBox(height: 12),
-            _OwnerOfferManagerPanel(
-              ownerCode: _ownerOfferCode,
-              onOfferUpdated: (enabled, text, promoCode, validity) {
-                setState(() {
-                  _showLiveOfferBanner = enabled;
-                  _liveOfferText = text.trim();
-                });
-
-                if (promoCode.trim().isNotEmpty) {
-                  CouponService.upsertCoupon(
-                    code: promoCode.trim(),
-                    discountPercent: 100,
-                    validFor: validity,
-                    maxUses: 999999,
-                  );
-                }
-              },
-            ),
-            const SizedBox(height: 12),
             _CouponControlPanel(
               onDiscountChanged: (discountPercent) {
                 setState(() {
@@ -632,13 +611,32 @@ class _HomePageV2State extends State<HomePageV2> {
             ),
 
             const SizedBox(height: 10),
+            if (_showAdminControls) ...[
+              _OwnerOfferManagerPanel(
+                ownerCode: _ownerOfferCode,
+                onOfferUpdated: (enabled, text, promoCode, validity) {
+                  setState(() {
+                    _showLiveOfferBanner = enabled;
+                    _liveOfferText = text.trim();
+                  });
+
+                  if (promoCode.trim().isNotEmpty) {
+                    CouponService.upsertCoupon(
+                      code: promoCode.trim(),
+                      discountPercent: 100,
+                      validFor: validity,
+                      maxUses: 999999,
+                    );
+                  }
+                },
+              ),
+              const SizedBox(height: 10),
+            ],
             const _AboutUsSection(),
             const SizedBox(height: 10),
             const _FuturePlanSection(),
             const SizedBox(height: 10),
             const _UserRatingSection(),
-            const SizedBox(height: 10),
-            const _AdminRatingControlPanel(),
             const SizedBox(height: 10),
             _SuggestionSection(
               onTap: () {
@@ -1928,6 +1926,13 @@ class _UserPaymentPanel extends StatelessWidget {
   }
 
   Future<void> _continueToPayment(BuildContext context) async {
+    if (activeGateway.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Payment gateway is not finalized yet.')),
+      );
+      return;
+    }
+
     if (usageType == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select Personal or Business first.')),
@@ -1984,7 +1989,7 @@ class _UserPaymentPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Selected payment gateway: ${activeGateway.toUpperCase()}',
+            'Selected payment gateway: ${activeGateway.trim().isEmpty ? 'NOT FINALIZED' : activeGateway.toUpperCase()}',
             style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w800,
@@ -3217,14 +3222,36 @@ class _V2Column extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        UploadCardV2(),
-        SizedBox(height: 12),
-        _MostPopularToolsCard(),
-        SizedBox(height: 10),
-        ToolSelectorV2(),
+        const UploadCardV2(),
+        const SizedBox(height: 12),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            if (constraints.maxWidth < 940) {
+              return const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _MostPopularToolsCard(),
+                  SizedBox(height: 10),
+                  WhyChooseCard(scale: 0.6),
+                ],
+              );
+            }
+
+            return const Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(flex: 5, child: _MostPopularToolsCard()),
+                SizedBox(width: 10),
+                Expanded(flex: 7, child: WhyChooseCard(scale: 0.6)),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 10),
+        const ToolSelectorV2(),
       ],
     );
   }
@@ -3243,10 +3270,10 @@ class _MostPopularToolsCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Most Popular Tools',
             style: TextStyle(
               fontSize: 15,
@@ -3254,15 +3281,71 @@ class _MostPopularToolsCard extends StatelessWidget {
               color: Color(0xFF0F172A),
             ),
           ),
-          SizedBox(height: 10),
-          _PopularToolRow(icon: Icons.description_outlined, label: 'PDF to Word'),
-          _PopularToolRow(icon: Icons.image_outlined, label: 'JPG to PDF'),
-          _PopularToolRow(icon: Icons.compress_outlined, label: 'Compress PDF'),
-          _PopularToolRow(icon: Icons.merge_type, label: 'Merge PDF'),
-          _PopularToolRow(icon: Icons.call_split_outlined, label: 'Split PDF'),
-          _PopularToolRow(icon: Icons.lock_outline_rounded, label: 'Protect PDF'),
-          _PopularToolRow(icon: Icons.edit_note_rounded, label: 'Edit PDF'),
-          _PopularToolRow(icon: Icons.document_scanner_outlined, label: 'OCR PDF'),
+          const SizedBox(height: 10),
+          _PopularToolRow(
+            icon: Icons.description_outlined,
+            label: 'PDF to Word',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PdfToolsPage()),
+            ),
+          ),
+          _PopularToolRow(
+            icon: Icons.image_outlined,
+            label: 'JPG to PDF',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ConvertToolPage()),
+            ),
+          ),
+          _PopularToolRow(
+            icon: Icons.compress_outlined,
+            label: 'Compress PDF',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CompressionToolPage()),
+            ),
+          ),
+          _PopularToolRow(
+            icon: Icons.merge_type,
+            label: 'Merge PDF',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const MergeToolPage()),
+            ),
+          ),
+          _PopularToolRow(
+            icon: Icons.call_split_outlined,
+            label: 'Split PDF',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SplitToolPage()),
+            ),
+          ),
+          _PopularToolRow(
+            icon: Icons.lock_outline_rounded,
+            label: 'Protect PDF',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PdfEditPage()),
+            ),
+          ),
+          _PopularToolRow(
+            icon: Icons.edit_note_rounded,
+            label: 'Edit PDF',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PdfEditPage()),
+            ),
+          ),
+          _PopularToolRow(
+            icon: Icons.document_scanner_outlined,
+            label: 'OCR PDF',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PdfEditPage()),
+            ),
+          ),
         ],
       ),
     );
@@ -3272,29 +3355,44 @@ class _MostPopularToolsCard extends StatelessWidget {
 class _PopularToolRow extends StatelessWidget {
   final IconData icon;
   final String label;
+  final VoidCallback onTap;
 
   const _PopularToolRow({
     required this.icon,
     required this.label,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 7),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: Color(0xFF1F4E79)),
-          SizedBox(width: 8),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF1E293B),
-            ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+          child: Row(
+            children: [
+              Icon(icon, size: 18, color: const Color(0xFF1F4E79)),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
+              const Spacer(),
+              const Icon(
+                Icons.chevron_right_rounded,
+                size: 16,
+                color: Color(0xFF64748B),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

@@ -175,8 +175,8 @@ class ApiConfig {
 
   /// Payment gateway defaults (manual configuration point)
   static const Map<String, dynamic> paymentGatewayDefaults = {
-    'active_gateway': 'ccavenue',
-    'supported_gateways': ['ccavenue', 'razorpay', 'paypal', 'stripe'],
+    'active_gateway': '',
+    'supported_gateways': [],
     'currency': 'USD',
     'ccavenue': {
       'merchant_id': 'UPDATE_CCAVENUE_MERCHANT_ID',
@@ -211,7 +211,7 @@ class ApiConfig {
     if (gateways is List) {
       return gateways.map((item) => item.toString().toLowerCase()).toList();
     }
-    return const ['ccavenue'];
+    return const [];
   }
 
   static bool isSupportedPaymentGateway(String gateway) {
@@ -349,7 +349,7 @@ class ApiService {
   static String getActivePaymentGateway() {
     return (_activePaymentGatewayOverride ??
             ApiConfig.paymentGatewayDefaults['active_gateway']?.toString() ??
-            'ccavenue')
+            '')
         .toLowerCase();
   }
 
