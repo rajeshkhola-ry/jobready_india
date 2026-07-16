@@ -1508,7 +1508,7 @@ class _BrowserSupportNotice extends StatelessWidget {
           SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Use latest Chrome or Edge for the smoothest and fastest file actions.',
+              'JOBREADY is now live. Full access is free for the next 15 days. If you notice any issue, please share it in Suggestion and we will fix it quickly.',
               style: TextStyle(
                 fontSize: 12,
                 height: 1.35,
@@ -1612,11 +1612,23 @@ class _GatewayControlPanel extends StatefulWidget {
   State<_GatewayControlPanel> createState() => _GatewayControlPanelState();
 }
 
+class _OwnerAdminSession {
+  static bool isUnlocked = false;
+}
+
 class _GatewayControlPanelState extends State<_GatewayControlPanel> {
   static const String _ownerCode = 'JR-OWNER-2026';
   final TextEditingController _ownerCodeController = TextEditingController();
-  bool _isOwnerUnlocked = false;
+  bool _isOwnerUnlocked = _OwnerAdminSession.isUnlocked;
   String _statusText = 'Owner lock active';
+
+  @override
+  void initState() {
+    super.initState();
+    if (_OwnerAdminSession.isUnlocked) {
+      _statusText = 'Owner unlocked. You can switch payment gateway now.';
+    }
+  }
 
   @override
   void dispose() {
@@ -1628,6 +1640,9 @@ class _GatewayControlPanelState extends State<_GatewayControlPanel> {
     final isValid = _ownerCodeController.text.trim() == _ownerCode;
     setState(() {
       _isOwnerUnlocked = isValid;
+      if (isValid) {
+        _OwnerAdminSession.isUnlocked = true;
+      }
       _statusText = isValid
           ? 'Owner unlocked. You can switch payment gateway now.'
           : 'Invalid owner code';
@@ -1758,8 +1773,16 @@ class _OwnerIntegrationHubPanel extends StatefulWidget {
 class _OwnerIntegrationHubPanelState extends State<_OwnerIntegrationHubPanel> {
   static const String _ownerCode = 'JR-OWNER-2026';
   final TextEditingController _ownerCodeController = TextEditingController();
-  bool _isUnlocked = false;
+  bool _isUnlocked = _OwnerAdminSession.isUnlocked;
   String _status = 'Integration Hub is owner-only.';
+
+  @override
+  void initState() {
+    super.initState();
+    if (_OwnerAdminSession.isUnlocked) {
+      _status = 'Owner unlocked.';
+    }
+  }
 
   @override
   void dispose() {
@@ -1771,6 +1794,9 @@ class _OwnerIntegrationHubPanelState extends State<_OwnerIntegrationHubPanel> {
     final ok = _ownerCodeController.text.trim() == _ownerCode;
     setState(() {
       _isUnlocked = ok;
+      if (ok) {
+        _OwnerAdminSession.isUnlocked = true;
+      }
       _status = ok ? 'Owner unlocked.' : 'Invalid owner code';
     });
   }
@@ -2114,9 +2140,15 @@ class _OwnerOfferManagerPanelState extends State<_OwnerOfferManagerPanel> {
   final TextEditingController _unlockController = TextEditingController();
   final TextEditingController _offerController = TextEditingController();
   final TextEditingController _promoController = TextEditingController(text: 'JRFREE1001Y');
-  bool _unlocked = false;
+  bool _unlocked = _OwnerAdminSession.isUnlocked;
   bool _showOffer = false;
   Duration? _validity = const Duration(days: 365);
+
+  @override
+  void initState() {
+    super.initState();
+    _unlocked = _OwnerAdminSession.isUnlocked;
+  }
 
   @override
   void dispose() {
@@ -2129,6 +2161,9 @@ class _OwnerOfferManagerPanelState extends State<_OwnerOfferManagerPanel> {
   void _unlock() {
     setState(() {
       _unlocked = _unlockController.text.trim() == widget.ownerCode;
+      if (_unlocked) {
+        _OwnerAdminSession.isUnlocked = true;
+      }
     });
   }
 
@@ -2181,13 +2216,21 @@ class _OwnerOfferManagerPanelState extends State<_OwnerOfferManagerPanel> {
               child: const Text('Unlock Offer Box'),
             ),
           ] else ...[
-            Material(
-              color: Colors.transparent,
-              child: SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                value: _showOffer,
-                onChanged: (value) => setState(() => _showOffer = value),
-                title: const Text('Show offer on home page'),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Show offer on home page',
+                      style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                    ),
+                  ),
+                  Switch(
+                    value: _showOffer,
+                    onChanged: (value) => setState(() => _showOffer = value),
+                  ),
+                ],
               ),
             ),
             TextField(
@@ -2427,26 +2470,8 @@ class _AdminRatingControlPanel extends StatefulWidget {
 }
 
 class _AdminRatingControlPanelState extends State<_AdminRatingControlPanel> {
-  static const String _ownerCode = 'JR-OWNER-2026';
-  final TextEditingController _ownerCodeController = TextEditingController();
-  bool _isUnlocked = false;
-  String _statusText = 'Owner lock active';
+  String _statusText = 'Admin controls ready.';
   UserRatingSummary _summary = UserRatingService.getSummary();
-
-  @override
-  void dispose() {
-    _ownerCodeController.dispose();
-    super.dispose();
-  }
-
-  void _unlockOwner() {
-    final ok = _ownerCodeController.text.trim() == _ownerCode;
-    setState(() {
-      _isUnlocked = ok;
-      _summary = UserRatingService.getSummary();
-      _statusText = ok ? 'Owner unlocked. Rating controls are available.' : 'Invalid owner code';
-    });
-  }
 
   Future<void> _setVisibility(bool visible) async {
     await UserRatingService.setPublicVisible(visible);
@@ -2486,88 +2511,58 @@ class _AdminRatingControlPanelState extends State<_AdminRatingControlPanel> {
             ),
           ),
           const SizedBox(height: 6),
-          if (!_isUnlocked) ...[
-            TextField(
-              controller: _ownerCodeController,
-              obscureText: true,
-              decoration: InputDecoration(
-                hintText: 'Enter owner code',
-                isDense: true,
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+          Text(
+            _summary.totalCount == 0
+                ? 'Actual rating: no ratings yet.'
+                : 'Actual rating: ${_summary.average.toStringAsFixed(2)} / 5 from ${_summary.totalCount} users.',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF0F766E),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Ratings today: ${_summary.todayCount}',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF334155),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Show overall rating on site (Yes / No)',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF334155),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ChoiceChip(
+                label: const Text('Yes'),
+                selected: _summary.publicVisible,
+                onSelected: (_) => _setVisibility(true),
               ),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _unlockOwner,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1F4E79),
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Unlock Admin Rating Controls'),
+              ChoiceChip(
+                label: const Text('No'),
+                selected: !_summary.publicVisible,
+                onSelected: (_) => _setVisibility(false),
               ),
-            ),
-          ] else ...[
-            Text(
-              _summary.totalCount == 0
-                  ? 'Actual rating: no ratings yet.'
-                  : 'Actual rating: ${_summary.average.toStringAsFixed(2)} / 5 from ${_summary.totalCount} users.',
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF0F766E),
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Ratings today: ${_summary.todayCount}',
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF334155),
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Show overall rating on site (Yes / No)',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF334155),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                ChoiceChip(
-                  label: const Text('Yes'),
-                  selected: _summary.publicVisible,
-                  onSelected: (_) => _setVisibility(true),
-                ),
-                ChoiceChip(
-                  label: const Text('No'),
-                  selected: !_summary.publicVisible,
-                  onSelected: (_) => _setVisibility(false),
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
           const SizedBox(height: 8),
           Text(
             _statusText,
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: _statusText.toLowerCase().contains('invalid')
-                  ? const Color(0xFFB91C1C)
-                  : const Color(0xFF475569),
+              color: const Color(0xFF475569),
             ),
           ),
         ],
@@ -3671,22 +3666,27 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
             ),
           ),
           const SizedBox(height: 8),
-          SwitchListTile.adaptive(
-            value: _historyEnabled,
-            contentPadding: EdgeInsets.zero,
-            title: const Text(
-              'Enable document history',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-            ),
-            subtitle: const Text(
-              'Turn off to stop recording new recent documents.',
-              style: TextStyle(fontSize: 11, color: Color(0xFF6B7280), fontWeight: FontWeight.w600),
-            ),
-            onChanged: (value) {
-              setState(() {
-                _historyEnabled = value;
-              });
-            },
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Enable document history',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                ),
+              ),
+              Switch.adaptive(
+                value: _historyEnabled,
+                onChanged: (value) {
+                  setState(() {
+                    _historyEnabled = value;
+                  });
+                },
+              ),
+            ],
+          ),
+          const Text(
+            'Turn off to stop recording new recent documents.',
+            style: TextStyle(fontSize: 11, color: Color(0xFF6B7280), fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 6),
           SizedBox(
