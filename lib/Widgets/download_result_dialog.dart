@@ -12,13 +12,21 @@ class DownloadResultDialog extends StatelessWidget {
   final String outputFormat;
   final String fileName;
   final Uint8List outputBytes;
+  final int? originalFileSizeBytes;
 
   const DownloadResultDialog({
     super.key,
     required this.outputFormat,
     required this.fileName,
     required this.outputBytes,
+    this.originalFileSizeBytes,
   });
+
+  String _formatBytes(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(2)} KB';
+    return '${(bytes / 1024 / 1024).toStringAsFixed(2)} MB';
+  }
 
   String _mimeTypeFromFileName() {
     final lowerName = fileName.toLowerCase();
@@ -423,6 +431,17 @@ class DownloadResultDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isCompressionResult = outputFormat.toLowerCase().contains('compress');
+    final outputSizeLabel = isCompressionResult ? 'Compressed Size' : 'Output Size';
+    final outputSizeText = _formatBytes(outputBytes.length);
+
+    String? reductionText;
+    if (originalFileSizeBytes != null && originalFileSizeBytes! > 0) {
+      final reduced = ((originalFileSizeBytes! - outputBytes.length) /
+              originalFileSizeBytes! *
+              100)
+          .clamp(-999.0, 100.0);
+      reductionText = '${reduced.toStringAsFixed(1)}%';
+    }
 
     return AlertDialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
@@ -482,6 +501,19 @@ class DownloadResultDialog extends StatelessWidget {
             _InfoRow(label: 'Output', value: outputFormat),
             const SizedBox(height: 6),
             _InfoRow(label: 'File', value: fileName, maxLines: 2),
+            const SizedBox(height: 6),
+            _InfoRow(label: outputSizeLabel, value: outputSizeText),
+            if (originalFileSizeBytes != null) ...[
+              const SizedBox(height: 6),
+              _InfoRow(
+                label: 'Original Size',
+                value: _formatBytes(originalFileSizeBytes!),
+              ),
+            ],
+            if (reductionText != null) ...[
+              const SizedBox(height: 6),
+              _InfoRow(label: 'Reduction', value: reductionText),
+            ],
             const SizedBox(height: 6),
             const _InfoRow(label: 'Saved', value: 'Browser Downloads'),
             const SizedBox(height: 12),

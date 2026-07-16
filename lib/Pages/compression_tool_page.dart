@@ -690,6 +690,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
             outputFormat: 'Compressed File Completed',
             fileName: selected.name,
             outputBytes: compressed,
+            originalFileSizeBytes: selected.size,
           ),
         );
         return;
@@ -789,6 +790,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
           outputFormat: 'Compressed ZIP Completed',
           fileName: 'jobready_compressed_files.zip',
           outputBytes: Uint8List.fromList(zipBytes),
+          originalFileSizeBytes: totalOriginal,
         ),
       );
     } catch (e) {
@@ -964,6 +966,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
         outputFormat: 'Compressed File',
         fileName: _lastOutputName!,
         outputBytes: _lastOutputBytes!,
+        originalFileSizeBytes: _originalFileSize,
       ),
     );
   }
