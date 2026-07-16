@@ -3221,9 +3221,81 @@ class _V2Column extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         UploadCardV2(),
+        SizedBox(height: 12),
+        _MostPopularToolsCard(),
         SizedBox(height: 10),
         ToolSelectorV2(),
       ],
+    );
+  }
+}
+
+class _MostPopularToolsCard extends StatelessWidget {
+  const _MostPopularToolsCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Most Popular Tools',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF0F172A),
+            ),
+          ),
+          SizedBox(height: 10),
+          _PopularToolRow(icon: Icons.description_outlined, label: 'PDF to Word'),
+          _PopularToolRow(icon: Icons.image_outlined, label: 'JPG to PDF'),
+          _PopularToolRow(icon: Icons.compress_outlined, label: 'Compress PDF'),
+          _PopularToolRow(icon: Icons.merge_type, label: 'Merge PDF'),
+          _PopularToolRow(icon: Icons.call_split_outlined, label: 'Split PDF'),
+          _PopularToolRow(icon: Icons.lock_outline_rounded, label: 'Protect PDF'),
+          _PopularToolRow(icon: Icons.edit_note_rounded, label: 'Edit PDF'),
+          _PopularToolRow(icon: Icons.document_scanner_outlined, label: 'OCR PDF'),
+        ],
+      ),
+    );
+  }
+}
+
+class _PopularToolRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _PopularToolRow({
+    required this.icon,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 7),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: Color(0xFF1F4E79)),
+          SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1E293B),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
