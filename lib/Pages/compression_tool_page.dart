@@ -537,6 +537,28 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
               ),
             ),
           ],
+          if (_lastOutputBytes != null) ...[
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F4FD),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFB6DDF7)),
+              ),
+              child: Text(
+                _selectedFiles.length > 1
+                    ? 'ZIP ready: ${_formatBytes(_lastOutputBytes!.length)}'
+                    : 'Final file size: ${_formatBytes(_lastOutputBytes!.length)}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF0B4F7D),
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           AppleButton(
             label: 'Download Compressed File',
