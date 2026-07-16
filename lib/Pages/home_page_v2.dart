@@ -416,7 +416,7 @@ class _HomePageV2State extends State<HomePageV2> {
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'JOBREADY',
+                  'GET READY JOB',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
