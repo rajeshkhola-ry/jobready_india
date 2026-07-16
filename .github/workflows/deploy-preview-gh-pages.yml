@@ -27,8 +27,8 @@ jobs:
       - name: Flutter Pub Get
         run: flutter pub get
 
-      - name: Build Web (Project Pages base path)
-        run: flutter build web --release --base-href "/${{ github.event.repository.name }}/"
+      - name: Build Web (Custom domain root path)
+        run: flutter build web --release --base-href "/"
 
       - name: Disable Jekyll
         run: touch build/web/.nojekyll
