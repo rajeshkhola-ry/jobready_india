@@ -46,8 +46,9 @@ useMaterial3: true,
 ),
 initialRoute: '/',
 routes: {
-  '/': (_) => const ComingSoonPage(),
+  '/': (_) => const HomePageV2(),
   '/home': (_) => const HomePageV2(),
+  '/coming-soon': (_) => const ComingSoonPage(),
   '/system-check': (_) => const SystemCheckPage(),
 },
 );
