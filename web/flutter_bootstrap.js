@@ -4,6 +4,9 @@
 _flutter.loader.load({
 	config: {
 		canvasKitBaseUrl: "canvaskit/",
+		canvasKitVariant: "full",
+		canvasKitForceCpuOnly: true,
+		canvasKitMaximumSurfaces: 1,
 	},
 	onEntrypointLoaded: async function (engineInitializer) {
 		try {
