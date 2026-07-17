@@ -1,5 +1,6 @@
 import 'package:archive/archive.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:typed_data';
 import 'package:syncfusion_flutter_pdf/pdf.dart' as sfpdf;
 import '../Widgets/apple_button.dart';
@@ -40,6 +41,10 @@ class _ExtractToolPageState extends State<ExtractToolPage> {
   }
 
   void _hydrateFromHomeUpload() {
+    if (kIsWeb) {
+      return;
+    }
+
     final files = UploadContextService.getCompatibleFiles([
       'pdf',
       'jpg',

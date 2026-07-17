@@ -1,4 +1,5 @@
 import 'package:archive/archive.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'dart:typed_data';
 import '../Widgets/apple_button.dart';
@@ -65,6 +66,11 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
   }
 
   void _hydrateFromHomeUpload() {
+    if (kIsWeb) {
+      // Skip eager file restoration on web; large cached files can crash first-frame rendering.
+      return;
+    }
+
     final supportedExtensions = inputExtensions.values.expand((items) => items).toSet().toList();
     var cachedFiles = UploadContextService.getCompatibleFiles(supportedExtensions);
 

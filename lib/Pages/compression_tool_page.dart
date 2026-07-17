@@ -1,4 +1,5 @@
 import 'package:archive/archive.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../Widgets/target_size_selector.dart';
 import '../Widgets/apple_button.dart';
@@ -65,6 +66,11 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
   }
 
   void _hydrateFromHomeUpload() {
+    if (kIsWeb) {
+      // Avoid restoring large in-memory uploads during first web frame.
+      return;
+    }
+
     final files = UploadContextService.getCompatibleFiles([
       'pdf',
       'jpg',

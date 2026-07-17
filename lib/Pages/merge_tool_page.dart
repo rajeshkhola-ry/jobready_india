@@ -1,4 +1,5 @@
 import 'package:archive/archive.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'dart:typed_data';
 import '../Widgets/apple_button.dart';
@@ -33,6 +34,10 @@ class _MergeToolPageState extends State<MergeToolPage> {
   }
 
   void _hydrateFromHomeUpload() {
+    if (kIsWeb) {
+      return;
+    }
+
     final files = UploadContextService.getCompatibleFiles(['pdf']);
     if (files.isEmpty) {
       return;

@@ -1,4 +1,5 @@
 import 'package:archive/archive.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'dart:typed_data';
 import 'package:syncfusion_flutter_pdf/pdf.dart' as sfpdf;
@@ -36,6 +37,10 @@ class _SplitToolPageState extends State<SplitToolPage> {
   }
 
   Future<void> _hydrateFromHomeUpload() async {
+    if (kIsWeb) {
+      return;
+    }
+
     final cachedFiles = UploadContextService.getCompatibleFiles(['pdf']);
     if (cachedFiles.isEmpty) {
       return;

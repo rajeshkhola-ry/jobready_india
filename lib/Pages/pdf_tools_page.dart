@@ -53,6 +53,10 @@ class _PdfToolsPageState extends State<PdfToolsPage> {
   }
 
   void _hydrateFromHomeUpload() {
+    if (kIsWeb) {
+      return;
+    }
+
     final files = UploadContextService.getCompatibleFiles(['pdf']);
     if (files.isEmpty) {
       return;
