@@ -804,8 +804,14 @@ class ConversionService {
 
       for (var pageIndex = 1; pageIndex <= doc.pageCount; pageIndex++) {
         final page = await doc.getPage(pageIndex);
-        final width = max(1, page.width.round());
-        final height = max(1, page.height.round());
+        final sourceWidth = max(1, page.width.round());
+        final sourceHeight = max(1, page.height.round());
+        const maxSide = 1600;
+        final largestSide = max(sourceWidth, sourceHeight);
+        final scale = largestSide > maxSide ? (maxSide / largestSide) : 1.0;
+        final width = max(1, (sourceWidth * scale).round());
+        final height = max(1, (sourceHeight * scale).round());
+
         final rendered = await page.render(
           width: width,
           height: height,
