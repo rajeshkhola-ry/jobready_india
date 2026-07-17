@@ -4,6 +4,7 @@ import '../Widgets/target_size_selector.dart';
 import '../Widgets/apple_button.dart';
 import '../Widgets/download_result_dialog.dart';
 import '../Widgets/quota_gate.dart';
+import '../Widgets/site_footer_link.dart';
 import '../Services/compression_service.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/upload_context_service.dart';
@@ -366,22 +367,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
           );
         },
       ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Container(
-          color: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: const Text(
-            'getreadyjob.com',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF1F4E79),
-            ),
-          ),
-        ),
-      ),
+      bottomNavigationBar: const SiteFooterLink(),
     );
   }
 

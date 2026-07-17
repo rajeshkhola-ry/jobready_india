@@ -2,16 +2,15 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "JOBREADY V1 (Merged V1+V2) - main.dart",
+      "name": "DEFAULT: JOBREADY V1 (Merged) - main.dart",
       "request": "launch",
       "type": "dart",
-      "program": "main.dart"
-    },
-    {
-      "name": "JOBREADY V2 (Separate Hold) - main_v3.dart",
-      "request": "launch",
-      "type": "dart",
-      "program": "main_v3.dart"
+      "program": "main.dart",
+      "deviceId": "chrome",
+      "toolArgs": [
+        "--web-port",
+        "54323"
+      ]
     }
   ]
 }

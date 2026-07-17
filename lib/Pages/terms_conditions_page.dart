@@ -86,13 +86,23 @@ class TermsConditionsPage extends StatelessWidget {
             body:
                 'We may revise these terms periodically for legal, security, or product reasons. Updated terms apply from publication date.',
           ),
+          const _Section(
+            title: '14. Lifetime Offer Window and Service Closure',
+            body:
+                'Any "lifetime" offer is valid for up to 10 years from purchase date, subject to service availability. If the site/platform is shut down, permanently discontinued, or legally required to stop operations, the lifetime offer ends at that time. We may still change tools, pricing, features, or service scope without prior notice as stated in these terms.',
+          ),
+          const _Section(
+            title: '15. App Installation Permissions and User Consent',
+            body:
+                'Before app installation, required permissions must be shown clearly and accepted by the user. If the user selects Cancel/Decline, installation or setup should not continue. Typical required permissions may include file/media access (for document upload and save), notifications (optional updates), network/internet access (core service), and camera/gallery access only when explicitly used by a feature.',
+          ),
           _Section(
-            title: '14. Contact',
+            title: '16. Contact',
             body: 'For legal and support matters: ${PublicBrandConfig.supportEmail}',
           ),
           const SizedBox(height: 14),
           const Text(
-            'Last updated: 2026-07-14',
+            'Last updated: 2026-07-17',
             style: TextStyle(fontSize: 12, color: Color(0xFF6B7280), fontWeight: FontWeight.w600),
           ),
         ],

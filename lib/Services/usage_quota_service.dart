@@ -25,6 +25,7 @@ class UsageQuotaSummary {
 
 class UsageQuotaService {
   static const String _storageKey = 'jobready_usage_quota_v2';
+  static Map<String, dynamic> _memoryStore = <String, dynamic>{};
 
   static String _todayKey() {
     final now = DateTime.now().toLocal();
@@ -35,25 +36,32 @@ class UsageQuotaService {
   }
 
   static Map<String, dynamic> _loadStore() {
-    final raw = html.window.localStorage[_storageKey];
-    if (raw == null || raw.trim().isEmpty) {
-      return <String, dynamic>{};
-    }
-
     try {
+      final raw = html.window.localStorage[_storageKey];
+      if (raw == null || raw.trim().isEmpty) {
+        return Map<String, dynamic>.from(_memoryStore);
+      }
+
       final decoded = jsonDecode(raw);
       if (decoded is Map) {
         return Map<String, dynamic>.from(decoded);
       }
     } catch (_) {
-      // Ignore malformed local data and reset.
+      // localStorage may be blocked in privacy mode or restricted browser context.
+      // Fall back to in-memory store so tool actions continue to work.
+      return Map<String, dynamic>.from(_memoryStore);
     }
 
-    return <String, dynamic>{};
+    return Map<String, dynamic>.from(_memoryStore);
   }
 
   static Future<void> _saveStore(Map<String, dynamic> store) async {
-    html.window.localStorage[_storageKey] = jsonEncode(store);
+    _memoryStore = Map<String, dynamic>.from(store);
+    try {
+      html.window.localStorage[_storageKey] = jsonEncode(store);
+    } catch (_) {
+      // Ignore storage write failures; in-memory fallback remains active.
+    }
   }
 
   static UsageQuotaSummary getTodaySummary() {

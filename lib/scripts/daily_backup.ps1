@@ -81,7 +81,8 @@ $statusLines = @(
     "Last backup: $lastBackupTime",
     "Last backup file: $backupFile",
     "Backup task: JOBREADY_Daily_Backup (daily at 21:00)",
-    "Backup folder: $backupRoot"
+    "Backup folder: $backupRoot",
+    "Coverage: V1 merged lane + V2_WORKING + V2_BACKUP"
 )
 Set-Content -Path $statusFile -Value $statusLines -Encoding UTF8
 

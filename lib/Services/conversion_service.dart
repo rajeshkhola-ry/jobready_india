@@ -28,6 +28,10 @@ class ConversionResult {
 class ConversionService {
   const ConversionService();
 
+  static const int _maxXlsxRowsToExtract = 400;
+  static const int _maxXlsxColumnsToExtract = 40;
+  static const int _maxPptSourceChars = 18000;
+
   Future<ConversionResult> convert({
     required Uint8List inputBytes,
     required String inputFileName,
@@ -85,9 +89,17 @@ class ConversionService {
                     outputFileName: _changeExtension(inputFileName, 'docx'),
                   );
                 } catch (_) {
+                  final extractedText = await _extractAnyText(inputBytes, inputFileName);
+                  final fallbackWordBytes = await const WordGeneratorService().createWordDocument(
+                    pdfFileName: inputFileName,
+                    extractedText: extractedText,
+                  );
+
                   return ConversionResult(
-                    success: false,
-                    message: 'PDF to Word conversion could not generate the document. The PDF file may be too complex or memory is insufficient. Try splitting the PDF into smaller files.',
+                    success: true,
+                    message: 'Word document created in text-safe mode. For heavy layout files, split large PDFs for better fidelity.',
+                    outputBytes: fallbackWordBytes,
+                    outputFileName: _changeExtension(inputFileName, 'docx'),
                   );
                 }
               }
@@ -250,10 +262,20 @@ class ConversionService {
 
     if (lowerName.endsWith('.xlsx')) {
       final csv = _extractCsvFromXlsx(inputBytes);
+      if (csv.startsWith('Unable to parse XLSX data.') ||
+          csv.startsWith('No worksheet data found.')) {
+        return ConversionResult(
+          success: false,
+          message: csv,
+        );
+      }
+
+      // Add UTF-8 BOM for better compatibility when opening in spreadsheet apps.
+      final csvBytes = Uint8List.fromList(<int>[0xEF, 0xBB, 0xBF, ...utf8.encode(csv)]);
       return ConversionResult(
         success: true,
         message: 'CSV file created successfully.',
-        outputBytes: Uint8List.fromList(utf8.encode(csv)),
+        outputBytes: csvBytes,
         outputFileName: _changeExtension(inputFileName, 'csv'),
       );
     }
@@ -333,10 +355,37 @@ class ConversionService {
       );
     }
 
-    return const ConversionResult(
-      success: false,
-      message:
-          'PowerPoint (.pptx) export is not available for this source format yet. Please use PDF, Word, CSV, or image outputs for now.',
+    final supported = lowerName.endsWith('.pdf') ||
+        lowerName.endsWith('.docx') ||
+        lowerName.endsWith('.xlsx') ||
+        lowerName.endsWith('.csv') ||
+        lowerName.endsWith('.txt') ||
+        _isImageName(lowerName);
+
+    if (!supported) {
+      return const ConversionResult(
+        success: false,
+        message:
+            'PowerPoint (.pptx) conversion currently supports PDF, DOCX, XLSX/CSV, TXT, and image inputs.',
+      );
+    }
+
+    final extractedText = await _extractAnyText(inputBytes, inputFileName);
+    final boundedText = _truncateText(
+      extractedText,
+      maxChars: _maxPptSourceChars,
+      suffix: '\n\n[Note] Content was truncated to keep PPT conversion fast and stable.',
+    );
+    final pptxBytes = _buildSimplePptx(
+      sourceFileName: inputFileName,
+      text: boundedText,
+    );
+
+    return ConversionResult(
+      success: true,
+      message: 'PowerPoint presentation created successfully.',
+      outputBytes: pptxBytes,
+      outputFileName: _changeExtension(inputFileName, 'pptx'),
     );
   }
 
@@ -404,6 +453,10 @@ class ConversionService {
       return _extractTextFromPptx(inputBytes);
     }
 
+    if (lowerName.endsWith('.txt')) {
+      return utf8.decode(inputBytes, allowMalformed: true);
+    }
+
     if (_isImageName(lowerName)) {
       return 'Image conversion source: $inputFileName';
     }
@@ -458,7 +511,12 @@ class ConversionService {
   String _extractTextFromExcel(Uint8List bytes, String inputFileName) {
     final lowerName = inputFileName.toLowerCase();
     if (lowerName.endsWith('.csv')) {
-      return utf8.decode(bytes, allowMalformed: true);
+      final csvText = utf8.decode(bytes, allowMalformed: true);
+      return _truncateText(
+        csvText,
+        maxChars: _maxPptSourceChars,
+        suffix: '\n\n[Note] CSV text was truncated for conversion stability.',
+      );
     }
     if (lowerName.endsWith('.xlsx')) {
       return _extractCsvFromXlsx(bytes);
@@ -493,8 +551,15 @@ class ConversionService {
       final sheetXml = utf8.decode(sheet.content as List<int>, allowMalformed: true);
       final rows = RegExp(r'<row[^>]*>([\\s\\S]*?)</row>').allMatches(sheetXml);
       final csvRows = <String>[];
+      var rowCount = 0;
+      var truncatedByRowLimit = false;
 
       for (final row in rows) {
+        if (rowCount >= _maxXlsxRowsToExtract) {
+          truncatedByRowLimit = true;
+          break;
+        }
+
         final rowXml = row.group(1) ?? '';
         final cells = RegExp(r'<c([^>]*)>([\\s\\S]*?)</c>').allMatches(rowXml);
 
@@ -506,6 +571,9 @@ class ConversionService {
           final body = cell.group(2) ?? '';
           final rAttr = RegExp(r'r="([A-Z]+)\\d+"').firstMatch(attrs)?.group(1);
           final colIndex = rAttr == null ? ordered.length : _columnIndexFromRef(rAttr);
+          if (colIndex >= _maxXlsxColumnsToExtract) {
+            continue;
+          }
           maxCol = max(maxCol, colIndex);
 
           final type = RegExp(r't="([^"]+)"').firstMatch(attrs)?.group(1) ?? '';
@@ -525,21 +593,46 @@ class ConversionService {
         }
 
         if (ordered.isEmpty) {
+          rowCount++;
           continue;
         }
 
-        final values = List<String>.generate(maxCol + 1, (i) => ordered[i] ?? '');
+        final safeColumnCount = min(maxCol + 1, _maxXlsxColumnsToExtract);
+        final values = List<String>.generate(safeColumnCount, (i) => ordered[i] ?? '');
         csvRows.add(values.map(_escapeCsv).join(','));
+        rowCount++;
       }
 
       if (csvRows.isEmpty) {
         return 'No worksheet data found.';
       }
 
-      return csvRows.join('\n');
+      var output = csvRows.join('\n');
+      if (truncatedByRowLimit) {
+        output += '\n[Note] Worksheet preview truncated at $_maxXlsxRowsToExtract rows for performance.';
+      }
+
+      return _truncateText(
+        output,
+        maxChars: _maxPptSourceChars,
+        suffix: '\n\n[Note] XLSX text was truncated for conversion stability.',
+      );
     } catch (_) {
       return 'Unable to parse XLSX data.';
     }
+  }
+
+  String _truncateText(
+    String text, {
+    required int maxChars,
+    required String suffix,
+  }) {
+    if (text.length <= maxChars) {
+      return text;
+    }
+
+    final available = max(0, maxChars - suffix.length);
+    return '${text.substring(0, available)}$suffix';
   }
 
   int _columnIndexFromRef(String ref) {
@@ -572,7 +665,7 @@ class ConversionService {
   }
 
   String _decodeXmlEntities(String text) {
-    return text
+    final decoded = text
         .replaceAll('&lt;', '<')
         .replaceAll('&gt;', '>')
         .replaceAll('&amp;', '&')
@@ -581,6 +674,22 @@ class ConversionService {
         .replaceAll('&#10;', '\n')
         .replaceAll('&#13;', '\r')
         .replaceAll('&#9;', '\t');
+
+    final withHex = decoded.replaceAllMapped(RegExp(r'&#x([0-9A-Fa-f]+);'), (match) {
+      final value = int.tryParse(match.group(1) ?? '', radix: 16);
+      if (value == null) {
+        return match.group(0) ?? '';
+      }
+      return String.fromCharCode(value);
+    });
+
+    return withHex.replaceAllMapped(RegExp(r'&#(\d+);'), (match) {
+      final value = int.tryParse(match.group(1) ?? '');
+      if (value == null) {
+        return match.group(0) ?? '';
+      }
+      return String.fromCharCode(value);
+    });
   }
 
   bool _isImageName(String lowerName) {
@@ -775,8 +884,9 @@ class ConversionService {
     required String inputFileName,
     required String targetType,
   }) async {
-    final doc = await pdf_render.PdfDocument.openData(pdfBytes);
+    pdf_render.PdfDocument? doc;
     try {
+      doc = await pdf_render.PdfDocument.openData(pdfBytes);
       final archive = Archive();
       final baseName = _baseName(inputFileName);
 
@@ -840,7 +950,9 @@ class ConversionService {
       }
       return Uint8List.fromList(zip);
     } finally {
-      await doc.dispose();
+      if (doc != null) {
+        await doc.dispose();
+      }
     }
   }
 
@@ -857,6 +969,368 @@ class ConversionService {
       return Uint8List.fromList(img.encodePng(source, level: 6));
     }
     return Uint8List.fromList(img.encodePng(source, level: 6));
+  }
+
+  Uint8List _buildSimplePptx({
+    required String sourceFileName,
+    required String text,
+  }) {
+    final normalized = _sanitizeForPpt(
+      text.trim().isEmpty
+          ? 'No readable text was extracted from this source file.'
+          : text.trim(),
+    );
+
+    final title = _sanitizeForPpt('Converted from $sourceFileName');
+    final chunks = _splitIntoSlideChunks(normalized, maxCharsPerSlide: 1200);
+
+    final archive = Archive();
+
+    final contentTypes = StringBuffer()
+      ..writeln('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>')
+      ..writeln('<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">')
+      ..writeln('  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>')
+      ..writeln('  <Default Extension="xml" ContentType="application/xml"/>')
+      ..writeln('  <Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>')
+      ..writeln('  <Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/>')
+      ..writeln('  <Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>')
+      ..writeln('  <Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>')
+      ..writeln('  <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>')
+      ..writeln('  <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>');
+
+    for (var i = 0; i < chunks.length; i++) {
+      contentTypes.writeln(
+        '  <Override PartName="/ppt/slides/slide${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>',
+      );
+    }
+    contentTypes.writeln('</Types>');
+
+    final relsRoot = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
+</Relationships>''';
+
+    final appXml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
+  <Application>JOBREADY</Application>
+  <Slides>${chunks.length}</Slides>
+  <Notes>0</Notes>
+  <HiddenSlides>0</HiddenSlides>
+  <MMClips>0</MMClips>
+  <ScaleCrop>false</ScaleCrop>
+</Properties>''';
+
+    final coreXml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <dc:title>${_escapeXml(title)}</dc:title>
+  <dc:creator>JOBREADY</dc:creator>
+  <cp:lastModifiedBy>JOBREADY</cp:lastModifiedBy>
+</cp:coreProperties>''';
+
+    final presentationSlides = StringBuffer();
+    final presentationRels = StringBuffer()
+      ..writeln('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>')
+      ..writeln('<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">')
+      ..writeln('  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="slideMasters/slideMaster1.xml"/>');
+
+    for (var i = 0; i < chunks.length; i++) {
+      final relId = i + 2;
+      presentationSlides.writeln(
+        '<p:sldId id="${256 + i}" r:id="rId$relId"/>',
+      );
+      presentationRels.writeln(
+        '  <Relationship Id="rId$relId" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide${i + 1}.xml"/>',
+      );
+    }
+    presentationRels.writeln('</Relationships>');
+
+    final presentationXml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:presentation xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
+  <p:sldMasterIdLst>
+    <p:sldMasterId id="2147483648" r:id="rId1"/>
+  </p:sldMasterIdLst>
+  <p:sldIdLst>
+    ${presentationSlides.toString()}
+  </p:sldIdLst>
+  <p:sldSz cx="9144000" cy="6858000" type="screen4x3"/>
+  <p:notesSz cx="6858000" cy="9144000"/>
+</p:presentation>''';
+
+    final slideMasterXml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:sldMaster xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
+  <p:cSld>
+    <p:bg>
+      <p:bgRef idx="1001">
+        <a:schemeClr val="bg1"/>
+      </p:bgRef>
+    </p:bg>
+    <p:spTree>
+      <p:nvGrpSpPr>
+        <p:cNvPr id="1" name=""/>
+        <p:cNvGrpSpPr/>
+        <p:nvPr/>
+      </p:nvGrpSpPr>
+      <p:grpSpPr>
+        <a:xfrm>
+          <a:off x="0" y="0"/>
+          <a:ext cx="0" cy="0"/>
+          <a:chOff x="0" y="0"/>
+          <a:chExt cx="0" cy="0"/>
+        </a:xfrm>
+      </p:grpSpPr>
+    </p:spTree>
+  </p:cSld>
+  <p:sldLayoutIdLst>
+    <p:sldLayoutId id="2147483649" r:id="rId1"/>
+  </p:sldLayoutIdLst>
+</p:sldMaster>''';
+
+    final slideMasterRelsXml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="../theme/theme1.xml"/>
+</Relationships>''';
+
+    final slideLayoutXml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:sldLayout xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" type="blank" preserve="1">
+  <p:cSld>
+    <p:spTree>
+      <p:nvGrpSpPr>
+        <p:cNvPr id="1" name=""/>
+        <p:cNvGrpSpPr/>
+        <p:nvPr/>
+      </p:nvGrpSpPr>
+      <p:grpSpPr>
+        <a:xfrm>
+          <a:off x="0" y="0"/>
+          <a:ext cx="0" cy="0"/>
+          <a:chOff x="0" y="0"/>
+          <a:chExt cx="0" cy="0"/>
+        </a:xfrm>
+      </p:grpSpPr>
+    </p:spTree>
+  </p:cSld>
+</p:sldLayout>''';
+
+    final themeXml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="JOBREADY Theme">
+  <a:themeElements>
+    <a:clrScheme name="Office">
+      <a:dk1><a:srgbClr val="000000"/></a:dk1>
+      <a:lt1><a:srgbClr val="FFFFFF"/></a:lt1>
+      <a:dk2><a:srgbClr val="1F2937"/></a:dk2>
+      <a:lt2><a:srgbClr val="F8FAFC"/></a:lt2>
+      <a:accent1><a:srgbClr val="2563EB"/></a:accent1>
+      <a:accent2><a:srgbClr val="10B981"/></a:accent2>
+      <a:accent3><a:srgbClr val="F59E0B"/></a:accent3>
+      <a:accent4><a:srgbClr val="EF4444"/></a:accent4>
+      <a:accent5><a:srgbClr val="8B5CF6"/></a:accent5>
+      <a:accent6><a:srgbClr val="06B6D4"/></a:accent6>
+      <a:hlink><a:srgbClr val="0000FF"/></a:hlink>
+      <a:folHlink><a:srgbClr val="800080"/></a:folHlink>
+    </a:clrScheme>
+    <a:fontScheme name="Office">
+      <a:majorFont>
+        <a:latin typeface="Calibri"/>
+        <a:ea typeface=""/>
+        <a:cs typeface=""/>
+      </a:majorFont>
+      <a:minorFont>
+        <a:latin typeface="Calibri"/>
+        <a:ea typeface=""/>
+        <a:cs typeface=""/>
+      </a:minorFont>
+    </a:fontScheme>
+    <a:fmtScheme name="Office">
+      <a:fillStyleLst>
+        <a:solidFill><a:schemeClr val="phClr"/></a:solidFill>
+      </a:fillStyleLst>
+      <a:lnStyleLst>
+        <a:ln w="9525" cap="flat" cmpd="sng" algn="ctr">
+          <a:solidFill><a:schemeClr val="phClr"/></a:solidFill>
+          <a:prstDash val="solid"/>
+        </a:ln>
+      </a:lnStyleLst>
+      <a:effectStyleLst>
+        <a:effectStyle><a:effectLst/></a:effectStyle>
+      </a:effectStyleLst>
+      <a:bgFillStyleLst>
+        <a:solidFill><a:schemeClr val="phClr"/></a:solidFill>
+      </a:bgFillStyleLst>
+    </a:fmtScheme>
+  </a:themeElements>
+</a:theme>''';
+
+    archive.addFile(ArchiveFile('[Content_Types].xml', utf8.encode(contentTypes.toString()).length, utf8.encode(contentTypes.toString())));
+    archive.addFile(ArchiveFile('_rels/.rels', utf8.encode(relsRoot).length, utf8.encode(relsRoot)));
+    archive.addFile(ArchiveFile('docProps/app.xml', utf8.encode(appXml).length, utf8.encode(appXml)));
+    archive.addFile(ArchiveFile('docProps/core.xml', utf8.encode(coreXml).length, utf8.encode(coreXml)));
+    archive.addFile(ArchiveFile('ppt/presentation.xml', utf8.encode(presentationXml).length, utf8.encode(presentationXml)));
+    archive.addFile(ArchiveFile('ppt/_rels/presentation.xml.rels', utf8.encode(presentationRels.toString()).length, utf8.encode(presentationRels.toString())));
+    archive.addFile(ArchiveFile('ppt/slideMasters/slideMaster1.xml', utf8.encode(slideMasterXml).length, utf8.encode(slideMasterXml)));
+    archive.addFile(ArchiveFile('ppt/slideMasters/_rels/slideMaster1.xml.rels', utf8.encode(slideMasterRelsXml).length, utf8.encode(slideMasterRelsXml)));
+    archive.addFile(ArchiveFile('ppt/slideLayouts/slideLayout1.xml', utf8.encode(slideLayoutXml).length, utf8.encode(slideLayoutXml)));
+    archive.addFile(ArchiveFile('ppt/theme/theme1.xml', utf8.encode(themeXml).length, utf8.encode(themeXml)));
+
+    for (var i = 0; i < chunks.length; i++) {
+      final bodyXml = _buildPptParagraphsXml(chunks[i], fontSize: 1800, bold: false);
+      final titleXml = _buildPptParagraphsXml(title, fontSize: 3200, bold: true);
+      final slideXml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
+  <p:cSld>
+    <p:spTree>
+      <p:nvGrpSpPr>
+        <p:cNvPr id="1" name=""/>
+        <p:cNvGrpSpPr/>
+        <p:nvPr/>
+      </p:nvGrpSpPr>
+      <p:grpSpPr>
+        <a:xfrm>
+          <a:off x="0" y="0"/>
+          <a:ext cx="0" cy="0"/>
+          <a:chOff x="0" y="0"/>
+          <a:chExt cx="0" cy="0"/>
+        </a:xfrm>
+      </p:grpSpPr>
+      <p:sp>
+        <p:nvSpPr>
+          <p:cNvPr id="2" name="Title ${i + 1}"/>
+          <p:cNvSpPr/>
+          <p:nvPr/>
+        </p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="457200" y="228600"/><a:ext cx="8229600" cy="685800"/></a:xfrm>
+        </p:spPr>
+        <p:txBody>
+          <a:bodyPr/>
+          <a:lstStyle/>
+          $titleXml
+        </p:txBody>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr>
+          <p:cNvPr id="3" name="Body ${i + 1}"/>
+          <p:cNvSpPr/>
+          <p:nvPr/>
+        </p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="457200" y="1143000"/><a:ext cx="8229600" cy="5029200"/></a:xfrm>
+        </p:spPr>
+        <p:txBody>
+          <a:bodyPr wrap="square"/>
+          <a:lstStyle/>
+          $bodyXml
+        </p:txBody>
+      </p:sp>
+    </p:spTree>
+  </p:cSld>
+</p:sld>''';
+
+      final slideRelsXml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>
+</Relationships>''';
+
+      archive.addFile(ArchiveFile('ppt/slides/slide${i + 1}.xml', utf8.encode(slideXml).length, utf8.encode(slideXml)));
+      archive.addFile(ArchiveFile('ppt/slides/_rels/slide${i + 1}.xml.rels', utf8.encode(slideRelsXml).length, utf8.encode(slideRelsXml)));
+    }
+
+    final encoded = ZipEncoder().encode(archive);
+    return Uint8List.fromList(encoded ?? <int>[]);
+  }
+
+  List<String> _splitIntoSlideChunks(String text, {int maxCharsPerSlide = 1200}) {
+    if (text.length <= maxCharsPerSlide) {
+      return <String>[text];
+    }
+
+    final chunks = <String>[];
+    var start = 0;
+    while (start < text.length) {
+      var end = min(start + maxCharsPerSlide, text.length);
+      if (end < text.length) {
+        final breakIndex = text.lastIndexOf(' ', end);
+        if (breakIndex > start + 300) {
+          end = breakIndex;
+        }
+      }
+      chunks.add(text.substring(start, end).trim());
+      start = end;
+    }
+
+    return chunks.where((part) => part.isNotEmpty).toList(growable: false);
+  }
+
+  String _buildPptParagraphsXml(
+    String text, {
+    required int fontSize,
+    required bool bold,
+  }) {
+    final lines = _sanitizeForPpt(text).split('\n');
+    final buffer = StringBuffer();
+    final boldAttr = bold ? ' b="1"' : '';
+
+    for (final rawLine in lines) {
+      final line = rawLine.trimRight();
+      if (line.isEmpty) {
+        buffer.writeln('<a:p><a:endParaRPr lang="en-US"/></a:p>');
+        continue;
+      }
+
+      buffer.writeln(
+        '<a:p><a:r><a:rPr lang="en-US" sz="$fontSize"$boldAttr/><a:t xml:space="preserve">${_escapeXml(line)}</a:t></a:r></a:p>',
+      );
+    }
+
+    if (buffer.isEmpty) {
+      buffer.write('<a:p><a:endParaRPr lang="en-US"/></a:p>');
+    }
+
+    return buffer.toString();
+  }
+
+  String _sanitizeForPpt(String input) {
+    final normalized = input
+        .replaceAll(RegExp(r'[\u0000-\u0008\u000B\u000C\u000E-\u001F]'), ' ')
+        .replaceAll('\r\n', '\n')
+        .replaceAll('\r', '\n');
+
+    final cleanedLines = normalized
+        .split('\n')
+        .map((line) => line.replaceAll(RegExp(r'\b[xX]{4,}\b'), ' ').trim())
+        .where((line) => !_looksLikePlaceholderLine(line))
+        .toList(growable: false);
+
+    return cleanedLines.join('\n').trim();
+  }
+
+  bool _looksLikePlaceholderLine(String line) {
+    if (line.isEmpty) {
+      return true;
+    }
+
+    // Drop lines that are effectively repeated x/X placeholders.
+    if (RegExp(r'^[xX]{4,}$').hasMatch(line)) {
+      return true;
+    }
+
+    if (RegExp(r'^(?:[xX]{2,}[\s\-_|:,.!?/]*){2,}$').hasMatch(line)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  String _escapeXml(String value) {
+    return _sanitizeForPpt(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&apos;')
+        .replaceAll('\u00A0', ' ');
   }
 
   Uint8List _createImageFromTextSummary({

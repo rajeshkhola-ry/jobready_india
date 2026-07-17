@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:universal_html/html.dart' as html;
 
 import '../Widgets/why_choose_card.dart';
@@ -12,6 +13,7 @@ import '../Services/document_history_service.dart';
 import '../Services/integration_hub_service.dart';
 import '../Services/owner_admin_access_service.dart';
 import '../Services/support_ticket_service.dart';
+import '../Services/theme_mode_service.dart';
 import '../Services/user_rating_service.dart';
 import '../Services/user_account_service.dart';
 import '../Services/usage_quota_service.dart';
@@ -49,6 +51,7 @@ const Map<String, String> _paymentCurrencyLabels = {
   'DKK': 'Danish Krone (DKK)',
   'MYR': 'Malaysian Ringgit (MYR)',
   'THB': 'Thai Baht (THB)',
+  'OTH': 'Other countries (USD rates applicable)',
 };
 
 const Map<String, double> _paymentCurrencyRates = {
@@ -71,6 +74,7 @@ const Map<String, double> _paymentCurrencyRates = {
   'DKK': 6.86,
   'MYR': 4.7,
   'THB': 36.3,
+  'OTH': 1.0,
 };
 
 const Map<String, String> _paymentCurrencySymbols = {
@@ -94,6 +98,7 @@ const Map<String, String> _paymentCurrencySymbols = {
   'DKK': 'DKK ',
   'MYR': 'RM ',
   'THB': '฿',
+  'OTH': '\$',
 };
 
 String _formatCurrencyAmount(double amount, String currencyCode) {
@@ -323,16 +328,19 @@ class _HomePageV2State extends State<HomePageV2> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDarkMode = theme.brightness == Brightness.dark;
     final sevenDayPriceLine = _planPriceLine('7Days', ' for 7 days');
     final monthlyPriceLine = _planPriceLine('Monthly', ' per month');
     final yearlyPriceLine = _planPriceLine('Yearly', ' per year');
     final lifetimePriceLine = _planPriceLine('Lifetime', ' one-time');
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FC),
+      backgroundColor: theme.scaffoldBackgroundColor,
 
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1F2937),
+        backgroundColor: theme.appBarTheme.backgroundColor ?? colorScheme.surface,
         centerTitle: true,
         toolbarHeight: 64,
         actions: [
@@ -412,6 +420,30 @@ class _HomePageV2State extends State<HomePageV2> {
               );
             },
           ),
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFF142033),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: Colors.white.withOpacity(0.18)),
+            ),
+            child: Text(
+              isDarkMode ? 'Dark' : 'Light',
+              style: TextStyle(
+                color: isDarkMode ? const Color(0xFFFFF3B0) : const Color(0xFFD1E9FF),
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ),
+          _TopActionIcon(
+            tooltip: isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode',
+            icon: isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+            iconColor: const Color(0xFFFFF3B0),
+            onTap: ThemeModeService.toggle,
+          ),
           const SizedBox(width: 8),
         ],
         title: Row(
@@ -449,8 +481,10 @@ class _HomePageV2State extends State<HomePageV2> {
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(18),
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF1F4E79), Color(0xFFFFC72C)],
+                gradient: LinearGradient(
+                  colors: isDarkMode
+                      ? const [Color(0xFF0F3A5E), Color(0xFF8A6A11)]
+                      : const [Color(0xFF1F4E79), Color(0xFFFFC72C)],
                 ),
               ),
               child: const Text(
@@ -466,7 +500,7 @@ class _HomePageV2State extends State<HomePageV2> {
             ),
 
             const SizedBox(height: 10),
-            const _BrowserSupportNotice(),
+            _BrowserSupportNotice(isDarkMode: isDarkMode),
 
             const SizedBox(height: 10),
             const _V2Column(),
@@ -498,13 +532,18 @@ class _HomePageV2State extends State<HomePageV2> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
+                gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0xFFFFFBEB), Color(0xFFFDE68A)],
+                  colors: isDarkMode
+                      ? const [Color(0xFF2C230F), Color(0xFF4A3A14)]
+                      : const [Color(0xFFFFFBEB), Color(0xFFFDE68A)],
                 ),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFF59E0B), width: 1.1),
+                border: Border.all(
+                  color: isDarkMode ? const Color(0xFFD9A441) : const Color(0xFFF59E0B),
+                  width: 1.1,
+                ),
               ),
               child: Row(
                 children: [
@@ -512,7 +551,9 @@ class _HomePageV2State extends State<HomePageV2> {
                     width: 30,
                     height: 30,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.9),
+                      color: isDarkMode
+                          ? const Color(0xFF1F2937)
+                          : Colors.white.withValues(alpha: 0.9),
                       borderRadius: BorderRadius.circular(9),
                     ),
                     child: const Icon(
@@ -522,7 +563,7 @@ class _HomePageV2State extends State<HomePageV2> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
@@ -532,16 +573,20 @@ class _HomePageV2State extends State<HomePageV2> {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFF7C2D12),
+                            color: isDarkMode
+                                ? const Color(0xFFFDE68A)
+                                : const Color(0xFF7C2D12),
                           ),
                         ),
-                        SizedBox(height: 2),
+                        const SizedBox(height: 2),
                         Text(
                           'Select Personal or Business first, then continue with your plan. Annual access uses 10-month payment for 12 months.',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF92400E),
+                            color: isDarkMode
+                                ? const Color(0xFFFCD34D)
+                                : const Color(0xFF92400E),
                             height: 1.25,
                           ),
                         ),
@@ -685,13 +730,16 @@ class _LiveOfferBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7CC),
+        color: isDarkMode ? const Color(0xFF3B2F12) : const Color(0xFFFFF7CC),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFFE08A)),
+        border: Border.all(
+          color: isDarkMode ? const Color(0xFFD4A93A) : const Color(0xFFFFE08A),
+        ),
       ),
       child: Row(
         children: [
@@ -700,10 +748,10 @@ class _LiveOfferBanner extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF78350F),
+                color: isDarkMode ? const Color(0xFFFDE68A) : const Color(0xFF78350F),
               ),
             ),
           ),
@@ -769,6 +817,9 @@ class _UsageTypeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
+
     Widget buildTypeChip({required String label, required String subtitle}) {
       final selected = selectedType == label;
       return Expanded(
@@ -778,10 +829,14 @@ class _UsageTypeSelector extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: selected ? const Color(0xFFE0F2FE) : Colors.white,
+              color: selected
+                  ? (isDarkMode ? colorScheme.primary.withValues(alpha: 0.24) : const Color(0xFFE0F2FE))
+                  : (isDarkMode ? const Color(0xFF111827) : Colors.white),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: selected ? const Color(0xFF0284C7) : const Color(0xFFD1D5DB),
+                color: selected
+                    ? const Color(0xFF0284C7)
+                    : (isDarkMode ? const Color(0xFF334155) : const Color(0xFFD1D5DB)),
                 width: selected ? 1.6 : 1,
               ),
             ),
@@ -799,18 +854,18 @@ class _UsageTypeSelector extends StatelessWidget {
                     children: [
                       Text(
                         label,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF111827),
+                          color: isDarkMode ? Colors.white : const Color(0xFF111827),
                         ),
                       ),
                       Text(
                         subtitle,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF4B5563),
+                          color: isDarkMode ? const Color(0xFFCBD5E1) : const Color(0xFF4B5563),
                         ),
                       ),
                     ],
@@ -827,19 +882,21 @@ class _UsageTypeSelector extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFF),
+        color: isDarkMode ? const Color(0xFF0F172A) : const Color(0xFFF8FAFF),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFDCE5F0)),
+        border: Border.all(
+          color: isDarkMode ? const Color(0xFF334155) : const Color(0xFFDCE5F0),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Select Usage Type (Required)',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF1F2937),
+              color: isDarkMode ? Colors.white : const Color(0xFF1F2937),
             ),
           ),
           const SizedBox(height: 8),
@@ -948,10 +1005,12 @@ class _PlanCardsSection extends StatelessWidget {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     '${usageType == 'Business' ? 'Business' : 'Personal'} mode active. Payment display currency: $selectedCurrency.',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF334155),
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFFCBD5E1)
+                          : const Color(0xFF334155),
                     ),
                   ),
                 ),
@@ -973,10 +1032,12 @@ class _PlanCardsSection extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   '${usageType == 'Business' ? 'Business' : 'Personal'} mode active. Payment display currency: $selectedCurrency.',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF334155),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFFCBD5E1)
+                        : const Color(0xFF334155),
                   ),
                 ),
               ),
@@ -987,6 +1048,7 @@ class _PlanCardsSection extends StatelessWidget {
   }
 
   Widget _buildFeatureListCta(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return InkWell(
       borderRadius: BorderRadius.circular(14),
       onTap: () {
@@ -1001,16 +1063,21 @@ class _PlanCardsSection extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFFEFF6FF), Color(0xFFDCEAFE)],
+            colors: isDarkMode
+                ? const [Color(0xFF13263D), Color(0xFF1E3650)]
+                : const [Color(0xFFEFF6FF), Color(0xFFDCEAFE)],
           ),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFF93C5FD), width: 1.4),
+          border: Border.all(
+            color: isDarkMode ? const Color(0xFF3B82F6) : const Color(0xFF93C5FD),
+            width: 1.4,
+          ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF1D4ED8).withValues(alpha: 0.12),
+              color: const Color(0xFF1D4ED8).withValues(alpha: isDarkMode ? 0.2 : 0.12),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -1022,9 +1089,11 @@ class _PlanCardsSection extends StatelessWidget {
               width: 34,
               height: 34,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDarkMode ? const Color(0xFF0B1220) : Colors.white,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFBFDBFE)),
+                border: Border.all(
+                  color: isDarkMode ? const Color(0xFF3B82F6) : const Color(0xFFBFDBFE),
+                ),
               ),
               child: const Icon(
                 Icons.list_alt_rounded,
@@ -1033,7 +1102,7 @@ class _PlanCardsSection extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 10),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
@@ -1043,16 +1112,16 @@ class _PlanCardsSection extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF1E3A8A),
+                      color: isDarkMode ? const Color(0xFFBFDBFE) : const Color(0xFF1E3A8A),
                     ),
                   ),
-                  SizedBox(height: 2),
+                  const SizedBox(height: 2),
                   Text(
                     'PDF edit, OCR (Optical Character Recognition), payments, and plan detail matrix',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF334155),
+                      color: isDarkMode ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
                     ),
                   ),
                 ],
@@ -1091,19 +1160,28 @@ class _PlanCardTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final bool isPro = title == 'Pro';
 
     final List<Color> backgroundGradient = recommended
-        ? const [Color(0xFFEEF6FF), Color(0xFFDDEEFF)]
+      ? (isDarkMode
+        ? const [Color(0xFF172D45), Color(0xFF1E3A57)]
+        : const [Color(0xFFEEF6FF), Color(0xFFDDEEFF)])
         : isPro
-            ? const [Color(0xFFEFFCF8), Color(0xFFD8F5EC)]
-            : const [Color(0xFFF8FAFC), Color(0xFFF1F5F9)];
+        ? (isDarkMode
+          ? const [Color(0xFF16312A), Color(0xFF1F433B)]
+          : const [Color(0xFFEFFCF8), Color(0xFFD8F5EC)])
+        : (isDarkMode
+          ? const [Color(0xFF1A2433), Color(0xFF222F40)]
+          : const [Color(0xFFF8FAFC), Color(0xFFF1F5F9)]);
 
     final Color outlineColor = selected
         ? const Color(0xFF0F766E)
         : (recommended
             ? const Color(0xFF1D74D8)
-            : (isPro ? const Color(0xFF0F766E) : const Color(0xFFD1D5DB)));
+        : (isPro
+          ? const Color(0xFF0F766E)
+          : (isDarkMode ? const Color(0xFF334155) : const Color(0xFFD1D5DB))));
 
     final Color accentColor = recommended
         ? const Color(0xFF1D74D8)
@@ -1166,7 +1244,9 @@ class _PlanCardTile extends StatelessWidget {
                       width: 34,
                       height: 34,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
+                        color: isDarkMode
+                            ? const Color(0xFF0B1220).withValues(alpha: 0.95)
+                            : Colors.white.withOpacity(0.9),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: accentColor.withOpacity(0.25)),
                       ),
@@ -1176,10 +1256,10 @@ class _PlanCardTile extends StatelessWidget {
                     Expanded(
                       child: Text(
                         title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF111827),
+                          color: isDarkMode ? Colors.white : const Color(0xFF111827),
                         ),
                       ),
                     ),
@@ -1204,9 +1284,9 @@ class _PlanCardTile extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   subtitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: Color(0xFF4B5563),
+                    color: isDarkMode ? const Color(0xFFCBD5E1) : const Color(0xFF4B5563),
                     height: 1.35,
                     fontWeight: FontWeight.w600,
                   ),
@@ -1216,16 +1296,22 @@ class _PlanCardTile extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.88),
+                    color: isDarkMode
+                        ? const Color(0xFF0B1220).withValues(alpha: 0.9)
+                        : Colors.white.withOpacity(0.88),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.black.withOpacity(0.06)),
+                    border: Border.all(
+                      color: isDarkMode
+                          ? Colors.white.withOpacity(0.08)
+                          : Colors.black.withOpacity(0.06),
+                    ),
                   ),
                   child: Text(
                     priceLine,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF111827),
+                      color: isDarkMode ? Colors.white : const Color(0xFF111827),
                     ),
                   ),
                 ),
@@ -1312,17 +1398,22 @@ class _FixedAdSpaceState extends State<_FixedAdSpace> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: _onTapAd,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFFECFEFF), Color(0xFFEFF6FF)],
+          gradient: LinearGradient(
+            colors: isDarkMode
+                ? const [Color(0xFF0F2231), Color(0xFF193047)]
+                : const [Color(0xFFECFEFF), Color(0xFFEFF6FF)],
           ),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFBFDBFE)),
+          border: Border.all(
+            color: isDarkMode ? const Color(0xFF3B82F6) : const Color(0xFFBFDBFE),
+          ),
         ),
         child: Row(
           children: [
@@ -1330,7 +1421,7 @@ class _FixedAdSpaceState extends State<_FixedAdSpace> {
               width: 38,
               height: 38,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDarkMode ? const Color(0xFF0B1220) : Colors.white,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(
@@ -1345,18 +1436,18 @@ class _FixedAdSpaceState extends State<_FixedAdSpace> {
                 children: [
                   Text(
                     _title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF1E293B),
+                      color: isDarkMode ? Colors.white : const Color(0xFF1E293B),
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     _subtitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
-                      color: Color(0xFF475569),
+                      color: isDarkMode ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
                       height: 1.3,
                     ),
                   ),
@@ -1367,7 +1458,7 @@ class _FixedAdSpaceState extends State<_FixedAdSpace> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDarkMode ? const Color(0xFF0B1220) : Colors.white,
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
@@ -1445,18 +1536,21 @@ class _IntegrationHubPanelState extends State<_IntegrationHubPanel> {
 
         final apps = snapshot.data ?? const <IntegrationApp>[];
         if (apps.isEmpty) {
+          final isDarkMode = Theme.of(context).brightness == Brightness.dark;
           return Container(
             width: double.infinity,
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isDarkMode ? const Color(0xFF111827) : Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE5E7EB)),
+              border: Border.all(
+                color: isDarkMode ? const Color(0xFF334155) : const Color(0xFFE5E7EB),
+              ),
             ),
-            child: const Text(
+            child: Text(
               'No enabled integrations found in manifest.',
               style: TextStyle(
-                color: Color(0xFF6B7280),
+                color: isDarkMode ? const Color(0xFFCBD5E1) : const Color(0xFF6B7280),
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -1483,7 +1577,9 @@ class _IntegrationHubPanelState extends State<_IntegrationHubPanel> {
 }
 
 class _BrowserSupportNotice extends StatelessWidget {
-  const _BrowserSupportNotice();
+  final bool isDarkMode;
+
+  const _BrowserSupportNotice({required this.isDarkMode});
 
   @override
   Widget build(BuildContext context) {
@@ -1491,26 +1587,28 @@ class _BrowserSupportNotice extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFF),
+        color: isDarkMode ? const Color(0xFF0F172A) : const Color(0xFFF8FAFF),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFD8E6FF)),
+        border: Border.all(
+          color: isDarkMode ? const Color(0xFF334155) : const Color(0xFFD8E6FF),
+        ),
       ),
-      child: const Row(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
             Icons.info_outline_rounded,
-            color: Color(0xFF1F4E79),
+            color: isDarkMode ? const Color(0xFFBFDBFE) : const Color(0xFF1F4E79),
             size: 18,
           ),
-          SizedBox(width: 8),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
               'JOBREADY is now live. Full access is free for the next 15 days. If you notice any issue, please share it in Suggestion and we will fix it quickly.',
               style: TextStyle(
                 fontSize: 12,
                 height: 1.35,
-                color: Color(0xFF1F2937),
+                color: isDarkMode ? const Color(0xFFE2E8F0) : const Color(0xFF1F2937),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -1532,6 +1630,7 @@ class _IntegrationAppTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: onTap,
@@ -1539,11 +1638,15 @@ class _IntegrationAppTile extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFFF8FAFF), Color(0xFFFFFFFF)],
+          gradient: LinearGradient(
+            colors: isDarkMode
+                ? const [Color(0xFF111827), Color(0xFF1F2937)]
+                : const [Color(0xFFF8FAFF), Color(0xFFFFFFFF)],
           ),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFDCE5F0)),
+          border: Border.all(
+            color: isDarkMode ? const Color(0xFF334155) : const Color(0xFFDCE5F0),
+          ),
         ),
         child: Row(
           children: [
@@ -1551,7 +1654,7 @@ class _IntegrationAppTile extends StatelessWidget {
               width: 34,
               height: 34,
               decoration: BoxDecoration(
-                color: const Color(0xFFE0EAFF),
+                color: isDarkMode ? const Color(0xFF0B1220) : const Color(0xFFE0EAFF),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(
@@ -1567,18 +1670,18 @@ class _IntegrationAppTile extends StatelessWidget {
                 children: [
                   Text(
                     app.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF1F2937),
+                      color: isDarkMode ? Colors.white : const Color(0xFF1F2937),
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     '${app.auth.displayLabel} | ${app.actions.length} actions',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
-                      color: Color(0xFF6B7280),
+                      color: isDarkMode ? const Color(0xFFCBD5E1) : const Color(0xFF6B7280),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -2014,7 +2117,7 @@ class _UserPaymentPanel extends StatelessWidget {
             },
             decoration: InputDecoration(
               labelText: 'Payment currency',
-              helperText: 'USD-based conversion is used for global currencies. INR stays on the India rate card.',
+              helperText: 'USD-based conversion is used for global currencies. Choose "Other countries (USD rates applicable)" when your country is not listed. INR stays on the India rate card.',
               isDense: true,
               filled: true,
               fillColor: Colors.white,
@@ -2614,6 +2717,31 @@ class _FooterInfoRow extends StatelessWidget {
     required this.value,
   });
 
+  Future<void> _openValue(BuildContext context) async {
+    String target = value.trim();
+    if (target.isEmpty) {
+      return;
+    }
+
+    if (target.contains('@') && !target.startsWith('mailto:')) {
+      target = 'mailto:$target';
+    } else if (!target.startsWith('http://') && !target.startsWith('https://') && !target.startsWith('mailto:')) {
+      target = 'https://$target';
+    }
+
+    final uri = Uri.tryParse(target);
+    if (uri == null) {
+      return;
+    }
+
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to open this link right now.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -2649,12 +2777,16 @@ class _FooterInfoRow extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF1F4E79),
+                InkWell(
+                  onTap: () => _openValue(context),
+                  child: Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1F4E79),
+                      decoration: TextDecoration.underline,
+                    ),
                   ),
                 ),
               ],

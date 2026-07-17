@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:syncfusion_flutter_pdf/pdf.dart' as sfpdf;
 import '../Widgets/apple_button.dart';
 import '../Widgets/download_result_dialog.dart';
+import '../Widgets/site_footer_link.dart';
 import '../Services/conversion_service.dart';
 import '../Services/pdf_editor_service.dart';
 import '../Services/pdf_ocr_service.dart';
@@ -282,22 +283,7 @@ class _ExtractToolPageState extends State<ExtractToolPage> {
           );
         },
       ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Container(
-          color: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: const Text(
-            'getreadyjob.com',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF1F4E79),
-            ),
-          ),
-        ),
-      ),
+      bottomNavigationBar: const SiteFooterLink(),
     );
   }
 

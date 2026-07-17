@@ -7,6 +7,7 @@ import 'package:syncfusion_flutter_pdf/pdf.dart' as sfpdf;
 
 import '../Widgets/download_result_dialog.dart';
 import '../Widgets/pdf_tool_card.dart';
+import '../Widgets/site_footer_link.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/pdf_ocr_service.dart';
 import '../Services/public_brand_config.dart';
@@ -634,22 +635,7 @@ class _PdfToolsPageState extends State<PdfToolsPage> {
           ),
         ],
       ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Container(
-          color: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: const Text(
-            'getreadyjob.com',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF1F4E79),
-            ),
-          ),
-        ),
-      ),
+      bottomNavigationBar: const SiteFooterLink(),
     );
   }
 

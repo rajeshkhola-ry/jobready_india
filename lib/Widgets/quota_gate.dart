@@ -10,7 +10,13 @@ Future<bool> checkQuotaAndProceed({
   required BuildContext context,
   required String actionBucket,
 }) async {
-  final summary = UsageQuotaService.getTodaySummary();
+  UsageQuotaSummary summary;
+  try {
+    summary = UsageQuotaService.getTodaySummary();
+  } catch (_) {
+    // If quota storage is unavailable, allow tool execution instead of blocking all actions.
+    return true;
+  }
 
   bool overLimit = false;
   int used = 0;

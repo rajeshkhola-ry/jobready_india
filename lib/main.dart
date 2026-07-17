@@ -1,13 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'Widgets/feature_tile.dart';
 import 'Widgets/pricing_card.dart';
 import 'Widgets/pdf_tool_card.dart';
 import 'Services/public_brand_config.dart';
+import 'Services/theme_mode_service.dart';
 import 'Pages/coming_soon_page.dart';
+import 'Pages/compression_tool_page.dart';
+import 'Pages/convert_tool_page.dart';
+import 'Pages/extract_tool_page.dart';
+import 'Pages/merge_tool_page.dart';
 import 'Pages/pdf_tools_page.dart';
+import 'Pages/pdf_edit_page.dart';
+import 'Pages/split_tool_page.dart';
 import 'Pages/home_page_v2.dart';
 import 'Pages/admin_gate_page.dart';
 import 'Pages/system_check_page.dart';
+import 'Pages/terms_conditions_page.dart';
 // ===============================
 // GLOBAL RESUME DATA MODEL
 // ===============================
@@ -29,8 +38,10 @@ class ResumeData {
     "Excel",
   ];
 }
-void main() {
-runApp(const JobReadyApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await ThemeModeService.loadSavedThemeMode();
+  runApp(const JobReadyApp());
 }
 
 class JobReadyApp extends StatelessWidget {
@@ -38,21 +49,85 @@ const JobReadyApp({super.key});
 
 @override
 Widget build(BuildContext context) {
-return MaterialApp(
-debugShowCheckedModeBanner: false,
-title: 'JOBREADY',
-theme: ThemeData(
-scaffoldBackgroundColor: const Color(0xFFF8F9FA),
-useMaterial3: true,
-),
-initialRoute: '/',
-routes: {
-  '/': (_) => const HomePageV2(),
-  '/home': (_) => const HomePageV2(),
-  '/admin': (_) => const AdminGatePage(targetRoute: '/system-check'),
-  '/coming-soon': (_) => const ComingSoonPage(),
-  '/system-check': (_) => const SystemCheckPage(),
-},
+return ValueListenableBuilder<ThemeMode>(
+  valueListenable: ThemeModeService.themeMode,
+  builder: (context, themeMode, _) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'JOBREADY',
+      builder: (context, child) {
+        if (kReleaseMode || child == null) {
+          return child ?? const SizedBox.shrink();
+        }
+
+        return Stack(
+          children: [
+            child,
+            Positioned(
+              right: 10,
+              bottom: 10,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xCC0051BA),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: const Text(
+                  'LOCAL PREVIEW • V1 MERGED',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+      themeMode: themeMode,
+      theme: ThemeData(
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: const Color(0xFFF8F9FA),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF1F2937),
+          foregroundColor: Colors.white,
+        ),
+        useMaterial3: true,
+      ),
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: const Color(0xFF0F172A),
+        cardColor: const Color(0xFF111827),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF111827),
+          foregroundColor: Colors.white,
+        ),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF3B82F6),
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+      ),
+      initialRoute: '/',
+      routes: {
+        '/': (_) => const HomePageV2(),
+        '/home': (_) => const HomePageV2(),
+        '/compress': (_) => const CompressionToolPage(),
+        '/convert': (_) => const ConvertToolPage(),
+        '/merge': (_) => const MergeToolPage(),
+        '/split': (_) => const SplitToolPage(),
+        '/extract': (_) => const ExtractToolPage(),
+        '/pdf-tools': (_) => const PdfToolsPage(),
+        '/pdf-edit': (_) => const PdfEditPage(),
+        '/terms': (_) => const TermsConditionsPage(),
+        '/admin': (_) => const AdminGatePage(targetRoute: '/system-check'),
+        '/coming-soon': (_) => const ComingSoonPage(),
+        '/system-check': (_) => const SystemCheckPage(),
+      },
+    );
+  },
 );
 }
 }

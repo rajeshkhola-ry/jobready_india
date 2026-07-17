@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import '../Widgets/apple_button.dart';
 import '../Widgets/download_result_dialog.dart';
 import '../Widgets/quota_gate.dart';
+import '../Widgets/site_footer_link.dart';
 import '../Services/conversion_service.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/file_storage_service.dart';
@@ -51,10 +52,6 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
     'Excel': ['xls', 'xlsx', 'csv'],
     'Image': ['jpg', 'jpeg', 'png', 'webp', 'bmp'],
     'PowerPoint': ['ppt', 'pptx'],
-  };
-
-  static const Set<String> _temporarilyUnsupportedOutputs = {
-    'PowerPoint (.pptx)',
   };
 
   @override
@@ -128,11 +125,6 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
     if (input == null || output == null) {
       return false;
     }
-
-    if (_temporarilyUnsupportedOutputs.contains(output)) {
-      return false;
-    }
-
     return true;
   }
 
@@ -361,22 +353,7 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
           );
         },
       ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Container(
-          color: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: const Text(
-            'getreadyjob.com',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF1F4E79),
-            ),
-          ),
-        ),
-      ),
+      bottomNavigationBar: const SiteFooterLink(),
     );
   }
 
@@ -698,10 +675,6 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
     required String format,
     required bool isInput,
   }) {
-    final bool isSupportedOutput = !isInput
-        ? _isConversionSupported(_selectedInputFormat, format)
-        : true;
-
     final isSelected = isInput
         ? _selectedInputFormat == format
         : _selectedOutputFormat == format;
@@ -740,32 +713,14 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
               : [],
         ),
         child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                format,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: isSelected ? Colors.white : Colors.grey.shade700,
-                ),
-              ),
-              if (!isInput && !isSupportedOutput) ...[
-                const SizedBox(height: 2),
-                Text(
-                  'Ready',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: isSelected
-                        ? Colors.white.withOpacity(0.9)
-                        : const Color(0xFFB45309),
-                  ),
-                ),
-              ],
-            ],
+          child: Text(
+            format,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: isSelected ? Colors.white : Colors.grey.shade700,
+            ),
           ),
         ),
       ),
