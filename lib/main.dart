@@ -7,6 +7,7 @@ import 'Widgets/pricing_card.dart';
 import 'Widgets/pdf_tool_card.dart';
 import 'Services/public_brand_config.dart';
 import 'Pages/home_page_v2.dart';
+import 'Pages/home_page_unified.dart';
 import 'Pages/convert_tool_page.dart';
 import 'Pages/compression_tool_page.dart';
 import 'Pages/merge_tool_page.dart';
@@ -161,7 +162,9 @@ Route<dynamic> _buildRoute(String name) {
   switch (name) {
     case '/':
     case '/home':
-      return MaterialPageRoute(builder: (_) => const HomePageV2(), settings: const RouteSettings(name: '/home'));
+      return MaterialPageRoute(builder: (_) => const HomePageUnified(), settings: const RouteSettings(name: '/home'));
+    case '/home-v2':
+      return MaterialPageRoute(builder: (_) => const HomePageV2(), settings: const RouteSettings(name: '/home-v2'));
     case '/compress':
       return MaterialPageRoute(builder: (_) => const CompressionToolPage(), settings: const RouteSettings(name: '/compress'));
     case '/convert':
