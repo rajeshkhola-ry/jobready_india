@@ -250,10 +250,17 @@ class ConversionService {
 
     if (lowerName.endsWith('.xlsx')) {
       final csv = _extractCsvFromXlsx(inputBytes);
+      final normalizedCsv = csv
+          .replaceAll('\r\n', '\n')
+          .replaceAll('\r', '\n')
+          .split('\n')
+          .join('\r\n');
+      const bom = <int>[0xEF, 0xBB, 0xBF];
+      final csvBytes = Uint8List.fromList(<int>[...bom, ...utf8.encode(normalizedCsv)]);
       return ConversionResult(
         success: true,
         message: 'CSV file created successfully.',
-        outputBytes: Uint8List.fromList(utf8.encode(csv)),
+        outputBytes: csvBytes,
         outputFileName: _changeExtension(inputFileName, 'csv'),
       );
     }
