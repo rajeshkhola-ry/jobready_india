@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'Widgets/feature_tile.dart';
 import 'Widgets/pricing_card.dart';
@@ -32,8 +35,31 @@ class ResumeData {
     "Excel",
   ];
 }
+
+final ValueNotifier<String?> _fatalErrorMessage = ValueNotifier<String?>(null);
+
+void _recordFatalError(Object error, StackTrace? stackTrace) {
+  final trace = stackTrace == null ? '' : '\n\n$stackTrace';
+  _fatalErrorMessage.value = '$error$trace';
+}
+
 void main() {
-  runApp(const JobReadyApp());
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    _recordFatalError(details.exception, details.stack);
+  };
+
+  PlatformDispatcher.instance.onError = (error, stack) {
+    _recordFatalError(error, stack);
+    return true;
+  };
+
+  runZonedGuarded(
+    () => runApp(const JobReadyApp()),
+    (error, stack) {
+      _recordFatalError(error, stack);
+    },
+  );
 }
 
 String _normalizeRouteName(String? rawRoute) {
@@ -62,6 +88,59 @@ String _normalizeRouteName(String? rawRoute) {
 class JobReadyApp extends StatelessWidget {
 const JobReadyApp({super.key});
 
+Widget _buildFatalErrorFallback(String message) {
+  return MaterialApp(
+    debugShowCheckedModeBanner: false,
+    home: Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'JOBREADY startup error',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF111827),
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'The app could not complete initialization. Please refresh and retry.',
+                style: TextStyle(fontSize: 14, color: Color(0xFF374151)),
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF3F4F6),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: SelectableText(
+                      message,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        height: 1.35,
+                        color: Color(0xFF111827),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 Route<dynamic> _buildRoute(String name) {
   switch (name) {
     case '/':
@@ -88,24 +167,33 @@ Route<dynamic> _buildRoute(String name) {
 
 @override
 Widget build(BuildContext context) {
-  return MaterialApp(
-    debugShowCheckedModeBanner: false,
-    title: 'JOBREADY',
-    theme: ThemeData(
-      brightness: Brightness.light,
-      scaffoldBackgroundColor: const Color(0xFFF8F9FA),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: Color(0xFF1F2937),
-        foregroundColor: Colors.white,
-      ),
-      useMaterial3: true,
-    ),
-    initialRoute: '/home',
-    onGenerateRoute: (settings) {
-      final normalized = _normalizeRouteName(settings.name);
-      return _buildRoute(normalized);
+  return ValueListenableBuilder<String?>(
+    valueListenable: _fatalErrorMessage,
+    builder: (context, errorMessage, _) {
+      if (errorMessage != null && errorMessage.trim().isNotEmpty) {
+        return _buildFatalErrorFallback(errorMessage);
+      }
+
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'JOBREADY',
+        theme: ThemeData(
+          brightness: Brightness.light,
+          scaffoldBackgroundColor: const Color(0xFFF8F9FA),
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Color(0xFF1F2937),
+            foregroundColor: Colors.white,
+          ),
+          useMaterial3: true,
+        ),
+        initialRoute: '/home',
+        onGenerateRoute: (settings) {
+          final normalized = _normalizeRouteName(settings.name);
+          return _buildRoute(normalized);
+        },
+        onUnknownRoute: (_) => _buildRoute('/home'),
+      );
     },
-    onUnknownRoute: (_) => _buildRoute('/home'),
   );
 }
 }
