@@ -12,29 +12,42 @@ class HomePageUnified extends StatefulWidget {
 }
 
 class _HomePageUnifiedState extends State<HomePageUnified> {
-  static const Color _navy = Color(0xFF0A1F44);
-  static const Color _blue = Color(0xFF284BCE);
-  static const Color _gold = Color(0xFFFFC72C);
+  static const Color _navy = Color(0xFF071A44);
+  static const Color _surface = Color(0xFFF5F7FF);
+  static const Color _blue = Color(0xFF3B5BFF);
+  static const Color _blueSoft = Color(0xFFEFF2FF);
+  static const Color _textMuted = Color(0xFF5B6B8A);
 
-  String _uploadHint = 'PDF, Word, Excel, JPG, PNG, PPT (max 100 MB)';
   bool _isPicking = false;
+  String _uploadHint = 'PDF, Word, Excel, JPG, PNG, PPT and more (Max. 100 MB)';
 
-  final List<_QuickTool> _quickTools = const [
-    _QuickTool('PDF to Word', 'Convert PDF into editable Word', Icons.description_rounded, '/convert'),
-    _QuickTool('Word to PDF', 'Convert Word document to PDF', Icons.picture_as_pdf_rounded, '/convert'),
-    _QuickTool('Image to PDF', 'Convert image files to PDF', Icons.image_rounded, '/convert'),
-    _QuickTool('Excel to PDF', 'Convert sheets to PDF', Icons.grid_on_rounded, '/convert'),
-    _QuickTool('Merge PDF', 'Combine multiple PDF files', Icons.merge_type_rounded, '/merge'),
-    _QuickTool('Split PDF', 'Extract pages from PDF', Icons.call_split_rounded, '/split'),
-    _QuickTool('Compress PDF', 'Reduce file size while preserving quality', Icons.compress_rounded, '/compress'),
-    _QuickTool('PDF Toolkit', 'More PDF editing tools', Icons.build_circle_rounded, '/pdf-tools'),
+  final List<_SidebarItem> _sidebarItems = const [
+    _SidebarItem('Home', Icons.home_rounded, '/home', true),
+    _SidebarItem('My Files', Icons.folder_open_rounded, '/home-v2', false),
+    _SidebarItem('Recent Files', Icons.access_time_rounded, '/home-v2', false),
+    _SidebarItem('Favorite Tools', Icons.star_border_rounded, '/home-v2', false),
+    _SidebarItem('Cloud Storage', Icons.cloud_outlined, '/home-v2', false),
+    _SidebarItem('History', Icons.history_rounded, '/home-v2', false),
+    _SidebarItem('Settings', Icons.settings_outlined, '/home-v2', false),
   ];
 
-  final List<_WhyChooseItem> _whyChooseItems = const [
-    _WhyChooseItem(Icons.lock_rounded, 'Secure & Private', 'Your files are encrypted and auto-deleted.'),
-    _WhyChooseItem(Icons.speed_rounded, 'Fast Processing', 'Most actions complete within seconds.'),
-    _WhyChooseItem(Icons.auto_awesome_rounded, 'AI Powered', 'Smart OCR and extraction assist.'),
-    _WhyChooseItem(Icons.language_rounded, 'Global Ready', 'English-first, worldwide rollout ready.'),
+  final List<_ToolCardModel> _toolCards = const [
+    _ToolCardModel('PDF to Word', 'Convert PDF into editable Word', Icons.description_rounded, Color(0xFFEAF1FF), '/convert'),
+    _ToolCardModel('Word to PDF', 'Convert Word documents to PDF', Icons.picture_as_pdf_rounded, Color(0xFFFFEEF0), '/convert'),
+    _ToolCardModel('Image to PDF', 'Convert images (JPG, PNG) to PDF', Icons.image_rounded, Color(0xFFEDE8FF), '/convert'),
+    _ToolCardModel('Excel to PDF', 'Convert Excel sheets to PDF', Icons.grid_on_rounded, Color(0xFFE8FFF3), '/convert'),
+    _ToolCardModel('PPT to PDF', 'Convert PowerPoint presentations', Icons.slideshow_rounded, Color(0xFFFFF3E6), '/convert'),
+    _ToolCardModel('Merge PDF', 'Combine multiple PDF files', Icons.merge_type_rounded, Color(0xFFEEF2FF), '/merge'),
+    _ToolCardModel('Split PDF', 'Extract pages from PDF files', Icons.call_split_rounded, Color(0xFFF0ECFF), '/split'),
+    _ToolCardModel('Compress PDF', 'Reduce PDF file size without quality loss', Icons.compress_rounded, Color(0xFFFFEEF7), '/compress'),
+  ];
+
+  final List<_WhyItem> _whyItems = const [
+    _WhyItem(Icons.lock_rounded, Colors.blue, 'Secure & Private', 'Your files are encrypted and automatically deleted.'),
+    _WhyItem(Icons.speed_rounded, Colors.amber, 'Super Fast', 'Lightning fast conversions in seconds.'),
+    _WhyItem(Icons.auto_awesome_rounded, Colors.deepPurple, 'AI Powered', 'Smart OCR, AI summaries, and insights.'),
+    _WhyItem(Icons.public_rounded, Colors.green, 'Works Everywhere', 'Use on web, Windows, Android and iOS.'),
+    _WhyItem(Icons.privacy_tip_rounded, Colors.lightBlue, 'Privacy First', 'We never store or share your files.'),
   ];
 
   Future<void> _pickFromHome() async {
@@ -48,7 +61,6 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
         if (!mounted) {
           return;
         }
-
         setState(() {
           _uploadHint = 'No file selected. Please try again.';
         });
@@ -71,13 +83,12 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('File uploaded. Choose a tool to continue.')),
+        const SnackBar(content: Text('File uploaded. Pick any tool card to continue.')),
       );
     } catch (_) {
       if (!mounted) {
         return;
       }
-
       setState(() {
         _uploadHint = 'Unable to read file. Please retry.';
       });
@@ -91,6 +102,9 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
   }
 
   void _openRoute(String route) {
+    if (route == '/home') {
+      return;
+    }
     Navigator.of(context).pushNamed(route);
   }
 
@@ -98,28 +112,28 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
     if (bytes < 1024) {
       return '$bytes B';
     }
-
     final kb = bytes / 1024;
     if (kb < 1024) {
       return '${kb.toStringAsFixed(1)} KB';
     }
-
     final mb = kb / 1024;
     return '${mb.toStringAsFixed(1)} MB';
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop = MediaQuery.of(context).size.width >= 1024;
+    final width = MediaQuery.of(context).size.width;
+    final isDesktop = width >= 1080;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FF),
+      backgroundColor: _surface,
       drawer: isDesktop ? null : Drawer(child: _buildSidebar()),
       appBar: isDesktop
           ? null
           : AppBar(
               backgroundColor: Colors.white,
-              foregroundColor: _navy,
               elevation: 0,
+              foregroundColor: _navy,
               title: const Text(
                 'JOBREADY',
                 style: TextStyle(fontWeight: FontWeight.w800),
@@ -127,14 +141,8 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
             ),
       body: Row(
         children: [
-          if (isDesktop)
-            SizedBox(
-              width: 250,
-              child: _buildSidebar(),
-            ),
-          Expanded(
-            child: _buildMainContent(isDesktop),
-          ),
+          if (isDesktop) SizedBox(width: 250, child: _buildSidebar()),
+          Expanded(child: _buildMainBody(isDesktop)),
         ],
       ),
     );
@@ -146,12 +154,12 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF0A1F44), Color(0xFF142E67)],
+          colors: [Color(0xFF05153B), Color(0xFF0B2158)],
         ),
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -159,47 +167,27 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
                 children: [
                   CircleAvatar(
                     radius: 16,
-                    backgroundColor: _gold,
-                    child: Icon(Icons.work_outline_rounded, color: _navy, size: 18),
+                    backgroundColor: Color(0xFFFFC72C),
+                    child: Icon(Icons.work_outline_rounded, color: Color(0xFF05153B), size: 18),
                   ),
                   SizedBox(width: 10),
                   Text(
                     'JOBREADY',
-                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800),
+                    style: TextStyle(color: Colors.white, fontSize: 21, fontWeight: FontWeight.w800),
                   ),
                 ],
               ),
-              const SizedBox(height: 18),
-              _buildNavItem('Home', Icons.home_rounded, true, () => _openRoute('/home')),
-              _buildNavItem('Convert', Icons.swap_horiz_rounded, false, () => _openRoute('/convert')),
-              _buildNavItem('Compress', Icons.compress_rounded, false, () => _openRoute('/compress')),
-              _buildNavItem('Merge', Icons.merge_type_rounded, false, () => _openRoute('/merge')),
-              _buildNavItem('Split', Icons.call_split_rounded, false, () => _openRoute('/split')),
-              _buildNavItem('PDF Tools', Icons.build_circle_rounded, false, () => _openRoute('/pdf-tools')),
-              _buildNavItem('History', Icons.history_rounded, false, () => _openRoute('/home-v2')),
-              const Spacer(),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.white24),
-                ),
-                child: const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Upgrade to Premium', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                    SizedBox(height: 6),
-                    Text(
-                      'Unlimited conversions and priority support for your launch team.',
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
-                    ),
-                  ],
-                ),
+              const SizedBox(height: 4),
+              const Text(
+                'The Fastest Document Toolkit',
+                style: TextStyle(color: Colors.white70, fontSize: 12),
               ),
+              const SizedBox(height: 16),
+              ..._sidebarItems.map(_buildSidebarItem),
               const SizedBox(height: 12),
-              _buildStorageCard(),
+              _buildUpgradeCard(),
+              const SizedBox(height: 12),
+              _buildCloudCard(),
             ],
           ),
         ),
@@ -207,7 +195,81 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
     );
   }
 
-  Widget _buildStorageCard() {
+  Widget _buildSidebarItem(_SidebarItem item) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 7),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => _openRoute(item.route),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+          decoration: BoxDecoration(
+            color: item.active ? const Color(0xFF3B5BFF) : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Icon(item.icon, size: 18, color: Colors.white),
+              const SizedBox(width: 10),
+              Text(
+                item.title,
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUpgradeCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.workspace_premium_rounded, color: Color(0xFFFFC72C), size: 18),
+              SizedBox(width: 6),
+              Text(
+                'Upgrade to Premium',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Unlimited conversions\nAdvanced tools\nPriority support',
+            style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.5),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {},
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _blue,
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(38),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: const Text('Upgrade Now'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCloudCard() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
@@ -227,65 +289,46 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
             ],
           ),
           SizedBox(height: 8),
-          Text('2.4 GB / 10 GB used', style: TextStyle(color: Colors.white70, fontSize: 12)),
+          Text('2.4 GB of 10 GB used', style: TextStyle(color: Colors.white70, fontSize: 12)),
           SizedBox(height: 8),
-          LinearProgressIndicator(
-            value: 0.24,
-            minHeight: 8,
-            backgroundColor: Colors.white24,
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC72C)),
+          ClipRRect(
+            borderRadius: BorderRadius.all(Radius.circular(10)),
+            child: LinearProgressIndicator(
+              value: 0.24,
+              minHeight: 8,
+              backgroundColor: Colors.white24,
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC72C)),
+            ),
           ),
+          SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Text('24%', style: TextStyle(color: Colors.white70, fontSize: 11)),
+          )
         ],
       ),
     );
   }
 
-  Widget _buildNavItem(String title, IconData icon, bool active, VoidCallback onTap) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            color: active ? _blue : Colors.transparent,
-          ),
-          child: Row(
-            children: [
-              Icon(icon, size: 20, color: Colors.white),
-              const SizedBox(width: 10),
-              Text(
-                title,
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMainContent(bool isDesktop) {
+  Widget _buildMainBody(bool isDesktop) {
     return SafeArea(
       child: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(isDesktop ? 22 : 14, 16, isDesktop ? 22 : 14, 20),
+        padding: EdgeInsets.fromLTRB(isDesktop ? 22 : 12, 12, isDesktop ? 22 : 12, 18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildTopHeader(),
-            const SizedBox(height: 14),
-            _buildUploadPanel(),
-            const SizedBox(height: 20),
-            _buildSectionHeader('What do you want to do?', actionText: 'View All Tools'),
-            const SizedBox(height: 10),
-            _buildToolsGrid(isDesktop),
-            const SizedBox(height: 16),
-            _buildBottomPanels(isDesktop),
+            _buildHeader(),
             const SizedBox(height: 12),
-            _buildTrustStrip(),
+            _buildUploader(),
+            const SizedBox(height: 14),
+            _buildToolsHeader(),
             const SizedBox(height: 10),
+            _buildToolGrid(isDesktop),
+            const SizedBox(height: 12),
+            _buildLowerPanels(isDesktop),
+            const SizedBox(height: 10),
+            _buildTrustStrip(),
+            const SizedBox(height: 8),
             _buildFooter(),
           ],
         ),
@@ -293,14 +336,14 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
     );
   }
 
-  Widget _buildTopHeader() {
+  Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: const [
-          BoxShadow(color: Color(0x110B1F44), blurRadius: 14, offset: Offset(0, 6)),
+          BoxShadow(color: Color(0x11083366), blurRadius: 14, offset: Offset(0, 6)),
         ],
       ),
       child: Row(
@@ -311,60 +354,57 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
               children: [
                 Text(
                   'Welcome back, Rajesh!',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: _navy),
+                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: _navy),
                 ),
-                SizedBox(height: 4),
+                SizedBox(height: 2),
                 Text(
-                  'Convert, edit, and manage your documents with confidence.',
-                  style: TextStyle(color: Color(0xFF4B5563), fontWeight: FontWeight.w600),
+                  'Convert, edit and manage your documents with ease.',
+                  style: TextStyle(color: _textMuted, fontWeight: FontWeight.w600),
                 ),
               ],
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFFEFF2FF),
+              color: _blueSoft,
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Text(
               'Special Offer\n50% OFF Premium',
               textAlign: TextAlign.center,
-              style: TextStyle(fontWeight: FontWeight.w700, color: _blue),
+              style: TextStyle(color: _blue, fontWeight: FontWeight.w700),
             ),
           ),
           const SizedBox(width: 10),
-          _buildHeaderAction(Icons.notifications_none_rounded, badge: '3'),
+          _buildIconButton(Icons.notifications_none_rounded, badge: '3'),
           const SizedBox(width: 8),
-          _buildHeaderAction(Icons.account_circle_rounded),
+          _buildIconButton(Icons.account_circle_rounded),
         ],
       ),
     );
   }
 
-  Widget _buildHeaderAction(IconData icon, {String? badge}) {
+  Widget _buildIconButton(IconData icon, {String? badge}) {
     return Stack(
       clipBehavior: Clip.none,
       children: [
         Container(
-          width: 40,
-          height: 40,
+          width: 42,
+          height: 42,
           decoration: BoxDecoration(
-            color: const Color(0xFFF1F5FF),
+            color: _blueSoft,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(icon, color: _blue),
         ),
         if (badge != null)
           Positioned(
-            right: -2,
+            right: -3,
             top: -4,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-              decoration: BoxDecoration(
-                color: Colors.red,
-                borderRadius: BorderRadius.circular(10),
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+              decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10)),
               child: Text(
                 badge,
                 style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700),
@@ -375,35 +415,38 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
     );
   }
 
-  Widget _buildUploadPanel() {
+  Widget _buildUploader() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFD3DEFF), width: 1.4),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFD2DDFF), width: 1.2),
       ),
       child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEAF0FF),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Icon(Icons.cloud_upload_rounded, color: _blue, size: 42),
+          Wrap(
+            spacing: 8,
+            children: const [
+              _FormatIcon(Icons.picture_as_pdf_rounded, Color(0xFFFFDCE0), Color(0xFFE11D48)),
+              _FormatIcon(Icons.image_rounded, Color(0xFFE5EEFF), Color(0xFF1D4ED8)),
+              _FormatIcon(Icons.cloud_upload_rounded, Color(0xFFE8FFF2), Color(0xFF059669)),
+              _FormatIcon(Icons.grid_on_rounded, Color(0xFFE8FFF3), Color(0xFF15803D)),
+              _FormatIcon(Icons.description_rounded, Color(0xFFEAF0FF), Color(0xFF3B5BFF)),
+            ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           const Text(
             'Drop your file here or click to browse',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: _navy),
+            style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800, color: _navy),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 6),
           Text(
             _uploadHint,
+            style: const TextStyle(color: _textMuted, fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Color(0xFF4B5563), fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
           ElevatedButton.icon(
@@ -413,8 +456,8 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
             style: ElevatedButton.styleFrom(
               backgroundColor: _blue,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
           ),
           const SizedBox(height: 8),
@@ -423,10 +466,7 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
             children: [
               Icon(Icons.verified_user_rounded, color: Color(0xFF16A34A), size: 16),
               SizedBox(width: 6),
-              Text(
-                'Your files are 100% secure and private.',
-                style: TextStyle(color: Color(0xFF4B5563), fontWeight: FontWeight.w600),
-              ),
+              Text('Your files are 100% secure and private.', style: TextStyle(color: _textMuted)),
             ],
           ),
         ],
@@ -434,86 +474,73 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
     );
   }
 
-  Widget _buildSectionHeader(String title, {String? actionText}) {
-    return Row(
+  Widget _buildToolsHeader() {
+    return const Row(
       children: [
         Text(
-          title,
-          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: _navy),
+          'What do you want to do?',
+          style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: _navy),
         ),
-        const Spacer(),
-        if (actionText != null)
-          Text(
-            actionText,
-            style: const TextStyle(color: _blue, fontWeight: FontWeight.w700),
-          ),
+        Spacer(),
+        Text('View All Tools', style: TextStyle(color: _blue, fontWeight: FontWeight.w700)),
+        SizedBox(width: 4),
+        Icon(Icons.arrow_forward_rounded, color: _blue, size: 18),
       ],
     );
   }
 
-  Widget _buildToolsGrid(bool isDesktop) {
+  Widget _buildToolGrid(bool isDesktop) {
     final width = MediaQuery.of(context).size.width;
-    final crossAxisCount = isDesktop ? 4 : (width >= 720 ? 3 : 2);
+    final crossAxisCount = isDesktop ? 4 : (width >= 760 ? 3 : 2);
 
     return GridView.builder(
+      itemCount: _toolCards.length,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: _quickTools.length,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: crossAxisCount,
         mainAxisSpacing: 10,
         crossAxisSpacing: 10,
-        childAspectRatio: isDesktop ? 1.55 : 1.2,
+        childAspectRatio: isDesktop ? 2.1 : 1.32,
       ),
       itemBuilder: (context, index) {
-        final tool = _quickTools[index];
+        final item = _toolCards[index];
         return InkWell(
-          onTap: () => _openRoute(tool.route),
           borderRadius: BorderRadius.circular(14),
+          onTap: () => _openRoute(item.route),
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFDDE5FF)),
+              border: Border.all(color: const Color(0xFFDCE6FF)),
             ),
-            child: Column(
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEFF2FF),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(tool.icon, color: _blue, size: 19),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            tool.title,
-                            style: const TextStyle(fontWeight: FontWeight.w800, color: _navy),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            tool.subtitle,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 12, color: Color(0xFF4B5563)),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8), size: 20),
-                  ],
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(color: item.iconBg, borderRadius: BorderRadius.circular(10)),
+                  child: Icon(item.icon, color: _navy, size: 21),
                 ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(item.title, style: const TextStyle(fontWeight: FontWeight.w800, color: _navy)),
+                      const SizedBox(height: 4),
+                      Text(
+                        item.subtitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 12, color: _textMuted),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8), size: 20),
               ],
             ),
           ),
@@ -522,7 +549,7 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
     );
   }
 
-  Widget _buildBottomPanels(bool isDesktop) {
+  Widget _buildLowerPanels(bool isDesktop) {
     if (!isDesktop) {
       return Column(
         children: [
@@ -530,7 +557,7 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
           const SizedBox(height: 10),
           _buildPlanCard(),
           const SizedBox(height: 10),
-          _buildWhyChooseCard(),
+          _buildWhyCard(),
         ],
       );
     }
@@ -542,7 +569,7 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
         const SizedBox(width: 10),
         Expanded(flex: 2, child: _buildPlanCard()),
         const SizedBox(width: 10),
-        Expanded(child: _buildWhyChooseCard()),
+        Expanded(child: _buildWhyCard()),
       ],
     );
   }
@@ -553,18 +580,26 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFDDE5FF)),
+        border: Border.all(color: const Color(0xFFDCE6FF)),
       ),
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Offers & Coupons', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: _navy)),
+          Row(
+            children: [
+              Icon(Icons.local_fire_department_rounded, color: Colors.red, size: 18),
+              SizedBox(width: 6),
+              Text('Offers & Coupons', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: _navy)),
+            ],
+          ),
           SizedBox(height: 10),
-          Text('First conversion free', style: TextStyle(color: _navy, fontWeight: FontWeight.w700)),
-          SizedBox(height: 4),
-          Text('First conversion free with code: WELCOME50', style: TextStyle(color: Color(0xFF4B5563))),
+          Center(child: Icon(Icons.card_giftcard_rounded, size: 62, color: Color(0xFFF59E0B))),
           SizedBox(height: 8),
-          Text('Get 50% off on Premium monthly plans.', style: TextStyle(color: Color(0xFF4B5563))),
+          Text('First Conversion FREE!', style: TextStyle(color: _navy, fontWeight: FontWeight.w800)),
+          SizedBox(height: 4),
+          Text('Use code: WELCOME50', style: TextStyle(color: _blue, fontWeight: FontWeight.w700)),
+          SizedBox(height: 6),
+          Text('Get 50% OFF on Premium plans', style: TextStyle(color: _textMuted)),
         ],
       ),
     );
@@ -576,20 +611,26 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFDDE5FF)),
+        border: Border.all(color: const Color(0xFFDCE6FF)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Choose Your Plan', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: _navy)),
+          const Row(
+            children: [
+              Icon(Icons.diamond_rounded, color: Color(0xFF3B82F6), size: 18),
+              SizedBox(width: 6),
+              Text('Choose Your Plan', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: _navy)),
+            ],
+          ),
           const SizedBox(height: 10),
           Row(
             children: [
-              Expanded(child: _buildMiniPlan('Free Plan', '₹0', 'Basic tools')),
+              Expanded(child: _buildPlanTile('Free Plan', '₹0', '/ forever', 'Get Started', false)),
               const SizedBox(width: 8),
-              Expanded(child: _buildMiniPlan('Premium', '₹99/mo', 'Unlimited conversions', highlighted: true)),
+              Expanded(child: _buildPlanTile('Premium Monthly', '₹99', '/ month', 'Subscribe Now', true)),
               const SizedBox(width: 8),
-              Expanded(child: _buildMiniPlan('Lifetime', '₹1999', 'One-time payment')),
+              Expanded(child: _buildPlanTile('Lifetime Plan', '₹1999', '/ one-time', 'Get Lifetime', false)),
             ],
           ),
         ],
@@ -597,54 +638,96 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
     );
   }
 
-  Widget _buildMiniPlan(String title, String price, String subtitle, {bool highlighted = false}) {
+  Widget _buildPlanTile(String title, String price, String suffix, String cta, bool featured) {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: highlighted ? const Color(0xFFEFF2FF) : Colors.white,
+        color: featured ? _blueSoft : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: highlighted ? _blue : const Color(0xFFD6DFFA), width: highlighted ? 1.5 : 1),
+        border: Border.all(color: featured ? _blue : const Color(0xFFD1DBF8), width: featured ? 1.6 : 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (featured)
+            Container(
+              margin: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(color: _blue, borderRadius: BorderRadius.circular(999)),
+              child: const Text('Most Popular', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700)),
+            ),
           Text(title, style: const TextStyle(fontWeight: FontWeight.w700, color: _navy)),
           const SizedBox(height: 6),
-          Text(price, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: _navy)),
-          const SizedBox(height: 4),
-          Text(subtitle, style: const TextStyle(fontSize: 12, color: Color(0xFF4B5563))),
+          RichText(
+            text: TextSpan(
+              children: [
+                TextSpan(
+                  text: price,
+                  style: const TextStyle(color: _navy, fontSize: 26, fontWeight: FontWeight.w800),
+                ),
+                TextSpan(
+                  text: suffix,
+                  style: const TextStyle(color: _textMuted, fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text('✓ Basic tools', style: TextStyle(fontSize: 12, color: _textMuted)),
+          const Text('✓ Secure processing', style: TextStyle(fontSize: 12, color: _textMuted)),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {},
+              style: ElevatedButton.styleFrom(
+                backgroundColor: featured ? _blue : Colors.white,
+                foregroundColor: featured ? Colors.white : _blue,
+                side: featured ? BorderSide.none : const BorderSide(color: _blue),
+                minimumSize: const Size.fromHeight(34),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
+              ),
+              child: Text(cta),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildWhyChooseCard() {
+  Widget _buildWhyCard() {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFDDE5FF)),
+        border: Border.all(color: const Color(0xFFDCE6FF)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Why Choose JOBREADY?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: _navy)),
+          const Row(
+            children: [
+              Icon(Icons.star_rounded, color: Color(0xFFF59E0B), size: 18),
+              SizedBox(width: 6),
+              Text('Why Choose JOBREADY?', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: _navy)),
+            ],
+          ),
           const SizedBox(height: 10),
-          ..._whyChooseItems.map(
+          ..._whyItems.map(
             (item) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.only(bottom: 9),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(item.icon, color: _blue, size: 18),
+                  CircleAvatar(radius: 11, backgroundColor: item.color.withOpacity(0.15), child: Icon(item.icon, size: 13, color: item.color)),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(item.title, style: const TextStyle(fontWeight: FontWeight.w700, color: _navy)),
-                        Text(item.subtitle, style: const TextStyle(fontSize: 12, color: Color(0xFF4B5563))),
+                        Text(item.title, style: const TextStyle(color: _navy, fontWeight: FontWeight.w700)),
+                        Text(item.subtitle, style: const TextStyle(fontSize: 12, color: _textMuted)),
                       ],
                     ),
                   ),
@@ -657,65 +740,145 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
     );
   }
 
-  Widget _buildFooter() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0A1F44),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: const Wrap(
-        spacing: 16,
-        runSpacing: 8,
-        alignment: WrapAlignment.spaceBetween,
-        children: [
-          Text('JOBREADY • The fastest document toolkit for global users', style: TextStyle(color: Colors.white70)),
-          Text('Trusted by users worldwide • 4.8/5', style: TextStyle(color: Colors.white)),
-        ],
-      ),
-    );
-  }
-
   Widget _buildTrustStrip() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFDDE5FF)),
+        border: Border.all(color: const Color(0xFFDCE6FF)),
       ),
       child: const Row(
         children: [
-          Icon(Icons.shield_rounded, color: Color(0xFF64748B), size: 18),
+          Icon(Icons.verified_user_rounded, color: Color(0xFF64748B), size: 18),
           SizedBox(width: 8),
           Expanded(
-            child: Text(
-              'Trusted by thousands of users worldwide',
-              style: TextStyle(color: Color(0xFF334155), fontWeight: FontWeight.w700),
-            ),
+            child: Text('Trusted by thousands of users worldwide', style: TextStyle(color: Color(0xFF334155), fontWeight: FontWeight.w700)),
           ),
-          Text('⭐ ⭐ ⭐ ⭐ ⭐  4.8/5', style: TextStyle(color: Color(0xFF1E293B), fontWeight: FontWeight.w700)),
+          Text('⭐ ⭐ ⭐ ⭐ ⭐  4.8/5', style: TextStyle(color: Color(0xFF1E293B), fontWeight: FontWeight.w800)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFooter() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF06163D), Color(0xFF0A2360)],
+        ),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Wrap(
+        spacing: 24,
+        runSpacing: 12,
+        alignment: WrapAlignment.spaceBetween,
+        children: [
+          const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('JOBREADY', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+              SizedBox(height: 4),
+              Text('The fastest document toolkit for global users', style: TextStyle(color: Colors.white70, fontSize: 12)),
+            ],
+          ),
+          const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Product', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+              SizedBox(height: 4),
+              Text('Tools', style: TextStyle(color: Colors.white70, fontSize: 12)),
+              Text('Pricing', style: TextStyle(color: Colors.white70, fontSize: 12)),
+            ],
+          ),
+          const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Support', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+              SizedBox(height: 4),
+              Text('Help Center', style: TextStyle(color: Colors.white70, fontSize: 12)),
+              Text('Terms', style: TextStyle(color: Colors.white70, fontSize: 12)),
+            ],
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              _SocialDot(Icons.facebook, Color(0xFF2563EB)),
+              SizedBox(width: 8),
+              _SocialDot(Icons.flutter_dash_rounded, Color(0xFF0EA5E9)),
+              SizedBox(width: 8),
+              _SocialDot(Icons.play_circle_fill_rounded, Color(0xFFDC2626)),
+            ],
+          ),
         ],
       ),
     );
   }
 }
 
-class _QuickTool {
+class _SidebarItem {
   final String title;
-  final String subtitle;
   final IconData icon;
   final String route;
+  final bool active;
 
-  const _QuickTool(this.title, this.subtitle, this.icon, this.route);
+  const _SidebarItem(this.title, this.icon, this.route, this.active);
 }
 
-class _WhyChooseItem {
+class _ToolCardModel {
+  final String title;
+  final String subtitle;
   final IconData icon;
+  final Color iconBg;
+  final String route;
+
+  const _ToolCardModel(this.title, this.subtitle, this.icon, this.iconBg, this.route);
+}
+
+class _WhyItem {
+  final IconData icon;
+  final Color color;
   final String title;
   final String subtitle;
 
-  const _WhyChooseItem(this.icon, this.title, this.subtitle);
+  const _WhyItem(this.icon, this.color, this.title, this.subtitle);
+}
+
+class _FormatIcon extends StatelessWidget {
+  final IconData icon;
+  final Color bg;
+  final Color fg;
+
+  const _FormatIcon(this.icon, this.bg, this.fg);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(10)),
+      child: Icon(icon, color: fg, size: 21),
+    );
+  }
+}
+
+class _SocialDot extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+
+  const _SocialDot(this.icon, this.color);
+
+  @override
+  Widget build(BuildContext context) {
+    return CircleAvatar(
+      radius: 13,
+      backgroundColor: color,
+      child: Icon(icon, color: Colors.white, size: 14),
+    );
+  }
 }
