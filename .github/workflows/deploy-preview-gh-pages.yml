@@ -28,7 +28,7 @@ jobs:
         run: flutter pub get
 
       - name: Build Web (Custom domain root path)
-        run: flutter build web --release --base-href "/" --no-web-resources-cdn
+        run: flutter build web --release --base-href "/" --no-web-resources-cdn --dart-define=FLUTTER_WEB_AUTO_DETECT=false --dart-define=FLUTTER_WEB_USE_SKIA=true
 
       - name: Disable Jekyll
         run: touch build/web/.nojekyll
