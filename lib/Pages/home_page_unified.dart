@@ -38,17 +38,17 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
     _ToolCardModel('Image to PDF', 'Convert images (JPG, PNG) to PDF', Icons.image_rounded, Color(0xFFEDE8FF), '/convert'),
     _ToolCardModel('Excel to PDF', 'Convert Excel sheets to PDF', Icons.grid_on_rounded, Color(0xFFE8FFF3), '/convert'),
     _ToolCardModel('PPT to PDF', 'Convert PowerPoint presentations', Icons.slideshow_rounded, Color(0xFFFFF3E6), '/convert'),
-    _ToolCardModel('Merge PDF', 'Combine multiple PDF files', Icons.merge_type_rounded, Color(0xFFEEF2FF), '/merge'),
+    _ToolCardModel('Merge PDF', 'Combine multiple PDF files', Icons.merge_type_rounded, Color(0xFFE8F1FA), '/merge'),
     _ToolCardModel('Split PDF', 'Extract pages from PDF files', Icons.call_split_rounded, Color(0xFFF0ECFF), '/split'),
     _ToolCardModel('Compress PDF', 'Reduce PDF file size without quality loss', Icons.compress_rounded, Color(0xFFFFEEF7), '/compress'),
   ];
 
   final List<_WhyItem> _whyItems = const [
-    _WhyItem(Icons.lock_rounded, Colors.blue, 'Secure & Private', 'Your files are encrypted and automatically deleted.'),
+    _WhyItem(Icons.lock_rounded, _blue, 'Secure & Private', 'Your files are encrypted and automatically deleted.'),
     _WhyItem(Icons.speed_rounded, Colors.amber, 'Super Fast', 'Lightning fast conversions in seconds.'),
     _WhyItem(Icons.auto_awesome_rounded, Colors.deepPurple, 'AI Powered', 'Smart OCR, AI summaries, and insights.'),
     _WhyItem(Icons.public_rounded, Colors.green, 'Works Everywhere', 'Use on web, Windows, Android and iOS.'),
-    _WhyItem(Icons.privacy_tip_rounded, Colors.lightBlue, 'Privacy First', 'We never store or share your files.'),
+    _WhyItem(Icons.privacy_tip_rounded, _blueDark, 'Privacy First', 'We never store or share your files.'),
   ];
 
   Future<void> _pickFromHome() async {
@@ -431,7 +431,7 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
             spacing: 8,
             children: const [
               _FormatIcon(Icons.picture_as_pdf_rounded, Color(0xFFFFDCE0), Color(0xFFE11D48)),
-              _FormatIcon(Icons.image_rounded, Color(0xFFE5EEFF), Color(0xFF1D4ED8)),
+              _FormatIcon(Icons.image_rounded, Color(0xFFE5EEFF), _blue),
               _FormatIcon(Icons.cloud_upload_rounded, Color(0xFFE8FFF2), Color(0xFF059669)),
               _FormatIcon(Icons.grid_on_rounded, Color(0xFFE8FFF3), Color(0xFF15803D)),
               _FormatIcon(Icons.description_rounded, Color(0xFFEAF0FF), _blue),
@@ -771,7 +771,7 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF06163D), Color(0xFF0A2360)],
+          colors: [_blueDark, _blue],
         ),
         borderRadius: BorderRadius.circular(12),
       ),
@@ -809,9 +809,9 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: const [
-              _SocialDot(Icons.facebook, Color(0xFF2563EB)),
+              _SocialDot(Icons.facebook, _blue),
               SizedBox(width: 8),
-              _SocialDot(Icons.flutter_dash_rounded, Color(0xFF0EA5E9)),
+              _SocialDot(Icons.flutter_dash_rounded, _blueDark),
               SizedBox(width: 8),
               _SocialDot(Icons.play_circle_fill_rounded, Color(0xFFDC2626)),
             ],
