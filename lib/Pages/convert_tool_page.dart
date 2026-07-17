@@ -176,12 +176,12 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final safeWidth = constraints.maxWidth.isFinite
+          final safeWidth = constraints.maxWidth.isFinite && constraints.maxWidth > 0
               ? constraints.maxWidth
               : MediaQuery.of(context).size.width;
-          final safeHeight = constraints.maxHeight.isFinite
+          final safeHeight = constraints.maxHeight.isFinite && constraints.maxHeight > 0
               ? constraints.maxHeight
-              : 0.0;
+              : MediaQuery.of(context).size.height;
           final isWide = constraints.maxWidth >= 760;
 
           return SingleChildScrollView(
