@@ -85,10 +85,25 @@ class ConversionService {
                     outputFileName: _changeExtension(inputFileName, 'docx'),
                   );
                 } catch (_) {
-                  return ConversionResult(
-                    success: false,
-                    message: 'PDF to Word conversion could not generate the document. The PDF file may be too complex or memory is insufficient. Try splitting the PDF into smaller files.',
-                  );
+                  try {
+                    final extractedText = await _extractTextFromPdf(inputBytes, inputFileName);
+                    final fallbackWordBytes = await const WordGeneratorService().createWordDocument(
+                      pdfFileName: inputFileName,
+                      extractedText: extractedText,
+                    );
+
+                    return ConversionResult(
+                      success: true,
+                      message: 'Word document created in fallback text mode.',
+                      outputBytes: fallbackWordBytes,
+                      outputFileName: _changeExtension(inputFileName, 'docx'),
+                    );
+                  } catch (_) {
+                    return ConversionResult(
+                      success: false,
+                      message: 'PDF to Word conversion could not generate the document. The PDF file may be too complex or memory is insufficient. Try splitting the PDF into smaller files.',
+                    );
+                  }
                 }
               }
             }
