@@ -85,8 +85,24 @@ String _normalizeRouteName(String? rawRoute) {
   return route.isEmpty ? '/' : route;
 }
 
+String _resolveInitialRouteFromUrl() {
+  final fromHash = Uri.base.fragment.trim();
+  if (fromHash.isNotEmpty) {
+    return _normalizeRouteName(fromHash);
+  }
+
+  final fromPath = Uri.base.path.trim();
+  if (fromPath.isNotEmpty) {
+    return _normalizeRouteName(fromPath);
+  }
+
+  return '/home';
+}
+
 class JobReadyApp extends StatelessWidget {
 const JobReadyApp({super.key});
+
+static final String _initialRoute = _resolveInitialRouteFromUrl();
 
 Widget _buildFatalErrorFallback(String message) {
   return MaterialApp(
@@ -186,7 +202,7 @@ Widget build(BuildContext context) {
           ),
           useMaterial3: true,
         ),
-        initialRoute: '/home',
+        initialRoute: _initialRoute,
         onGenerateRoute: (settings) {
           final normalized = _normalizeRouteName(settings.name);
           return _buildRoute(normalized);
