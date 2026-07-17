@@ -136,7 +136,7 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
               elevation: 0,
               foregroundColor: _navy,
               title: const Text(
-                'JOBREADY',
+                'GET JOB READY',
                 style: TextStyle(fontWeight: FontWeight.w800),
               ),
             ),
@@ -173,7 +173,7 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
                   ),
                   SizedBox(width: 10),
                   Text(
-                    'JOBREADY',
+                    'GET JOB READY',
                     style: TextStyle(color: Colors.white, fontSize: 21, fontWeight: FontWeight.w800),
                   ),
                 ],
@@ -354,7 +354,7 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Welcome back, Rajesh!',
+                  'Welcome User!',
                   style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: _navy),
                 ),
                 SizedBox(height: 2),
@@ -711,7 +711,7 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
             children: [
               Icon(Icons.star_rounded, color: Color(0xFFF59E0B), size: 18),
               SizedBox(width: 6),
-              Text('Why Choose JOBREADY?', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: _navy)),
+              Text('Why Choose GET JOB READY?', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: _navy)),
             ],
           ),
           const SizedBox(height: 10),
@@ -783,7 +783,7 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
           const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('JOBREADY', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+              Text('GET JOB READY', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
               SizedBox(height: 4),
               Text('The fastest document toolkit for global users', style: TextStyle(color: Colors.white70, fontSize: 12)),
             ],
