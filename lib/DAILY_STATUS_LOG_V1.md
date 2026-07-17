@@ -175,7 +175,7 @@ Owner:
   - Avg size reduction: 99.58%
 
 ### Day 7 - 2026-07-17
-- Overall status: Green (Day 7 execution started)
+- Overall status: Green (Day 7 policy-label implementation completed)
 - Completed today:
   - Implemented Day 7 regression gate model in `compression_benchmark.dart`:
     - `BenchmarkGateConfig`
@@ -186,14 +186,18 @@ Owner:
   - Wired gate evaluation into paired comparison runs with strict + portable gate summaries.
   - Implemented global gate policy lock (Portable only / Strict only / Require both) with enforced mode behavior and one global PASS/FAIL status.
   - Extended compare runner summary with global policy evaluation output.
+  - Added policy-lock and execution-mode labels to benchmark CSV exports:
+    - `ExecutionMode`
+    - `PolicyLock`
+  - Updated benchmark report output to include execution mode, policy lock label, and global gate status.
 - In progress:
-  - Capturing Day 7 policy-lock execution snapshot from compare-mode run.
+  - Capturing refreshed Day 7 policy-lock execution snapshot with updated CSV/report metadata.
 - Blockers:
   - No product blocker. Terminal output stream is intermittently noisy, so artifact-first verification is used for reliability.
 - Decisions needed:
   - Confirm final Day 7 default policy lock selection: portable-only, strict-only, or require-both.
 - Tomorrow plan:
-  - Lock Day 7 gate policy, add policy label to CSV/report headers, and begin Day 8 scope.
+  - Finalize default Day 7 gate policy selection and continue Day 8 scope.
 - Owner: Founder + Copilot
 
 ### Day 8 - 2026-07-18
@@ -458,6 +462,32 @@ Owner:
 - Live split to remember:
   - V1 yesterday-format standalone page: separate locked record build.
   - V2 / current pricing-and-rate-card work: separate app track.
+- Owner: Founder + Copilot
+
+### Day 14 - 2026-07-17 (V1 Conversion + Mobile Save Reliability Update)
+- Overall status: Green (targeted V1 fixes applied on stable morning baseline)
+- Completed today:
+  - Kept payment currency fallback visible as:
+    - `Other countries (USD rates applicable)` in V1 payment list and helper text.
+  - Updated Convert flow wording by removing "Ready" phrasing from conversion success prompts.
+  - Improved conversion coverage in `Services/conversion_service.dart`:
+    - Added limited `.doc` text fallback in PowerPoint conversion path.
+    - Added limited `.xls` fallback support for CSV and PowerPoint conversion paths.
+    - Updated CSV status wording from "CSV is already ready" to neutral copy.
+  - Added mobile-safe save behavior in `Widgets/download_result_dialog.dart`:
+    - Web keeps browser download flow.
+    - Mobile now uses system save-file flow via file picker.
+  - Confirmed Terms and Conditions already include:
+    - Lifetime offer validity cap (10 years) with service-closure condition.
+    - Mandatory permission consent rule for app installation flow.
+- In progress:
+  - Owner validation round for Word/Excel/PDF to PPT and PDF to PNG/JPG from updated V1 build.
+- Blockers:
+  - None at code level for this patch set.
+- Decisions needed:
+  - Provide remaining Day 14 point #12 so it can be included in same V1 lock cycle.
+- Tomorrow plan:
+  - Apply final owner point #12, run full conversion regression pass, and freeze updated V1 package.
 - Owner: Founder + Copilot
 
 Prepared For: JOBREADY

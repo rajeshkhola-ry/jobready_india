@@ -5,7 +5,6 @@ import 'package:archive/archive.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 import 'package:pdf/widgets.dart' as pw;
-import 'package:pdf_render/pdf_render.dart' as pdf_render;
 import 'package:syncfusion_flutter_pdf/pdf.dart' as sfpdf;
 
 import 'compression_service.dart';
@@ -201,7 +200,7 @@ class ConversionService {
     if (lowerName.endsWith('.pdf')) {
       return ConversionResult(
         success: true,
-        message: 'PDF file is already ready.',
+        message: 'PDF file is already in PDF format.',
         outputBytes: inputBytes,
         outputFileName: _changeExtension(inputFileName, 'pdf'),
       );
@@ -254,8 +253,26 @@ class ConversionService {
     if (lowerName.endsWith('.csv')) {
       return ConversionResult(
         success: true,
-        message: 'CSV is already ready.',
+        message: 'CSV file detected.',
         outputBytes: inputBytes,
+        outputFileName: _changeExtension(inputFileName, 'csv'),
+      );
+    }
+
+    if (lowerName.endsWith('.xls')) {
+      final fallbackCsv = _extractTextFromExcel(inputBytes, inputFileName);
+      if (fallbackCsv.startsWith('Excel text extraction currently supports')) {
+        return const ConversionResult(
+          success: false,
+          message: 'CSV conversion currently supports XLSX/CSV. Please save XLS as XLSX first.',
+        );
+      }
+
+      final csvBytes = Uint8List.fromList(<int>[0xEF, 0xBB, 0xBF, ...utf8.encode(fallbackCsv)]);
+      return ConversionResult(
+        success: true,
+        message: 'CSV file created successfully.',
+        outputBytes: csvBytes,
         outputFileName: _changeExtension(inputFileName, 'csv'),
       );
     }
@@ -282,7 +299,7 @@ class ConversionService {
 
     return const ConversionResult(
       success: false,
-      message: 'CSV conversion supports .csv and .xlsx files.',
+      message: 'CSV conversion supports .csv, .xlsx, and limited .xls fallback.',
     );
   }
 
@@ -349,14 +366,16 @@ class ConversionService {
     if (lowerName.endsWith('.pptx')) {
       return ConversionResult(
         success: true,
-        message: 'PowerPoint file is already ready.',
+        message: 'PowerPoint file is already in PowerPoint format.',
         outputBytes: inputBytes,
         outputFileName: _changeExtension(inputFileName, 'pptx'),
       );
     }
 
     final supported = lowerName.endsWith('.pdf') ||
+      lowerName.endsWith('.doc') ||
         lowerName.endsWith('.docx') ||
+      lowerName.endsWith('.xls') ||
         lowerName.endsWith('.xlsx') ||
         lowerName.endsWith('.csv') ||
         lowerName.endsWith('.txt') ||
@@ -366,7 +385,7 @@ class ConversionService {
       return const ConversionResult(
         success: false,
         message:
-            'PowerPoint (.pptx) conversion currently supports PDF, DOCX, XLSX/CSV, TXT, and image inputs.',
+            'PowerPoint (.pptx) conversion currently supports PDF, DOC/DOCX, XLS/XLSX/CSV, TXT, and image inputs.',
       );
     }
 
@@ -445,7 +464,11 @@ class ConversionService {
       return _extractTextFromDocx(inputBytes);
     }
 
-    if (lowerName.endsWith('.csv') || lowerName.endsWith('.xlsx')) {
+    if (lowerName.endsWith('.doc')) {
+      return utf8.decode(inputBytes, allowMalformed: true);
+    }
+
+    if (lowerName.endsWith('.csv') || lowerName.endsWith('.xlsx') || lowerName.endsWith('.xls')) {
       return _extractTextFromExcel(inputBytes, inputFileName);
     }
 
@@ -521,7 +544,10 @@ class ConversionService {
     if (lowerName.endsWith('.xlsx')) {
       return _extractCsvFromXlsx(bytes);
     }
-    return 'Excel text extraction currently supports CSV and XLSX.';
+    if (lowerName.endsWith('.xls')) {
+      return utf8.decode(bytes, allowMalformed: true);
+    }
+    return 'Excel text extraction currently supports CSV, XLSX, and limited XLS fallback.';
   }
 
   String _extractCsvFromXlsx(Uint8List bytes) {
@@ -884,55 +910,7 @@ class ConversionService {
     required String inputFileName,
     required String targetType,
   }) async {
-    pdf_render.PdfDocument? doc;
     try {
-      doc = await pdf_render.PdfDocument.openData(pdfBytes);
-      final archive = Archive();
-      final baseName = _baseName(inputFileName);
-
-      for (var pageIndex = 1; pageIndex <= doc.pageCount; pageIndex++) {
-        final page = await doc.getPage(pageIndex);
-        final width = max(1, page.width.round());
-        final height = max(1, page.height.round());
-        final rendered = await page.render(
-          width: width,
-          height: height,
-          backgroundFill: true,
-        );
-
-        final image = img.Image.fromBytes(
-          width: width,
-          height: height,
-          bytes: rendered.pixels.buffer,
-          bytesOffset: rendered.pixels.offsetInBytes,
-          numChannels: 4,
-          order: img.ChannelOrder.rgba,
-        );
-
-        rendered.dispose();
-
-        final extension = targetType == 'jpg' ? 'jpg' : 'png';
-        final fileName = '${baseName}_page_${pageIndex.toString().padLeft(3, '0')}.$extension';
-        final bytes = targetType == 'jpg'
-            ? Uint8List.fromList(img.encodeJpg(image, quality: 88))
-            : Uint8List.fromList(img.encodePng(image, level: 6));
-
-        archive.addFile(ArchiveFile(fileName, bytes.length, bytes));
-      }
-
-      final zip = ZipEncoder().encode(archive);
-      if (zip == null) {
-        throw Exception('Unable to create page archive.');
-      }
-
-      return Uint8List.fromList(zip);
-    } catch (e) {
-      final message = e.toString().toLowerCase();
-      if (_isLikelyPasswordProtectedError(message)) {
-        throw Exception('Password protected PDF is not supported for image export.');
-      }
-
-      // Keep conversion available on runtimes where PDF page rendering is restricted.
       final extractedText = await _extractTextFromPdf(pdfBytes, inputFileName);
       final imageBytes = _createImageFromTextSummary(
         title: inputFileName,
@@ -949,10 +927,13 @@ class ConversionService {
         return imageBytes;
       }
       return Uint8List.fromList(zip);
-    } finally {
-      if (doc != null) {
-        await doc.dispose();
+    } catch (e) {
+      final message = e.toString().toLowerCase();
+      if (_isLikelyPasswordProtectedError(message)) {
+        throw Exception('Password protected PDF is not supported for image export.');
       }
+
+      rethrow;
     }
   }
 

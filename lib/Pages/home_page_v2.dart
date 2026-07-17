@@ -235,24 +235,14 @@ class _HomePageV2State extends State<HomePageV2> {
                     DropdownMenuItem(value: 'Query', child: Text('Query')),
                   ],
                   onChanged: (value) {
-                    if (value == null) {
-                      return;
+                    if (value != null) {
+                      setDialogState(() {
+                        selectedType = value;
+                      });
                     }
-                    setDialogState(() {
-                      selectedType = value;
-                    });
                   },
                   decoration: const InputDecoration(
-                    labelText: 'Ticket Type',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: suggestionController,
-                  maxLines: 5,
-                  decoration: const InputDecoration(
-                    hintText: 'Write your issue, suggestion, or query here',
+                    labelText: 'Type',
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -3359,29 +3349,7 @@ class _V2Column extends StatelessWidget {
       children: [
         const UploadCardV2(),
         const SizedBox(height: 12),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            if (constraints.maxWidth < 940) {
-              return const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _MostPopularToolsCard(),
-                  SizedBox(height: 10),
-                  WhyChooseCard(scale: 0.6),
-                ],
-              );
-            }
-
-            return const Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(flex: 5, child: _MostPopularToolsCard()),
-                SizedBox(width: 10),
-                Expanded(flex: 7, child: WhyChooseCard(scale: 0.6)),
-              ],
-            );
-          },
-        ),
+        const _MostPopularToolsCard(),
         const SizedBox(height: 10),
         const ToolSelectorV2(),
       ],

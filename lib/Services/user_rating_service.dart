@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:universal_html/html.dart' as html;
 
 class UserRatingSummary {
@@ -20,6 +21,32 @@ class UserRatingService {
   static const String _ratingsKey = 'jobready_user_ratings_v1';
   static const String _visibilityKey = 'jobready_user_ratings_public_visible_v1';
   static const int _maxEntries = 2000;
+  static final Map<String, String> _memoryStore = <String, String>{};
+
+  static String? _getStorage(String key) {
+    if (!kIsWeb) {
+      return _memoryStore[key];
+    }
+
+    try {
+      return html.window.localStorage[key];
+    } catch (_) {
+      return _memoryStore[key];
+    }
+  }
+
+  static void _setStorage(String key, String value) {
+    _memoryStore[key] = value;
+    if (!kIsWeb) {
+      return;
+    }
+
+    try {
+      html.window.localStorage[key] = value;
+    } catch (_) {
+      // Keep memory fallback.
+    }
+  }
 
   static Future<void> submitRating(int stars) async {
     final normalized = stars.clamp(1, 5);
@@ -33,7 +60,7 @@ class UserRatingService {
         ? entries.sublist(entries.length - _maxEntries)
         : entries;
 
-    html.window.localStorage[_ratingsKey] = jsonEncode(trimmed);
+    _setStorage(_ratingsKey, jsonEncode(trimmed));
   }
 
   static UserRatingSummary getSummary() {
@@ -75,7 +102,7 @@ class UserRatingService {
   }
 
   static bool isPublicVisible() {
-    final raw = html.window.localStorage[_visibilityKey];
+    final raw = _getStorage(_visibilityKey);
     if (raw == null || raw.trim().isEmpty) {
       return true;
     }
@@ -83,11 +110,11 @@ class UserRatingService {
   }
 
   static Future<void> setPublicVisible(bool visible) async {
-    html.window.localStorage[_visibilityKey] = visible.toString();
+    _setStorage(_visibilityKey, visible.toString());
   }
 
   static List<Map<String, dynamic>> _loadRatings() {
-    final raw = html.window.localStorage[_ratingsKey];
+    final raw = _getStorage(_ratingsKey);
     if (raw == null || raw.trim().isEmpty) {
       return const <Map<String, dynamic>>[];
     }

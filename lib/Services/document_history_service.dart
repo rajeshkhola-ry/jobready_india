@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:universal_html/html.dart' as html;
 
 import 'user_account_service.dart';
@@ -47,9 +48,48 @@ class DocumentHistoryEntry {
 class DocumentHistoryService {
   static const String _storageKey = 'jobready_document_history_v2';
   static const int _maxEntries = 100;
+  static String? _memoryRaw;
+
+  static String? _getStorage(String key) {
+    if (!kIsWeb) {
+      return _memoryRaw;
+    }
+
+    try {
+      return html.window.localStorage[key];
+    } catch (_) {
+      return _memoryRaw;
+    }
+  }
+
+  static void _setStorage(String key, String value) {
+    _memoryRaw = value;
+    if (!kIsWeb) {
+      return;
+    }
+
+    try {
+      html.window.localStorage[key] = value;
+    } catch (_) {
+      // Keep memory fallback.
+    }
+  }
+
+  static void _removeStorage(String key) {
+    _memoryRaw = null;
+    if (!kIsWeb) {
+      return;
+    }
+
+    try {
+      html.window.localStorage.remove(key);
+    } catch (_) {
+      // Keep memory fallback.
+    }
+  }
 
   static List<DocumentHistoryEntry> getEntries() {
-    final raw = html.window.localStorage[_storageKey];
+    final raw = _getStorage(_storageKey);
     if (raw == null || raw.trim().isEmpty) {
       return const <DocumentHistoryEntry>[];
     }
@@ -94,10 +134,10 @@ class DocumentHistoryService {
     );
 
     final trimmed = current.take(_maxEntries).map((entry) => entry.toMap()).toList(growable: false);
-    html.window.localStorage[_storageKey] = jsonEncode(trimmed);
+    _setStorage(_storageKey, jsonEncode(trimmed));
   }
 
   static Future<void> clear() async {
-    html.window.localStorage.remove(_storageKey);
+    _removeStorage(_storageKey);
   }
 }

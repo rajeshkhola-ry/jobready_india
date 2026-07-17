@@ -13,7 +13,10 @@ import '../Services/pdf_ocr_service.dart';
 import '../Services/public_brand_config.dart';
 import '../Services/upload_context_service.dart';
 import '../Services/word_generator_service.dart';
+import 'compression_tool_page.dart';
+import 'merge_tool_page.dart';
 import 'pdf_edit_page.dart';
+import 'split_tool_page.dart';
 
 class PdfToolsPage extends StatefulWidget {
   const PdfToolsPage({super.key});
@@ -473,7 +476,7 @@ class _PdfToolsPageState extends State<PdfToolsPage> {
                     Text(
                       conversionCompleted
                           ? '✅ Status : Process Completed'
-                          : 'Status : Ready to Convert',
+                          : 'Status : Convert Now',
                       style: TextStyle(
                         color:
                             conversionCompleted
@@ -596,7 +599,12 @@ class _PdfToolsPageState extends State<PdfToolsPage> {
             subtitle:
                 'Combine multiple PDF files',
             onTap: () {
-              Navigator.of(context).pushNamed('/merge');
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const MergeToolPage(),
+                ),
+              );
             },
           ),
 
@@ -608,7 +616,12 @@ class _PdfToolsPageState extends State<PdfToolsPage> {
             subtitle:
                 'Extract pages from PDF files',
             onTap: () {
-              Navigator.of(context).pushNamed('/split');
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const SplitToolPage(),
+                ),
+              );
             },
           ),
 
@@ -619,7 +632,12 @@ class _PdfToolsPageState extends State<PdfToolsPage> {
             title: 'Compress PDF',
             subtitle: 'Reduce PDF size',
             onTap: () {
-              Navigator.of(context).pushNamed('/compress');
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const CompressionToolPage(),
+                ),
+              );
             },
           ),
 
@@ -630,7 +648,12 @@ class _PdfToolsPageState extends State<PdfToolsPage> {
             title: 'PDF Edit + OCR',
             subtitle: 'Load text, run OCR for scanned PDFs, edit and save PDF',
             onTap: () {
-              Navigator.of(context).pushNamed('/pdf-edit');
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const PdfEditPage(),
+                ),
+              );
             },
           ),
         ],

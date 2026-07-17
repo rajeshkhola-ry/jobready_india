@@ -1,7 +1,9 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:universal_html/html.dart' as html;
 
 import '../Services/api_config.dart';
@@ -46,11 +48,20 @@ class DownloadResultDialog extends StatelessWidget {
     if (lowerName.endsWith('.txt')) {
       return 'text/plain';
     }
+    if (lowerName.endsWith('.csv')) {
+      return 'text/csv';
+    }
     if (lowerName.endsWith('.zip')) {
       return 'application/zip';
     }
     if (lowerName.endsWith('.docx')) {
       return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    }
+    if (lowerName.endsWith('.pptx')) {
+      return 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+    }
+    if (lowerName.endsWith('.xlsx')) {
+      return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
     }
 
     return 'application/octet-stream';
@@ -66,7 +77,7 @@ class DownloadResultDialog extends StatelessWidget {
   }
 
   String _shareMessage(String fileUrl) {
-    return 'File ready from JOBREADY.\nFile: $fileName\nDownload: $fileUrl';
+    return 'File generated from JOBREADY.\nFile: $fileName\nDownload: $fileUrl';
   }
 
   Future<void> _copyShareText(BuildContext context, String text) async {
@@ -311,6 +322,11 @@ class DownloadResultDialog extends StatelessWidget {
   }
 
   void _downloadFile(BuildContext context) {
+    if (!kIsWeb) {
+      _saveFileOnDevice(context);
+      return;
+    }
+
     try {
       final blob = html.Blob([outputBytes], _mimeTypeFromFileName());
       final url = html.Url.createObjectUrlFromBlob(blob);
@@ -356,6 +372,50 @@ class DownloadResultDialog extends StatelessWidget {
       Future<void>.delayed(const Duration(seconds: 15), () {
         html.Url.revokeObjectUrl(url);
       });
+    }
+  }
+
+  Future<void> _saveFileOnDevice(BuildContext context) async {
+    try {
+      final savedPath = await FilePicker.platform.saveFile(
+        dialogTitle: 'Save $fileName',
+        fileName: fileName,
+        bytes: outputBytes,
+      );
+
+      if (savedPath == null || savedPath.trim().isEmpty) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Save cancelled.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+
+      await DocumentHistoryService.addEntry(
+        fileName: fileName,
+        outputFormat: outputFormat,
+        fileSizeBytes: outputBytes.length,
+      );
+      await UsageQuotaService.recordAction(outputFormat);
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('File saved: $savedPath'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Save failed: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 

@@ -100,12 +100,12 @@ class FileStorageService {
 
   /// Get all stored files
   static List<StoredFile> getStoredFiles() {
-    final raw = html.window.localStorage[_storageKey];
-    if (raw == null || raw.trim().isEmpty) {
-      return const <StoredFile>[];
-    }
-
     try {
+      final raw = html.window.localStorage[_storageKey];
+      if (raw == null || raw.trim().isEmpty) {
+        return const <StoredFile>[];
+      }
+
       final decoded = jsonDecode(raw);
       if (decoded is! List) {
         return const <StoredFile>[];
@@ -138,19 +138,27 @@ class FileStorageService {
 
   /// Remove a stored file
   static Future<void> removeFile(String id) async {
-    final current = getStoredFiles().toList(growable: true);
-    current.removeWhere((f) => f.id == id);
+    try {
+      final current = getStoredFiles().toList(growable: true);
+      current.removeWhere((f) => f.id == id);
 
-    if (current.isEmpty) {
-      html.window.localStorage.remove(_storageKey);
-    } else {
-      html.window.localStorage[_storageKey] = jsonEncode(current.map((f) => f.toMap()).toList());
+      if (current.isEmpty) {
+        html.window.localStorage.remove(_storageKey);
+      } else {
+        html.window.localStorage[_storageKey] = jsonEncode(current.map((f) => f.toMap()).toList());
+      }
+    } catch (_) {
+      // Ignore storage removal failures.
     }
   }
 
   /// Clear all stored files
   static Future<void> clearAll() async {
-    html.window.localStorage.remove(_storageKey);
+    try {
+      html.window.localStorage.remove(_storageKey);
+    } catch (_) {
+      // Ignore storage clear failures.
+    }
   }
 
   /// Check if a file exists by name

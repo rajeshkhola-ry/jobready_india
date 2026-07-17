@@ -24,7 +24,7 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
   String? _selectedInputFormat;
   String? _selectedOutputFormat;
   bool _isConverting = false;
-  String _statusMessage = 'Ready to convert';
+  String _statusMessage = 'Select input format to start';
 
   List<PickedFileData> _selectedFiles = [];
   Uint8List? _selectedFile;
@@ -57,7 +57,11 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
   @override
   void initState() {
     super.initState();
-    _hydrateFromHomeUpload();
+    try {
+      _hydrateFromHomeUpload();
+    } catch (_) {
+      _statusMessage = 'Select input format to start';
+    }
   }
 
   void _hydrateFromHomeUpload() {
@@ -688,7 +692,7 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
             _selectedFiles = [];
             _selectedFile = null;
             _selectedFileName = null;
-            _statusMessage = 'Ready to convert';
+            _statusMessage = 'Select output format to continue';
           } else {
             _selectedOutputFormat = format;
           }
@@ -802,8 +806,8 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
         _selectedFile = files.first.bytes;
         _selectedFileName = files.first.name;
         _statusMessage = files.length == 1
-            ? 'File ready. Tap Convert Now to continue.'
-            : '${files.length} files ready. Tap Convert All to continue.';
+          ? 'File selected. Tap Convert Now to continue.'
+          : '${files.length} files selected. Tap Convert All to continue.';
       });
     } catch (e) {
       setState(() {
@@ -870,7 +874,7 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Combined PDF is ready for download.'),
+            content: Text('Combined PDF generated. Download now.'),
             backgroundColor: Colors.green,
           ),
         );
@@ -918,7 +922,7 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Batch conversion completed. Download link is ready.'),
+            content: Text('Batch conversion completed. Download now.'),
             backgroundColor: Colors.green,
           ),
         );
@@ -959,12 +963,12 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
 
       setState(() {
         _isConverting = false;
-        _statusMessage = '✓ Converted successfully. Download is ready.';
+          _statusMessage = '✓ Converted successfully. Download available.';
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('File completed. Download link is ready.'),
+          content: Text('File converted successfully. Download now.'),
           backgroundColor: Colors.green,
         ),
       );
