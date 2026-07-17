@@ -73,6 +73,12 @@ class _MergeToolPageState extends State<MergeToolPage> {
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
+          final safeWidth = constraints.maxWidth.isFinite
+              ? constraints.maxWidth
+              : MediaQuery.of(context).size.width;
+          final safeHeight = constraints.maxHeight.isFinite
+              ? constraints.maxHeight
+              : 0.0;
           return SingleChildScrollView(
             padding: EdgeInsets.fromLTRB(
               16,
@@ -82,8 +88,8 @@ class _MergeToolPageState extends State<MergeToolPage> {
             ),
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                minWidth: constraints.maxWidth,
-                minHeight: constraints.maxHeight,
+                minWidth: safeWidth,
+                minHeight: safeHeight,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
