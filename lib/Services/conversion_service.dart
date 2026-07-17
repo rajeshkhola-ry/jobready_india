@@ -265,6 +265,12 @@ class ConversionService {
 
     if (lowerName.endsWith('.xlsx')) {
       final csv = _extractCsvFromXlsx(inputBytes);
+      if (csv.isEmpty) {
+        return const ConversionResult(
+          success: false,
+          message: 'Unable to parse XLSX data. Please check the file and try again.',
+        );
+      }
       final normalizedCsv = csv
           .replaceAll('\r\n', '\n')
           .replaceAll('\r', '\n')
@@ -659,12 +665,12 @@ class ConversionService {
       }
 
       if (csvRows.isEmpty) {
-        return 'No worksheet data found.';
+        return '';
       }
 
       return csvRows.join('\n');
     } catch (_) {
-      return 'Unable to parse XLSX data.';
+      return '';
     }
   }
 
