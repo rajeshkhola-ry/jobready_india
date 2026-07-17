@@ -155,9 +155,9 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
               24 + MediaQuery.of(context).padding.bottom,
             ),
             child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minWidth: safeWidth,
-                minHeight: safeHeight,
+              constraints: const BoxConstraints(
+                minWidth: 0,
+                minHeight: 0,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

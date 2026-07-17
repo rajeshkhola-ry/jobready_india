@@ -186,9 +186,9 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
 
           return SingleChildScrollView(
             child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minWidth: safeWidth,
-                minHeight: safeHeight,
+              constraints: const BoxConstraints(
+                minWidth: 0,
+                minHeight: 0,
               ),
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
