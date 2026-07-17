@@ -355,11 +355,115 @@ class ConversionService {
       );
     }
 
-    return const ConversionResult(
-      success: false,
-      message:
-          'PowerPoint (.pptx) export is not available for this source format yet. Please use PDF, Word, CSV, or image outputs for now.',
-    );
+    try {
+      final text = await _extractAnyText(inputBytes, inputFileName);
+      final pptxBytes = _buildSimplePptx(
+        title: _baseName(inputFileName),
+        sourceFileName: inputFileName,
+        content: text,
+      );
+
+      return ConversionResult(
+        success: true,
+        message: 'PowerPoint created successfully.',
+        outputBytes: pptxBytes,
+        outputFileName: _changeExtension(inputFileName, 'pptx'),
+      );
+    } catch (e) {
+      return ConversionResult(
+        success: false,
+        message: 'PowerPoint conversion failed: $e',
+      );
+    }
+  }
+
+  Uint8List _buildSimplePptx({
+    required String title,
+    required String sourceFileName,
+    required String content,
+  }) {
+    String xmlEscape(String value) {
+      return value
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+          .replaceAll('"', '&quot;')
+          .replaceAll("'", '&apos;');
+    }
+
+    final normalized = content
+        .replaceAll('\r\n', '\n')
+        .replaceAll('\r', '\n')
+        .trim();
+
+    final lines = normalized.isEmpty
+        ? <String>['No readable content found for conversion.']
+        : normalized.split('\n').where((line) => line.trim().isNotEmpty).take(30).toList(growable: false);
+
+    final slideBody = xmlEscape(lines.join('\n'));
+    final slideTitle = xmlEscape('$title (from $sourceFileName)');
+
+    final contentTypes = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>
+  <Override PartName="/ppt/slides/slide1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>
+</Types>''';
+
+    final rootRels = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/>
+</Relationships>''';
+
+    final presentationXml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:presentation xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
+  <p:sldIdLst>
+    <p:sldId id="256" r:id="rId1"/>
+  </p:sldIdLst>
+  <p:sldSz cx="9144000" cy="6858000" type="screen4x3"/>
+  <p:notesSz cx="6858000" cy="9144000"/>
+</p:presentation>''';
+
+    final presentationRels = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide1.xml"/>
+</Relationships>''';
+
+    final slideXml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
+  <p:cSld>
+    <p:spTree>
+      <p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>
+      <p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="2" name="Title"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr><a:xfrm><a:off x="457200" y="274320"/><a:ext cx="8229600" cy="914400"/></a:xfrm></p:spPr>
+        <p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>$slideTitle</a:t></a:r></a:p></p:txBody>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="3" name="Content"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr><a:xfrm><a:off x="457200" y="1371600"/><a:ext cx="8229600" cy="4572000"/></a:xfrm></p:spPr>
+        <p:txBody><a:bodyPr wrap="square"/><a:lstStyle/><a:p><a:r><a:t>$slideBody</a:t></a:r></a:p></p:txBody>
+      </p:sp>
+    </p:spTree>
+  </p:cSld>
+  <p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr>
+</p:sld>''';
+
+    final archive = Archive()
+      ..addFile(ArchiveFile('[Content_Types].xml', utf8.encode(contentTypes).length, utf8.encode(contentTypes)))
+      ..addFile(ArchiveFile('_rels/.rels', utf8.encode(rootRels).length, utf8.encode(rootRels)))
+      ..addFile(ArchiveFile('ppt/presentation.xml', utf8.encode(presentationXml).length, utf8.encode(presentationXml)))
+      ..addFile(ArchiveFile('ppt/_rels/presentation.xml.rels', utf8.encode(presentationRels).length, utf8.encode(presentationRels)))
+      ..addFile(ArchiveFile('ppt/slides/slide1.xml', utf8.encode(slideXml).length, utf8.encode(slideXml)));
+
+    final zip = ZipEncoder().encode(archive);
+    if (zip == null) {
+      throw Exception('Unable to build PPTX package.');
+    }
+
+    return Uint8List.fromList(zip);
   }
 
   String _changeExtension(
