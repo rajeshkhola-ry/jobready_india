@@ -12,10 +12,11 @@ class HomePageUnified extends StatefulWidget {
 }
 
 class _HomePageUnifiedState extends State<HomePageUnified> {
-  static const Color _navy = Color(0xFF071A44);
+  static const Color _navy = Color(0xFF1F2937);
   static const Color _surface = Color(0xFFF5F7FF);
-  static const Color _blue = Color(0xFF3B5BFF);
-  static const Color _blueSoft = Color(0xFFEFF2FF);
+  static const Color _blue = Color(0xFF1F4E79);
+  static const Color _blueDark = Color(0xFF003A70);
+  static const Color _blueSoft = Color(0xFFE8F1FA);
   static const Color _textMuted = Color(0xFF5B6B8A);
 
   bool _isPicking = false;
@@ -154,7 +155,7 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF05153B), Color(0xFF0B2158)],
+          colors: [_blueDark, _blue],
         ),
       ),
       child: SafeArea(
@@ -168,7 +169,7 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
                   CircleAvatar(
                     radius: 16,
                     backgroundColor: Color(0xFFFFC72C),
-                    child: Icon(Icons.work_outline_rounded, color: Color(0xFF05153B), size: 18),
+                    child: Icon(Icons.work_outline_rounded, color: _blueDark, size: 18),
                   ),
                   SizedBox(width: 10),
                   Text(
@@ -205,7 +206,7 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
           decoration: BoxDecoration(
-            color: item.active ? const Color(0xFF3B5BFF) : Colors.transparent,
+            color: item.active ? _blue : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
@@ -433,7 +434,7 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
               _FormatIcon(Icons.image_rounded, Color(0xFFE5EEFF), Color(0xFF1D4ED8)),
               _FormatIcon(Icons.cloud_upload_rounded, Color(0xFFE8FFF2), Color(0xFF059669)),
               _FormatIcon(Icons.grid_on_rounded, Color(0xFFE8FFF3), Color(0xFF15803D)),
-              _FormatIcon(Icons.description_rounded, Color(0xFFEAF0FF), Color(0xFF3B5BFF)),
+              _FormatIcon(Icons.description_rounded, Color(0xFFEAF0FF), _blue),
             ],
           ),
           const SizedBox(height: 10),
@@ -618,7 +619,7 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
         children: [
           const Row(
             children: [
-              Icon(Icons.diamond_rounded, color: Color(0xFF3B82F6), size: 18),
+              Icon(Icons.diamond_rounded, color: _blue, size: 18),
               SizedBox(width: 6),
               Text('Choose Your Plan', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: _navy)),
             ],
