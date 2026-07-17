@@ -474,8 +474,11 @@ class _CompressionBenchmarkPageState extends State<CompressionBenchmarkPage> {
         mode: _mode,
       );
 
-        final hasProductionResults = _benchmark.productionResults.isNotEmpty;
-        final hasDiagnosticRows =
+      // Generate report
+      final report = _benchmark.generateSummaryReport();
+      final lines = report.split('\n');
+      final hasProductionResults = _benchmark.productionResults.isNotEmpty;
+      final hasDiagnosticRows =
           _benchmark.syntheticFallbackResults.isNotEmpty ||
           _benchmark.runtimeBlockedResults.isNotEmpty;
       final gateResult =
@@ -489,12 +492,6 @@ class _CompressionBenchmarkPageState extends State<CompressionBenchmarkPage> {
         strict: strict,
         portable: portable,
       );
-      final report = _benchmark.generateSummaryReport(
-        mode: _mode,
-        policy: _gatePolicy,
-        policyResult: policyResult,
-      );
-      final lines = report.split('\n');
 
       setState(() {
         _reportLines = lines;
@@ -559,10 +556,7 @@ class _CompressionBenchmarkPageState extends State<CompressionBenchmarkPage> {
         mode: BenchmarkExecutionMode.strictPlugin,
       );
       final strictResults = List<BenchmarkResult>.from(_benchmark.results);
-      final strictCsv = await _benchmark.exportToCsv(
-        mode: BenchmarkExecutionMode.strictPlugin,
-        policy: _gatePolicy,
-      );
+      final strictCsv = await _benchmark.exportToCsv();
 
       _benchmark.clearResults();
       await _benchmark.runFullBenchmark(
@@ -571,10 +565,7 @@ class _CompressionBenchmarkPageState extends State<CompressionBenchmarkPage> {
         mode: BenchmarkExecutionMode.portableFallback,
       );
       final portableResults = List<BenchmarkResult>.from(_benchmark.results);
-      final portableCsv = await _benchmark.exportToCsv(
-        mode: BenchmarkExecutionMode.portableFallback,
-        policy: _gatePolicy,
-      );
+      final portableCsv = await _benchmark.exportToCsv();
 
       final strictProduction =
           strictResults.where((result) => result.countsTowardProductionMetrics).toList();
@@ -694,10 +685,7 @@ class _CompressionBenchmarkPageState extends State<CompressionBenchmarkPage> {
 
   Future<void> _exportResults() async {
     try {
-      final csvFile = await _benchmark.exportToCsv(
-        mode: _mode,
-        policy: _gatePolicy,
-      );
+      final csvFile = await _benchmark.exportToCsv();
 
       if (!mounted) return;
 

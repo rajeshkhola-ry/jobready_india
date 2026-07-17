@@ -2,7 +2,10 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
+import 'package:pdf/pdf.dart' as pdf;
+import 'package:pdf_render/pdf_render.dart' as pdf_render;
 import 'package:syncfusion_flutter_pdf/pdf.dart' as sfpdf;
 
 class GeneratedFile {
@@ -68,25 +71,68 @@ class PdfEditorService {
 		String fileName,
 		List<int> pages,
 	) async {
-		final source = sfpdf.PdfDocument(inputBytes: pdfBytes);
+		if (kIsWeb) {
+			final source = sfpdf.PdfDocument(inputBytes: pdfBytes);
+			try {
+				final files = <GeneratedFile>[];
+				for (final pageNumber in pages) {
+					if (pageNumber < 1 || pageNumber > source.pages.count) {
+						continue;
+					}
+
+					final pngBytes = _buildWebFallbackPageImage(pageNumber, source.pages.count);
+					files.add(
+						GeneratedFile(
+							name: '${_baseName(fileName)}_page_$pageNumber.png',
+							bytes: pngBytes,
+						),
+					);
+				}
+				return files;
+			} finally {
+				source.dispose();
+			}
+		}
+
+		final source = await pdf_render.PdfDocument.openData(pdfBytes);
 		try {
 			final files = <GeneratedFile>[];
 			for (final pageNumber in pages) {
-				if (pageNumber < 1 || pageNumber > source.pages.count) {
+				if (pageNumber < 1 || pageNumber > source.pageCount) {
 					continue;
 				}
 
-				final pngBytes = _buildWebFallbackPageImage(pageNumber, source.pages.count);
+				final page = await source.getPage(pageNumber);
+				final renderWidth = max(1, page.width.round());
+				final renderHeight = max(1, page.height.round());
+				final rendered = await page.render(
+					width: renderWidth,
+					height: renderHeight,
+					backgroundFill: true,
+				);
+
+				final image = img.Image.fromBytes(
+					width: renderWidth,
+					height: renderHeight,
+					bytes: rendered.pixels.buffer,
+					bytesOffset: rendered.pixels.offsetInBytes,
+					numChannels: 4,
+					order: img.ChannelOrder.rgba,
+				);
+
+				final pngBytes = Uint8List.fromList(img.encodePng(image));
 				files.add(
 					GeneratedFile(
 						name: '${_baseName(fileName)}_page_$pageNumber.png',
 						bytes: pngBytes,
 					),
 				);
+
+				rendered.dispose();
 			}
 			return files;
 		} finally {
-			source.dispose();
+			await source.dispose();
 		}
 	}
 
@@ -119,6 +165,41 @@ class PdfEditorService {
 			color: img.ColorRgb8(120, 120, 120),
 		);
 		return Uint8List.fromList(img.encodePng(canvas));
+	}
+
+	Future<Uint8List> _buildPdfFromPages(pdf_render.PdfDocument source, List<int> pages) async {
+		final outputPdf = pdf.PdfDocument();
+		for (final pageNumber in pages) {
+			final page = await source.getPage(pageNumber);
+			final renderWidth = max(1, page.width.round());
+			final renderHeight = max(1, page.height.round());
+			final rendered = await page.render(
+				width: renderWidth,
+				height: renderHeight,
+				backgroundFill: true,
+			);
+
+			final image = img.Image.fromBytes(
+				width: renderWidth,
+				height: renderHeight,
+				bytes: rendered.pixels.buffer,
+				bytesOffset: rendered.pixels.offsetInBytes,
+				numChannels: 4,
+				order: img.ChannelOrder.rgba,
+			);
+
+			final jpegBytes = Uint8List.fromList(img.encodeJpg(image, quality: 85));
+			final outputPage = pdf.PdfPage(
+				outputPdf,
+				pageFormat: pdf.PdfPageFormat(page.width, page.height),
+			);
+			final graphics = outputPage.getGraphics();
+			final pdfImage = pdf.PdfImage.jpeg(outputPdf, image: jpegBytes);
+			graphics.drawImage(pdfImage, 0, 0, page.width, page.height);
+			rendered.dispose();
+		}
+
+		return Uint8List.fromList(await outputPdf.save());
 	}
 
 	List<int> _parseRange(String range, int maxPage) {

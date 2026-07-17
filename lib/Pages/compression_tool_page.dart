@@ -1,10 +1,9 @@
-import 'package:flutter/foundation.dart';
+import 'package:archive/archive.dart';
 import 'package:flutter/material.dart';
 import '../Widgets/target_size_selector.dart';
 import '../Widgets/apple_button.dart';
 import '../Widgets/download_result_dialog.dart';
 import '../Widgets/quota_gate.dart';
-import '../Widgets/site_footer_link.dart';
 import '../Services/compression_service.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/upload_context_service.dart';
@@ -65,11 +64,6 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
   }
 
   void _hydrateFromHomeUpload() {
-    if (kIsWeb) {
-      // Avoid restoring large in-memory uploads during first web frame.
-      return;
-    }
-
     final files = UploadContextService.getCompatibleFiles([
       'pdf',
       'jpg',
@@ -140,12 +134,6 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final safeWidth = constraints.maxWidth.isFinite && constraints.maxWidth > 0
-              ? constraints.maxWidth
-              : MediaQuery.of(context).size.width;
-          final safeHeight = constraints.maxHeight.isFinite && constraints.maxHeight > 0
-              ? constraints.maxHeight
-            : MediaQuery.of(context).size.height;
           return SingleChildScrollView(
             padding: EdgeInsets.fromLTRB(
               16,
@@ -154,9 +142,9 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
               24 + MediaQuery.of(context).padding.bottom,
             ),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                minWidth: 0,
-                minHeight: 0,
+              constraints: BoxConstraints(
+                minWidth: constraints.maxWidth,
+                minHeight: constraints.maxHeight,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -378,7 +366,22 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
           );
         },
       ),
-      bottomNavigationBar: const SiteFooterLink(),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Container(
+          color: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: const Text(
+            'getreadyjob.com',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1F4E79),
+            ),
+          ),
+        ),
+      ),
     );
   }
 

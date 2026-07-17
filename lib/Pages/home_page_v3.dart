@@ -92,22 +92,22 @@ class HomePageV3 extends StatelessWidget {
                             runSpacing: 10,
                             children: const [
                               _StatusChip(
-                                label: 'V2 execution mode',
+                                label: 'V2 scaffold',
                                 icon: Icons.layers_outlined,
                               ),
                               _StatusChip(
-                                label: 'Former V3 lane',
+                                label: 'Separate launcher',
                                 icon: Icons.rocket_launch_outlined,
                               ),
                               _StatusChip(
-                                label: 'Roadmap modules active',
+                                label: 'Shared tools wired',
                                 icon: Icons.link,
                               ),
                             ],
                           ),
                           const SizedBox(height: 20),
                           const Text(
-                            'JOBREADY V2 (former V3) starts here.',
+                            'JOBREADY V2 starts here.',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 30,
@@ -117,7 +117,7 @@ class HomePageV3 extends StatelessWidget {
                           ),
                           const SizedBox(height: 12),
                           const Text(
-                            'This build stays separate from V1 (merged V1+V2) so we can develop the next roadmap modules without disturbing the stable launch flow.',
+                            'This build stays separate from V1 (merged V1+V2) so we can shape the next release without disturbing the stable launch flow.',
                             style: TextStyle(
                               color: Colors.white70,
                               fontSize: 16,
@@ -140,60 +140,6 @@ class HomePageV3 extends StatelessWidget {
                                 isPrimary: false,
                                 onPressed: () => _openRoute(context, '/pdf-tools'),
                               ),
-                              AppleButton(
-                                label: 'Open AI Assistant',
-                                icon: Icons.auto_awesome,
-                                isPrimary: false,
-                                onPressed: () => _openRoute(context, '/ai-assistant'),
-                              ),
-                              AppleButton(
-                                label: 'Open AI Writing',
-                                icon: Icons.edit_note,
-                                isPrimary: false,
-                                onPressed: () => _openRoute(context, '/ai-writing'),
-                              ),
-                              AppleButton(
-                                label: 'Open Job Toolkit',
-                                icon: Icons.work_outline,
-                                isPrimary: false,
-                                onPressed: () => _openRoute(context, '/job-toolkit'),
-                              ),
-                              AppleButton(
-                                label: 'Open Academic Toolkit',
-                                icon: Icons.school_outlined,
-                                isPrimary: false,
-                                onPressed: () => _openRoute(context, '/academic-toolkit'),
-                              ),
-                              AppleButton(
-                                label: 'Open OCR+',
-                                icon: Icons.text_snippet_outlined,
-                                isPrimary: false,
-                                onPressed: () => _openRoute(context, '/document-intelligence'),
-                              ),
-                              AppleButton(
-                                label: 'Open Document Workspace',
-                                icon: Icons.folder_open_outlined,
-                                isPrimary: false,
-                                onPressed: () => _openRoute(context, '/document-workspace'),
-                              ),
-                              AppleButton(
-                                label: 'Open Growth Hub',
-                                icon: Icons.track_changes_outlined,
-                                isPrimary: false,
-                                onPressed: () => _openRoute(context, '/v2-growth'),
-                              ),
-                              AppleButton(
-                                label: 'Open Endgame 8-15',
-                                icon: Icons.rocket_launch_outlined,
-                                isPrimary: false,
-                                onPressed: () => _openRoute(context, '/v2-endgame'),
-                              ),
-                              AppleButton(
-                                label: 'Open V2 Roadmap',
-                                icon: Icons.route,
-                                isPrimary: false,
-                                onPressed: () => _openRoute(context, '/v2-roadmap'),
-                              ),
                             ],
                           ),
                         ],
@@ -209,38 +155,6 @@ class HomePageV3 extends StatelessWidget {
                             onTap: () => _openRoute(context, '/home'),
                           ),
                           _TopNavAction(
-                            label: 'AI',
-                            onTap: () => _openRoute(context, '/ai-assistant'),
-                          ),
-                          _TopNavAction(
-                            label: 'WRITING',
-                            onTap: () => _openRoute(context, '/ai-writing'),
-                          ),
-                          _TopNavAction(
-                            label: 'JOBS',
-                            onTap: () => _openRoute(context, '/job-toolkit'),
-                          ),
-                          _TopNavAction(
-                            label: 'ACADEMIC',
-                            onTap: () => _openRoute(context, '/academic-toolkit'),
-                          ),
-                          _TopNavAction(
-                            label: 'OCR+',
-                            onTap: () => _openRoute(context, '/document-intelligence'),
-                          ),
-                          _TopNavAction(
-                            label: 'WORKSPACE',
-                            onTap: () => _openRoute(context, '/document-workspace'),
-                          ),
-                          _TopNavAction(
-                            label: 'GROWTH',
-                            onTap: () => _openRoute(context, '/v2-growth'),
-                          ),
-                          _TopNavAction(
-                            label: 'ENDGAME',
-                            onTap: () => _openRoute(context, '/v2-endgame'),
-                          ),
-                          _TopNavAction(
                             label: 'RESUME',
                             onTap: () => _openRoute(context, '/resume'),
                           ),
@@ -251,10 +165,6 @@ class HomePageV3 extends StatelessWidget {
                           _TopNavAction(
                             label: 'PHOTO HD',
                             onTap: () => _openRoute(context, '/photo-hd'),
-                          ),
-                          _TopNavAction(
-                            label: 'ROADMAP',
-                            onTap: () => _openRoute(context, '/v2-roadmap'),
                           ),
                           _TopNavAction(
                             label: 'MERGE',
@@ -277,13 +187,13 @@ class HomePageV3 extends StatelessWidget {
                       runSpacing: 10,
                       children: const [
                         _StatusPill(
-                          label: 'V2 shell ready',
+                          label: 'Launch shell ready',
                           value: 'Yes',
                           color: Color(0xFF0F766E),
                         ),
                         _StatusPill(
-                          label: 'Roadmap board',
-                          value: 'Live',
+                          label: 'Feature parity',
+                          value: 'In progress',
                           color: Color(0xFFB45309),
                         ),
                         _StatusPill(
@@ -326,81 +236,11 @@ class HomePageV3 extends StatelessWidget {
                           onTap: () => _openRoute(context, '/convert'),
                         ),
                         _QuickActionCard(
-                          icon: Icons.auto_awesome,
-                          label: 'AI Assistant',
-                          subtitle: 'Summaries and document questions',
-                          color: const Color(0xFF1D4ED8),
-                          onTap: () => _openRoute(context, '/ai-assistant'),
-                        ),
-                        _QuickActionCard(
-                          icon: Icons.edit_note,
-                          label: 'AI Writing',
-                          subtitle: 'Letters, SOPs, and rewrites',
-                          color: const Color(0xFF7C3AED),
-                          onTap: () => _openRoute(context, '/ai-writing'),
-                        ),
-                        _QuickActionCard(
-                          icon: Icons.work_outline,
-                          label: 'Job Toolkit',
-                          subtitle: 'Match score and interview prep',
-                          color: const Color(0xFFB45309),
-                          onTap: () => _openRoute(context, '/job-toolkit'),
-                        ),
-                        _QuickActionCard(
-                          icon: Icons.school_outlined,
-                          label: 'Academic Toolkit',
-                          subtitle: 'SOP, LOR, and proposal drafts',
-                          color: const Color(0xFF0E7490),
-                          onTap: () => _openRoute(context, '/academic-toolkit'),
-                        ),
-                        _QuickActionCard(
-                          icon: Icons.text_snippet_outlined,
-                          label: 'Document Intelligence',
-                          subtitle: 'OCR and structured extraction',
-                          color: const Color(0xFFDC2626),
-                          onTap: () => _openRoute(context, '/document-intelligence'),
-                        ),
-                        _QuickActionCard(
-                          icon: Icons.folder_open_outlined,
-                          label: 'Document Workspace',
-                          subtitle: 'Search stored files and history',
-                          color: const Color(0xFF1D4ED8),
-                          onTap: () => _openRoute(context, '/document-workspace'),
-                        ),
-                        _QuickActionCard(
-                          icon: Icons.track_changes_outlined,
-                          label: 'V2 Growth Hub',
-                          subtitle: 'Roadmap phases 7 to 15',
-                          color: const Color(0xFF059669),
-                          onTap: () => _openRoute(context, '/v2-growth'),
-                        ),
-                        _QuickActionCard(
-                          icon: Icons.rocket_launch_outlined,
-                          label: 'Endgame 8-15',
-                          subtitle: 'Final execution console',
-                          color: const Color(0xFF0F766E),
-                          onTap: () => _openRoute(context, '/v2-endgame'),
-                        ),
-                        _QuickActionCard(
-                          icon: Icons.badge_outlined,
-                          label: 'Resume Builder',
-                          subtitle: 'Start the V2 career workspace',
-                          color: const Color(0xFF7C3AED),
-                          onTap: () => _openRoute(context, '/resume'),
-                        ),
-                        _QuickActionCard(
                           icon: Icons.photo_size_select_large_rounded,
                           label: 'Photo HD',
                           subtitle: 'Passport photo to larger print sizes',
                           color: const Color(0xFF0E7490),
                           onTap: () => _openRoute(context, '/photo-hd'),
-                        ),
-                        _QuickActionCard(
-                          icon: Icons.route,
-                          label: 'V2 Roadmap',
-                          subtitle: 'Track active and planned V2 modules',
-                          color: const Color(0xFF4F46E5),
-                          onTap: () => _openRoute(context, '/v2-roadmap'),
                         ),
                         _QuickActionCard(
                           icon: Icons.call_merge,

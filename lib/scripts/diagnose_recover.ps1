@@ -56,8 +56,7 @@ try {
 
   $requiredFiles = @(
     "main_v3.dart",
-    "V2_WORKING\main_v3.dart",
-    "V2_BACKUP\main_v3.dart",
+    "main_v1_v2_combined_check.dart",
     "Pages/pdf_tools_page.dart",
     "Pages/compression_tool_page.dart",
     "Pages/merge_tool_page.dart",
@@ -87,7 +86,7 @@ try {
     "coming soon"
   )
 
-  $scanPaths = @("main_v3.dart", "V2_WORKING\main_v3.dart", "Pages", "Widgets", "Services", "V2_WORKING\Pages\v2")
+  $scanPaths = @("main_v1_v2_combined_check.dart", "Pages", "Widgets", "Services")
   $scanFiles = @()
   foreach ($scanPath in $scanPaths) {
     if (Test-Path $scanPath -PathType Leaf) {

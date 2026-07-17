@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:universal_html/html.dart' as html;
 
 class UserAccountProfile {
@@ -53,35 +52,9 @@ class UserAccountProfile {
 
 class UserAccountService {
   static const String _storageKey = 'jobready_user_account_profile_v2';
-  static String? _memoryRaw;
-
-  static String? _getStorage(String key) {
-    if (!kIsWeb) {
-      return _memoryRaw;
-    }
-
-    try {
-      return html.window.localStorage[key];
-    } catch (_) {
-      return _memoryRaw;
-    }
-  }
-
-  static void _setStorage(String key, String value) {
-    _memoryRaw = value;
-    if (!kIsWeb) {
-      return;
-    }
-
-    try {
-      html.window.localStorage[key] = value;
-    } catch (_) {
-      // Keep memory fallback.
-    }
-  }
 
   static UserAccountProfile getProfile() {
-    final raw = _getStorage(_storageKey);
+    final raw = html.window.localStorage[_storageKey];
     if (raw == null || raw.trim().isEmpty) {
       return UserAccountProfile.initial();
     }
@@ -98,6 +71,6 @@ class UserAccountService {
   }
 
   static Future<void> saveProfile(UserAccountProfile profile) async {
-    _setStorage(_storageKey, jsonEncode(profile.toMap()));
+    html.window.localStorage[_storageKey] = jsonEncode(profile.toMap());
   }
 }

@@ -1,10 +1,9 @@
+import 'package:archive/archive.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'dart:typed_data';
 import 'package:syncfusion_flutter_pdf/pdf.dart' as sfpdf;
 import '../Widgets/apple_button.dart';
 import '../Widgets/download_result_dialog.dart';
-import '../Widgets/site_footer_link.dart';
 import '../Services/conversion_service.dart';
 import '../Services/pdf_editor_service.dart';
 import '../Services/pdf_ocr_service.dart';
@@ -40,10 +39,6 @@ class _ExtractToolPageState extends State<ExtractToolPage> {
   }
 
   void _hydrateFromHomeUpload() {
-    if (kIsWeb) {
-      return;
-    }
-
     final files = UploadContextService.getCompatibleFiles([
       'pdf',
       'jpg',
@@ -113,12 +108,6 @@ class _ExtractToolPageState extends State<ExtractToolPage> {
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final safeWidth = constraints.maxWidth.isFinite && constraints.maxWidth > 0
-              ? constraints.maxWidth
-              : MediaQuery.of(context).size.width;
-          final safeHeight = constraints.maxHeight.isFinite && constraints.maxHeight > 0
-              ? constraints.maxHeight
-            : MediaQuery.of(context).size.height;
           return SingleChildScrollView(
             padding: EdgeInsets.fromLTRB(
               16,
@@ -127,9 +116,9 @@ class _ExtractToolPageState extends State<ExtractToolPage> {
               24 + MediaQuery.of(context).padding.bottom,
             ),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                minWidth: 0,
-                minHeight: 0,
+              constraints: BoxConstraints(
+                minWidth: constraints.maxWidth,
+                minHeight: constraints.maxHeight,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -293,7 +282,22 @@ class _ExtractToolPageState extends State<ExtractToolPage> {
           );
         },
       ),
-      bottomNavigationBar: const SiteFooterLink(),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Container(
+          color: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: const Text(
+            'getreadyjob.com',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1F4E79),
+            ),
+          ),
+        ),
+      ),
     );
   }
 

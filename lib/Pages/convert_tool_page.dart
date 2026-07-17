@@ -1,10 +1,9 @@
-import 'package:flutter/foundation.dart';
+import 'package:archive/archive.dart';
 import 'package:flutter/material.dart';
 import 'dart:typed_data';
 import '../Widgets/apple_button.dart';
 import '../Widgets/download_result_dialog.dart';
 import '../Widgets/quota_gate.dart';
-import '../Widgets/site_footer_link.dart';
 import '../Services/conversion_service.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/file_storage_service.dart';
@@ -24,7 +23,7 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
   String? _selectedInputFormat;
   String? _selectedOutputFormat;
   bool _isConverting = false;
-  String _statusMessage = 'Select input format to start';
+  String _statusMessage = 'Ready to convert';
 
   List<PickedFileData> _selectedFiles = [];
   Uint8List? _selectedFile;
@@ -54,22 +53,17 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
     'PowerPoint': ['ppt', 'pptx'],
   };
 
+  static const Set<String> _temporarilyUnsupportedOutputs = {
+    'PowerPoint (.pptx)',
+  };
+
   @override
   void initState() {
     super.initState();
-    try {
-      _hydrateFromHomeUpload();
-    } catch (_) {
-      _statusMessage = 'Select input format to start';
-    }
+    _hydrateFromHomeUpload();
   }
 
   void _hydrateFromHomeUpload() {
-    if (kIsWeb) {
-      // Skip eager file restoration on web; large cached files can crash first-frame rendering.
-      return;
-    }
-
     final supportedExtensions = inputExtensions.values.expand((items) => items).toSet().toList();
     var cachedFiles = UploadContextService.getCompatibleFiles(supportedExtensions);
 
@@ -134,6 +128,11 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
     if (input == null || output == null) {
       return false;
     }
+
+    if (_temporarilyUnsupportedOutputs.contains(output)) {
+      return false;
+    }
+
     return true;
   }
 
@@ -175,19 +174,13 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final safeWidth = constraints.maxWidth.isFinite && constraints.maxWidth > 0
-              ? constraints.maxWidth
-              : MediaQuery.of(context).size.width;
-          final safeHeight = constraints.maxHeight.isFinite && constraints.maxHeight > 0
-              ? constraints.maxHeight
-              : MediaQuery.of(context).size.height;
           final isWide = constraints.maxWidth >= 760;
 
           return SingleChildScrollView(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                minWidth: 0,
-                minHeight: 0,
+              constraints: BoxConstraints(
+                minWidth: constraints.maxWidth,
+                minHeight: constraints.maxHeight,
               ),
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
@@ -368,7 +361,22 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
           );
         },
       ),
-      bottomNavigationBar: const SiteFooterLink(),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Container(
+          color: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: const Text(
+            'getreadyjob.com',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1F4E79),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -690,6 +698,10 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
     required String format,
     required bool isInput,
   }) {
+    final bool isSupportedOutput = !isInput
+        ? _isConversionSupported(_selectedInputFormat, format)
+        : true;
+
     final isSelected = isInput
         ? _selectedInputFormat == format
         : _selectedOutputFormat == format;
@@ -703,7 +715,7 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
             _selectedFiles = [];
             _selectedFile = null;
             _selectedFileName = null;
-            _statusMessage = 'Select output format to continue';
+            _statusMessage = 'Ready to convert';
           } else {
             _selectedOutputFormat = format;
           }
@@ -728,14 +740,32 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
               : [],
         ),
         child: Center(
-          child: Text(
-            format,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: isSelected ? Colors.white : Colors.grey.shade700,
-            ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                format,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? Colors.white : Colors.grey.shade700,
+                ),
+              ),
+              if (!isInput && !isSupportedOutput) ...[
+                const SizedBox(height: 2),
+                Text(
+                  'Ready',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: isSelected
+                        ? Colors.white.withOpacity(0.9)
+                        : const Color(0xFFB45309),
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       ),
@@ -817,8 +847,8 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
         _selectedFile = files.first.bytes;
         _selectedFileName = files.first.name;
         _statusMessage = files.length == 1
-          ? 'File selected. Tap Convert Now to continue.'
-          : '${files.length} files selected. Tap Convert All to continue.';
+            ? 'File ready. Tap Convert Now to continue.'
+            : '${files.length} files ready. Tap Convert All to continue.';
       });
     } catch (e) {
       setState(() {
@@ -885,7 +915,7 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Combined PDF generated. Download now.'),
+            content: Text('Combined PDF is ready for download.'),
             backgroundColor: Colors.green,
           ),
         );
@@ -933,7 +963,7 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Batch conversion completed. Download now.'),
+            content: Text('Batch conversion completed. Download link is ready.'),
             backgroundColor: Colors.green,
           ),
         );
@@ -974,12 +1004,12 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
 
       setState(() {
         _isConverting = false;
-          _statusMessage = '✓ Converted successfully. Download available.';
+        _statusMessage = '✓ Converted successfully. Download is ready.';
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('File converted successfully. Download now.'),
+          content: Text('File completed. Download link is ready.'),
           backgroundColor: Colors.green,
         ),
       );

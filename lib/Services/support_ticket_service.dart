@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:universal_html/html.dart' as html;
 
 class SupportTicketEntry {
@@ -43,35 +42,9 @@ class SupportTicketService {
   static const String _ticketsStorageKey = 'jobready_support_tickets_v1';
   static const String _counterStorageKey = 'jobready_support_ticket_counter_v1';
   static const int _maxEntries = 200;
-  static final Map<String, String> _memoryStore = <String, String>{};
-
-  static String? _getStorage(String key) {
-    if (!kIsWeb) {
-      return _memoryStore[key];
-    }
-
-    try {
-      return html.window.localStorage[key];
-    } catch (_) {
-      return _memoryStore[key];
-    }
-  }
-
-  static void _setStorage(String key, String value) {
-    _memoryStore[key] = value;
-    if (!kIsWeb) {
-      return;
-    }
-
-    try {
-      html.window.localStorage[key] = value;
-    } catch (_) {
-      // Keep memory fallback.
-    }
-  }
 
   static List<SupportTicketEntry> getEntries() {
-    final raw = _getStorage(_ticketsStorageKey);
+    final raw = html.window.localStorage[_ticketsStorageKey];
     if (raw == null || raw.trim().isEmpty) {
       return const <SupportTicketEntry>[];
     }
@@ -110,7 +83,7 @@ class SupportTicketService {
     final entries = getEntries().toList(growable: true);
     entries.insert(0, ticket);
     final trimmed = entries.take(_maxEntries).map((entry) => entry.toMap()).toList(growable: false);
-    _setStorage(_ticketsStorageKey, jsonEncode(trimmed));
+    html.window.localStorage[_ticketsStorageKey] = jsonEncode(trimmed);
 
     return ticket;
   }
@@ -123,7 +96,7 @@ class SupportTicketService {
   }
 
   static int _nextSequence(String dayKey) {
-    final raw = _getStorage(_counterStorageKey);
+    final raw = html.window.localStorage[_counterStorageKey];
     Map<String, dynamic> counters = <String, dynamic>{};
 
     if (raw != null && raw.trim().isNotEmpty) {
@@ -140,7 +113,7 @@ class SupportTicketService {
     final current = int.tryParse(counters[dayKey]?.toString() ?? '0') ?? 0;
     final next = current + 1;
     counters[dayKey] = next;
-    _setStorage(_counterStorageKey, jsonEncode(counters));
+    html.window.localStorage[_counterStorageKey] = jsonEncode(counters);
     return next;
   }
 }

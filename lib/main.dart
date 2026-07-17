@@ -1,20 +1,13 @@
-import 'dart:async';
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'Widgets/feature_tile.dart';
 import 'Widgets/pricing_card.dart';
 import 'Widgets/pdf_tool_card.dart';
 import 'Services/public_brand_config.dart';
-import 'Pages/home_page_v2.dart';
-import 'Pages/home_page_unified.dart';
-import 'Pages/convert_tool_page.dart';
-import 'Pages/compression_tool_page.dart';
-import 'Pages/merge_tool_page.dart';
-import 'Pages/split_tool_page.dart';
-import 'Pages/extract_tool_page.dart';
+import 'Pages/coming_soon_page.dart';
 import 'Pages/pdf_tools_page.dart';
-import 'Pages/pdf_edit_page.dart';
+import 'Pages/home_page_v2.dart';
+import 'Pages/admin_gate_page.dart';
+import 'Pages/system_check_page.dart';
 // ===============================
 // GLOBAL RESUME DATA MODEL
 // ===============================
@@ -36,184 +29,31 @@ class ResumeData {
     "Excel",
   ];
 }
-
-final ValueNotifier<String?> _fatalErrorMessage = ValueNotifier<String?>(null);
-
-void _recordFatalError(Object error, StackTrace? stackTrace) {
-  final trace = stackTrace == null ? '' : '\n\n$stackTrace';
-  _fatalErrorMessage.value = '$error$trace';
-}
-
 void main() {
-  FlutterError.onError = (details) {
-    FlutterError.presentError(details);
-    _recordFatalError(details.exception, details.stack);
-  };
-
-  PlatformDispatcher.instance.onError = (error, stack) {
-    _recordFatalError(error, stack);
-    return true;
-  };
-
-  runZonedGuarded(
-    () => runApp(const JobReadyApp()),
-    (error, stack) {
-      _recordFatalError(error, stack);
-    },
-  );
-}
-
-String _normalizeRouteName(String? rawRoute) {
-  var route = (rawRoute ?? '/').trim();
-  if (route.isEmpty) {
-    return '/';
-  }
-
-  final hashIndex = route.indexOf('#');
-  if (hashIndex >= 0 && hashIndex + 1 < route.length) {
-    route = route.substring(hashIndex + 1);
-  }
-
-  final queryIndex = route.indexOf('?');
-  if (queryIndex >= 0) {
-    route = route.substring(0, queryIndex);
-  }
-
-  if (!route.startsWith('/')) {
-    route = '/$route';
-  }
-
-  return route.isEmpty ? '/' : route;
-}
-
-String _resolveInitialRouteFromUrl() {
-  final fromHash = Uri.base.fragment.trim();
-  if (fromHash.isNotEmpty) {
-    return _normalizeRouteName(fromHash);
-  }
-
-  final fromPath = Uri.base.path.trim();
-  if (fromPath.isNotEmpty) {
-    return _normalizeRouteName(fromPath);
-  }
-
-  return '/home';
+runApp(const JobReadyApp());
 }
 
 class JobReadyApp extends StatelessWidget {
 const JobReadyApp({super.key});
 
-static final String _initialRoute = _resolveInitialRouteFromUrl();
-
-Widget _buildFatalErrorFallback(String message) {
-  return MaterialApp(
-    debugShowCheckedModeBanner: false,
-    home: Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'JOBREADY startup error',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF111827),
-                ),
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                'The app could not complete initialization. Please refresh and retry.',
-                style: TextStyle(fontSize: 14, color: Color(0xFF374151)),
-              ),
-              const SizedBox(height: 12),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF3F4F6),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: SelectableText(
-                      message,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        height: 1.35,
-                        color: Color(0xFF111827),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
-Route<dynamic> _buildRoute(String name) {
-  switch (name) {
-    case '/':
-    case '/home':
-      return MaterialPageRoute(builder: (_) => const HomePageUnified(), settings: const RouteSettings(name: '/home'));
-    case '/home-v2':
-      return MaterialPageRoute(builder: (_) => const HomePageV2(), settings: const RouteSettings(name: '/home-v2'));
-    case '/compress':
-      return MaterialPageRoute(builder: (_) => const CompressionToolPage(), settings: const RouteSettings(name: '/compress'));
-    case '/convert':
-      return MaterialPageRoute(builder: (_) => const ConvertToolPage(), settings: const RouteSettings(name: '/convert'));
-    case '/merge':
-      return MaterialPageRoute(builder: (_) => const MergeToolPage(), settings: const RouteSettings(name: '/merge'));
-    case '/split':
-      return MaterialPageRoute(builder: (_) => const SplitToolPage(), settings: const RouteSettings(name: '/split'));
-    case '/extract':
-      return MaterialPageRoute(builder: (_) => const ExtractToolPage(), settings: const RouteSettings(name: '/extract'));
-    case '/pdf-tools':
-      return MaterialPageRoute(builder: (_) => const PdfToolsPage(), settings: const RouteSettings(name: '/pdf-tools'));
-    case '/pdf-edit':
-      return MaterialPageRoute(builder: (_) => const PdfEditPage(), settings: const RouteSettings(name: '/pdf-edit'));
-    default:
-      return MaterialPageRoute(builder: (_) => const HomePageV2(), settings: const RouteSettings(name: '/home'));
-  }
-}
-
 @override
 Widget build(BuildContext context) {
-  return ValueListenableBuilder<String?>(
-    valueListenable: _fatalErrorMessage,
-    builder: (context, errorMessage, _) {
-      if (errorMessage != null && errorMessage.trim().isNotEmpty) {
-        return _buildFatalErrorFallback(errorMessage);
-      }
-
-      return MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'JOBREADY',
-        theme: ThemeData(
-          brightness: Brightness.light,
-          scaffoldBackgroundColor: const Color(0xFFF8F9FA),
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Color(0xFF1F2937),
-            foregroundColor: Colors.white,
-          ),
-          useMaterial3: true,
-        ),
-        initialRoute: _initialRoute,
-        onGenerateRoute: (settings) {
-          final normalized = _normalizeRouteName(settings.name);
-          return _buildRoute(normalized);
-        },
-        onUnknownRoute: (_) => _buildRoute('/home'),
-      );
-    },
-  );
+return MaterialApp(
+debugShowCheckedModeBanner: false,
+title: 'JOBREADY',
+theme: ThemeData(
+scaffoldBackgroundColor: const Color(0xFFF8F9FA),
+useMaterial3: true,
+),
+initialRoute: '/',
+routes: {
+  '/': (_) => const HomePageV2(),
+  '/home': (_) => const HomePageV2(),
+  '/admin': (_) => const AdminGatePage(targetRoute: '/system-check'),
+  '/coming-soon': (_) => const ComingSoonPage(),
+  '/system-check': (_) => const SystemCheckPage(),
+},
+);
 }
 }
 

@@ -7,7 +7,7 @@ import 'package:docx_template/docx_template.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
-import 'package:syncfusion_flutter_pdf/pdf.dart' as sfpdf;
+import 'package:pdf_render/pdf_render.dart' as pdf_render;
 
 class WordGeneratorService {
   const WordGeneratorService();
@@ -18,29 +18,77 @@ class WordGeneratorService {
     int preferredTargetWidth = 1400,
     double maxScale = 2.2,
   }) async {
-    final extractedText = _extractTextFromPdfSyncfusion(pdfBytes);
-    return createWordDocument(
-      pdfFileName: pdfFileName,
-      extractedText: extractedText,
-    );
-  }
+    final pdfDoc = await pdf_render.PdfDocument.openData(pdfBytes);
+    final renderedPages = <_RenderedPage>[];
 
-  String _extractTextFromPdfSyncfusion(Uint8List pdfBytes) {
     try {
-      final document = sfpdf.PdfDocument(inputBytes: pdfBytes);
-      try {
-        final text = sfpdf.PdfTextExtractor(document).extractText().trim();
-        if (text.isNotEmpty) {
-          return text;
+      for (var pageIndex = 1; pageIndex <= pdfDoc.pageCount; pageIndex++) {
+        final page = await pdfDoc.getPage(pageIndex);
+
+        final baseWidth = max(1, page.width.round());
+        final baseHeight = max(1, page.height.round());
+
+        final widthCandidates = <int>[
+          preferredTargetWidth,
+          (preferredTargetWidth * 0.8).round(),
+          (preferredTargetWidth * 0.65).round(),
+          (preferredTargetWidth * 0.5).round(),
+        ].where((value) => value > 300).toSet().toList(growable: false);
+
+        _RenderedPage? renderedPage;
+        Object? lastError;
+
+        for (final targetWidth in widthCandidates) {
+          try {
+            final scale = min(maxScale, targetWidth / max(1, baseWidth));
+            final renderWidth = max(1, (baseWidth * scale).round());
+            final renderHeight = max(1, (baseHeight * scale).round());
+
+            final rendered = await page.render(
+              width: renderWidth,
+              height: renderHeight,
+              backgroundFill: true,
+            );
+
+            final rgba = img.Image.fromBytes(
+              width: renderWidth,
+              height: renderHeight,
+              bytes: rendered.pixels.buffer,
+              bytesOffset: rendered.pixels.offsetInBytes,
+              numChannels: 4,
+              order: img.ChannelOrder.rgba,
+            );
+
+            final pngBytes = Uint8List.fromList(img.encodePng(rgba, level: 6));
+            rendered.dispose();
+
+            renderedPage = _RenderedPage(
+              fileName: 'image$pageIndex.png',
+              bytes: pngBytes,
+              widthPx: renderWidth,
+              heightPx: renderHeight,
+            );
+            break;
+          } catch (e) {
+            lastError = e;
+          }
         }
-      } finally {
-        document.dispose();
+
+        if (renderedPage == null) {
+          throw Exception('Unable to render page $pageIndex for Word layout export. $lastError');
+        }
+
+        renderedPages.add(renderedPage);
       }
-    } catch (_) {
-      // Fall through to safe message.
+    } finally {
+      await pdfDoc.dispose();
     }
 
-    return 'PDF text could not be extracted in layout mode on this build.';
+    if (renderedPages.isEmpty) {
+      throw Exception('Unable to render PDF pages for Word layout conversion.');
+    }
+
+    return _buildImageDocx(pdfFileName, renderedPages);
   }
 
   Future<Uint8List> createWordDocument({

@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import 'package:universal_html/html.dart' as html;
+
 import 'api_config.dart';
 
 class UsageQuotaSummary {
@@ -20,7 +24,7 @@ class UsageQuotaSummary {
 }
 
 class UsageQuotaService {
-  static Map<String, dynamic> _store = <String, dynamic>{};
+  static const String _storageKey = 'jobready_usage_quota_v2';
 
   static String _todayKey() {
     final now = DateTime.now().toLocal();
@@ -31,11 +35,25 @@ class UsageQuotaService {
   }
 
   static Map<String, dynamic> _loadStore() {
-    return Map<String, dynamic>.from(_store);
+    final raw = html.window.localStorage[_storageKey];
+    if (raw == null || raw.trim().isEmpty) {
+      return <String, dynamic>{};
+    }
+
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map) {
+        return Map<String, dynamic>.from(decoded);
+      }
+    } catch (_) {
+      // Ignore malformed local data and reset.
+    }
+
+    return <String, dynamic>{};
   }
 
   static Future<void> _saveStore(Map<String, dynamic> store) async {
-    _store = Map<String, dynamic>.from(store);
+    html.window.localStorage[_storageKey] = jsonEncode(store);
   }
 
   static UsageQuotaSummary getTodaySummary() {

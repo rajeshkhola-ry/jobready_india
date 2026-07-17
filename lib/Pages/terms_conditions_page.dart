@@ -72,37 +72,27 @@ class TermsConditionsPage extends StatelessWidget {
                 'We may suspend or terminate access if there is suspected fraud, abuse, security risk, legal non-compliance, or system integrity threat.',
           ),
           const _Section(
-            title: '11. Mobile App Installation Permissions and User Consent',
-            body:
-                'This point applies only to Android mobile and iPhone app installation. Before any app download or installation continues, required permissions must be shown clearly and accepted by the user. If the user selects Cancel or Decline, the download or installation must stop. Typical permissions may include file or media access for document upload and save, notifications for optional updates, network or internet access for core service, and camera or gallery access only when a feature explicitly needs it.',
-          ),
-          const _Section(
-            title: '12. Force Majeure',
+            title: '11. Force Majeure',
             body:
                 'We are not liable for delays or failures caused by events beyond reasonable control, including internet outages, cloud failures, natural disasters, government actions, cyber war, or large-scale infrastructure disruptions.',
           ),
           const _Section(
-            title: '13. Governing Law and Disputes',
+            title: '12. Governing Law and Disputes',
             body:
                 'These terms are governed by applicable law in the service jurisdiction. Disputes should first be raised through support for good-faith resolution before formal proceedings.',
           ),
           const _Section(
-            title: '14. Updates to Terms',
+            title: '13. Updates to Terms',
             body:
                 'We may revise these terms periodically for legal, security, or product reasons. Updated terms apply from publication date.',
           ),
-          const _Section(
-            title: '15. Lifetime Offer Window and Service Closure',
-            body:
-                'Any "lifetime" offer is valid for up to 10 years from purchase date, subject to service availability. If the site/platform is shut down, permanently discontinued, or legally required to stop operations, the lifetime offer ends at that time. We may still change tools, pricing, features, or service scope without prior notice as stated in these terms.',
-          ),
-          const _Section(
-            title: '16. Contact',
+          _Section(
+            title: '14. Contact',
             body: 'For legal and support matters: ${PublicBrandConfig.supportEmail}',
           ),
           const SizedBox(height: 14),
           const Text(
-            'Last updated: 2026-07-17',
+            'Last updated: 2026-07-14',
             style: TextStyle(fontSize: 12, color: Color(0xFF6B7280), fontWeight: FontWeight.w600),
           ),
         ],

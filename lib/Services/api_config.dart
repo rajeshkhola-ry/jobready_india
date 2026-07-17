@@ -77,16 +77,6 @@ class ApiConfig {
   static const String appStoreUrl =
       'https://apps.apple.com/app/jobready/id1234567890';
 
-  // App install consent requirements (show before redirecting to store/install flow)
-  static const List<String> requiredAppPermissions = [
-    'Storage / Files access (required for upload, conversion, and save)',
-    'Internet access (required for core service and updates)',
-    'Notifications (optional for status updates and alerts)',
-    'Camera / Gallery access (only when user selects camera/image features)',
-  ];
-  static const String installConsentRule =
-      'If user declines required permissions, app installation or setup must not continue.';
-
   // ==================== SOCIAL MEDIA LINKS ====================
   static const Map<String, String> socialLinks = {
     'website': 'https://getreadyjob.com',

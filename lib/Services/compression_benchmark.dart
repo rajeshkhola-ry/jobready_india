@@ -106,10 +106,7 @@ class BenchmarkResult {
       countsTowardProductionMetrics && qualityScore >= 85.0;
 
   /// Export as CSV line
-  String toCsvLine({
-    String modeLabel = '',
-    String policyLabel = '',
-  }) {
+  String toCsvLine() {
     return '$fileName,'
         '$fileSizeOriginal,'
         '$fileSizeCompressed,'
@@ -118,9 +115,7 @@ class BenchmarkResult {
         '${compressionRatio.toStringAsFixed(3)},'
         '${sizeReductionPercent.toStringAsFixed(2)},'
         '${timestamp.toIso8601String()},'
-        '"${runNote.replaceAll('"', '""')}",'
-        '"${modeLabel.replaceAll('"', '""')}",'
-        '"${policyLabel.replaceAll('"', '""')}"';
+        '"${runNote.replaceAll('"', '""')}"';
   }
 
   @override
@@ -563,10 +558,7 @@ class CompressionBenchmark {
   }
 
   /// Export results to CSV file
-  Future<File> exportToCsv({
-    BenchmarkExecutionMode? mode,
-    BenchmarkGatePolicy? policy,
-  }) async {
+  Future<File> exportToCsv() async {
     final dir = Directory(benchmarkDir);
     if (!dir.existsSync()) {
       dir.createSync(recursive: true);
@@ -574,14 +566,6 @@ class CompressionBenchmark {
 
     final timestamp = _compactTimestamp(DateTime.now());
     final csvFile = File('${dir.path}/benchmark_results_$timestamp.csv');
-
-    final modeLabel =
-      mode == null
-        ? ''
-        : (mode == BenchmarkExecutionMode.portableFallback
-          ? 'Portable Fallback'
-          : 'Strict Plugin');
-    final policyText = policy == null ? '' : policyLabel(policy);
 
     // Write CSV header
     final csvHeader = 'FileName,'
@@ -592,18 +576,11 @@ class CompressionBenchmark {
         'CompressionRatio,'
         'SizeReductionPercent,'
         'Timestamp,'
-        'RunNote,'
-        'ExecutionMode,'
-        'PolicyLock\n';
+        'RunNote\n';
 
     final csvLines = [csvHeader];
     for (final result in _results) {
-      csvLines.add(
-        result.toCsvLine(
-          modeLabel: modeLabel,
-          policyLabel: policyText,
-        ),
-      );
+      csvLines.add(result.toCsvLine());
     }
 
     await csvFile.writeAsString(csvLines.join('\n'));
@@ -611,11 +588,7 @@ class CompressionBenchmark {
   }
 
   /// Generate summary report
-  String generateSummaryReport({
-    BenchmarkExecutionMode? mode,
-    BenchmarkGatePolicy? policy,
-    BenchmarkPolicyResult? policyResult,
-  }) {
+  String generateSummaryReport() {
     if (_results.isEmpty) {
       return 'No benchmark results available.';
     }
@@ -644,19 +617,6 @@ class CompressionBenchmark {
             ? '🎯 COMPRESSION GOAL: Achieve ≥${passRate.toStringAsFixed(1)}% pass rate'
             : '🎯 COMPRESSION GOAL: Collect plugin-supported benchmark results before sign-off';
 
-    final modeLine =
-      mode == null
-        ? '  Execution Mode: Not specified'
-        : '  Execution Mode: ${mode == BenchmarkExecutionMode.portableFallback ? 'Portable Fallback' : 'Strict Plugin'}';
-    final policyLine =
-      policy == null
-        ? '  Policy Lock: Not specified'
-        : '  Policy Lock: ${policyLabel(policy)}';
-    final policyStatusLine =
-      policyResult == null
-        ? '  Global Gate: Not evaluated'
-        : '  Global Gate: ${policyResult.passed ? 'PASS' : 'FAIL'}';
-
     return '''
 ╔════════════════════════════════════════════════════════════════╗
 ║        JOBREADY V1-C1 COMPRESSION BENCHMARK REPORT            ║
@@ -667,9 +627,6 @@ class CompressionBenchmark {
   Tests Run: ${_results.length}
 $productionMetricsLine
 $diagnosticSummary
-$modeLine
-$policyLine
-$policyStatusLine
 
 📈 DETAILED RESULTS
 ─────────────────────────────────────────────────────────────────

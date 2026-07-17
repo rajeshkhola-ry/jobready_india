@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 
 import '../Services/usage_quota_service.dart';
 import '../Services/public_brand_config.dart';
@@ -11,18 +10,7 @@ Future<bool> checkQuotaAndProceed({
   required BuildContext context,
   required String actionBucket,
 }) async {
-  if (!kIsWeb) {
-    // Mobile runs should not fail due web-local quota storage constraints.
-    return true;
-  }
-
-  UsageQuotaSummary summary;
-  try {
-    summary = UsageQuotaService.getTodaySummary();
-  } catch (_) {
-    // If quota storage is unavailable, allow tool execution instead of blocking all actions.
-    return true;
-  }
+  final summary = UsageQuotaService.getTodaySummary();
 
   bool overLimit = false;
   int used = 0;

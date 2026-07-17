@@ -7,16 +7,12 @@ import 'package:syncfusion_flutter_pdf/pdf.dart' as sfpdf;
 
 import '../Widgets/download_result_dialog.dart';
 import '../Widgets/pdf_tool_card.dart';
-import '../Widgets/site_footer_link.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/pdf_ocr_service.dart';
 import '../Services/public_brand_config.dart';
 import '../Services/upload_context_service.dart';
 import '../Services/word_generator_service.dart';
-import 'compression_tool_page.dart';
-import 'merge_tool_page.dart';
 import 'pdf_edit_page.dart';
-import 'split_tool_page.dart';
 
 class PdfToolsPage extends StatefulWidget {
   const PdfToolsPage({super.key});
@@ -53,10 +49,6 @@ class _PdfToolsPageState extends State<PdfToolsPage> {
   }
 
   void _hydrateFromHomeUpload() {
-    if (kIsWeb) {
-      return;
-    }
-
     final files = UploadContextService.getCompatibleFiles(['pdf']);
     if (files.isEmpty) {
       return;
@@ -480,7 +472,7 @@ class _PdfToolsPageState extends State<PdfToolsPage> {
                     Text(
                       conversionCompleted
                           ? '✅ Status : Process Completed'
-                          : 'Status : Convert Now',
+                          : 'Status : Ready to Convert',
                       style: TextStyle(
                         color:
                             conversionCompleted
@@ -603,12 +595,7 @@ class _PdfToolsPageState extends State<PdfToolsPage> {
             subtitle:
                 'Combine multiple PDF files',
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const MergeToolPage(),
-                ),
-              );
+              Navigator.of(context).pushNamed('/merge');
             },
           ),
 
@@ -620,12 +607,7 @@ class _PdfToolsPageState extends State<PdfToolsPage> {
             subtitle:
                 'Extract pages from PDF files',
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const SplitToolPage(),
-                ),
-              );
+              Navigator.of(context).pushNamed('/split');
             },
           ),
 
@@ -636,12 +618,7 @@ class _PdfToolsPageState extends State<PdfToolsPage> {
             title: 'Compress PDF',
             subtitle: 'Reduce PDF size',
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const CompressionToolPage(),
-                ),
-              );
+              Navigator.of(context).pushNamed('/compress');
             },
           ),
 
@@ -652,17 +629,27 @@ class _PdfToolsPageState extends State<PdfToolsPage> {
             title: 'PDF Edit + OCR',
             subtitle: 'Load text, run OCR for scanned PDFs, edit and save PDF',
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const PdfEditPage(),
-                ),
-              );
+              Navigator.of(context).pushNamed('/pdf-edit');
             },
           ),
         ],
       ),
-      bottomNavigationBar: const SiteFooterLink(),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Container(
+          color: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: const Text(
+            'getreadyjob.com',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1F4E79),
+            ),
+          ),
+        ),
+      ),
     );
   }
 

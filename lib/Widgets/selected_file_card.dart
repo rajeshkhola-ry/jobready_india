@@ -94,7 +94,7 @@ class _SelectedFileCardState extends State<SelectedFileCard> {
                       ),
                       SizedBox(width: 6),
                       Text(
-                        'File Loaded for Conversion',
+                        'Ready for Conversion',
                         style: TextStyle(
                           color: Colors.green,
                           fontWeight: FontWeight.w600,
