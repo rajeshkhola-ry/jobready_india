@@ -1267,38 +1267,16 @@ class _FixedAdSpaceState extends State<_FixedAdSpace> {
   @override
   void initState() {
     super.initState();
-    _loadAdPayload();
+    _title = 'Sponsored';
+    _subtitle = 'Partner offer space (fixed slot).';
+    _provider = 'admob';
   }
 
   Future<void> _loadAdPayload() async {
-    final payload = await ApiService.getAdPlacementPayload(
-      adPlacement: widget.adPlacement,
-    );
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _title = payload['fallback_title']?.toString() ?? 'Sponsored';
-      _subtitle = payload['fallback_text']?.toString() ?? 'Partner offer space (fixed slot).';
-      _provider = payload['provider']?.toString() ?? 'admob';
-    });
-
-    await ApiService.trackAdInteraction(
-      adPlacement: widget.adPlacement,
-      interactionType: 'impression',
-      provider: _provider,
-    );
+    // Intentionally disabled in production hotfix path.
   }
 
   Future<void> _onTapAd() async {
-    await ApiService.trackAdInteraction(
-      adPlacement: widget.adPlacement,
-      interactionType: 'click',
-      provider: _provider,
-    );
-
     if (!mounted) {
       return;
     }
