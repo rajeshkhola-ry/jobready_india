@@ -36,8 +36,55 @@ void main() {
   runApp(const JobReadyApp());
 }
 
+String _normalizeRouteName(String? rawRoute) {
+  var route = (rawRoute ?? '/').trim();
+  if (route.isEmpty) {
+    return '/';
+  }
+
+  final hashIndex = route.indexOf('#');
+  if (hashIndex >= 0 && hashIndex + 1 < route.length) {
+    route = route.substring(hashIndex + 1);
+  }
+
+  final queryIndex = route.indexOf('?');
+  if (queryIndex >= 0) {
+    route = route.substring(0, queryIndex);
+  }
+
+  if (!route.startsWith('/')) {
+    route = '/$route';
+  }
+
+  return route.isEmpty ? '/' : route;
+}
+
 class JobReadyApp extends StatelessWidget {
 const JobReadyApp({super.key});
+
+Route<dynamic> _buildRoute(String name) {
+  switch (name) {
+    case '/':
+    case '/home':
+      return MaterialPageRoute(builder: (_) => const HomePageV2(), settings: const RouteSettings(name: '/home'));
+    case '/compress':
+      return MaterialPageRoute(builder: (_) => const CompressionToolPage(), settings: const RouteSettings(name: '/compress'));
+    case '/convert':
+      return MaterialPageRoute(builder: (_) => const ConvertToolPage(), settings: const RouteSettings(name: '/convert'));
+    case '/merge':
+      return MaterialPageRoute(builder: (_) => const MergeToolPage(), settings: const RouteSettings(name: '/merge'));
+    case '/split':
+      return MaterialPageRoute(builder: (_) => const SplitToolPage(), settings: const RouteSettings(name: '/split'));
+    case '/extract':
+      return MaterialPageRoute(builder: (_) => const ExtractToolPage(), settings: const RouteSettings(name: '/extract'));
+    case '/pdf-tools':
+      return MaterialPageRoute(builder: (_) => const PdfToolsPage(), settings: const RouteSettings(name: '/pdf-tools'));
+    case '/pdf-edit':
+      return MaterialPageRoute(builder: (_) => const PdfEditPage(), settings: const RouteSettings(name: '/pdf-edit'));
+    default:
+      return MaterialPageRoute(builder: (_) => const HomePageV2(), settings: const RouteSettings(name: '/home'));
+  }
+}
 
 @override
 Widget build(BuildContext context) {
@@ -53,18 +100,12 @@ Widget build(BuildContext context) {
       ),
       useMaterial3: true,
     ),
-    initialRoute: '/',
-    routes: {
-      '/': (_) => const HomePageV2(),
-      '/home': (_) => const HomePageV2(),
-      '/compress': (_) => const CompressionToolPage(),
-      '/convert': (_) => const ConvertToolPage(),
-      '/merge': (_) => const MergeToolPage(),
-      '/split': (_) => const SplitToolPage(),
-      '/extract': (_) => const ExtractToolPage(),
-      '/pdf-tools': (_) => const PdfToolsPage(),
-      '/pdf-edit': (_) => const PdfEditPage(),
+    initialRoute: '/home',
+    onGenerateRoute: (settings) {
+      final normalized = _normalizeRouteName(settings.name);
+      return _buildRoute(normalized);
     },
+    onUnknownRoute: (_) => _buildRoute('/home'),
   );
 }
 }
