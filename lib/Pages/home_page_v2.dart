@@ -2921,23 +2921,30 @@ class _CouponControlPanelState extends State<_CouponControlPanel> {
                   ),
                   if (_lastGenerated != null) ...[
                     const SizedBox(height: 8),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEFF7FF),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFCCE7FF)),
-                      ),
-                      child: SelectableText(
-                        'Latest: ${_lastGenerated!.code}  (${_lastGenerated!.discountPercent}% OFF)  '
-                        '${_formatExpiryText(_lastGenerated!)}',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF1F4E79),
-                        ),
-                      ),
+                    Builder(
+                      builder: (context) {
+                        final latest = _lastGenerated;
+                        if (latest == null) {
+                          return const SizedBox.shrink();
+                        }
+                        return Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEFF7FF),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFCCE7FF)),
+                          ),
+                          child: SelectableText(
+                            'Latest: ${latest.code}  (${latest.discountPercent}% OFF)  ${_formatExpiryText(latest)}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF1F4E79),
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ],
                   if (coupons.isNotEmpty) ...[
@@ -3099,11 +3106,12 @@ class _CouponControlPanelState extends State<_CouponControlPanel> {
   }
 
   String _formatExpiryText(CouponData coupon) {
-    if (coupon.expiresAt == null) {
+    final expiry = coupon.expiresAt;
+    if (expiry == null) {
       return 'No expiry';
     }
 
-    final remaining = coupon.expiresAt!.difference(coupon.createdAt);
+    final remaining = expiry.difference(coupon.createdAt);
     if (remaining.inHours <= 24) {
       return 'Valid 24 hours';
     }

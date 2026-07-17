@@ -20,10 +20,11 @@ class PricingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool isPremium = title.toLowerCase().contains('premium');
     final bool isFreePlan = price.toLowerCase() == 'free';
+    final double effectiveBasePrice = basePrice ?? 0;
     final bool hasDiscount = appliedDiscountPercent > 0 && basePrice != null;
     final double discountedPrice = hasDiscount
-        ? basePrice! * (1 - (appliedDiscountPercent / 100))
-        : (basePrice ?? 0);
+      ? effectiveBasePrice * (1 - (appliedDiscountPercent / 100))
+      : effectiveBasePrice;
 
     String _formatMoney(double amount) {
       final rounded = amount.roundToDouble();
@@ -102,7 +103,7 @@ class PricingCard extends StatelessWidget {
                   if (hasDiscount) ...[
                     const SizedBox(height: 4),
                     Text(
-                      _formatMoney(basePrice!),
+                      _formatMoney(effectiveBasePrice),
                       style: const TextStyle(
                         fontSize: 11,
                         decoration: TextDecoration.lineThrough,
