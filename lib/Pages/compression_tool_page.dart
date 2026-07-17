@@ -1,4 +1,3 @@
-import 'package:archive/archive.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../Widgets/target_size_selector.dart';
