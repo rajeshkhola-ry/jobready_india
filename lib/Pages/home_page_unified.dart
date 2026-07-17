@@ -176,6 +176,7 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
               _buildNavItem('Merge', Icons.merge_type_rounded, false, () => _openRoute('/merge')),
               _buildNavItem('Split', Icons.call_split_rounded, false, () => _openRoute('/split')),
               _buildNavItem('PDF Tools', Icons.build_circle_rounded, false, () => _openRoute('/pdf-tools')),
+              _buildNavItem('History', Icons.history_rounded, false, () => _openRoute('/home-v2')),
               const Spacer(),
               Container(
                 width: double.infinity,
@@ -197,9 +198,44 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
                   ],
                 ),
               ),
+              const SizedBox(height: 12),
+              _buildStorageCard(),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildStorageCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.cloud_rounded, color: Colors.white, size: 18),
+              SizedBox(width: 6),
+              Text('Cloud Storage', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+            ],
+          ),
+          SizedBox(height: 8),
+          Text('2.4 GB / 10 GB used', style: TextStyle(color: Colors.white70, fontSize: 12)),
+          SizedBox(height: 8),
+          LinearProgressIndicator(
+            value: 0.24,
+            minHeight: 8,
+            backgroundColor: Colors.white24,
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC72C)),
+          ),
+        ],
       ),
     );
   }
@@ -247,7 +283,9 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
             _buildToolsGrid(isDesktop),
             const SizedBox(height: 16),
             _buildBottomPanels(isDesktop),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
+            _buildTrustStrip(),
+            const SizedBox(height: 10),
             _buildFooter(),
           ],
         ),
@@ -295,8 +333,45 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
               style: TextStyle(fontWeight: FontWeight.w700, color: _blue),
             ),
           ),
+          const SizedBox(width: 10),
+          _buildHeaderAction(Icons.notifications_none_rounded, badge: '3'),
+          const SizedBox(width: 8),
+          _buildHeaderAction(Icons.account_circle_rounded),
         ],
       ),
+    );
+  }
+
+  Widget _buildHeaderAction(IconData icon, {String? badge}) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F5FF),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: _blue),
+        ),
+        if (badge != null)
+          Positioned(
+            right: -2,
+            top: -4,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                badge,
+                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -311,7 +386,14 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
       ),
       child: Column(
         children: [
-          const Icon(Icons.cloud_upload_rounded, color: _blue, size: 42),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEAF0FF),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(Icons.cloud_upload_rounded, color: _blue, size: 42),
+          ),
           const SizedBox(height: 8),
           const Text(
             'Drop your file here or click to browse',
@@ -334,6 +416,18 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
+          ),
+          const SizedBox(height: 8),
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.verified_user_rounded, color: Color(0xFF16A34A), size: 16),
+              SizedBox(width: 6),
+              Text(
+                'Your files are 100% secure and private.',
+                style: TextStyle(color: Color(0xFF4B5563), fontWeight: FontWeight.w600),
+              ),
+            ],
           ),
         ],
       ),
@@ -386,18 +480,39 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(tool.icon, color: _blue),
-                const SizedBox(height: 8),
-                Text(
-                  tool.title,
-                  style: const TextStyle(fontWeight: FontWeight.w800, color: _navy),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  tool.subtitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF4B5563)),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF2FF),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(tool.icon, color: _blue, size: 19),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            tool.title,
+                            style: const TextStyle(fontWeight: FontWeight.w800, color: _navy),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            tool.subtitle,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF4B5563)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8), size: 20),
+                  ],
                 ),
               ],
             ),
@@ -445,6 +560,8 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
         children: [
           Text('Offers & Coupons', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: _navy)),
           SizedBox(height: 10),
+          Text('First conversion free', style: TextStyle(color: _navy, fontWeight: FontWeight.w700)),
+          SizedBox(height: 4),
           Text('First conversion free with code: WELCOME50', style: TextStyle(color: Color(0xFF4B5563))),
           SizedBox(height: 8),
           Text('Get 50% off on Premium monthly plans.', style: TextStyle(color: Color(0xFF4B5563))),
@@ -555,6 +672,31 @@ class _HomePageUnifiedState extends State<HomePageUnified> {
         children: [
           Text('JOBREADY • The fastest document toolkit for global users', style: TextStyle(color: Colors.white70)),
           Text('Trusted by users worldwide • 4.8/5', style: TextStyle(color: Colors.white)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTrustStrip() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFDDE5FF)),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.shield_rounded, color: Color(0xFF64748B), size: 18),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Trusted by thousands of users worldwide',
+              style: TextStyle(color: Color(0xFF334155), fontWeight: FontWeight.w700),
+            ),
+          ),
+          Text('⭐ ⭐ ⭐ ⭐ ⭐  4.8/5', style: TextStyle(color: Color(0xFF1E293B), fontWeight: FontWeight.w700)),
         ],
       ),
     );
