@@ -1980,11 +1980,16 @@ class _UserPaymentPanel extends StatelessWidget {
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
             initialValue: selectedCurrency,
+            isExpanded: true,
             items: _paymentCurrencyLabels.entries
                 .map(
                   (entry) => DropdownMenuItem<String>(
                     value: entry.key,
-                    child: Text(entry.value),
+                    child: Text(
+                      entry.value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 )
                 .toList(growable: false),
@@ -2034,23 +2039,47 @@ class _UserPaymentPanel extends StatelessWidget {
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
             initialValue: selectedPlan,
+            isExpanded: true,
             items: [
-              const DropdownMenuItem(value: 'Free', child: Text('FREE - ₹0 / \$0')),
+              const DropdownMenuItem(
+                value: 'Free',
+                child: Text(
+                  'FREE - ₹0 / \$0',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
               DropdownMenuItem(
                 value: '7Days',
-                child: Text('7 DAYS - ${_formatCurrencyAmount(sevenDayAmount, selectedCurrency)}'),
+                child: Text(
+                  '7 DAYS - ${_formatCurrencyAmount(sevenDayAmount, selectedCurrency)}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
               DropdownMenuItem(
                 value: 'Monthly',
-                child: Text('MONTHLY - ${_formatCurrencyAmount(monthlyAmount, selectedCurrency)}/month'),
+                child: Text(
+                  'MONTHLY - ${_formatCurrencyAmount(monthlyAmount, selectedCurrency)}/month',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
               DropdownMenuItem(
                 value: 'Yearly',
-                child: Text('YEARLY - ${_formatCurrencyAmount(yearlyAmount, selectedCurrency)}/year ⭐'),
+                child: Text(
+                  'YEARLY - ${_formatCurrencyAmount(yearlyAmount, selectedCurrency)}/year ⭐',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
               DropdownMenuItem(
                 value: 'Lifetime',
-                child: Text('LIFETIME - ${_formatCurrencyAmount(lifetimePlanAmount, selectedCurrency)} one-time'),
+                child: Text(
+                  'LIFETIME - ${_formatCurrencyAmount(lifetimePlanAmount, selectedCurrency)} one-time',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
             onChanged: (value) {

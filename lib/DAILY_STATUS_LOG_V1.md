@@ -537,3 +537,34 @@ Prepared For: JOBREADY
   - Git freeze commit, freeze tag/branch, and OneDrive backup sync executed in this checkpoint.
 - Owner:
   - Founder + Copilot
+
+### Checkpoint - 2026-07-18 (V1.1 Integration Preparation and Validation)
+- Overall status: Green (checkpoint stable)
+- Completed today:
+  - Added explicit V2 feature checklist for items 2.1 through 2.15 with status per item:
+    - `lib/V2_2_1_TO_2_15_CHECKLIST.md`
+  - Created protected V1.1 integration entrypoint derived from frozen baseline:
+    - `lib/main_v1_1.dart`
+  - Added V1.1 validation test coverage:
+    - `test/v1_1_integration_validation_test.dart`
+    - responsive smoke
+    - route registration + system check build
+    - theme consistency
+  - Added analyzer scope exclusions for backup/mirror folders so validation targets active product code paths only:
+    - `analysis_options.yaml`
+  - Fixed payment dropdown overflow behavior in `lib/Pages/home_page_v2.dart` using expanded layout and ellipsis-safe item text.
+- Validation result:
+  - `flutter test test/v1_1_integration_validation_test.dart`: PASS
+  - `flutter test test/v2_clean_start_smoke_test.dart`: PASS
+  - `flutter build web -t lib/main_v1_1.dart`: PASS
+  - `flutter analyze`: no errors (warnings/info remain)
+  - Runtime web validation:
+    - `http://127.0.0.1:54333/`
+    - `http://127.0.0.1:54333/#/system-check`
+- Review evidence:
+  - Home screenshot captured from V1.1 runtime.
+  - System Check screenshot captured from V1.1 runtime.
+- Merge gate note:
+  - Full 2.1 through 2.15 closure is not complete by roadmap; deferred/in-progress items are explicitly listed before any deeper merge expansion.
+- Owner:
+  - Founder + Copilot
