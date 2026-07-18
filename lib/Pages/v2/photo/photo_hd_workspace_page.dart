@@ -19,6 +19,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
   PhotoSizePreset _selectedPreset = PhotoResizeService.presets.first;
   bool _hdMode = true;
   bool _isProcessing = false;
+  _StatusType _statusType = _StatusType.idle;
   String _statusMessage = 'Upload a passport photo or other image to start.';
 
   @override
@@ -37,6 +38,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
 
     setState(() {
       _selectedImage = image;
+      _statusType = _StatusType.idle;
       _statusMessage = 'Loaded image from workspace upload: ${image.name}';
     });
   }
@@ -58,6 +60,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
 
     setState(() {
       _selectedImage = picked;
+      _statusType = _StatusType.idle;
       _statusMessage = 'Image selected: ${picked.name}';
     });
   }
@@ -73,6 +76,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
 
     setState(() {
       _isProcessing = true;
+      _statusType = _StatusType.processing;
       _statusMessage = 'Preparing ${_hdMode ? 'HD ' : ''}photo for ${_selectedPreset.label}...';
     });
 
@@ -90,8 +94,9 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
 
       setState(() {
         _isProcessing = false;
+        _statusType = _StatusType.success;
         _statusMessage =
-            'Ready: ${result.outputFileName} created at ${result.width} x ${result.height}.';
+            'Ready: ${result.outputFileName} — ${result.width} × ${result.height} px.';
       });
 
       await showDialog<void>(
@@ -109,6 +114,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
 
       setState(() {
         _isProcessing = false;
+        _statusType = _StatusType.error;
         _statusMessage = 'Unable to prepare image. Please try another file.';
       });
 
@@ -154,14 +160,47 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _panel(
-                      child: const Text(
-                        'Use this V2 workspace to enlarge passport-size photos into larger print or card sizes with best-quality export. HD mode applies a stronger quality-focused upscale pass.',
-                        style: TextStyle(
-                          fontSize: 14,
-                          height: 1.5,
-                          color: Color(0xFF334155),
-                          fontWeight: FontWeight.w600,
-                        ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEAF2FF),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.high_quality_rounded,
+                              color: Color(0xFF0E3A66),
+                              size: 26,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Photo HD Workspace',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF0F172A),
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'Upload a photo, choose a target size, and generate a high-quality export.',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    height: 1.5,
+                                    color: Color(0xFF475569),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 14),
@@ -179,9 +218,41 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                           ),
                           const SizedBox(height: 10),
                           if (_selectedImage == null)
-                            const Text(
-                              'No image selected yet. JPG, PNG, WEBP, and BMP are supported.',
-                              style: TextStyle(color: Color(0xFF64748B)),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 20, horizontal: 16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FBFF),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                    color: const Color(0xFFB8D0ED)),
+                              ),
+                              child: const Column(
+                                children: [
+                                  Icon(
+                                    Icons.add_photo_alternate_outlined,
+                                    size: 32,
+                                    color: Color(0xFF94A3B8),
+                                  ),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'No image selected',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF475569),
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    'Supported: JPG, PNG, WEBP, BMP',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        color: Color(0xFF94A3B8)),
+                                  ),
+                                ],
+                              ),
                             )
                           else
                             _SelectedImageSummary(file: _selectedImage!),
@@ -191,20 +262,29 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                             runSpacing: 10,
                             children: [
                               ElevatedButton.icon(
-                                onPressed: _pickImage,
+                                onPressed: _isProcessing ? null : _pickImage,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF0E3A66),
+                                  foregroundColor: Colors.white,
+                                ),
                                 icon: const Icon(Icons.upload_file_rounded),
                                 label: const Text('Upload Photo'),
                               ),
-                              OutlinedButton.icon(
-                                onPressed: () {
-                                  setState(() {
-                                    _selectedImage = null;
-                                    _statusMessage = 'Image cleared. Upload a new photo to continue.';
-                                  });
-                                },
-                                icon: const Icon(Icons.delete_outline_rounded),
-                                label: const Text('Clear'),
-                              ),
+                              if (_selectedImage != null)
+                                OutlinedButton.icon(
+                                  onPressed: _isProcessing
+                                      ? null
+                                      : () {
+                                          setState(() {
+                                            _selectedImage = null;
+                                            _statusType = _StatusType.idle;
+                                            _statusMessage =
+                                                'Image cleared. Upload a new photo to continue.';
+                                          });
+                                        },
+                                  icon: const Icon(Icons.delete_outline_rounded),
+                                  label: const Text('Clear'),
+                                ),
                             ],
                           ),
                         ],
@@ -225,7 +305,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                           ),
                           const SizedBox(height: 10),
                           DropdownButtonFormField<PhotoSizePreset>(
-                            initialValue: _selectedPreset,
+                            value: _selectedPreset,
                             items: PhotoResizeService.presets
                                 .map(
                                   (preset) => DropdownMenuItem<PhotoSizePreset>(
@@ -234,14 +314,14 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                                   ),
                                 )
                                 .toList(growable: false),
-                            onChanged: (preset) {
-                              if (preset == null) {
-                                return;
-                              }
-                              setState(() {
-                                _selectedPreset = preset;
-                              });
-                            },
+                            onChanged: _isProcessing
+                                ? null
+                                : (preset) {
+                                    if (preset == null) return;
+                                    setState(() {
+                                      _selectedPreset = preset;
+                                    });
+                                  },
                             decoration: const InputDecoration(
                               labelText: 'Choose target size',
                               border: OutlineInputBorder(),
@@ -250,11 +330,13 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                           const SizedBox(height: 12),
                           SwitchListTile.adaptive(
                             value: _hdMode,
-                            onChanged: (value) {
-                              setState(() {
-                                _hdMode = value;
-                              });
-                            },
+                            onChanged: _isProcessing
+                                ? null
+                                : (value) {
+                                    setState(() {
+                                      _hdMode = value;
+                                    });
+                                  },
                             contentPadding: EdgeInsets.zero,
                             title: const Text('HD Photo Mode'),
                             subtitle: const Text(
@@ -271,7 +353,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                               border: Border.all(color: const Color(0xFFD8E5F5)),
                             ),
                             child: Text(
-                              'Selected output: ${_selectedPreset.width} x ${_selectedPreset.height} px. The app keeps the best fit of the original image and fills extra canvas space with white background if needed.',
+                              'Selected output: ${_selectedPreset.width} \u00d7 ${_selectedPreset.height} px  \u00b7  White background fill applied if needed.',
                               style: const TextStyle(
                                 fontSize: 13,
                                 height: 1.45,
@@ -300,23 +382,29 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                             width: double.infinity,
                             child: ElevatedButton.icon(
                               onPressed: _isProcessing ? null : _generatePhoto,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF0E3A66),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 14),
+                              ),
                               icon: Icon(_isProcessing ? Icons.hourglass_top_rounded : Icons.high_quality_rounded),
                               label: Text(_isProcessing ? 'Processing...' : 'Generate HD Photo'),
                             ),
                           ),
-                          const SizedBox(height: 10),
-                          Text(
-                            _statusMessage,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF334155),
-                            ),
-                          ),
-                          if (_selectedImage != null) ...[
+                          if (_isProcessing) ...[
                             const SizedBox(height: 10),
+                            const LinearProgressIndicator(
+                              backgroundColor: Color(0xFFD8E5F5),
+                              color: Color(0xFF0E3A66),
+                            ),
+                          ],
+                          const SizedBox(height: 10),
+                          _StatusRow(message: _statusMessage, type: _statusType),
+                          if (_selectedImage != null) ...[
+                            const SizedBox(height: 8),
                             Text(
-                              'Current file size: ${_formatBytes(_selectedImage!.size)}',
+                              'File size: ${_formatBytes(_selectedImage!.size)}',
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: Color(0xFF64748B),
@@ -346,6 +434,69 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
         border: Border.all(color: const Color(0xFFD8E5F5)),
       ),
       child: child,
+    );
+  }
+}
+
+enum _StatusType { idle, processing, success, error }
+
+class _StatusRow extends StatelessWidget {
+  final String message;
+  final _StatusType type;
+
+  const _StatusRow({required this.message, required this.type});
+
+  @override
+  Widget build(BuildContext context) {
+    final (IconData icon, Color color, Color bg) = switch (type) {
+      _StatusType.processing => (
+          Icons.sync_rounded,
+          const Color(0xFF0E3A66),
+          const Color(0xFFEAF2FF),
+        ),
+      _StatusType.success => (
+          Icons.check_circle_outline_rounded,
+          const Color(0xFF166534),
+          const Color(0xFFDCFCE7),
+        ),
+      _StatusType.error => (
+          Icons.error_outline_rounded,
+          const Color(0xFF9F1239),
+          const Color(0xFFFFE4E6),
+        ),
+      _StatusType.idle => (
+          Icons.info_outline_rounded,
+          const Color(0xFF475569),
+          const Color(0xFFF8FBFF),
+        ),
+    };
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: color,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
