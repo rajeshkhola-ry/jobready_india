@@ -22,6 +22,7 @@ class SystemCheckPage extends StatefulWidget {
 
 class _SystemCheckPageState extends State<SystemCheckPage> {
   static const String _qaStorageKey = 'jobready_v11_qa_checklist';
+  static const String _qaSignOffStorageKey = 'jobready_v11_qa_signoff_at';
 
   final Map<String, bool> _qaChecks = {
     'chrome': false,
@@ -33,12 +34,22 @@ class _SystemCheckPageState extends State<SystemCheckPage> {
   };
 
   int _enabledIntegrationApps = 0;
+  String? _qaSignedOffAt;
 
   @override
   void initState() {
     super.initState();
     _loadQaChecks();
+    _loadQaSignOff();
     _loadIntegrationStats();
+  }
+
+  void _loadQaSignOff() {
+    final raw = html.window.localStorage[_qaSignOffStorageKey];
+    if (raw == null || raw.trim().isEmpty) {
+      return;
+    }
+    _qaSignedOffAt = raw;
   }
 
   void _loadQaChecks() {
@@ -94,6 +105,109 @@ class _SystemCheckPageState extends State<SystemCheckPage> {
       return 0;
     }
     return done / total;
+  }
+
+  bool _canSignOffQa() {
+    return _qaChecks.values.every((value) => value);
+  }
+
+  String _formattedSignOff() {
+    final raw = _qaSignedOffAt;
+    if (raw == null || raw.trim().isEmpty) {
+      return 'Not signed off yet';
+    }
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) {
+      return raw;
+    }
+    final local = parsed.toLocal();
+    final month = local.month.toString().padLeft(2, '0');
+    final day = local.day.toString().padLeft(2, '0');
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return '${local.year}-$month-$day $hour:$minute';
+  }
+
+  void _markQaSignOff() {
+    if (!_canSignOffQa()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Complete all QA checklist items before sign-off.')),
+      );
+      return;
+    }
+
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+    setState(() {
+      _qaSignedOffAt = nowIso;
+    });
+    html.window.localStorage[_qaSignOffStorageKey] = nowIso;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('QA smoke matrix signed off locally.')),
+    );
+  }
+
+  Widget _qaSignOffCard() {
+    final signOffReady = _canSignOffQa();
+    final signedOff = _qaSignedOffAt != null && _qaSignedOffAt!.trim().isNotEmpty;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Release Smoke Sign-off',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF1F2937),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 10,
+            runSpacing: 8,
+            children: [
+              _statusChip(
+                label: signOffReady ? 'Matrix: READY' : 'Matrix: PENDING',
+                color: signOffReady ? const Color(0xFF166534) : const Color(0xFFB45309),
+              ),
+              _statusChip(
+                label: signedOff ? 'Sign-off: RECORDED' : 'Sign-off: NOT RECORDED',
+                color: signedOff ? const Color(0xFF1D4ED8) : const Color(0xFF64748B),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Last sign-off: ${_formattedSignOff()}',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF334155),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _markQaSignOff,
+              icon: const Icon(Icons.verified_user_rounded),
+              label: const Text('Mark QA Matrix Sign-off'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1F4E79),
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _openTool(BuildContext context, Widget page) {
@@ -303,6 +417,8 @@ class _SystemCheckPageState extends State<SystemCheckPage> {
           _readinessCard(),
           const SizedBox(height: 10),
           _qaChecklistCard(),
+          const SizedBox(height: 10),
+          _qaSignOffCard(),
           const SizedBox(height: 10),
           Container(
             padding: const EdgeInsets.all(12),

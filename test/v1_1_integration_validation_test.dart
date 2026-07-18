@@ -53,6 +53,11 @@ void main() {
       await tester.pumpWidget(const MaterialApp(home: SystemCheckPage()));
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.text('System Check'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('Mark QA Matrix Sign-off'),
+        300,
+      );
+      expect(find.text('Mark QA Matrix Sign-off'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 

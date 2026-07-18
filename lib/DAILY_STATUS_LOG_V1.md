@@ -658,3 +658,23 @@ Prepared For: JOBREADY
   - Runtime review completed on built V1.1 home route with updated payment-panel screenshot evidence captured.
 - Owner:
   - Founder + Copilot
+
+### Checkpoint - 2026-07-18 (V1.1 Controlled Merge - Checkpoint 5)
+- Overall status: Green (checkpoint stable)
+- Completed today:
+  - Advanced 2.14 QA/beta evidence hardening in `lib/Pages/system_check_page.dart`:
+    - added local `Release Smoke Sign-off` section
+    - added matrix status chips (`READY/PENDING`, `RECORDED/NOT RECORDED`)
+    - added local sign-off timestamp persistence in browser storage
+    - added `Mark QA Matrix Sign-off` action with completion guard
+  - Updated V1.1 integration validation in `test/v1_1_integration_validation_test.dart` to assert sign-off section accessibility via scroll.
+- In progress:
+  - Wait for review before starting Checkpoint 6.
+- Validation result:
+  - `flutter analyze`: PASS (no new errors; existing repo warnings/info only)
+  - `flutter test test/v1_1_integration_validation_test.dart`: PASS
+  - `flutter build web -t lib/main_v1_1.dart`: PASS
+  - Build artifact evidence: `build/web/index.html` refreshed (`LastWriteTime: 2026-07-18 15:21:43`).
+  - Runtime review completed on V1.1 System Check route with updated screenshot evidence captured.
+- Owner:
+  - Founder + Copilot
