@@ -151,11 +151,12 @@ class _SystemCheckPageState extends State<SystemCheckPage> {
     final signedOff = _qaSignedOffAt != null && _qaSignedOffAt!.trim().isNotEmpty;
 
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFD8E5F5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -163,36 +164,36 @@ class _SystemCheckPageState extends State<SystemCheckPage> {
           const Text(
             'Release Smoke Sign-off',
             style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF1F2937),
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF0F172A),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Wrap(
             spacing: 10,
             runSpacing: 8,
             children: [
               _statusChip(
-                label: signOffReady ? 'Matrix: READY' : 'Matrix: PENDING',
+                label: signOffReady ? '✓ Matrix: READY' : '◯ Matrix: PENDING',
                 color: signOffReady ? const Color(0xFF166534) : const Color(0xFFB45309),
               ),
               _statusChip(
-                label: signedOff ? 'Sign-off: RECORDED' : 'Sign-off: NOT RECORDED',
-                color: signedOff ? const Color(0xFF1D4ED8) : const Color(0xFF64748B),
+                label: signedOff ? '✓ Sign-off: RECORDED' : '◯ Sign-off: NOT RECORDED',
+                color: signedOff ? const Color(0xFF0E3A66) : const Color(0xFF64748B),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Text(
             'Last sign-off: ${_formattedSignOff()}',
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF334155),
+              color: Color(0xFF475569),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
@@ -200,8 +201,12 @@ class _SystemCheckPageState extends State<SystemCheckPage> {
               icon: const Icon(Icons.verified_user_rounded),
               label: const Text('Mark QA Matrix Sign-off'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1F4E79),
+                backgroundColor: const Color(0xFF0E3A66),
                 foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
           ),
@@ -255,11 +260,12 @@ class _SystemCheckPageState extends State<SystemCheckPage> {
     final gatewayColor = activeGateway.isEmpty ? const Color(0xFFB45309) : const Color(0xFF166534);
 
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFD8E5F5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -267,30 +273,30 @@ class _SystemCheckPageState extends State<SystemCheckPage> {
           const Text(
             'API and Payment Readiness',
             style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF1F2937),
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF0F172A),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Wrap(
             spacing: 10,
             runSpacing: 8,
             children: [
               _statusChip(
                 label: 'Environment: ${ApiConfig.environment.name.toUpperCase()}',
-                color: const Color(0xFF1D4ED8),
+                color: const Color(0xFF0E3A66),
               ),
               _statusChip(
                 label: 'Gateway: $gatewayLabel',
                 color: gatewayColor,
               ),
               _statusChip(
-                label: 'Supported gateways: ${gateways.length}',
+                label: 'Gateways: ${gateways.length}',
                 color: gateways.isEmpty ? const Color(0xFFB45309) : const Color(0xFF166534),
               ),
               _statusChip(
-                label: 'Enabled integrations: $_enabledIntegrationApps',
+                label: 'Integrations: $_enabledIntegrationApps',
                 color: _enabledIntegrationApps > 0 ? const Color(0xFF166534) : const Color(0xFFB45309),
               ),
             ],
@@ -325,32 +331,35 @@ class _SystemCheckPageState extends State<SystemCheckPage> {
     final total = _qaChecks.length;
 
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFD8E5F5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Browser and Responsive QA Checklist ($done/$total)',
+            'Browser and Responsive QA ($done/$total)',
             style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF1F2937),
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF0F172A),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           LinearProgressIndicator(
             value: progress,
-            minHeight: 8,
-            backgroundColor: const Color(0xFFE2E8F0),
-            color: progress == 1.0 ? const Color(0xFF166534) : const Color(0xFF1D4ED8),
-            borderRadius: BorderRadius.circular(999),
+            minHeight: 6,
+            backgroundColor: const Color(0xFFE0E7FF),
+            valueColor: AlwaysStoppedAnimation(
+              progress == 1.0 ? const Color(0xFF166534) : const Color(0xFF0E3A66),
+            ),
+            borderRadius: BorderRadius.circular(3),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           _qaTile('chrome', 'Chrome flow validated'),
           _qaTile('edge', 'Edge flow validated'),
           _qaTile('mobile', 'Mobile layout validated'),
@@ -388,154 +397,275 @@ class _SystemCheckPageState extends State<SystemCheckPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1F2937),
-        iconTheme: const IconThemeData(
-          color: Color(0xFFFFC72C),
-          size: 30,
-        ),
+        backgroundColor: const Color(0xFF0E3A66),
+        elevation: 0,
         title: const Text(
           'System Check',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEFF6FF),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFBFDBFE)),
-            ),
-            child: const Text(
-              'Use these checks one by one to validate the active V1 merged build paths.',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFF6FAFF), Color(0xFFEAF2FF)],
           ),
-          const SizedBox(height: 10),
-          _readinessCard(),
-          const SizedBox(height: 10),
-          _qaChecklistCard(),
-          const SizedBox(height: 10),
-          _qaSignOffCard(),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Quick V1 Checks',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF1F2937),
+        ),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            16,
+            16,
+            24 + MediaQuery.of(context).padding.bottom,
+          ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Production header
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFD8E5F5)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEAF2FF),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.settings_rounded,
+                                color: Color(0xFF0E3A66),
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'System Check',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Validate app configuration and diagnostics',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                SizedBox(height: 6),
-                Text(
-                  '1. Convert: PDF to JPG/PNG exports page-by-page ZIP.',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  '2. Convert: multiple images to PDF produces one combined PDF.',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  '3. Convert: Word (.docx) to PDF uses structured page output.',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  '4. Compress / Merge / Split / Extract: quota gate dialog appears when daily limit is reached.',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  '5. Extract: Tables / Forms option returns column-separated text output.',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  '6. PDF Edit: Load Text, Run OCR, and Tables buttons all return text.',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  '7. Home V1: Daily Usage, Recent Documents, Account/Privacy sections visible.',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  '8. File upload: files above 500 MB are skipped with a clear message.',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
-                ),
-              ],
+                  const SizedBox(height: 20),
+
+                  // Guidance
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEAF2FF),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFD8E5F5)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.info_outline_rounded,
+                          color: Color(0xFF0E3A66),
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Use these checks to validate app configuration, integrations, and diagnostics.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey.shade700,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // API and Payment Readiness
+                  _readinessCard(),
+                  const SizedBox(height: 16),
+
+                  // QA Checklist
+                  _qaChecklistCard(),
+                  const SizedBox(height: 16),
+
+                  // Release Smoke Sign-off
+                  _qaSignOffCard(),
+                  const SizedBox(height: 24),
+
+                  // Quick Checks section header
+                  Text(
+                    'Quick Reference Checklist',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey.shade700,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Quick checks card
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFD8E5F5)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '1. Convert: PDF to JPG/PNG exports page-by-page ZIP.',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          '2. Convert: Multiple images to PDF produces one combined PDF.',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          '3. Convert: Word (.docx) to PDF uses structured page output.',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          '4. Compress / Merge / Split / Extract: Quota gate appears at daily limit.',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          '5. Extract: Tables / Forms option returns column-separated text.',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          '6. PDF Edit: Load Text, Run OCR, Tables buttons return text.',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          '7. File upload: Files above 500 MB are skipped with message.',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Tool Access section header
+                  Text(
+                    'Tool Validation',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey.shade700,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Tool buttons
+                  _toolButton(
+                    context: context,
+                    title: 'Compression Tool',
+                    subtitle: 'Upload file and run compression flow.',
+                    icon: Icons.compress_rounded,
+                    onTap: () => _openCompression(context),
+                  ),
+                  const SizedBox(height: 10),
+
+                  _toolButton(
+                    context: context,
+                    title: 'Convert Tool',
+                    subtitle: 'Run format conversion path.',
+                    icon: Icons.swap_horiz_rounded,
+                    onTap: () => _openConvert(context),
+                  ),
+                  const SizedBox(height: 10),
+
+                  _toolButton(
+                    context: context,
+                    title: 'Merge Tool',
+                    subtitle: 'Add multiple files and merge.',
+                    icon: Icons.merge_type_rounded,
+                    onTap: () => _openMerge(context),
+                  ),
+                  const SizedBox(height: 10),
+
+                  _toolButton(
+                    context: context,
+                    title: 'Split Tool',
+                    subtitle: 'Check page split modes.',
+                    icon: Icons.content_cut_rounded,
+                    onTap: () => _openSplit(context),
+                  ),
+                  const SizedBox(height: 10),
+
+                  _toolButton(
+                    context: context,
+                    title: 'Extract Tool',
+                    subtitle: 'Check extraction workflow.',
+                    icon: Icons.file_download_rounded,
+                    onTap: () => _openExtract(context),
+                  ),
+                  const SizedBox(height: 10),
+
+                  _toolButton(
+                    context: context,
+                    title: 'PDF Toolkit',
+                    subtitle: 'Validate PDF-specific flows.',
+                    icon: Icons.picture_as_pdf_rounded,
+                    onTap: () => _openPdf(context),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 14),
-          _toolButton(
-            context: context,
-            title: '1) Compression Tool',
-            subtitle: 'Upload file and run compression flow.',
-            icon: Icons.compress,
-            color: Colors.teal,
-            onTap: () => _openCompression(context),
-          ),
-          const SizedBox(height: 10),
-          _toolButton(
-            context: context,
-            title: '2) Convert Tool',
-            subtitle: 'Run format conversion path.',
-            icon: Icons.swap_horiz,
-            color: const Color(0xFF0051BA),
-            onTap: () => _openConvert(context),
-          ),
-          const SizedBox(height: 10),
-          _toolButton(
-            context: context,
-            title: '3) Merge Tool',
-            subtitle: 'Add multiple files and merge.',
-            icon: Icons.merge_type,
-            color: Colors.green,
-            onTap: () => _openMerge(context),
-          ),
-          const SizedBox(height: 10),
-          _toolButton(
-            context: context,
-            title: '4) Split Tool',
-            subtitle: 'Check page split modes.',
-            icon: Icons.content_cut,
-            color: Colors.purple,
-            onTap: () => _openSplit(context),
-          ),
-          const SizedBox(height: 10),
-          _toolButton(
-            context: context,
-            title: '5) Extract Tool',
-            subtitle: 'Check extraction workflow.',
-            icon: Icons.description,
-            color: Colors.orange,
-            onTap: () => _openExtract(context),
-          ),
-          const SizedBox(height: 10),
-          _toolButton(
-            context: context,
-            title: '6) PDF Toolkit',
-            subtitle: 'Validate PDF-specific flows.',
-            icon: Icons.picture_as_pdf,
-            color: Colors.red,
-            onTap: () => _openPdf(context),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -545,43 +675,65 @@ class _SystemCheckPageState extends State<SystemCheckPage> {
     required String title,
     required String subtitle,
     required IconData icon,
-    required Color color,
     required Future<void> Function() onTap,
   }) {
-    return ElevatedButton(
-      onPressed: () {
+    return GestureDetector(
+      onTap: () {
         onTap();
       },
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF1F2937),
-        elevation: 0,
-        side: const BorderSide(color: Color(0xFFE5E7EB)),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: color),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-              ],
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFD8E5F5)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEAF2FF),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                icon,
+                color: const Color(0xFF0E3A66),
+                size: 24,
+              ),
             ),
-          ),
-          const Icon(Icons.arrow_forward_ios, size: 14),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 16,
+              color: Color(0xFFD8E5F5),
+            ),
+          ],
+        ),
       ),
     );
   }
