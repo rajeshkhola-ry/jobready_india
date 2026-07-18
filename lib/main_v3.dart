@@ -10,6 +10,7 @@ import 'Pages/split_tool_page.dart';
 import 'Pages/system_check_page.dart';
 import 'Pages/terms_conditions_page.dart';
 import 'Pages/v2/converter/converter_workspace_page.dart';
+import 'Pages/v2/history/history_page.dart';
 import 'Pages/v2/photo/photo_hd_workspace_page.dart';
 import 'Pages/v2/resume/resume_workspace_page.dart';
 
@@ -44,6 +45,7 @@ class JobReadyV3App extends StatelessWidget {
         '/resume': (_) => const ResumeWorkspacePage(),
         '/converter-v2': (_) => const ConverterWorkspacePage(),
         '/photo-hd': (_) => const PhotoHdWorkspacePage(),
+        '/history': (_) => const HistoryPage(),
       },
     );
   }

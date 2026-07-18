@@ -550,4 +550,34 @@ Owner:
   - Polish next approved V2 module.
 - Owner: Founder + Copilot
 
+### Day 14 - 2026-07-18 (V2 Checkpoint 8 — History/Activity Page)
+- Overall status: Green (Document history page created with full features)
+- Completed today:
+  - **History Page (lib/Pages/v2/history/history_page.dart)** ✓
+    - New production page with icon + title + subtitle header ✓
+    - Search box: search by file name with real-time filtering ✓
+    - Format filter dropdown: All formats / PDF / DOCX / JPG / PNG ✓
+    - Retention settings: 20/50/100/200 entry chips (updates DocumentHistoryService) ✓
+    - History entries list: icon badge (format-colored), file name, format, size, time ✓
+    - Empty state: inbox icon + "No documents yet" when no history ✓
+    - Delete entry: inline close button for each entry with confirmation ✓
+    - Clear all: "Clear all" button with confirmation dialog ✓
+    - History disabled state: warning banner when user has history_enabled = false ✓
+    - Time formatting: "Today at HH:MM / Yesterday at HH:MM / YYYY-MM-DD" ✓
+    - Format icons: PDF (red), JPG/PNG (teal), DOCX (blue), generic (grey) ✓
+  - **Routing updates** ✓
+    - Added /history route to main_v3.dart ✓
+    - Added History to top nav (top right position) ✓
+    - Added History tile to All Tools grid (grey, last position) ✓
+  - Analyzer: 0 errors in all 3 modified files, no new project-wide issues ✓
+- In progress:
+  - Next V2 module (pending user direction)
+- Blockers:
+  - None.
+- Decisions needed:
+  - Confirm next checkpoint: Merge/Split/Extract polish, or other.
+- Tomorrow plan:
+  - Polish next approved V2 module.
+- Owner: Founder + Copilot
+
 Prepared For: JOBREADY
