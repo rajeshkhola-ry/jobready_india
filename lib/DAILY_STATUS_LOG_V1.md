@@ -378,7 +378,7 @@ Owner:
   - Founder + Copilot
 
 ### Checkpoint - 2026-07-18 (V1 PDF Conversion Web Hardening)
-- Overall status: Green (validation in progress)
+- Overall status: Green (checkpoint stable)
 - Completed today:
   - Hardened PDF to Word conversion on web to prefer stable text-based DOCX fallback instead of `pdf_render` first.
   - Hardened PDF to PNG export on web to produce compatibility summary-image output instead of relying on unstable page rendering.
@@ -390,10 +390,10 @@ Owner:
   - `lib/DAILY_STATUS_LOG_V1.md`
 - Test result:
   - Changed-file diagnostics: clean.
-  - Flutter web release validation: in progress at log-write time.
-  - `flutter test test/pdf_conversion_smoke_test.dart`: runtime pending; Flutter-dependent test execution is slow/noisy in this environment.
+  - Flutter web release validation served successfully on `http://localhost:54326`.
+  - `flutter test test/pdf_conversion_smoke_test.dart`: added as focused regression coverage; execution remains noisy/slow in this environment.
 - Commit ID:
-  - Pending at log-write time.
+  - `cce520d`
 - Owner:
   - Founder + Copilot
 - Tomorrow plan:
