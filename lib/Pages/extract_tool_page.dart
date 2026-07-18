@@ -1,8 +1,7 @@
-import 'package:archive/archive.dart';
 import 'package:flutter/material.dart';
-import 'dart:typed_data';
+import 'package:archive/archive.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart' as sfpdf;
-import '../Widgets/apple_button.dart';
+
 import '../Widgets/download_result_dialog.dart';
 import '../Services/conversion_service.dart';
 import '../Services/pdf_editor_service.dart';
@@ -28,7 +27,7 @@ class _ExtractToolPageState extends State<ExtractToolPage> {
   Uint8List? _selectedFileBytes;
   int? _selectedFileSize;
   int _activePdfPageCount = 1;
-  String _extractType = 'text'; // 'text', 'images', 'pages'
+  String _extractType = 'text'; // 'text', 'images', 'pages', 'tables'
   bool _isExtracting = false;
   String _statusMessage = 'Ready to extract';
 
@@ -56,14 +55,16 @@ class _ExtractToolPageState extends State<ExtractToolPage> {
         ? _resolvePdfPageCount(file.bytes)
         : 1;
 
-    _selectedFiles = files;
-    _selectedFile = file.name;
-    _selectedFileBytes = file.bytes;
-    _selectedFileSize = file.size;
-    _activePdfPageCount = pageCount;
-    _statusMessage = files.length == 1
-        ? '✓ ${file.name} loaded from Home upload${file.name.toLowerCase().endsWith('.pdf') ? ' ($pageCount pages)' : ''}'
-        : '✓ ${files.length} files loaded from Home upload';
+    setState(() {
+      _selectedFiles = files;
+      _selectedFile = file.name;
+      _selectedFileBytes = file.bytes;
+      _selectedFileSize = file.size;
+      _activePdfPageCount = pageCount;
+      _statusMessage = files.length == 1
+          ? '✓ ${file.name} loaded from workspace${file.name.toLowerCase().endsWith('.pdf') ? ' (${pageCount} pages)' : ''}'
+          : '✓ ${files.length} files loaded from workspace';
+    });
   }
 
   int _resolvePdfPageCount(Uint8List bytes) {
@@ -83,217 +84,287 @@ class _ExtractToolPageState extends State<ExtractToolPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1F2937),
-        iconTheme: const IconThemeData(
-          color: Color(0xFFFFC72C),
-          size: 30,
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Home',
-            onPressed: () {
-              Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
-            },
-            icon: const Icon(Icons.home_rounded, color: Color(0xFFFFC72C)),
-          ),
-        ],
+        backgroundColor: const Color(0xFF0E3A66),
+        elevation: 0,
         title: const Text(
           'Extract from PDF',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
-            fontSize: 22,
+            fontSize: 18,
           ),
         ),
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(
-              16,
-              16,
-              16,
-              24 + MediaQuery.of(context).padding.bottom,
-            ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFF6FAFF), Color(0xFFEAF2FF)],
+          ),
+        ),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            16,
+            16,
+            24 + MediaQuery.of(context).padding.bottom,
+          ),
+          child: Center(
             child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minWidth: constraints.maxWidth,
-                minHeight: constraints.maxHeight,
-              ),
+              constraints: const BoxConstraints(maxWidth: 600),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-            // Step 1: Select File
-            _buildStepCard(
-              step: 1,
-              title: 'Choose File',
-              content: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  AppleButton(
-                    label: _selectedFiles.length > 1 ? 'Choose Files' : 'Choose File',
-                    icon: Icons.upload_file,
-                    onPressed: _selectFile,
-                    isPrimary: _selectedFile == null,
-                    isFullWidth: true,
+                  // Production header
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFD8E5F5)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEAF2FF),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.file_download_rounded,
+                                color: Color(0xFF0E3A66),
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Extract from PDF',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Extract text, images, or pages',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 12),
-                  if (_selectedFile != null)
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.green.shade50,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.green.shade300),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.check_circle,
-                            color: Colors.green,
-                            size: 20,
+                  const SizedBox(height: 20),
+
+                  // Step 1: Select File
+                  _panel(
+                    number: 1,
+                    title: 'Choose File',
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0E3A66),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
+                          onPressed: _selectFile,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.upload_file_rounded),
+                              const SizedBox(width: 8),
+                              Text(
+                                _selectedFile == null ? 'Choose File' : 'Change File',
+                                style: const TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (_selectedFile != null) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFD8E5F5)),
+                            ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  _selectedFiles.length > 1
-                                      ? '${_selectedFiles.length} files selected'
-                                      : _selectedFile!,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.check_circle_rounded,
+                                      color: Color(0xFF166534),
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        _selectedFile!,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w700,
+                                          color: Color(0xFF0F172A),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
+                                const SizedBox(height: 8),
                                 if (_selectedFileSize != null)
                                   Text(
-                                    _selectedFiles.length > 1
-                                        ? 'Total: ${_formatBytes(_selectedFiles.fold<int>(0, (sum, f) => sum + f.size))}'
-                                        : _formatBytes(_selectedFileSize!),
+                                    '${_formatBytes(_selectedFileSize!)}${_selectedFile!.toLowerCase().endsWith('.pdf') ? ' • $_activePdfPageCount pages' : ''}',
                                     style: const TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.grey,
+                                      fontSize: 12,
+                                      color: Color(0xFF94A3B8),
                                     ),
                                   ),
                               ],
                             ),
                           ),
                         ],
-                      ),
+                      ],
                     ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
+                  ),
+                  const SizedBox(height: 20),
 
-            // Step 2: Choose Extraction Type
-            if (_selectedFile != null)
-              _buildStepCard(
-                step: 2,
-                title: 'Choose Extraction Type',
-                content: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildExtractionOption('text', 'Extract Text', Icons.text_fields),
-                    const SizedBox(height: 8),
-                    _buildExtractionOption('tables', 'Extract Tables / Forms', Icons.table_chart_outlined),
-                    const SizedBox(height: 8),
-                    _buildExtractionOption('images', 'Extract Images', Icons.image),
-                    const SizedBox(height: 8),
-                    _buildExtractionOption('pages', 'Extract as Images', Icons.photo),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 20),
-
-            // Step 3: Extract
-            if (_selectedFile != null)
-              _buildStepCard(
-                step: 3,
-                title: 'Extract',
-                content: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF007AFF).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
+                  // Step 2: Choose Extraction Type
+                  if (_selectedFile != null)
+                    _panel(
+                      number: 2,
+                      title: 'Extraction Type',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(
-                            Icons.info,
-                            color: Color(0xFF007AFF),
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _getExtractionTypeLabel(),
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF007AFF),
-                              ),
-                            ),
-                          ),
+                          _buildExtractionOption('text', 'Extract Text', Icons.text_fields_rounded),
+                          const SizedBox(height: 8),
+                          _buildExtractionOption('images', 'Extract Images', Icons.image_rounded),
+                          const SizedBox(height: 8),
+                          _buildExtractionOption('pages', 'Extract as Pages', Icons.photo_rounded),
+                          const SizedBox(height: 8),
+                          _buildExtractionOption('tables', 'Extract Tables/Forms', Icons.table_chart_rounded),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    AppleButton(
-                      label: _isExtracting ? 'Extracting...' : 'Start Extract',
-                      icon: _isExtracting ? Icons.hourglass_empty : Icons.download,
-                      onPressed: _isExtracting ? null : _startExtract,
-                      isPrimary: true,
-                      isFullWidth: true,
-                    ),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 20),
+                  if (_selectedFile != null) const SizedBox(height: 20),
 
-            // Status
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: _getStatusColor().withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: _getStatusColor()),
-              ),
-              child: Text(
-                _statusMessage,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: _getStatusColor(),
-                ),
-              ),
-            ),
+                  // Step 3: Extract
+                  if (_selectedFile != null)
+                    _panel(
+                      number: 3,
+                      title: 'Extract Content',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEAF2FF),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: const Color(0xFFD8E5F5)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.info_outline_rounded,
+                                  color: Color(0xFF0E3A66),
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    _getExtractionTypeLabel(),
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF0E3A66),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF0E3A66),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            onPressed: _isExtracting ? null : _startExtract,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                if (_isExtracting)
+                                  const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation(Colors.white),
+                                    ),
+                                  )
+                                else
+                                  const Icon(Icons.file_download_rounded),
+                                const SizedBox(width: 8),
+                                Text(
+                                  _isExtracting ? 'Extracting...' : 'Start Extract',
+                                  style: const TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (_isExtracting) ...[
+                            const SizedBox(height: 8),
+                            LinearProgressIndicator(
+                              minHeight: 4,
+                              backgroundColor: const Color(0xFFE0E7FF),
+                              valueColor: AlwaysStoppedAnimation(Colors.blue.shade600),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  if (_selectedFile != null) const SizedBox(height: 20),
+
+                  // Status
+                  _StatusRow(
+                    message: _statusMessage,
+                    type: _getStatusType(),
+                  ),
                 ],
               ),
-            ),
-          );
-        },
-      ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Container(
-          color: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: const Text(
-            'getreadyjob.com',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF1F4E79),
             ),
           ),
         ),
@@ -301,18 +372,18 @@ class _ExtractToolPageState extends State<ExtractToolPage> {
     );
   }
 
-  Widget _buildStepCard({
-    required int step,
+  Widget _panel({
+    required int number,
     required String title,
-    required Widget content,
+    required Widget child,
   }) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade300),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFD8E5F5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -320,36 +391,38 @@ class _ExtractToolPageState extends State<ExtractToolPage> {
           Row(
             children: [
               Container(
-                width: 28,
-                height: 28,
+                width: 32,
+                height: 32,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0051BA),
-                  borderRadius: BorderRadius.circular(6),
+                  color: const Color(0xFFEAF2FF),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Center(
                   child: Text(
-                    '$step',
+                    '$number',
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: Color(0xFF0E3A66),
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1F2937),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          content,
+          child,
         ],
       ),
     );
@@ -367,10 +440,10 @@ class _ExtractToolPageState extends State<ExtractToolPage> {
         width: double.infinity,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF007AFF).withOpacity(0.1) : Colors.white,
+          color: isSelected ? const Color(0xFFEAF2FF) : Colors.white,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? const Color(0xFF007AFF) : Colors.grey.shade300,
+            color: isSelected ? const Color(0xFF0E3A66) : const Color(0xFFD8E5F5),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -378,23 +451,24 @@ class _ExtractToolPageState extends State<ExtractToolPage> {
           children: [
             Icon(
               icon,
-              color: isSelected ? const Color(0xFF007AFF) : Colors.grey.shade600,
+              color: isSelected ? const Color(0xFF0E3A66) : Colors.grey.shade600,
               size: 22,
             ),
             const SizedBox(width: 12),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                color: isSelected ? const Color(0xFF007AFF) : Colors.grey.shade700,
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  color: isSelected ? const Color(0xFF0E3A66) : Colors.grey.shade700,
+                ),
               ),
             ),
-            const Spacer(),
             if (isSelected)
               const Icon(
-                Icons.check_circle,
-                color: Color(0xFF007AFF),
+                Icons.check_circle_rounded,
+                color: Color(0xFF0E3A66),
                 size: 22,
               ),
           ],
@@ -428,28 +502,38 @@ class _ExtractToolPageState extends State<ExtractToolPage> {
         _selectedFileSize = file.size;
         _activePdfPageCount = pageCount;
         _statusMessage = files.length == 1
-            ? '✓ ${file.name} selected${file.name.toLowerCase().endsWith('.pdf') ? ' ($pageCount pages)' : ''}'
+            ? '✓ ${file.name} selected${file.name.toLowerCase().endsWith('.pdf') ? ' (${pageCount} pages)' : ''}'
             : '✓ ${files.length} files selected';
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      setState(() {
+        _statusMessage = '✗ Error selecting files: $e';
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   Future<void> _startExtract() async {
-    if (_selectedFiles.isEmpty || _selectedFileBytes == null || _selectedFile == null) return;
+    if (_selectedFiles.isEmpty || _selectedFileBytes == null || _selectedFile == null) {
+      setState(() {
+        _statusMessage = '✗ Select a file to extract from';
+      });
+      return;
+    }
 
     setState(() {
       _isExtracting = true;
-      _statusMessage = _selectedFiles.length > 1
-          ? 'Extracting $_extractType from ${_selectedFiles.length} files...'
-          : 'Extracting $_extractType from PDF...';
+      _statusMessage = 'Extracting $_extractType...';
     });
+
+    await Future.delayed(const Duration(milliseconds: 60));
 
     try {
       if (_extractType == 'tables') {
@@ -471,7 +555,7 @@ class _ExtractToolPageState extends State<ExtractToolPage> {
         if (!mounted) return;
         setState(() {
           _isExtracting = false;
-          _statusMessage = '✓ Table extraction completed';
+          _statusMessage = '✓ Table extraction completed — ${_formatBytes(results.fold<int>(0, (sum, f) => sum + (f.content as List).length))} ready';
         });
 
         if (results.length == 1) {
@@ -479,7 +563,7 @@ class _ExtractToolPageState extends State<ExtractToolPage> {
           await showDialog(
             context: context,
             builder: (_) => DownloadResultDialog(
-              outputFormat: 'Tables / Forms',
+              outputFormat: 'Tables/Forms',
               fileName: single.name,
               outputBytes: Uint8List.fromList(List<int>.from(single.content as List)),
             ),
@@ -488,11 +572,11 @@ class _ExtractToolPageState extends State<ExtractToolPage> {
           final archive = Archive();
           for (final f in results) archive.addFile(f);
           final zipBytes = ZipEncoder().encode(archive);
-          if (zipBytes == null) throw Exception('Unable to create table extraction ZIP.');
+          if (zipBytes == null) throw Exception('Unable to create table extraction ZIP');
           await showDialog(
             context: context,
             builder: (_) => DownloadResultDialog(
-              outputFormat: 'Tables / Forms Batch',
+              outputFormat: 'Tables/Forms Batch',
               fileName: 'jobready_tables_extracted.zip',
               outputBytes: Uint8List.fromList(zipBytes),
             ),
@@ -516,8 +600,17 @@ class _ExtractToolPageState extends State<ExtractToolPage> {
           if (!mounted) return;
           setState(() {
             _isExtracting = false;
-            _statusMessage = '✓ Extraction completed successfully';
+            _statusMessage = '✓ Text extraction completed — ${_formatBytes(result.outputBytes!.length)} ready';
           });
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Extraction completed. Download is ready.'),
+                backgroundColor: Color(0xFF166534),
+              ),
+            );
+          }
 
           await showDialog(
             context: context,
@@ -549,14 +642,23 @@ class _ExtractToolPageState extends State<ExtractToolPage> {
 
         final zipBytes = ZipEncoder().encode(archive);
         if (zipBytes == null) {
-          throw Exception('Unable to create extraction ZIP output.');
+          throw Exception('Unable to create extraction ZIP output');
         }
 
         if (!mounted) return;
         setState(() {
           _isExtracting = false;
-          _statusMessage = '✓ Extraction completed successfully';
+          _statusMessage = '✓ Text extraction completed — ${_formatBytes(zipBytes.length)} ready';
         });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Extraction completed. Download is ready.'),
+              backgroundColor: Color(0xFF166534),
+            ),
+          );
+        }
 
         await showDialog(
           context: context,
@@ -571,7 +673,7 @@ class _ExtractToolPageState extends State<ExtractToolPage> {
 
       final pdfInputs = _selectedFiles.where((item) => item.name.toLowerCase().endsWith('.pdf')).toList(growable: false);
       if (pdfInputs.isEmpty) {
-        throw Exception('Image/page extraction requires PDF files.');
+        throw Exception('Image/page extraction requires PDF files');
       }
 
       final pages = _extractType == 'pages'
@@ -592,14 +694,23 @@ class _ExtractToolPageState extends State<ExtractToolPage> {
 
       final zipBytes = ZipEncoder().encode(archive);
       if (zipBytes == null) {
-        throw Exception('Unable to create extraction ZIP output.');
+        throw Exception('Unable to create extraction ZIP output');
       }
 
       if (!mounted) return;
       setState(() {
         _isExtracting = false;
-        _statusMessage = '✓ Extraction completed successfully';
+        _statusMessage = '✓ Image extraction completed — ${_formatBytes(zipBytes.length)} ready';
       });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Extraction completed. Download is ready.'),
+            backgroundColor: Color(0xFF166534),
+          ),
+        );
+      }
 
       await showDialog(
         context: context,
@@ -615,6 +726,14 @@ class _ExtractToolPageState extends State<ExtractToolPage> {
         _isExtracting = false;
         _statusMessage = '✗ Extraction failed: $e';
       });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Extraction failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -626,26 +745,91 @@ class _ExtractToolPageState extends State<ExtractToolPage> {
   String _getExtractionTypeLabel() {
     switch (_extractType) {
       case 'text':
-        return 'Extract text from PDF';
+        return 'Extract text from PDF documents';
       case 'images':
-        return 'Extract images from PDF';
+        return 'Extract images embedded in PDF';
       case 'pages':
-        return 'Extract pages as images';
+        return 'Extract all pages as images';
+      case 'tables':
+        return 'Extract tables and form data';
       default:
         return 'Extract from PDF';
     }
-  }
-
-  Color _getStatusColor() {
-    if (_statusMessage.startsWith('✓')) return Colors.green;
-    if (_statusMessage.startsWith('✗')) return Colors.red;
-    if (_statusMessage.startsWith('Extracting')) return Colors.blue;
-    return Colors.grey;
   }
 
   String _formatBytes(int bytes) {
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(2)} KB';
     return '${(bytes / 1024 / 1024).toStringAsFixed(2)} MB';
+  }
+
+  _StatusType _getStatusType() {
+    if (_statusMessage.startsWith('✓')) return _StatusType.success;
+    if (_statusMessage.startsWith('✗')) return _StatusType.error;
+    if (_statusMessage.startsWith('Extracting')) return _StatusType.processing;
+    return _StatusType.idle;
+  }
+}
+
+enum _StatusType { idle, processing, success, error }
+
+class _StatusRow extends StatelessWidget {
+  final String message;
+  final _StatusType type;
+
+  const _StatusRow({required this.message, required this.type});
+
+  @override
+  Widget build(BuildContext context) {
+    final (IconData icon, Color color, Color bg) = switch (type) {
+      _StatusType.processing => (
+          Icons.sync_rounded,
+          const Color(0xFF0E3A66),
+          const Color(0xFFEAF2FF),
+        ),
+      _StatusType.success => (
+          Icons.check_circle_outline_rounded,
+          const Color(0xFF166534),
+          const Color(0xFFDCFCE7),
+        ),
+      _StatusType.error => (
+          Icons.error_outline_rounded,
+          const Color(0xFF9F1239),
+          const Color(0xFFFFE4E6),
+        ),
+      _StatusType.idle => (
+          Icons.info_outline_rounded,
+          const Color(0xFF475569),
+          const Color(0xFFF8FBFF),
+        ),
+    };
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: color,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
