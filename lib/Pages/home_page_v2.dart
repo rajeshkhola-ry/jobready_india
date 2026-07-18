@@ -3425,6 +3425,9 @@ class _RecentDocumentsSection extends StatefulWidget {
 
 class _RecentDocumentsSectionState extends State<_RecentDocumentsSection> {
   List<DocumentHistoryEntry> _entries = const [];
+  String _searchQuery = '';
+  String _selectedFormat = 'All';
+  bool _todayOnly = false;
 
   @override
   void initState() {
@@ -3436,6 +3439,39 @@ class _RecentDocumentsSectionState extends State<_RecentDocumentsSection> {
     setState(() {
       _entries = DocumentHistoryService.getEntries();
     });
+  }
+
+  List<String> _availableFormats() {
+    final formats = _entries
+        .map((e) => e.outputFormat.trim())
+        .where((f) => f.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+    return ['All', ...formats];
+  }
+
+  bool _isToday(DateTime value) {
+    final now = DateTime.now().toLocal();
+    final local = value.toLocal();
+    return local.year == now.year && local.month == now.month && local.day == now.day;
+  }
+
+  List<DocumentHistoryEntry> _filteredEntries() {
+    final query = _searchQuery.trim().toLowerCase();
+    return _entries.where((entry) {
+      if (_selectedFormat != 'All' && entry.outputFormat != _selectedFormat) {
+        return false;
+      }
+      if (_todayOnly && !_isToday(entry.recordedAt)) {
+        return false;
+      }
+      if (query.isEmpty) {
+        return true;
+      }
+      return entry.fileName.toLowerCase().contains(query) ||
+          entry.outputFormat.toLowerCase().contains(query);
+    }).toList(growable: false);
   }
 
   Future<void> _clearHistory() async {
@@ -3471,6 +3507,9 @@ class _RecentDocumentsSectionState extends State<_RecentDocumentsSection> {
 
   @override
   Widget build(BuildContext context) {
+    final filteredEntries = _filteredEntries();
+    final formats = _availableFormats();
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
@@ -3521,7 +3560,75 @@ class _RecentDocumentsSectionState extends State<_RecentDocumentsSection> {
               ),
             ],
           ),
+          const SizedBox(height: 8),
+          TextField(
+            onChanged: (value) {
+              setState(() {
+                _searchQuery = value;
+              });
+            },
+            decoration: InputDecoration(
+              hintText: 'Search file name or format',
+              isDense: true,
+              prefixIcon: const Icon(Icons.search_rounded, size: 18),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  initialValue: _selectedFormat,
+                  isExpanded: true,
+                  items: formats
+                      .map(
+                        (format) => DropdownMenuItem<String>(
+                          value: format,
+                          child: Text(
+                            format,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      )
+                      .toList(growable: false),
+                  onChanged: (value) {
+                    if (value == null) {
+                      return;
+                    }
+                    setState(() {
+                      _selectedFormat = value;
+                    });
+                  },
+                  decoration: InputDecoration(
+                    labelText: 'Output format',
+                    isDense: true,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              FilterChip(
+                label: const Text('Today only'),
+                selected: _todayOnly,
+                onSelected: (value) {
+                  setState(() {
+                    _todayOnly = value;
+                  });
+                },
+              ),
+            ],
+          ),
           const SizedBox(height: 4),
+          Text(
+            'Showing ${filteredEntries.length} of ${_entries.length}',
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF64748B),
+            ),
+          ),
           if (_entries.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
@@ -3530,8 +3637,16 @@ class _RecentDocumentsSectionState extends State<_RecentDocumentsSection> {
                 style: TextStyle(fontSize: 12, color: Color(0xFF6B7280), fontWeight: FontWeight.w600),
               ),
             )
+          else if (filteredEntries.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                'No items match current filters.',
+                style: TextStyle(fontSize: 12, color: Color(0xFF6B7280), fontWeight: FontWeight.w600),
+              ),
+            )
           else
-            ..._entries.take(8).map(
+            ...filteredEntries.take(10).map(
               (entry) => Container(
                 width: double.infinity,
                 margin: const EdgeInsets.only(top: 8),

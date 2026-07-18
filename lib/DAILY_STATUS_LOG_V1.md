@@ -568,3 +568,26 @@ Prepared For: JOBREADY
   - Full 2.1 through 2.15 closure is not complete by roadmap; deferred/in-progress items are explicitly listed before any deeper merge expansion.
 - Owner:
   - Founder + Copilot
+
+### Checkpoint - 2026-07-18 (V1.1 Controlled Merge - Checkpoint 1)
+- Overall status: Green (checkpoint stable)
+- Completed today:
+  - Converted deferred scope into structured roadmap split:
+    - `lib/ROADMAP_V1_2_V2_0.md`
+    - V1.2: stable, production-ready enhancements
+    - V2.0: deferred major modules
+  - Advanced V1.1 Smart Document Workspace with production-safe UX updates in `lib/Pages/home_page_v2.dart`:
+    - search by filename/output format in Recent Documents
+    - output-format dropdown filter
+    - today-only filter chip
+    - filtered-result count and no-match messaging
+    - retained existing V1 visual identity and layout style
+- In progress:
+  - Continue V1.1 integration using 2-3 task checkpoints from approved in-progress scope (2.7, 2.11, 2.13, 2.14).
+- Validation result:
+  - `flutter analyze`: PASS (no errors; warnings/info only)
+  - `flutter test test/v1_1_integration_validation_test.dart`: PASS
+  - `flutter build web -t lib/main_v1_1.dart`: PASS
+  - Runtime review screenshots captured on V1.1 web route (`/home` and `/system-check`).
+- Owner:
+  - Founder + Copilot
