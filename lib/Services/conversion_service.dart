@@ -404,65 +404,248 @@ class ConversionService {
 
     final lines = normalized.isEmpty
         ? <String>['No readable content found for conversion.']
-        : normalized.split('\n').where((line) => line.trim().isNotEmpty).take(30).toList(growable: false);
+        : normalized
+            .split('\n')
+            .map((line) => line.trim())
+            .where((line) => line.isNotEmpty)
+            .take(48)
+            .toList(growable: false);
 
-    final slideBody = xmlEscape(lines.join('\n'));
     final slideTitle = xmlEscape('$title (from $sourceFileName)');
+    final slideGroups = <List<String>>[];
+    for (var i = 0; i < lines.length; i += 8) {
+      slideGroups.add(lines.sublist(i, min(i + 8, lines.length)));
+    }
+    if (slideGroups.isEmpty) {
+      slideGroups.add(const <String>['No readable content found for conversion.']);
+    }
+
+    String buildTextBody(List<String> parts) {
+      return parts
+          .map((part) => '<a:p><a:r><a:t>${xmlEscape(part)}</a:t></a:r></a:p>')
+          .join();
+    }
 
     final contentTypes = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
   <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
+  <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
   <Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>
-  <Override PartName="/ppt/slides/slide1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>
+  <Override PartName="/ppt/presProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presProps+xml"/>
+  <Override PartName="/ppt/viewProps.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.viewProps+xml"/>
+  <Override PartName="/ppt/tableStyles.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.tableStyles+xml"/>
+  <Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>
+  <Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/>
+  <Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>
+${List<String>.generate(slideGroups.length, (index) => '  <Override PartName="/ppt/slides/slide${index + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>').join('\n')}
 </Types>''';
 
     final rootRels = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
 </Relationships>''';
+
+    final appXml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
+  <Application>JOBREADY</Application>
+  <PresentationFormat>On-screen Show (4:3)</PresentationFormat>
+  <Slides>${slideGroups.length}</Slides>
+  <Notes>0</Notes>
+  <HiddenSlides>0</HiddenSlides>
+  <MMClips>0</MMClips>
+  <ScaleCrop>false</ScaleCrop>
+  <HeadingPairs>
+    <vt:vector size="2" baseType="variant">
+      <vt:variant><vt:lpstr>Theme</vt:lpstr></vt:variant>
+      <vt:variant><vt:i4>1</vt:i4></vt:variant>
+    </vt:vector>
+  </HeadingPairs>
+  <TitlesOfParts>
+    <vt:vector size="1" baseType="lpstr">
+      <vt:lpstr>Office Theme</vt:lpstr>
+    </vt:vector>
+  </TitlesOfParts>
+  <Company>JOBREADY</Company>
+  <LinksUpToDate>false</LinksUpToDate>
+  <SharedDoc>false</SharedDoc>
+  <HyperlinksChanged>false</HyperlinksChanged>
+  <AppVersion>1.0</AppVersion>
+</Properties>''';
+
+    final coreXml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <dc:title>${xmlEscape(title)}</dc:title>
+  <dc:creator>JOBREADY</dc:creator>
+  <cp:lastModifiedBy>JOBREADY</cp:lastModifiedBy>
+  <dcterms:created xsi:type="dcterms:W3CDTF">2026-07-18T00:00:00Z</dcterms:created>
+  <dcterms:modified xsi:type="dcterms:W3CDTF">2026-07-18T00:00:00Z</dcterms:modified>
+</cp:coreProperties>''';
 
     final presentationXml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <p:presentation xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
+  <p:sldMasterIdLst>
+    <p:sldMasterId id="2147483648" r:id="rId1"/>
+  </p:sldMasterIdLst>
   <p:sldIdLst>
-    <p:sldId id="256" r:id="rId1"/>
+${List<String>.generate(slideGroups.length, (index) => '    <p:sldId id="${256 + index}" r:id="rId${index + 2}"/>').join('\n')}
   </p:sldIdLst>
   <p:sldSz cx="9144000" cy="6858000" type="screen4x3"/>
   <p:notesSz cx="6858000" cy="9144000"/>
+  <p:defaultTextStyle/>
 </p:presentation>''';
 
     final presentationRels = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide1.xml"/>
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="slideMasters/slideMaster1.xml"/>
+${List<String>.generate(slideGroups.length, (index) => '  <Relationship Id="rId${index + 2}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide${index + 1}.xml"/>').join('\n')}
+  <Relationship Id="rId${slideGroups.length + 2}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/presProps" Target="presProps.xml"/>
+  <Relationship Id="rId${slideGroups.length + 3}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/viewProps" Target="viewProps.xml"/>
+  <Relationship Id="rId${slideGroups.length + 4}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/tableStyles" Target="tableStyles.xml"/>
 </Relationships>''';
 
-    final slideXml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+    final presPropsXml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:presentationPr xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" showSpecialPlsOnTitleSld="0" rtl="0" removePersonalInfoOnSave="0" compatMode="1" strictFirstAndLastChars="0"/>
+''';
+
+    final viewPropsXml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:viewPr xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
+  <p:normalViewPr/>
+  <p:slideViewPr/>
+  <p:notesTextViewPr/>
+  <p:gridSpacing cx="780288" cy="780288"/>
+</p:viewPr>''';
+
+    final tableStylesXml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<a:tblStyleLst xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" def="{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}"/>
+''';
+
+    final slideMasterXml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:sldMaster xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
+  <p:cSld name="Office Theme">
+    <p:spTree>
+      <p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>
+      <p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>
+    </p:spTree>
+  </p:cSld>
+  <p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"/>
+  <p:sldLayoutIdLst>
+    <p:sldLayoutId id="2147483649" r:id="rId1"/>
+  </p:sldLayoutIdLst>
+  <p:txStyles>
+    <p:titleStyle/><p:bodyStyle/><p:otherStyle/>
+  </p:txStyles>
+</p:sldMaster>''';
+
+    final slideMasterRelsXml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="../theme/theme1.xml"/>
+</Relationships>''';
+
+    final slideLayoutXml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:sldLayout xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" type="titleAndText" preserve="1">
+  <p:cSld name="Title and Content">
+    <p:spTree>
+      <p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>
+      <p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="2" name="Title Placeholder 1"/><p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr><p:nvPr><p:ph type="title"/></p:nvPr></p:nvSpPr>
+        <p:spPr/>
+        <p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="3" name="Content Placeholder 2"/><p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr><p:nvPr><p:ph idx="1"/></p:nvPr></p:nvSpPr>
+        <p:spPr/>
+        <p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody>
+      </p:sp>
+    </p:spTree>
+  </p:cSld>
+  <p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr>
+</p:sldLayout>''';
+
+    final themeXml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Office Theme">
+  <a:themeElements>
+    <a:clrScheme name="Office">
+      <a:dk1><a:sysClr val="windowText" lastClr="000000"/></a:dk1>
+      <a:lt1><a:sysClr val="window" lastClr="FFFFFF"/></a:lt1>
+      <a:dk2><a:srgbClr val="1F1F1F"/></a:dk2>
+      <a:lt2><a:srgbClr val="EEECE1"/></a:lt2>
+      <a:accent1><a:srgbClr val="4F81BD"/></a:accent1>
+      <a:accent2><a:srgbClr val="C0504D"/></a:accent2>
+      <a:accent3><a:srgbClr val="9BBB59"/></a:accent3>
+      <a:accent4><a:srgbClr val="8064A2"/></a:accent4>
+      <a:accent5><a:srgbClr val="4BACC6"/></a:accent5>
+      <a:accent6><a:srgbClr val="F79646"/></a:accent6>
+      <a:hlink><a:srgbClr val="0000FF"/></a:hlink>
+      <a:folHlink><a:srgbClr val="800080"/></a:folHlink>
+    </a:clrScheme>
+    <a:fontScheme name="Office">
+      <a:majorFont><a:latin typeface="Arial"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont>
+      <a:minorFont><a:latin typeface="Arial"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont>
+    </a:fontScheme>
+    <a:fmtScheme name="Office">
+      <a:fillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:fillStyleLst>
+      <a:lnStyleLst><a:ln w="9525" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln></a:lnStyleLst>
+      <a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle></a:effectStyleLst>
+      <a:bgFillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:bgFillStyleLst>
+    </a:fmtScheme>
+  </a:themeElements>
+  <a:objectDefaults/>
+  <a:extraClrSchemeLst/>
+</a:theme>''';
+
+    String buildSlideXml(int slideNumber, List<String> bodyLines) => '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
   <p:cSld>
     <p:spTree>
       <p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>
       <p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>
       <p:sp>
-        <p:nvSpPr><p:cNvPr id="2" name="Title"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:nvSpPr><p:cNvPr id="2" name="Title"/><p:cNvSpPr/><p:nvPr><p:ph type="title"/></p:nvPr></p:nvSpPr>
         <p:spPr><a:xfrm><a:off x="457200" y="274320"/><a:ext cx="8229600" cy="914400"/></a:xfrm></p:spPr>
-        <p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>$slideTitle</a:t></a:r></a:p></p:txBody>
+        <p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>${slideNumber == 1 ? slideTitle : xmlEscape('$title - Part $slideNumber')}</a:t></a:r></a:p></p:txBody>
       </p:sp>
       <p:sp>
-        <p:nvSpPr><p:cNvPr id="3" name="Content"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:nvSpPr><p:cNvPr id="3" name="Content"/><p:cNvSpPr/><p:nvPr><p:ph idx="1"/></p:nvPr></p:nvSpPr>
         <p:spPr><a:xfrm><a:off x="457200" y="1371600"/><a:ext cx="8229600" cy="4572000"/></a:xfrm></p:spPr>
-        <p:txBody><a:bodyPr wrap="square"/><a:lstStyle/><a:p><a:r><a:t>$slideBody</a:t></a:r></a:p></p:txBody>
+        <p:txBody><a:bodyPr wrap="square"/><a:lstStyle/>${buildTextBody(bodyLines)}</p:txBody>
       </p:sp>
     </p:spTree>
   </p:cSld>
   <p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr>
 </p:sld>''';
 
+    final slideRelsXml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>
+</Relationships>''';
+
     final archive = Archive()
       ..addFile(ArchiveFile('[Content_Types].xml', utf8.encode(contentTypes).length, utf8.encode(contentTypes)))
       ..addFile(ArchiveFile('_rels/.rels', utf8.encode(rootRels).length, utf8.encode(rootRels)))
+      ..addFile(ArchiveFile('docProps/app.xml', utf8.encode(appXml).length, utf8.encode(appXml)))
+      ..addFile(ArchiveFile('docProps/core.xml', utf8.encode(coreXml).length, utf8.encode(coreXml)))
       ..addFile(ArchiveFile('ppt/presentation.xml', utf8.encode(presentationXml).length, utf8.encode(presentationXml)))
       ..addFile(ArchiveFile('ppt/_rels/presentation.xml.rels', utf8.encode(presentationRels).length, utf8.encode(presentationRels)))
-      ..addFile(ArchiveFile('ppt/slides/slide1.xml', utf8.encode(slideXml).length, utf8.encode(slideXml)));
+      ..addFile(ArchiveFile('ppt/presProps.xml', utf8.encode(presPropsXml).length, utf8.encode(presPropsXml)))
+      ..addFile(ArchiveFile('ppt/viewProps.xml', utf8.encode(viewPropsXml).length, utf8.encode(viewPropsXml)))
+      ..addFile(ArchiveFile('ppt/tableStyles.xml', utf8.encode(tableStylesXml).length, utf8.encode(tableStylesXml)))
+      ..addFile(ArchiveFile('ppt/slideMasters/slideMaster1.xml', utf8.encode(slideMasterXml).length, utf8.encode(slideMasterXml)))
+      ..addFile(ArchiveFile('ppt/slideMasters/_rels/slideMaster1.xml.rels', utf8.encode(slideMasterRelsXml).length, utf8.encode(slideMasterRelsXml)))
+      ..addFile(ArchiveFile('ppt/slideLayouts/slideLayout1.xml', utf8.encode(slideLayoutXml).length, utf8.encode(slideLayoutXml)))
+      ..addFile(ArchiveFile('ppt/theme/theme1.xml', utf8.encode(themeXml).length, utf8.encode(themeXml)));
+
+    for (var i = 0; i < slideGroups.length; i++) {
+      final slideXml = buildSlideXml(i + 1, slideGroups[i]);
+      archive
+        ..addFile(ArchiveFile('ppt/slides/slide${i + 1}.xml', utf8.encode(slideXml).length, utf8.encode(slideXml)))
+        ..addFile(ArchiveFile('ppt/slides/_rels/slide${i + 1}.xml.rels', utf8.encode(slideRelsXml).length, utf8.encode(slideRelsXml)));
+    }
 
     final zip = ZipEncoder().encode(archive);
     if (zip == null) {
@@ -524,8 +707,16 @@ class ConversionService {
       return _extractTextFromPdf(inputBytes, inputFileName);
     }
 
+    if (lowerName.endsWith('.doc')) {
+      return 'Legacy Word (.doc) source detected: $inputFileName. For best text fidelity, resave as .docx before converting.';
+    }
+
     if (lowerName.endsWith('.docx')) {
       return _extractTextFromDocx(inputBytes);
+    }
+
+    if (lowerName.endsWith('.xls')) {
+      return 'Legacy Excel (.xls) source detected: $inputFileName. For best table extraction, resave as .xlsx before converting.';
     }
 
     if (lowerName.endsWith('.csv') || lowerName.endsWith('.xlsx')) {
