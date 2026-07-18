@@ -207,6 +207,20 @@ class HomePageV3 extends StatelessWidget {
                       childAspectRatio: childAspectRatio,
                       children: [
                         _QuickActionCard(
+                          icon: Icons.description_outlined,
+                          label: 'Resume Builder',
+                          subtitle: 'Create and export professional resumes',
+                          color: const Color(0xFF0E3A66),
+                          onTap: () => _openRoute(context, '/resume'),
+                        ),
+                        _QuickActionCard(
+                          icon: Icons.transform,
+                          label: 'Converter',
+                          subtitle: 'PDF and document format conversion',
+                          color: const Color(0xFF2563EB),
+                          onTap: () => _openRoute(context, '/converter-v2'),
+                        ),
+                        _QuickActionCard(
                           icon: Icons.compress,
                           label: 'Compress',
                           subtitle: 'Target size workflow',
