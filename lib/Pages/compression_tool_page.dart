@@ -1,7 +1,6 @@
 import 'package:archive/archive.dart';
 import 'package:flutter/material.dart';
 import '../Widgets/target_size_selector.dart';
-import '../Widgets/apple_button.dart';
 import '../Widgets/download_result_dialog.dart';
 import '../Widgets/quota_gate.dart';
 import '../Services/compression_service.dart';

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../Services/public_brand_config.dart';
-import '../Widgets/apple_button.dart';
 
 class HomePageV3 extends StatelessWidget {
   const HomePageV3({super.key});
@@ -114,16 +113,32 @@ class HomePageV3 extends StatelessWidget {
                             spacing: 12,
                             runSpacing: 12,
                             children: [
-                              AppleButton(
-                                label: 'Compress PDF',
-                                icon: Icons.compress,
+                              ElevatedButton.icon(
                                 onPressed: () => _openRoute(context, '/compress'),
+                                icon: const Icon(Icons.compress),
+                                label: const Text('Compress PDF'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF0E3A66),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
                               ),
-                              AppleButton(
-                                label: 'Build Resume',
-                                icon: Icons.description_outlined,
-                                isPrimary: false,
+                              ElevatedButton.icon(
                                 onPressed: () => _openRoute(context, '/resume'),
+                                icon: const Icon(Icons.description_outlined),
+                                label: const Text('Build Resume'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: const Color(0xFF0E3A66),
+                                  side: const BorderSide(color: Color(0xFFD8E5F5)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
                               ),
                             ],
                           ),
