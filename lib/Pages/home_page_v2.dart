@@ -1853,7 +1853,7 @@ class _OwnerIntegrationHubPanelState extends State<_OwnerIntegrationHubPanel> {
   }
 }
 
-class _UserPaymentPanel extends StatelessWidget {
+class _UserPaymentPanel extends StatefulWidget {
   final String activeGateway;
   final String selectedPlan;
   final String selectedCurrency;
@@ -1880,9 +1880,17 @@ class _UserPaymentPanel extends StatelessWidget {
     required this.onUsageTypeChanged,
   });
 
+  @override
+  State<_UserPaymentPanel> createState() => _UserPaymentPanelState();
+}
+
+class _UserPaymentPanelState extends State<_UserPaymentPanel> {
+  bool _submitting = false;
+  Map<String, dynamic>? _lastCheckoutResponse;
+
   double _monthlyForPlan(String plan) {
-    if (plan == 'Monthly') return monthlyAmount;
-    if (plan == 'Yearly') return yearlyAmount / 12;
+    if (plan == 'Monthly') return widget.monthlyAmount;
+    if (plan == 'Yearly') return widget.yearlyAmount / 12;
     return 0;
   }
 
@@ -1892,67 +1900,217 @@ class _UserPaymentPanel extends StatelessWidget {
 
   double _chargeAmountForPlan(String plan) {
     if (plan == '7Days') {
-      return sevenDayAmount;
+      return widget.sevenDayAmount;
     }
     if (plan == 'Lifetime') {
-      return lifetimePlanAmount;
+      return widget.lifetimePlanAmount;
     }
     if (plan == 'Yearly') {
-      return yearlyAmount;
+      return widget.yearlyAmount;
     }
     if (plan == 'Monthly') {
-      return monthlyAmount;
+      return widget.monthlyAmount;
     }
     return 0;
   }
 
-  Future<void> _continueToPayment(BuildContext context) async {
-    if (activeGateway.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Payment gateway is not finalized yet.')),
-      );
-      return;
-    }
-
-    if (usageType == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select Personal or Business first.')),
-      );
-      return;
-    }
-
-    if (selectedPlan == 'Free') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Free plan is free forever. No payment required.')),
-      );
-      return;
-    }
-
-    final amount = _chargeAmountForPlan(selectedPlan);
-    final order = await ApiService.createPaymentOrder(
-      gateway: activeGateway,
-      planId: selectedPlan.toLowerCase().replaceAll(' ', '_'),
-      amount: amount,
-      currency: selectedCurrency,
-      customerEmail: PublicBrandConfig.supportEmail,
-      customerName: 'JOBREADY User',
-      metadata: {
-        'source': 'v2_payment_panel',
-        'display_currency': selectedCurrency,
-        'usage_type': usageType,
-        'billing_model': _isSubscriptionPlan(selectedPlan) ? 'annual_10_for_12' : 'one_time',
-        'billing_months': _isSubscriptionPlan(selectedPlan) ? 12 : 0,
-        'payable_months': _isSubscriptionPlan(selectedPlan) ? 10 : 1,
-      },
+  Map<String, dynamic> _readiness() {
+    return ApiService.buildPaymentReadiness(
+      gateway: widget.activeGateway,
+      planId: widget.selectedPlan,
+      amount: _chargeAmountForPlan(widget.selectedPlan),
+      currency: widget.selectedCurrency,
+      usageType: widget.usageType,
     );
+  }
 
-    if (!context.mounted) {
+  Future<void> _continueToPayment(BuildContext context) async {
+    final readiness = _readiness();
+    final readinessStatus = readiness['status']?.toString() ?? 'configuration_required';
+    if (readinessStatus == 'configuration_required') {
+      setState(() {
+        _lastCheckoutResponse = {
+          ...readiness,
+          'selected_plan': widget.selectedPlan,
+          'checkout_state': 'configuration_required',
+        };
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(readiness['message']?.toString() ?? 'Configuration is still required.')),
+      );
       return;
     }
 
-    final message = order['message']?.toString() ?? 'Payment request created.';
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Gateway ${activeGateway.toUpperCase()}: $message')),
+    if (readinessStatus == 'unavailable') {
+      setState(() {
+        _lastCheckoutResponse = {
+          ...readiness,
+          'selected_plan': widget.selectedPlan,
+          'checkout_state': 'unavailable',
+        };
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(readiness['message']?.toString() ?? 'Checkout is unavailable for this selection.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _submitting = true;
+    });
+
+    try {
+      if (!mounted || !context.mounted) {
+        return;
+      }
+
+      setState(() {
+        _lastCheckoutResponse = {
+          ...readiness,
+          'selected_plan': widget.selectedPlan,
+          'checkout_state': 'ready_for_integration',
+          'status': 'ready_for_integration',
+          'label': 'Ready for Integration',
+          'message': 'Checkout readiness confirmed in local UI state only. No live gateway call was made.',
+          'order_id': 'UI-ONLY-CHECKPOINT',
+          'checkout_url': 'Not generated in UI-only checkpoint',
+        };
+      });
+
+      const message = 'Local readiness saved. No live checkout action was performed.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(message)),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _submitting = false;
+        });
+      }
+    }
+  }
+
+  Color _statusColor(String status) {
+    switch (status) {
+      case 'ready_for_integration':
+        return const Color(0xFF166534);
+      case 'configuration_required':
+        return const Color(0xFFB45309);
+      default:
+        return const Color(0xFFB91C1C);
+    }
+  }
+
+  Widget _buildReadinessCard() {
+    final readiness = _readiness();
+    final status = readiness['status']?.toString() ?? 'blocked';
+    final statusColor = _statusColor(status);
+    final amount = _chargeAmountForPlan(widget.selectedPlan);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFC7D2FE)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  readiness['label']?.toString() ?? status.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: statusColor,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  readiness['message']?.toString() ?? 'Payment readiness unavailable.',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1E1B4B),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Plan: ${widget.selectedPlan} | Amount: ${_formatCurrencyAmount(amount, widget.selectedCurrency)} | Usage: ${widget.usageType ?? 'NOT SELECTED'}',
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Gateway display: ${widget.activeGateway.trim().isEmpty ? 'NOT FINALIZED' : widget.activeGateway.toUpperCase()} | Currency mode: ${readiness['currency_mode']?.toString() ?? 'n/a'}',
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            readiness['fallback']?.toString() ?? 'No fallback note available.',
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCheckoutResponseCard() {
+    final response = _lastCheckoutResponse;
+    if (response == null) {
+      return const SizedBox.shrink();
+    }
+
+    final status = response['status']?.toString() ?? 'unknown';
+    final statusColor = _statusColor(status);
+    final reference = response['order_id']?.toString() ?? 'N/A';
+    final summary = response['message']?.toString() ?? 'No local checkout summary available.';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: statusColor.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Latest checkout state',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: statusColor),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            response['label']?.toString() ?? status.toUpperCase(),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF1E293B)),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            summary,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Reference: $reference',
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF1E293B)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1970,7 +2128,7 @@ class _UserPaymentPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Selected payment gateway: ${activeGateway.trim().isEmpty ? 'NOT FINALIZED' : activeGateway.toUpperCase()}',
+            'Selected payment gateway: ${widget.activeGateway.trim().isEmpty ? 'NOT FINALIZED' : widget.activeGateway.toUpperCase()}',
             style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w800,
@@ -1979,7 +2137,7 @@ class _UserPaymentPanel extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
-            initialValue: selectedCurrency,
+            initialValue: widget.selectedCurrency,
             isExpanded: true,
             items: _paymentCurrencyLabels.entries
                 .map(
@@ -1995,7 +2153,7 @@ class _UserPaymentPanel extends StatelessWidget {
                 .toList(growable: false),
             onChanged: (value) {
               if (value != null) {
-                onCurrencyChanged(value);
+                widget.onCurrencyChanged(value);
               }
             },
             decoration: InputDecoration(
@@ -2007,6 +2165,8 @@ class _UserPaymentPanel extends StatelessWidget {
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
             ),
           ),
+          const SizedBox(height: 8),
+          _buildReadinessCard(),
           const SizedBox(height: 8),
           const Text(
             'Usage Type',
@@ -2022,23 +2182,23 @@ class _UserPaymentPanel extends StatelessWidget {
               Expanded(
                 child: ChoiceChip(
                   label: const Text('Personal'),
-                  selected: usageType == 'Personal',
-                  onSelected: (_) => onUsageTypeChanged('Personal'),
+                  selected: widget.usageType == 'Personal',
+                  onSelected: (_) => widget.onUsageTypeChanged('Personal'),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: ChoiceChip(
                   label: const Text('Business'),
-                  selected: usageType == 'Business',
-                  onSelected: (_) => onUsageTypeChanged('Business'),
+                  selected: widget.usageType == 'Business',
+                  onSelected: (_) => widget.onUsageTypeChanged('Business'),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
-            initialValue: selectedPlan,
+            initialValue: widget.selectedPlan,
             isExpanded: true,
             items: [
               const DropdownMenuItem(
@@ -2052,7 +2212,7 @@ class _UserPaymentPanel extends StatelessWidget {
               DropdownMenuItem(
                 value: '7Days',
                 child: Text(
-                  '7 DAYS - ${_formatCurrencyAmount(sevenDayAmount, selectedCurrency)}',
+                  '7 DAYS - ${_formatCurrencyAmount(widget.sevenDayAmount, widget.selectedCurrency)}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -2060,7 +2220,7 @@ class _UserPaymentPanel extends StatelessWidget {
               DropdownMenuItem(
                 value: 'Monthly',
                 child: Text(
-                  'MONTHLY - ${_formatCurrencyAmount(monthlyAmount, selectedCurrency)}/month',
+                  'MONTHLY - ${_formatCurrencyAmount(widget.monthlyAmount, widget.selectedCurrency)}/month',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -2068,7 +2228,7 @@ class _UserPaymentPanel extends StatelessWidget {
               DropdownMenuItem(
                 value: 'Yearly',
                 child: Text(
-                  'YEARLY - ${_formatCurrencyAmount(yearlyAmount, selectedCurrency)}/year ⭐',
+                  'YEARLY - ${_formatCurrencyAmount(widget.yearlyAmount, widget.selectedCurrency)}/year ⭐',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -2076,7 +2236,7 @@ class _UserPaymentPanel extends StatelessWidget {
               DropdownMenuItem(
                 value: 'Lifetime',
                 child: Text(
-                  'LIFETIME - ${_formatCurrencyAmount(lifetimePlanAmount, selectedCurrency)} one-time',
+                  'LIFETIME - ${_formatCurrencyAmount(widget.lifetimePlanAmount, widget.selectedCurrency)} one-time',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -2084,7 +2244,7 @@ class _UserPaymentPanel extends StatelessWidget {
             ],
             onChanged: (value) {
               if (value != null) {
-                onPlanChanged(value);
+                widget.onPlanChanged(value);
               }
             },
             decoration: InputDecoration(
@@ -2096,7 +2256,7 @@ class _UserPaymentPanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          if (selectedPlan != 'Basic')
+          if (widget.selectedPlan != 'Basic')
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(10),
@@ -2106,11 +2266,11 @@ class _UserPaymentPanel extends StatelessWidget {
                 border: Border.all(color: const Color(0xFF7DD3FC)),
               ),
               child: Text(
-                selectedPlan == '7Days'
-                    ? 'Short access plan selected: ${_formatCurrencyAmount(sevenDayAmount, selectedCurrency)} for 7-day use.'
-                    : _isSubscriptionPlan(selectedPlan)
-                        ? 'Offer active: Pay for 10 months (${_formatCurrencyAmount(_monthlyForPlan(selectedPlan) * 10, selectedCurrency)}) and get 12 months access.'
-                        : 'One-time Lifetime plan payment: ${_formatCurrencyAmount(lifetimePlanAmount, selectedCurrency)}.',
+                widget.selectedPlan == '7Days'
+                    ? 'Short access plan selected: ${_formatCurrencyAmount(widget.sevenDayAmount, widget.selectedCurrency)} for 7-day use.'
+                    : _isSubscriptionPlan(widget.selectedPlan)
+                        ? 'Offer active: Pay for 10 months (${_formatCurrencyAmount(_monthlyForPlan(widget.selectedPlan) * 10, widget.selectedCurrency)}) and get 12 months access.'
+                        : 'One-time Lifetime plan payment: ${_formatCurrencyAmount(widget.lifetimePlanAmount, widget.selectedCurrency)}.',
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -2118,13 +2278,17 @@ class _UserPaymentPanel extends StatelessWidget {
                 ),
               ),
             ),
-          if (selectedPlan != 'Basic') const SizedBox(height: 10),
+          if (widget.selectedPlan != 'Basic') const SizedBox(height: 10),
+          if (_lastCheckoutResponse != null) ...[
+            _buildCheckoutResponseCard(),
+            const SizedBox(height: 10),
+          ],
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: () => _continueToPayment(context),
+              onPressed: _submitting ? null : () => _continueToPayment(context),
               icon: const Icon(Icons.payments_rounded),
-              label: const Text('Continue to Payment'),
+              label: Text(_submitting ? 'Creating Checkout...' : 'Continue to Payment'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1F4E79),
                 foregroundColor: Colors.white,

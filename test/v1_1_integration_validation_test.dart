@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jobready_india/Pages/system_check_page.dart';
+import 'package:jobready_india/Services/api_config.dart';
 import 'package:jobready_india/main_v1_1.dart';
 
 void main() {
@@ -52,6 +53,29 @@ void main() {
       await tester.pumpWidget(const MaterialApp(home: SystemCheckPage()));
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.text('System Check'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    test('payment readiness helper uses local integration-ready state for paid plan', () {
+      final readiness = ApiService.buildPaymentReadiness(
+        gateway: '',
+        planId: 'Monthly',
+        amount: 1.99,
+        currency: 'USD',
+        usageType: 'Personal',
+      );
+
+      expect(readiness['status'], 'ready_for_integration');
+      expect(readiness['label'], 'Ready for Integration');
+    });
+
+    testWidgets('home payment panel shows checkout readiness section', (tester) async {
+      await tester.pumpWidget(const JobReadyV11App());
+      await tester.pump(const Duration(milliseconds: 800));
+
+      expect(find.textContaining('Selected payment gateway:'), findsOneWidget);
+      expect(find.text('Configuration Required'), findsOneWidget);
+      expect(find.text('Continue to Payment'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   });

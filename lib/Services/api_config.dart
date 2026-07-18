@@ -346,6 +346,62 @@ class ApiService {
   static const String logTag = 'ApiService';
   static String? _activePaymentGatewayOverride;
 
+  static Map<String, dynamic> buildPaymentReadiness({
+    required String gateway,
+    required String planId,
+    required double amount,
+    required String currency,
+    String? usageType,
+  }) {
+    final normalizedGateway = gateway.toLowerCase().trim();
+    final normalizedPlan = planId.trim();
+    final normalizedCurrency = currency.toUpperCase().trim();
+    final normalizedUsageType = usageType?.trim();
+
+    if (normalizedUsageType == null || normalizedUsageType.isEmpty) {
+      return {
+        'status': 'configuration_required',
+        'label': 'Configuration Required',
+        'message': 'Select Personal or Business to complete local checkout readiness setup.',
+        'fallback': 'Usage mode controls the displayed price summary and checkout readiness state.',
+        'gateway': normalizedGateway,
+        'currency': normalizedCurrency,
+      };
+    }
+
+    if (normalizedPlan.isEmpty || normalizedPlan == 'Free') {
+      return {
+        'status': 'unavailable',
+        'label': 'Unavailable',
+        'message': 'Free plan selected. Paid checkout remains inactive until a paid plan is chosen.',
+        'fallback': 'Choose a paid plan to move this panel into integration-ready state.',
+        'gateway': normalizedGateway,
+        'currency': normalizedCurrency,
+        'billing_model': 'free',
+      };
+    }
+
+    final subscriptionPlan = normalizedPlan == 'Monthly' || normalizedPlan == 'Yearly';
+    final convertedCurrency = normalizedCurrency != 'INR';
+
+    return {
+      'status': 'ready_for_integration',
+      'label': 'Ready for Integration',
+      'message': 'Local checkout state is complete and ready for a future gateway connection.',
+      'fallback': 'This checkpoint records UI readiness only. No live checkout action is performed.',
+      'gateway': normalizedGateway,
+      'plan_id': normalizedPlan.toLowerCase().replaceAll(' ', '_'),
+      'display_plan': normalizedPlan,
+      'currency': normalizedCurrency,
+      'amount': amount,
+      'usage_type': normalizedUsageType,
+      'billing_model': subscriptionPlan ? 'annual_10_for_12' : 'one_time',
+      'billing_months': subscriptionPlan ? 12 : 1,
+      'payable_months': subscriptionPlan ? 10 : 1,
+      'currency_mode': convertedCurrency ? 'usd_converted_display' : 'india_rate_card',
+    };
+  }
+
   static String getActivePaymentGateway() {
     return (_activePaymentGatewayOverride ??
             ApiConfig.paymentGatewayDefaults['active_gateway']?.toString() ??

@@ -634,3 +634,27 @@ Prepared For: JOBREADY
   - Runtime review completed on V1.1 System Check route with updated screenshot evidence captured.
 - Owner:
   - Founder + Copilot
+
+### Checkpoint - 2026-07-18 (V1.1 Controlled Merge - Checkpoint 4)
+- Overall status: Green (checkpoint stable)
+- Completed today:
+  - Hardened the existing V1 payment panel in `lib/Pages/home_page_v2.dart` with local-only checkout readiness states:
+    - `Configuration Required`
+    - `Unavailable`
+    - `Ready for Integration`
+  - Kept the current V1 payment UI structure and navigation intact with no redesign.
+  - Removed any placeholder order creation and backend checkout action from this checkpoint.
+  - Added local readiness helper coverage in `lib/Services/api_config.dart` for UI-only payment state evaluation.
+  - Added focused payment readiness regression coverage:
+    - `test/payment_readiness_service_test.dart`
+    - updated `test/v1_1_integration_validation_test.dart`
+- In progress:
+  - Wait for review before starting the next V1.1 checkpoint.
+- Validation result:
+  - `flutter analyze`: PASS (no new errors; existing repo warnings/info only)
+  - `flutter test test/payment_readiness_service_test.dart`: PASS
+  - `flutter test test/v1_1_integration_validation_test.dart`: PASS
+  - `flutter build web -t lib/main_v1_1.dart`: PASS
+  - Runtime review completed on built V1.1 home route with updated payment-panel screenshot evidence captured.
+- Owner:
+  - Founder + Copilot
