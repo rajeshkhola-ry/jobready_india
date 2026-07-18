@@ -1,9 +1,10 @@
-import 'package:archive/archive.dart';
 import 'package:flutter/material.dart';
-import 'dart:typed_data';
+import 'package:archive/archive.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart' as sfpdf;
-import '../Widgets/apple_button.dart';
-import '../Widgets/download_result_dialog.dart';import '../Widgets/quota_gate.dart';import '../Services/file_picker_service.dart';
+
+import '../Widgets/download_result_dialog.dart';
+import '../Widgets/quota_gate.dart';
+import '../Services/file_picker_service.dart';
 import '../Services/pdf_editor_service.dart';
 import '../Services/upload_context_service.dart';
 
@@ -52,9 +53,7 @@ class _SplitToolPageState extends State<SplitToolPage> {
       _selectedFile = cached.name;
       _selectedFileBytes = cached.bytes;
       _totalPages = totalPages;
-      _statusMessage = cachedFiles.length == 1
-          ? '✓ ${cached.name} loaded from Home upload (${totalPages} pages)'
-          : '✓ ${cachedFiles.length} files loaded from Home upload';
+      _statusMessage = '✓ ${cached.name} loaded from workspace (${totalPages} pages)';
     });
   }
 
@@ -81,222 +80,263 @@ class _SplitToolPageState extends State<SplitToolPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1F2937),
-        iconTheme: const IconThemeData(
-          color: Color(0xFFFFC72C),
-          size: 30,
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Home',
-            onPressed: () {
-              Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
-            },
-            icon: const Icon(Icons.home_rounded, color: Color(0xFFFFC72C)),
-          ),
-        ],
+        backgroundColor: const Color(0xFF0E3A66),
+        elevation: 0,
         title: const Text(
           'Split PDF',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
-            fontSize: 22,
+            fontSize: 18,
           ),
         ),
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(
-              16,
-              16,
-              16,
-              24 + MediaQuery.of(context).padding.bottom,
-            ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFF6FAFF), Color(0xFFEAF2FF)],
+          ),
+        ),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            16,
+            16,
+            24 + MediaQuery.of(context).padding.bottom,
+          ),
+          child: Center(
             child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minWidth: constraints.maxWidth,
-                minHeight: constraints.maxHeight,
-              ),
+              constraints: const BoxConstraints(maxWidth: 600),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-            // Step 1: Select File
-            _buildStepCard(
-              step: 1,
-              title: 'Choose File',
-              content: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  AppleButton(
-                    label: _selectedFiles.length > 1 ? 'Choose Files' : 'Choose File',
-                    icon: Icons.upload_file,
-                    onPressed: _selectFile,
-                    isPrimary: _selectedFile == null,
-                    isFullWidth: true,
-                  ),
-                  const SizedBox(height: 12),
-                  if (_selectedFile != null)
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.green.shade50,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.green.shade300),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.check_circle,
-                                color: Colors.green,
-                                size: 20,
+                  // Production header
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFD8E5F5)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEAF2FF),
+                                borderRadius: BorderRadius.circular(10),
                               ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  _selectedFiles.length > 1
-                                      ? '${_selectedFiles.length} files selected'
-                                      : _selectedFile!,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
+                              child: const Icon(
+                                Icons.content_cut_rounded,
+                                color: Color(0xFF0E3A66),
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Split PDF',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF0F172A),
+                                    ),
                                   ),
-                                ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Extract pages or divide into multiple files',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Step 1: Select File
+                  _panel(
+                    number: 1,
+                    title: 'Choose File',
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0E3A66),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          onPressed: _selectFile,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.upload_file_rounded),
+                              const SizedBox(width: 8),
+                              Text(
+                                _selectedFile == null ? 'Choose PDF' : 'Change File',
+                                style: const TextStyle(fontWeight: FontWeight.w600),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 6),
-                          Text(
-                            _selectedFiles.length > 1
-                                ? 'Ranges will apply to all selected files'
-                                : 'Total pages: $_totalPages',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
+                        ),
+                        if (_selectedFile != null) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFD8E5F5)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.check_circle_rounded,
+                                      color: Color(0xFF166534),
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        _selectedFile!,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w700,
+                                          color: Color(0xFF0F172A),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Total pages: $_totalPages',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF94A3B8),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Step 2: Split Method
+                  if (_selectedFile != null)
+                    _panel(
+                      number: 2,
+                      title: 'Split Method',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildMethodButton('range', 'By Page Range'),
+                          const SizedBox(height: 8),
+                          _buildMethodButton('extract', 'Extract Specific Pages'),
+                        ],
                       ),
                     ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
+                  if (_selectedFile != null) const SizedBox(height: 20),
 
-            // Step 2: Split Method
-            if (_selectedFile != null)
-              _buildStepCard(
-                step: 2,
-                title: 'Split Method',
-                content: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildMethodButton('range', 'By Page Range'),
-                    const SizedBox(height: 8),
-                    _buildMethodButton('extract', 'Extract Specific Pages'),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 20),
-
-            // Step 3: Configure Split
-            if (_selectedFile != null)
-              _buildStepCard(
-                step: 3,
-                title: 'Configure Split',
-                content: _splitMethod == 'range'
-                    ? _buildRangeInput()
-                    : _buildExtractInput(),
-              ),
-            const SizedBox(height: 20),
-
-            // Step 4: Split
-            if (_selectedFile != null && _pageRanges.isNotEmpty)
-              _buildStepCard(
-                step: 4,
-                title: 'Split File',
-                content: AppleButton(
-                  label: _isSplitting ? 'Splitting...' : 'Start Split',
-                  icon: _isSplitting ? Icons.hourglass_empty : Icons.content_cut,
-                  onPressed: _isSplitting ? null : _startSplit,
-                  isPrimary: true,
-                  isFullWidth: true,
-                ),
-              ),
-            const SizedBox(height: 20),
-
-            // Status
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: _getStatusColor().withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: _getStatusColor()),
-              ),
-              child: Text(
-                _statusMessage,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: _getStatusColor(),
-                ),
-              ),
-            ),
-            if (_isSplitting) ...[
-              const SizedBox(height: 10),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.blue.withOpacity(0.35)),
-                ),
-                child: Row(
-                  children: const [
-                    SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                  // Step 3: Configure Split
+                  if (_selectedFile != null)
+                    _panel(
+                      number: 3,
+                      title: 'Configure Split',
+                      child: _splitMethod == 'range'
+                          ? _buildRangeInput()
+                          : _buildExtractInput(),
                     ),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'Split is running... please wait.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.blue,
-                        ),
+                  if (_selectedFile != null) const SizedBox(height: 20),
+
+                  // Step 4: Create Split PDF
+                  if (_selectedFile != null && _pageRanges.isNotEmpty)
+                    _panel(
+                      number: 4,
+                      title: 'Create Split PDF',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF0E3A66),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            onPressed: _isSplitting ? null : _startSplit,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                if (_isSplitting)
+                                  const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation(Colors.white),
+                                    ),
+                                  )
+                                else
+                                  const Icon(Icons.content_cut_rounded),
+                                const SizedBox(width: 8),
+                                Text(
+                                  _isSplitting ? 'Splitting...' : 'Start Split (${_pageRanges.length} part${_pageRanges.length > 1 ? 's' : ''})',
+                                  style: const TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (_isSplitting) ...[
+                            const SizedBox(height: 8),
+                            LinearProgressIndicator(
+                              minHeight: 4,
+                              backgroundColor: const Color(0xFFE0E7FF),
+                              valueColor: AlwaysStoppedAnimation(Colors.blue.shade600),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ],
+                  if (_selectedFile != null && _pageRanges.isNotEmpty) const SizedBox(height: 20),
+
+                  // Status
+                  _StatusRow(
+                    message: _statusMessage,
+                    type: _getStatusType(),
+                  ),
                 ],
               ),
-            ),
-          );
-        },
-      ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Container(
-          color: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: const Text(
-            'getreadyjob.com',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF1F4E79),
             ),
           ),
         ),
@@ -304,18 +344,18 @@ class _SplitToolPageState extends State<SplitToolPage> {
     );
   }
 
-  Widget _buildStepCard({
-    required int step,
+  Widget _panel({
+    required int number,
     required String title,
-    required Widget content,
+    required Widget child,
   }) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade300),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFD8E5F5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -323,36 +363,38 @@ class _SplitToolPageState extends State<SplitToolPage> {
           Row(
             children: [
               Container(
-                width: 28,
-                height: 28,
+                width: 32,
+                height: 32,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0051BA),
-                  borderRadius: BorderRadius.circular(6),
+                  color: const Color(0xFFEAF2FF),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Center(
                   child: Text(
-                    '$step',
+                    '$number',
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: Color(0xFF0E3A66),
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1F2937),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          content,
+          child,
         ],
       ),
     );
@@ -371,10 +413,10 @@ class _SplitToolPageState extends State<SplitToolPage> {
         width: double.infinity,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF007AFF).withOpacity(0.1) : Colors.white,
+          color: isSelected ? const Color(0xFFEAF2FF) : Colors.white,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? const Color(0xFF007AFF) : Colors.grey.shade300,
+            color: isSelected ? const Color(0xFF0E3A66) : const Color(0xFFD8E5F5),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -386,7 +428,7 @@ class _SplitToolPageState extends State<SplitToolPage> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? const Color(0xFF007AFF) : Colors.grey.shade400,
+                  color: isSelected ? const Color(0xFF0E3A66) : Colors.grey.shade300,
                   width: 2,
                 ),
               ),
@@ -397,7 +439,7 @@ class _SplitToolPageState extends State<SplitToolPage> {
                         height: 10,
                         child: DecoratedBox(
                           decoration: BoxDecoration(
-                            color: Color(0xFF007AFF),
+                            color: Color(0xFF0E3A66),
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -411,7 +453,7 @@ class _SplitToolPageState extends State<SplitToolPage> {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                color: isSelected ? const Color(0xFF007AFF) : Colors.grey.shade700,
+                color: isSelected ? const Color(0xFF0E3A66) : Colors.grey.shade700,
               ),
             ),
           ],
@@ -428,7 +470,7 @@ class _SplitToolPageState extends State<SplitToolPage> {
           'Page ranges (e.g., 1-5, 10-15)',
           style: TextStyle(
             fontSize: 13,
-            color: Colors.grey,
+            color: Color(0xFF64748B),
           ),
         ),
         const SizedBox(height: 8),
@@ -438,12 +480,13 @@ class _SplitToolPageState extends State<SplitToolPage> {
             hintText: 'Enter page range',
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFFD8E5F5)),
             ),
             suffix: GestureDetector(
               onTap: _addPageRange,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: const Icon(Icons.add_circle, color: Color(0xFF007AFF)),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8),
+                child: Icon(Icons.add_circle_rounded, color: Color(0xFF0E3A66)),
               ),
             ),
           ),
@@ -456,6 +499,11 @@ class _SplitToolPageState extends State<SplitToolPage> {
                 .map(
                   (range) => Chip(
                     label: Text(range),
+                    backgroundColor: const Color(0xFFEAF2FF),
+                    labelStyle: const TextStyle(
+                      color: Color(0xFF0E3A66),
+                      fontWeight: FontWeight.w600,
+                    ),
                     onDeleted: () {
                       setState(() => _pageRanges.remove(range));
                     },
@@ -471,39 +519,45 @@ class _SplitToolPageState extends State<SplitToolPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Select pages to extract',
-          style: TextStyle(
+        Text(
+          'Select pages to extract ($_totalPages total)',
+          style: const TextStyle(
             fontSize: 13,
-            color: Colors.grey,
+            color: Color(0xFF64748B),
           ),
         ),
         const SizedBox(height: 12),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade300),
+            border: Border.all(color: const Color(0xFFD8E5F5)),
             borderRadius: BorderRadius.circular(10),
           ),
           child: ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: _totalPages,
-            separatorBuilder: (_, __) => Divider(height: 1),
+            separatorBuilder: (_, __) => Divider(height: 1, color: const Color(0xFFE0E7FF)),
             itemBuilder: (context, index) {
-              return CheckboxListTile(
-                title: Text('Page ${index + 1}'),
-                value: _pageRanges.contains('${index + 1}'),
-                onChanged: (value) {
-                  setState(() {
-                    if (value == true) {
-                      _pageRanges.add('${index + 1}');
-                    } else {
-                      _pageRanges.remove('${index + 1}');
-                    }
-                  });
-                },
-                contentPadding: EdgeInsets.zero,
+              final pageNum = index + 1;
+              final isSelected = _pageRanges.contains('$pageNum');
+              return Container(
+                color: isSelected ? const Color(0xFFEAF2FF).withValues(alpha: 0.5) : Colors.transparent,
+                child: CheckboxListTile(
+                  title: Text('Page $pageNum'),
+                  value: isSelected,
+                  activeColor: const Color(0xFF0E3A66),
+                  onChanged: (value) {
+                    setState(() {
+                      if (value == true) {
+                        _pageRanges.add('$pageNum');
+                      } else {
+                        _pageRanges.remove('$pageNum');
+                      }
+                    });
+                  },
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                ),
               );
             },
           ),
@@ -544,21 +598,38 @@ class _SplitToolPageState extends State<SplitToolPage> {
         _selectedFileBytes = file.bytes;
         _totalPages = totalPages;
         _statusMessage = files.length == 1
-        ? '✓ ${file.name} selected (${_totalPages} pages)'
+            ? '✓ ${file.name} selected (${totalPages} pages)'
             : '✓ ${files.length} files selected';
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      setState(() {
+        _statusMessage = '✗ Error selecting files: $e';
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   Future<void> _startSplit() async {
-    if (_selectedFiles.isEmpty || _selectedFileBytes == null || _selectedFile == null) return;
+    if (_selectedFiles.isEmpty || _selectedFileBytes == null || _selectedFile == null) {
+      setState(() {
+        _statusMessage = '✗ Select a file to split';
+      });
+      return;
+    }
+
+    if (_pageRanges.isEmpty) {
+      setState(() {
+        _statusMessage = '✗ Select at least 1 page range';
+      });
+      return;
+    }
 
     final allowed = await checkQuotaAndProceed(
       context: context,
@@ -568,9 +639,7 @@ class _SplitToolPageState extends State<SplitToolPage> {
 
     setState(() {
       _isSplitting = true;
-      _statusMessage = _selectedFiles.length > 1
-          ? 'Splitting ${_selectedFiles.length} files...'
-          : 'Splitting file into ${_pageRanges.length} part(s)...';
+      _statusMessage = 'Splitting into ${_pageRanges.length} part(s)...';
     });
 
     await Future.delayed(const Duration(milliseconds: 60));
@@ -591,28 +660,28 @@ class _SplitToolPageState extends State<SplitToolPage> {
 
       final zipBytes = ZipEncoder().encode(archive);
       if (zipBytes == null) {
-        throw Exception('Unable to create split ZIP output.');
+        throw Exception('Unable to create split ZIP output');
       }
 
       if (!mounted) return;
       setState(() {
         _isSplitting = false;
-        _statusMessage = _selectedFiles.length > 1
-            ? '✓ Split completed for ${_selectedFiles.length} files'
-            : '✓ Split completed successfully';
+        _statusMessage = '✓ Split completed — ${_formatBytes(zipBytes.length)} ready for download';
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Split completed. Download link is ready.'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Split completed. Download is ready.'),
+            backgroundColor: Color(0xFF166534),
+          ),
+        );
+      }
 
       await showDialog(
         context: context,
         builder: (_) => DownloadResultDialog(
-          outputFormat: 'Split PDF Package Completed',
+          outputFormat: 'Split PDF Package',
           fileName: 'jobready_split_files.zip',
           outputBytes: Uint8List.fromList(zipBytes),
         ),
@@ -623,13 +692,90 @@ class _SplitToolPageState extends State<SplitToolPage> {
         _isSplitting = false;
         _statusMessage = '✗ Split failed: $e';
       });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Split failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
-  Color _getStatusColor() {
-    if (_statusMessage.startsWith('✓')) return Colors.green;
-    if (_statusMessage.startsWith('✗')) return Colors.red;
-    if (_statusMessage.startsWith('Splitting')) return Colors.blue;
-    return Colors.grey;
+  String _formatBytes(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(2)} KB';
+    return '${(bytes / 1024 / 1024).toStringAsFixed(2)} MB';
+  }
+
+  _StatusType _getStatusType() {
+    if (_statusMessage.startsWith('✓')) return _StatusType.success;
+    if (_statusMessage.startsWith('✗')) return _StatusType.error;
+    if (_statusMessage.startsWith('Splitting')) return _StatusType.processing;
+    return _StatusType.idle;
+  }
+}
+
+enum _StatusType { idle, processing, success, error }
+
+class _StatusRow extends StatelessWidget {
+  final String message;
+  final _StatusType type;
+
+  const _StatusRow({required this.message, required this.type});
+
+  @override
+  Widget build(BuildContext context) {
+    final (IconData icon, Color color, Color bg) = switch (type) {
+      _StatusType.processing => (
+          Icons.sync_rounded,
+          const Color(0xFF0E3A66),
+          const Color(0xFFEAF2FF),
+        ),
+      _StatusType.success => (
+          Icons.check_circle_outline_rounded,
+          const Color(0xFF166534),
+          const Color(0xFFDCFCE7),
+        ),
+      _StatusType.error => (
+          Icons.error_outline_rounded,
+          const Color(0xFF9F1239),
+          const Color(0xFFFFE4E6),
+        ),
+      _StatusType.idle => (
+          Icons.info_outline_rounded,
+          const Color(0xFF475569),
+          const Color(0xFFF8FBFF),
+        ),
+    };
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: color,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

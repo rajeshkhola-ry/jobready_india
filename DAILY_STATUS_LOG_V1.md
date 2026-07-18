@@ -604,7 +604,37 @@ Owner:
 - Blockers:
   - None.
 - Decisions needed:
-  - Confirm next checkpoint: Split/Extract/Compression polish, or other.
+- Confirm next checkpoint: Extract/Compression/Admin polish, or other.
+- Tomorrow plan:
+  - Polish next approved V2 module.
+- Owner: Founder + Copilot
+
+### Day 14 - 2026-07-18 (V2 Checkpoint 10 — Split Tool Polish)
+- Overall status: Green (Split Tool polished to production standards)
+- Completed today:
+  - **Split Tool (lib/Pages/split_tool_page.dart) Polish** ✓
+    - AppBar: Navy blue (#0E3A66) with white text, no yellow home button ✓
+    - Production header: icon (content_cut) + title + subtitle ✓
+    - Gradient background: light blue to lighter blue (0xFFF6FAFF to 0xFFEAF2FF) ✓
+    - Step 1 (Choose File): navy button, styled file info card with green checkmark ✓
+    - Step 2 (Split Method): method selector buttons with navy colors and radio-like design ✓
+    - Step 3 (Configure Split): enhanced page range input with navy chips ✓
+    - Step 3 Extract: improved checkbox list with highlighted selection states ✓
+    - Step 4 (Create Split PDF): navy button with part count display, LinearProgressIndicator ✓
+    - All controls disabled during processing (_isSplitting guard) ✓
+    - Status row: color-coded _StatusRow widget (idle/processing/success/error) ✓
+    - Status messages: improved formatting with ✓/✗ prefix and file size display ✓
+    - _panel() widget: consistent step card styling (navy numbers, light blue background) ✓
+    - Removed deprecated withOpacity() calls → withValues(alpha:) ✓
+    - Removed unused imports (none to remove - only kept necessary ones) ✓
+    - Removed bottom navigation bar (getreadyjob.com) ✓
+    - Analyzer: 0 errors in split_tool_page.dart ✓
+- In progress:
+  - Next V2 module (pending user direction)
+- Blockers:
+  - None.
+- Decisions needed:
+  - Confirm next checkpoint: Extract/Compression/Admin polish, or other.
 - Tomorrow plan:
   - Polish next approved V2 module.
 - Owner: Founder + Copilot
