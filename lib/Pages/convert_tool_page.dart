@@ -23,7 +23,7 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
   String? _selectedInputFormat;
   String? _selectedOutputFormat;
   bool _isConverting = false;
-  String _statusMessage = 'Ready to convert';
+  String _statusMessage = 'Select input, output, and file to convert';
 
   List<PickedFileData> _selectedFiles = [];
   Uint8List? _selectedFile;
@@ -51,10 +51,6 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
     'Excel': ['xls', 'xlsx', 'csv'],
     'Image': ['jpg', 'jpeg', 'png', 'webp', 'bmp'],
     'PowerPoint': ['ppt', 'pptx'],
-  };
-
-  static const Set<String> _temporarilyUnsupportedOutputs = {
-    'PowerPoint (.pptx)',
   };
 
   @override
@@ -126,10 +122,6 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
 
   bool _isConversionSupported(String? input, String? output) {
     if (input == null || output == null) {
-      return false;
-    }
-
-    if (_temporarilyUnsupportedOutputs.contains(output)) {
       return false;
     }
 
@@ -698,6 +690,11 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
     required String format,
     required bool isInput,
   }) {
+    final displayFormat = format
+        .replaceAll(RegExp(r'\n\s*ready\s*$', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s+ready\s*$', caseSensitive: false), '')
+        .trim();
+
     final bool isSupportedOutput = !isInput
         ? _isConversionSupported(_selectedInputFormat, format)
         : true;
@@ -715,7 +712,7 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
             _selectedFiles = [];
             _selectedFile = null;
             _selectedFileName = null;
-            _statusMessage = 'Ready to convert';
+            _statusMessage = 'Choose output format to continue';
           } else {
             _selectedOutputFormat = format;
           }
@@ -744,7 +741,7 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                format,
+                displayFormat,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 12,
@@ -752,19 +749,7 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
                   color: isSelected ? Colors.white : Colors.grey.shade700,
                 ),
               ),
-              if (!isInput && !isSupportedOutput) ...[
-                const SizedBox(height: 2),
-                Text(
-                  'Ready',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: isSelected
-                        ? Colors.white.withOpacity(0.9)
-                        : const Color(0xFFB45309),
-                  ),
-                ),
-              ],
+              if (!isInput && !isSupportedOutput) const SizedBox.shrink(),
             ],
           ),
         ),
@@ -847,8 +832,8 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
         _selectedFile = files.first.bytes;
         _selectedFileName = files.first.name;
         _statusMessage = files.length == 1
-            ? 'File ready. Tap Convert Now to continue.'
-            : '${files.length} files ready. Tap Convert All to continue.';
+        ? 'File selected. Tap Start Convert to continue.'
+        : '${files.length} files selected. Tap Start Convert to continue.';
       });
     } catch (e) {
       setState(() {
@@ -915,7 +900,7 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Combined PDF is ready for download.'),
+            content: Text('Combined PDF generated. Download now.'),
             backgroundColor: Colors.green,
           ),
         );
@@ -963,7 +948,7 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Batch conversion completed. Download link is ready.'),
+            content: Text('Batch conversion completed. Download is available.'),
             backgroundColor: Colors.green,
           ),
         );
@@ -1004,12 +989,12 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
 
       setState(() {
         _isConverting = false;
-        _statusMessage = '✓ Converted successfully. Download is ready.';
+        _statusMessage = '✓ Converted successfully. Download is available.';
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('File completed. Download link is ready.'),
+          content: Text('File completed. Download is available.'),
           backgroundColor: Colors.green,
         ),
       );

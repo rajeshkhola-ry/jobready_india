@@ -338,6 +338,26 @@ Owner:
   - None.
 - Decisions needed:
   - Confirm whether the next V2 milestone should prioritize Resume export templates or Converter automation.
+
+### Checkpoint - 2026-07-18 (V1 Ready Label Cleanup)
+- Overall status: Green (checkpoint stable)
+- Completed today:
+  - Removed remaining user-facing `Ready` label from V1 converter output UI.
+  - Added a defensive label sanitizer in `convert_tool_page.dart` so trailing `Ready` text cannot reappear in format cards.
+  - Updated related conversion status wording in `selected_file_card.dart` and `pdf_tools_page.dart` to neutral text.
+- Files changed:
+  - `lib/Pages/convert_tool_page.dart`
+  - `lib/Pages/pdf_tools_page.dart`
+  - `lib/Widgets/selected_file_card.dart`
+  - `lib/DAILY_STATUS_LOG_V1.md`
+- Test result:
+  - Changed-file diagnostics: clean.
+  - Flutter web debug Chrome launch remains environment-blocked on this machine.
+  - Flutter web-server release run served successfully on `http://localhost:54324` for checkpoint validation.
+- Commit ID:
+  - Pending at log-write time.
+- Owner:
+  - Founder + Copilot
 - Tomorrow plan:
   - Start V2 converter module page and connect from top nav with same visual language.
 - Owner: Founder + Copilot

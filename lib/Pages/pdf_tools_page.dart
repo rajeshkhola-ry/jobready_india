@@ -472,7 +472,7 @@ class _PdfToolsPageState extends State<PdfToolsPage> {
                     Text(
                       conversionCompleted
                           ? '✅ Status : Process Completed'
-                          : 'Status : Ready to Convert',
+                          : 'Status : Waiting to Convert',
                       style: TextStyle(
                         color:
                             conversionCompleted
