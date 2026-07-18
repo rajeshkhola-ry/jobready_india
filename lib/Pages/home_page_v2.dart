@@ -49,6 +49,7 @@ const Map<String, String> _paymentCurrencyLabels = {
   'DKK': 'Danish Krone (DKK)',
   'MYR': 'Malaysian Ringgit (MYR)',
   'THB': 'Thai Baht (THB)',
+  'OTHER': 'Other countries (USD rates applicable)',
 };
 
 const Map<String, double> _paymentCurrencyRates = {
@@ -71,6 +72,7 @@ const Map<String, double> _paymentCurrencyRates = {
   'DKK': 6.86,
   'MYR': 4.7,
   'THB': 36.3,
+  'OTHER': 1.0,
 };
 
 const Map<String, String> _paymentCurrencySymbols = {
@@ -94,6 +96,7 @@ const Map<String, String> _paymentCurrencySymbols = {
   'DKK': 'DKK ',
   'MYR': 'RM ',
   'THB': '฿',
+    'OTHER': '\$',
 };
 
 String _formatCurrencyAmount(double amount, String currencyCode) {
@@ -1484,7 +1487,7 @@ class _BrowserSupportNotice extends StatelessWidget {
           SizedBox(width: 8),
           Expanded(
             child: Text(
-              'JOBREADY is now live. Full access is free for the next 15 days. If you notice any issue, please share it in Suggestion and we will fix it quickly.',
+              'JOBREADY is now live. Full access is free for the next 30 days. If you notice any issue, please share it in Suggestion and we will fix it quickly.',
               style: TextStyle(
                 fontSize: 12,
                 height: 1.35,
@@ -1992,7 +1995,7 @@ class _UserPaymentPanel extends StatelessWidget {
             },
             decoration: InputDecoration(
               labelText: 'Payment currency',
-              helperText: 'USD-based conversion is used for global currencies. INR stays on the India rate card.',
+              helperText: 'USD-based conversion is used for global currencies. Choose "Other countries" when your currency is not listed. INR stays on the India rate card.',
               isDense: true,
               filled: true,
               fillColor: Colors.white,
@@ -3219,9 +3222,9 @@ class _V2Column extends StatelessWidget {
               return const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _MostPopularToolsCard(),
-                  SizedBox(height: 10),
                   WhyChooseCard(scale: 0.6),
+                  SizedBox(height: 10),
+                  _MostPopularToolsCard(),
                 ],
               );
             }
@@ -3229,9 +3232,9 @@ class _V2Column extends StatelessWidget {
             return const Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(flex: 5, child: _MostPopularToolsCard()),
-                SizedBox(width: 10),
                 Expanded(flex: 7, child: WhyChooseCard(scale: 0.6)),
+                SizedBox(width: 10),
+                Expanded(flex: 5, child: _MostPopularToolsCard()),
               ],
             );
           },
