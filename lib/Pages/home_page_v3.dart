@@ -27,27 +27,12 @@ class HomePageV3 extends StatelessWidget {
         elevation: 0,
         foregroundColor: const Color(0xFF0F172A),
         title: const Text(
-          'JOBREADY V2',
+          'JOBREADY',
           style: TextStyle(
             fontWeight: FontWeight.w800,
             letterSpacing: 0.8,
           ),
         ),
-        actions: const [
-          Padding(
-            padding: EdgeInsets.only(right: 16),
-            child: Center(
-              child: Text(
-                'Separate build',
-                style: TextStyle(
-                  color: Color(0xFF2563EB),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -92,22 +77,22 @@ class HomePageV3 extends StatelessWidget {
                             runSpacing: 10,
                             children: const [
                               _StatusChip(
-                                label: 'V2 scaffold',
-                                icon: Icons.layers_outlined,
+                                label: 'Resume Builder',
+                                icon: Icons.description_outlined,
                               ),
                               _StatusChip(
-                                label: 'Separate launcher',
-                                icon: Icons.rocket_launch_outlined,
+                                label: 'PDF & Photo Tools',
+                                icon: Icons.picture_as_pdf_outlined,
                               ),
                               _StatusChip(
-                                label: 'Shared tools wired',
-                                icon: Icons.link,
+                                label: 'No sign-up needed',
+                                icon: Icons.lock_open_outlined,
                               ),
                             ],
                           ),
                           const SizedBox(height: 20),
                           const Text(
-                            'JOBREADY V2 starts here.',
+                            'Smart tools for your documents.',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 30,
@@ -117,7 +102,7 @@ class HomePageV3 extends StatelessWidget {
                           ),
                           const SizedBox(height: 12),
                           const Text(
-                            'This build stays separate from V1 (merged V1+V2) so we can shape the next release without disturbing the stable launch flow.',
+                            'Create, convert, merge, and export professional documents in seconds. Built for job seekers worldwide.',
                             style: TextStyle(
                               color: Colors.white70,
                               fontSize: 16,
@@ -130,15 +115,15 @@ class HomePageV3 extends StatelessWidget {
                             runSpacing: 12,
                             children: [
                               AppleButton(
-                                label: 'Open Compress',
+                                label: 'Compress PDF',
                                 icon: Icons.compress,
                                 onPressed: () => _openRoute(context, '/compress'),
                               ),
                               AppleButton(
-                                label: 'Open PDF Tools',
-                                icon: Icons.picture_as_pdf,
+                                label: 'Build Resume',
+                                icon: Icons.description_outlined,
                                 isPrimary: false,
-                                onPressed: () => _openRoute(context, '/pdf-tools'),
+                                onPressed: () => _openRoute(context, '/resume'),
                               ),
                             ],
                           ),
@@ -187,14 +172,14 @@ class HomePageV3 extends StatelessWidget {
                       runSpacing: 10,
                       children: const [
                         _StatusPill(
-                          label: 'Launch shell ready',
-                          value: 'Yes',
+                          label: 'Free to use',
+                          value: 'Always',
                           color: Color(0xFF0F766E),
                         ),
                         _StatusPill(
-                          label: 'Feature parity',
-                          value: 'In progress',
-                          color: Color(0xFFB45309),
+                          label: 'Resume Builder',
+                          value: 'Ready',
+                          color: Color(0xFF0E3A66),
                         ),
                         _StatusPill(
                           label: 'Support',
@@ -205,7 +190,7 @@ class HomePageV3 extends StatelessWidget {
                     ),
                     const SizedBox(height: 22),
                     const Text(
-                      'Launch shortcuts',
+                      'All Tools',
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w800,
@@ -309,7 +294,7 @@ class HomePageV3 extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Text(
-                                  'Build notes',
+                                  'Need help?',
                                   style: TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.w800,
@@ -318,7 +303,7 @@ class HomePageV3 extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  'V2 is kept as a separate workspace. Stable V1 launch files stay untouched while this branch grows. For release coordination, use ${PublicBrandConfig.supportEmail}.',
+                                  'Have a question or need support? Our team is ready to help. Reach us at ${PublicBrandConfig.supportEmail} or visit getreadyjob.com.',
                                   style: const TextStyle(
                                     fontSize: 14,
                                     height: 1.5,
