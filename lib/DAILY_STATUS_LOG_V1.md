@@ -591,3 +591,25 @@ Prepared For: JOBREADY
   - Runtime review screenshots captured on V1.1 web route (`/home` and `/system-check`).
 - Owner:
   - Founder + Copilot
+
+### Checkpoint - 2026-07-18 (V1.1 Controlled Merge - Checkpoint 2)
+- Overall status: Green (checkpoint stable)
+- Completed today:
+  - Extended Smart Document Workspace retention controls in `lib/Services/document_history_service.dart`:
+    - configurable retention limit in local storage
+    - trim-to-limit behavior for existing history
+  - Extended Recent Documents UI in `lib/Pages/home_page_v2.dart`:
+    - retention selector (`Keep 20 / 50 / 100 / 200`)
+    - privacy discoverability message pointing to User Account and Privacy section
+    - existing search/filter flow retained
+- In progress:
+  - Continue next V1.1 checkpoint from approved in-progress scope (2.11 / 2.13 / 2.14 foundations).
+- Validation result:
+  - `flutter analyze`: PASS (no errors; warnings/info only)
+  - `flutter test test/v1_1_integration_validation_test.dart`: PASS
+  - `flutter build web -t lib/main_v1_1.dart`: command reached compile stage; this shell intermittently stalls at spinner in this environment.
+  - Runtime review screenshots captured:
+    - Home (V1.1)
+    - System Check (V1.1)
+- Owner:
+  - Founder + Copilot

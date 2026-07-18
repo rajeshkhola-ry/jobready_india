@@ -46,7 +46,23 @@ class DocumentHistoryEntry {
 
 class DocumentHistoryService {
   static const String _storageKey = 'jobready_document_history_v2';
-  static const int _maxEntries = 100;
+  static const String _retentionStorageKey = 'jobready_document_history_retention_v2';
+  static const int _defaultMaxEntries = 100;
+
+  static int getRetentionLimit() {
+    final raw = html.window.localStorage[_retentionStorageKey];
+    final parsed = int.tryParse(raw ?? '');
+    if (parsed == null || parsed <= 0) {
+      return _defaultMaxEntries;
+    }
+    return parsed;
+  }
+
+  static Future<void> setRetentionLimit(int limit) async {
+    final safe = limit <= 0 ? _defaultMaxEntries : limit;
+    html.window.localStorage[_retentionStorageKey] = safe.toString();
+    await trimToRetentionLimit();
+  }
 
   static List<DocumentHistoryEntry> getEntries() {
     final raw = html.window.localStorage[_storageKey];
@@ -93,7 +109,15 @@ class DocumentHistoryService {
       ),
     );
 
-    final trimmed = current.take(_maxEntries).map((entry) => entry.toMap()).toList(growable: false);
+    final retentionLimit = getRetentionLimit();
+    final trimmed = current.take(retentionLimit).map((entry) => entry.toMap()).toList(growable: false);
+    html.window.localStorage[_storageKey] = jsonEncode(trimmed);
+  }
+
+  static Future<void> trimToRetentionLimit() async {
+    final entries = getEntries();
+    final retentionLimit = getRetentionLimit();
+    final trimmed = entries.take(retentionLimit).map((entry) => entry.toMap()).toList(growable: false);
     html.window.localStorage[_storageKey] = jsonEncode(trimmed);
   }
 

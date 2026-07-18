@@ -3424,14 +3424,18 @@ class _RecentDocumentsSection extends StatefulWidget {
 }
 
 class _RecentDocumentsSectionState extends State<_RecentDocumentsSection> {
+  static const List<int> _retentionOptions = [20, 50, 100, 200];
+
   List<DocumentHistoryEntry> _entries = const [];
   String _searchQuery = '';
   String _selectedFormat = 'All';
   bool _todayOnly = false;
+  int _retentionLimit = 100;
 
   @override
   void initState() {
     super.initState();
+    _retentionLimit = DocumentHistoryService.getRetentionLimit();
     _refresh();
   }
 
@@ -3482,6 +3486,20 @@ class _RecentDocumentsSectionState extends State<_RecentDocumentsSection> {
     _refresh();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Recent document history cleared.')),
+    );
+  }
+
+  Future<void> _updateRetentionLimit(int limit) async {
+    await DocumentHistoryService.setRetentionLimit(limit);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _retentionLimit = limit;
+      _entries = DocumentHistoryService.getEntries();
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('History retention updated to last $limit entries.')),
     );
   }
 
@@ -3556,6 +3574,47 @@ class _RecentDocumentsSectionState extends State<_RecentDocumentsSection> {
                 style: TextButton.styleFrom(
                   foregroundColor: const Color(0xFFB91C1C),
                   visualDensity: VisualDensity.compact,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Privacy tip: Use User Account and Privacy section below to disable new history recording.',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 130,
+                child: DropdownButtonFormField<int>(
+                  initialValue: _retentionLimit,
+                  isExpanded: true,
+                  items: _retentionOptions
+                      .map(
+                        (value) => DropdownMenuItem<int>(
+                          value: value,
+                          child: Text('Keep $value'),
+                        ),
+                      )
+                      .toList(growable: false),
+                  onChanged: (value) {
+                    if (value != null && value != _retentionLimit) {
+                      _updateRetentionLimit(value);
+                    }
+                  },
+                  decoration: InputDecoration(
+                    labelText: 'Retention',
+                    isDense: true,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
                 ),
               ),
             ],
