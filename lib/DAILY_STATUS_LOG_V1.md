@@ -613,3 +613,24 @@ Prepared For: JOBREADY
     - System Check (V1.1)
 - Owner:
   - Founder + Copilot
+
+### Checkpoint - 2026-07-18 (V1.1 Controlled Merge - Checkpoint 3)
+- Overall status: Green (checkpoint stable)
+- Completed today:
+  - Added API and payment readiness diagnostics in `lib/Pages/system_check_page.dart`:
+    - environment status
+    - active gateway status
+    - supported gateway count
+    - enabled integration app count
+  - Added persistent Browser/Responsive QA checklist in `lib/Pages/system_check_page.dart`:
+    - Chrome, Edge, mobile, desktop, navigation, and theme checks
+    - local persistence with completion progress bar
+- In progress:
+  - Continue V1.1 scope checkpoints from approved in-progress tracks.
+- Validation result:
+  - `flutter analyze`: PASS (no errors; warnings/info only)
+  - `flutter test test/v1_1_integration_validation_test.dart`: PASS
+  - `flutter build web -t lib/main_v1_1.dart`: PASS
+  - Runtime review completed on V1.1 System Check route with updated screenshot evidence captured.
+- Owner:
+  - Founder + Copilot

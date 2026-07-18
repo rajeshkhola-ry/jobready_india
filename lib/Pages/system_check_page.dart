@@ -1,4 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:universal_html/html.dart' as html;
+
+import '../Services/api_config.dart';
+import '../Services/integration_hub_service.dart';
 
 import 'compression_tool_page.dart' deferred as compression_page;
 import 'convert_tool_page.dart' deferred as convert_page;
@@ -7,8 +13,88 @@ import 'merge_tool_page.dart' deferred as merge_page;
 import 'pdf_tools_page.dart' deferred as pdf_page;
 import 'split_tool_page.dart' deferred as split_page;
 
-class SystemCheckPage extends StatelessWidget {
+class SystemCheckPage extends StatefulWidget {
   const SystemCheckPage({super.key});
+
+  @override
+  State<SystemCheckPage> createState() => _SystemCheckPageState();
+}
+
+class _SystemCheckPageState extends State<SystemCheckPage> {
+  static const String _qaStorageKey = 'jobready_v11_qa_checklist';
+
+  final Map<String, bool> _qaChecks = {
+    'chrome': false,
+    'edge': false,
+    'mobile': false,
+    'desktop': false,
+    'navigation': false,
+    'theme': false,
+  };
+
+  int _enabledIntegrationApps = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadQaChecks();
+    _loadIntegrationStats();
+  }
+
+  void _loadQaChecks() {
+    final raw = html.window.localStorage[_qaStorageKey];
+    if (raw == null || raw.trim().isEmpty) {
+      return;
+    }
+
+    try {
+      final decodedRaw = jsonDecode(raw);
+      if (decodedRaw is! Map) {
+        return;
+      }
+      final decoded = Map<String, dynamic>.from(decodedRaw);
+      for (final key in _qaChecks.keys) {
+        _qaChecks[key] = decoded[key] == true;
+      }
+    } catch (_) {
+      // Ignore malformed local data.
+    }
+  }
+
+  void _saveQaChecks() {
+    final jsonMap = _qaChecks.map((key, value) => MapEntry(key, value));
+    html.window.localStorage[_qaStorageKey] = jsonEncode(jsonMap);
+  }
+
+  Future<void> _loadIntegrationStats() async {
+    try {
+      final apps = await IntegrationHubService.getEnabledApps();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _enabledIntegrationApps = apps.length;
+      });
+    } catch (_) {
+      // Keep fallback display on failure.
+    }
+  }
+
+  void _setQaCheck(String key, bool value) {
+    setState(() {
+      _qaChecks[key] = value;
+    });
+    _saveQaChecks();
+  }
+
+  double _qaProgress() {
+    final total = _qaChecks.length;
+    final done = _qaChecks.values.where((value) => value).length;
+    if (total == 0) {
+      return 0;
+    }
+    return done / total;
+  }
 
   void _openTool(BuildContext context, Widget page) {
     Navigator.push(
@@ -47,6 +133,143 @@ class SystemCheckPage extends StatelessWidget {
     _openTool(context, pdf_page.PdfToolsPage());
   }
 
+  Widget _readinessCard() {
+    final activeGateway = ApiService.getActivePaymentGateway();
+    final gateways = ApiService.getSupportedPaymentGateways();
+
+    final gatewayLabel = activeGateway.isEmpty ? 'NOT FINALIZED' : activeGateway.toUpperCase();
+    final gatewayColor = activeGateway.isEmpty ? const Color(0xFFB45309) : const Color(0xFF166534);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'API and Payment Readiness',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF1F2937),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 10,
+            runSpacing: 8,
+            children: [
+              _statusChip(
+                label: 'Environment: ${ApiConfig.environment.name.toUpperCase()}',
+                color: const Color(0xFF1D4ED8),
+              ),
+              _statusChip(
+                label: 'Gateway: $gatewayLabel',
+                color: gatewayColor,
+              ),
+              _statusChip(
+                label: 'Supported gateways: ${gateways.length}',
+                color: gateways.isEmpty ? const Color(0xFFB45309) : const Color(0xFF166534),
+              ),
+              _statusChip(
+                label: 'Enabled integrations: $_enabledIntegrationApps',
+                color: _enabledIntegrationApps > 0 ? const Color(0xFF166534) : const Color(0xFFB45309),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statusChip({required String label, required Color color}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  Widget _qaChecklistCard() {
+    final progress = _qaProgress();
+    final done = _qaChecks.values.where((value) => value).length;
+    final total = _qaChecks.length;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Browser and Responsive QA Checklist ($done/$total)',
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF1F2937),
+            ),
+          ),
+          const SizedBox(height: 8),
+          LinearProgressIndicator(
+            value: progress,
+            minHeight: 8,
+            backgroundColor: const Color(0xFFE2E8F0),
+            color: progress == 1.0 ? const Color(0xFF166534) : const Color(0xFF1D4ED8),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          const SizedBox(height: 8),
+          _qaTile('chrome', 'Chrome flow validated'),
+          _qaTile('edge', 'Edge flow validated'),
+          _qaTile('mobile', 'Mobile layout validated'),
+          _qaTile('desktop', 'Desktop layout validated'),
+          _qaTile('navigation', 'Navigation smoke validated'),
+          _qaTile('theme', 'Theme consistency validated'),
+        ],
+      ),
+    );
+  }
+
+  Widget _qaTile(String key, String label) {
+    return Material(
+      color: Colors.transparent,
+      child: CheckboxListTile(
+        value: _qaChecks[key] == true,
+        contentPadding: EdgeInsets.zero,
+        dense: true,
+        visualDensity: VisualDensity.compact,
+        title: Text(
+          label,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+        ),
+        onChanged: (value) {
+          if (value == null) {
+            return;
+          }
+          _setQaCheck(key, value);
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -76,6 +299,10 @@ class SystemCheckPage extends StatelessWidget {
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
+          const SizedBox(height: 10),
+          _readinessCard(),
+          const SizedBox(height: 10),
+          _qaChecklistCard(),
           const SizedBox(height: 10),
           Container(
             padding: const EdgeInsets.all(12),
