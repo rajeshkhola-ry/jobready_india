@@ -360,7 +360,7 @@ Owner:
   - Founder + Copilot
 
 ### Checkpoint - 2026-07-18 (V1 PowerPoint Conversion Hardening)
-- Overall status: Green (validation in progress)
+- Overall status: Green (checkpoint stable)
 - Completed today:
   - Hardened the shared PowerPoint conversion package builder used by Word to PPT, Excel to PPT, and generic PPT export.
   - Expanded PPTX package structure to include presentation metadata, theme, master, layout, and per-slide relationships.
@@ -370,7 +370,28 @@ Owner:
   - `lib/DAILY_STATUS_LOG_V1.md`
 - Test result:
   - `dart analyze lib/Services/conversion_service.dart`: no errors, one existing package-info warning only.
+  - Changed-file diagnostics: clean.
+  - Flutter web release validation served successfully on `http://localhost:54325`.
+- Commit ID:
+  - `9430ef7`
+- Owner:
+  - Founder + Copilot
+
+### Checkpoint - 2026-07-18 (V1 PDF Conversion Web Hardening)
+- Overall status: Green (validation in progress)
+- Completed today:
+  - Hardened PDF to Word conversion on web to prefer stable text-based DOCX fallback instead of `pdf_render` first.
+  - Hardened PDF to PNG export on web to produce compatibility summary-image output instead of relying on unstable page rendering.
+  - Hardened PDF to JPG export on web with the same compatibility fallback path.
+  - Added focused smoke test coverage for PDF to Word, PNG, and JPG conversion using the bundled sample PDF.
+- Files changed:
+  - `lib/Services/conversion_service.dart`
+  - `test/pdf_conversion_smoke_test.dart`
+  - `lib/DAILY_STATUS_LOG_V1.md`
+- Test result:
+  - Changed-file diagnostics: clean.
   - Flutter web release validation: in progress at log-write time.
+  - `flutter test test/pdf_conversion_smoke_test.dart`: runtime pending; Flutter-dependent test execution is slow/noisy in this environment.
 - Commit ID:
   - Pending at log-write time.
 - Owner:

@@ -42,6 +42,21 @@ class ConversionService {
         case 'word (.docx)':
           final lowerName = inputFileName.toLowerCase();
           if (lowerName.endsWith('.pdf')) {
+            if (kIsWeb) {
+              final extractedText = await _extractTextFromPdf(inputBytes, inputFileName);
+              final fallbackWordBytes = await const WordGeneratorService().createWordDocument(
+                pdfFileName: inputFileName,
+                extractedText: extractedText,
+              );
+
+              return ConversionResult(
+                success: true,
+                message: 'Word document created in web compatibility mode.',
+                outputBytes: fallbackWordBytes,
+                outputFileName: _changeExtension(inputFileName, 'docx'),
+              );
+            }
+
             try {
               final wordLayoutBytes = await const WordGeneratorService().createWordDocumentFromPdfLayout(
                 pdfBytes: inputBytes,
@@ -300,6 +315,34 @@ class ConversionService {
     final lowerName = inputFileName.toLowerCase();
 
     if (lowerName.endsWith('.pdf')) {
+      if (kIsWeb) {
+        try {
+          final extractedText = await _extractTextFromPdf(inputBytes, inputFileName);
+          final imageBytes = _createImageFromTextSummary(
+            title: inputFileName,
+            text: extractedText,
+            targetType: targetType,
+          );
+          final archive = Archive();
+          final extension = targetType == 'jpg' ? 'jpg' : 'png';
+          final fallbackName = '${_baseName(inputFileName)}_summary.$extension';
+          archive.addFile(ArchiveFile(fallbackName, imageBytes.length, imageBytes));
+          final zip = ZipEncoder().encode(archive);
+
+          return ConversionResult(
+            success: true,
+            message: '${targetType.toUpperCase()} summary image created in web compatibility mode.',
+            outputBytes: zip == null ? imageBytes : Uint8List.fromList(zip),
+            outputFileName: '${_baseName(inputFileName)}_${targetType}_pages.zip',
+          );
+        } catch (e) {
+          return ConversionResult(
+            success: false,
+            message: 'Unable to export PDF pages as ${targetType.toUpperCase()} images on web: $e',
+          );
+        }
+      }
+
       try {
         final imageBytes = await _renderPdfPagesAsArchive(
           pdfBytes: inputBytes,
