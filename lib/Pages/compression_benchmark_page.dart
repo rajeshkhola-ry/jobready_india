@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../Services/compression_benchmark.dart';
-import '../Widgets/apple_button.dart';
 import 'benchmark_history_page.dart';
 
 /// Compression Benchmark Control Page (Debug/Development)
@@ -38,22 +37,20 @@ class _CompressionBenchmarkPageState extends State<CompressionBenchmarkPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1F2937),
-        iconTheme: const IconThemeData(
-          color: Color(0xFFFFC72C),
-          size: 30,
-        ),
+        backgroundColor: const Color(0xFF0E3A66),
+        elevation: 0,
         title: const Text(
-          'V1-C1 Compression Benchmark',
+          'Compression Benchmark',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
+            fontSize: 18,
           ),
         ),
         actions: [
           IconButton(
             tooltip: 'History',
-            icon: const Icon(Icons.history, color: Color(0xFFFFC72C)),
+            icon: const Icon(Icons.history_rounded, color: Colors.white),
             onPressed: () {
               Navigator.push(
                 context,
@@ -65,239 +62,494 @@ class _CompressionBenchmarkPageState extends State<CompressionBenchmarkPage> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (kIsWeb) ...[
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.orange.shade300),
-                ),
-                child: const Text(
-                  'Web runtime detected. Compression benchmark may be runtime-blocked by pdf_render plugin on web. Use desktop/mobile runtime for valid quality metrics.',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.black87,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
-
-            // Status Card
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue.shade200),
-              ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFF6FAFF), Color(0xFFEAF2FF)],
+          ),
+        ),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            16,
+            16,
+            24 + MediaQuery.of(context).padding.bottom,
+          ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Status',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                  // Production header
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFD8E5F5)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEAF2FF),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.trending_down_rounded,
+                                color: Color(0xFF0E3A66),
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Compression Benchmark',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Test and validate compression performance',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _statusMessage,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-            // Test Configuration
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Benchmark Configuration',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                  // Web runtime warning
+                  if (kIsWeb)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF3C7),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFFCD34D)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.warning_rounded,
+                            color: Color(0xFFD97706),
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Web runtime may be blocked by pdf_render plugin. Use desktop/mobile for valid metrics.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey.shade800,
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  if (kIsWeb) const SizedBox(height: 16),
+
+                  // Status Card
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFD8E5F5)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Status',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _statusMessage,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  _buildConfigRow(
-                    'Small Files',
-                    '100KB – 500KB',
-                  ),
-                  _buildConfigRow(
-                    'Medium Files',
-                    '5MB – 20MB',
-                  ),
-                  _buildConfigRow(
-                    'Large Files',
-                    '50MB – 100MB',
-                  ),
-                  const SizedBox(height: 8),
-                  _buildConfigRow(
-                    'Tolerance Threshold',
-                    '85% (15% max quality loss)',
-                    isHighlight: true,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Execution Mode',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                  // Benchmark Configuration
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFD8E5F5)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Benchmark Configuration',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildConfigRow('Small Files', '100KB – 500KB'),
+                        _buildConfigRow('Medium Files', '5MB – 20MB'),
+                        _buildConfigRow('Large Files', '50MB – 100MB'),
+                        const SizedBox(height: 8),
+                        _buildConfigRow(
+                          'Tolerance',
+                          '85% (15% max loss)',
+                          isHighlight: true,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Execution Mode
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFD8E5F5)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Execution Mode',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        SegmentedButton<BenchmarkExecutionMode>(
+                          segments: const [
+                            ButtonSegment<BenchmarkExecutionMode>(
+                              value: BenchmarkExecutionMode.strictPlugin,
+                              label: Text('Strict Plugin'),
+                              icon: Icon(Icons.verified_rounded),
+                            ),
+                            ButtonSegment<BenchmarkExecutionMode>(
+                              value: BenchmarkExecutionMode.portableFallback,
+                              label: Text('Portable Fallback'),
+                              icon: Icon(Icons.build_circle_outlined),
+                            ),
+                          ],
+                          selected: {_mode},
+                          onSelectionChanged:
+                              _isRunning
+                                  ? null
+                                  : (selection) {
+                                    setState(() {
+                                      _mode = selection.first;
+                                    });
+                                  },
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _mode == BenchmarkExecutionMode.strictPlugin
+                              ? 'Strict: pdf_render path only; blocks reported when unsupported'
+                              : 'Portable: continues with fallback when plugin path fails',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade700,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Day 7 Regression Gate
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFD8E5F5)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Day 7 Regression Gate',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Rule: pass rate ≥ 85%, quality ≥ 85',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _gateMessage,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color:
+                                _lastGateResult == null
+                                    ? Colors.grey.shade700
+                                    : (_lastGateResult!.passed
+                                        ? const Color(0xFF166534)
+                                        : const Color(0xFF9F1239)),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Global Policy Lock
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFD8E5F5)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Global Policy Lock',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        SegmentedButton<BenchmarkGatePolicy>(
+                          segments: const [
+                            ButtonSegment<BenchmarkGatePolicy>(
+                              value: BenchmarkGatePolicy.portableOnly,
+                              label: Text('Portable'),
+                            ),
+                            ButtonSegment<BenchmarkGatePolicy>(
+                              value: BenchmarkGatePolicy.strictOnly,
+                              label: Text('Strict'),
+                            ),
+                            ButtonSegment<BenchmarkGatePolicy>(
+                              value: BenchmarkGatePolicy.requireBoth,
+                              label: Text('Both'),
+                            ),
+                          ],
+                          selected: {_gatePolicy},
+                          onSelectionChanged:
+                              _isRunning
+                                  ? null
+                                  : (selection) {
+                                    final selected = selection.first;
+                                    setState(() {
+                                      _gatePolicy = selected;
+                                      if (selected == BenchmarkGatePolicy.portableOnly) {
+                                        _mode = BenchmarkExecutionMode.portableFallback;
+                                      } else if (selected == BenchmarkGatePolicy.strictOnly) {
+                                        _mode = BenchmarkExecutionMode.strictPlugin;
+                                      }
+                                      _globalGatePassed = null;
+                                      _globalGateMessage =
+                                          'Global gate reset. Run benchmark to evaluate.';
+                                    });
+                                  },
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _globalGateMessage,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color:
+                                _globalGatePassed == null
+                                    ? Colors.grey.shade700
+                                    : (_globalGatePassed!
+                                        ? const Color(0xFF166534)
+                                        : const Color(0xFF9F1239)),
+                            fontWeight: FontWeight.w600,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Control Buttons
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _isRunning ? null : _runBenchmark,
+                      icon: const Icon(Icons.play_arrow_rounded),
+                      label: Text(_isRunning ? 'Running...' : 'Run Benchmark'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0E3A66),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 10),
-                  SegmentedButton<BenchmarkExecutionMode>(
-                    segments: const [
-                      ButtonSegment<BenchmarkExecutionMode>(
-                        value: BenchmarkExecutionMode.strictPlugin,
-                        label: Text('Strict Plugin'),
-                        icon: Icon(Icons.verified),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _isRunning ? null : _clearResults,
+                          icon: const Icon(Icons.delete_outline_rounded),
+                          label: const Text('Clear'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: const Color(0xFF0E3A66),
+                            side: const BorderSide(color: Color(0xFFD8E5F5)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
                       ),
-                      ButtonSegment<BenchmarkExecutionMode>(
-                        value: BenchmarkExecutionMode.portableFallback,
-                        label: Text('Portable Fallback'),
-                        icon: Icon(Icons.build_circle_outlined),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _isRunning ? null : _runConfidenceComparison,
+                          icon: const Icon(Icons.compare_arrows_rounded),
+                          label: const Text('Compare'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: const Color(0xFF0E3A66),
+                            side: const BorderSide(color: Color(0xFFD8E5F5)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
                       ),
                     ],
-                    selected: {_mode},
-                    onSelectionChanged:
-                        _isRunning
-                            ? null
-                            : (selection) {
-                              setState(() {
-                                _mode = selection.first;
-                              });
-                            },
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _mode == BenchmarkExecutionMode.strictPlugin
-                        ? 'Strict Plugin: uses pdf_render path only; runtime-blocks are reported when unsupported.'
-                        : 'Portable Fallback: continues benchmark with cross-runtime fallback when plugin path fails.',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.teal.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.teal.shade200),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Day 7 Regression Gate',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                  // Results Report
+                  if (_reportLines.isNotEmpty) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade900,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey.shade700),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Benchmark Report',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green,
+                              fontFamily: 'Courier',
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          ..._reportLines
+                              .map(
+                                (line) => Text(
+                                  line,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.green,
+                                    fontFamily: 'Courier',
+                                    height: 1.5,
+                                  ),
+                                ),
+                              ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Rule: pass rate ≥ 85%, average quality ≥ 85 (runtime-blocked rows allowed for strict diagnostics)',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade700,
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _exportResults,
+                        icon: const Icon(Icons.download_rounded),
+                        label: const Text('Export to CSV'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0E3A66),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _gateMessage,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color:
-                          _lastGateResult == null
-                              ? Colors.black87
-                              : (_lastGateResult!.passed
-                                  ? Colors.green.shade800
-                                  : Colors.red.shade800),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  ],
                 ],
               ),
             ),
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.indigo.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.indigo.shade200),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Global Policy Lock',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  SegmentedButton<BenchmarkGatePolicy>(
-                    segments: const [
-                      ButtonSegment<BenchmarkGatePolicy>(
-                        value: BenchmarkGatePolicy.portableOnly,
-                        label: Text('Portable'),
-                      ),
-                      ButtonSegment<BenchmarkGatePolicy>(
-                        value: BenchmarkGatePolicy.strictOnly,
-                        label: Text('Strict'),
-                      ),
-                      ButtonSegment<BenchmarkGatePolicy>(
-                        value: BenchmarkGatePolicy.requireBoth,
-                        label: Text('Both'),
+          ),
+        ),
+      ),
+    );
+  }
                       ),
                     ],
                     selected: {_gatePolicy},

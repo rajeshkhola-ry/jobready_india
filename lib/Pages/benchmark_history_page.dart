@@ -195,66 +195,178 @@ class _BenchmarkHistoryPageState extends State<BenchmarkHistoryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1F2937),
-        iconTheme: const IconThemeData(
-          color: Color(0xFFFFC72C),
-          size: 30,
-        ),
+        backgroundColor: const Color(0xFF0E3A66),
+        elevation: 0,
         title: const Text(
           'Benchmark History',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
         ),
         actions: [
           IconButton(
             onPressed: _loading ? null : _loadHistory,
-            icon: const Icon(Icons.refresh, color: Color(0xFFFFC72C)),
+            icon: const Icon(Icons.refresh_rounded, color: Colors.white),
             tooltip: 'Refresh',
           ),
         ],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _status,
-                    style: TextStyle(
-                      color: Colors.grey.shade800,
-                      fontWeight: FontWeight.w600,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFF6FAFF), Color(0xFFEAF2FF)],
+          ),
+        ),
+        child: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  16,
+                  16,
+                  24 + MediaQuery.of(context).padding.bottom,
+                ),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 600),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Production header
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: const Color(0xFFD8E5F5)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFEAF2FF),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Icon(
+                                      Icons.history_rounded,
+                                      color: Color(0xFF0E3A66),
+                                      size: 24,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'Benchmark History',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF0F172A),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'View past compression benchmark results',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey.shade600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Status message
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEAF2FF),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFD8E5F5)),
+                          ),
+                          child: Text(
+                            _status,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF0E3A66),
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Entries list
+                        _entries.isEmpty
+                            ? Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(24),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: const Color(0xFFD8E5F5)),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    'No benchmark history available',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : Column(
+                                children: [
+                                  ..._entries.asMap().entries.map((e) {
+                                    final entry = e.value;
+                                    return Padding(
+                                      padding: const EdgeInsets.only(bottom: 12),
+                                      child: _buildEntryCard(context, entry),
+                                    );
+                                  }),
+                                ],
+                              ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: _entries.isEmpty
-                        ? const Center(
-                            child: Text('No benchmark history available.'),
-                          )
-                        : ListView.separated(
-                            itemCount: _entries.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 10),
-                            itemBuilder: (context, index) {
-                              final entry = _entries[index];
-                              return _buildEntryCard(context, entry);
-                            },
-                          ),
-                  ),
-                ],
+                ),
               ),
-            ),
+      ),
     );
   }
 
   Widget _buildEntryCard(BuildContext context, BenchmarkHistoryEntry entry) {
-    final passColor = entry.passRate >= 85 ? Colors.green : Colors.orange;
+    final passColor =
+        entry.passRate >= 85 ? const Color(0xFF166534) : const Color(0xFFB45309);
+    final qualityColor =
+        entry.averageQuality >= 85 ? const Color(0xFF166534) : const Color(0xFFB45309);
+
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border.all(color: Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFD8E5F5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -265,33 +377,114 @@ class _BenchmarkHistoryPageState extends State<BenchmarkHistoryPage> {
               Expanded(
                 child: Text(
                   entry.file.uri.pathSegments.last,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: Color(0xFF0F172A),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              Text(
-                '${entry.passRate.toStringAsFixed(1)}%',
-                style: TextStyle(fontWeight: FontWeight.bold, color: passColor),
+              const SizedBox(width: 8),
+              Wrap(
+                spacing: 6,
+                children: [
+                  _statusBadge(
+                    '${entry.passRate.toStringAsFixed(1)}% pass',
+                    passColor,
+                  ),
+                  _statusBadge(
+                    '${entry.averageQuality.toStringAsFixed(1)} quality',
+                    qualityColor,
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text('Rows: ${entry.totalRows} | Production: ${entry.productionRows}'),
-          Text(
-            'Runtime-blocked: ${entry.runtimeBlockedRows} | Portable-fallback: ${entry.portableFallbackRows}',
-          ),
-          Text('Avg quality: ${entry.averageQuality.toStringAsFixed(2)}'),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Row(
             children: [
-              TextButton.icon(
-                onPressed: () => _showPathDialog(context, entry.file.path),
-                icon: const Icon(Icons.folder_open),
-                label: const Text('View Path'),
-              ),
+              _metricItem('Total', '${entry.totalRows}'),
+              const SizedBox(width: 16),
+              _metricItem('Production', '${entry.productionRows}'),
+              const SizedBox(width: 16),
+              _metricItem('Blocked', '${entry.runtimeBlockedRows}'),
             ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Portable fallback: ${entry.portableFallbackRows}',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => _showPathDialog(context, entry.file.path),
+              icon: const Icon(Icons.folder_open_rounded),
+              label: const Text('View Path'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: const Color(0xFF0E3A66),
+                side: const BorderSide(color: Color(0xFFD8E5F5)),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _statusBadge(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  Widget _metricItem(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey.shade600,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF0E3A66),
+          ),
+        ),
+      ],
     );
   }
 
