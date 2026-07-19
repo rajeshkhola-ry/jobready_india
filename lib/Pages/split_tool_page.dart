@@ -81,7 +81,7 @@ class _SplitToolPageState extends State<SplitToolPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0E3A66),
+        backgroundColor: const Color(0xFF1F2937),
         foregroundColor: Colors.white,
         elevation: 0,
         title: const Text(

@@ -47,7 +47,7 @@ class _MergeToolPageState extends State<MergeToolPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Merge PDFs'),
-        backgroundColor: const Color(0xFF0E3A66),
+        backgroundColor: const Color(0xFF1F2937),
         foregroundColor: Colors.white,
       ),
       body: Container(

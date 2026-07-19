@@ -472,6 +472,27 @@ class _HomePageV2State extends State<HomePageV2> {
             const _BrowserSupportNotice(),
 
             const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEAF2FF),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFBFD4F3)),
+              ),
+              child: const Text(
+                'Runtime: V1.1 (Merged) | Entry: lib/main_v1_1.dart',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Color(0xFF0E3A66),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 10),
             const _V2Column(),
             const SizedBox(height: 10),
             if (_showLiveOfferBanner && _liveOfferText.trim().isNotEmpty) ...[

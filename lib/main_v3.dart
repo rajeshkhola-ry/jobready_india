@@ -30,7 +30,7 @@ class JobReadyV3App extends StatelessWidget {
       theme: ThemeData(
         scaffoldBackgroundColor: const Color(0xFFF3F7FC),
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF0E3A66),
+          seedColor: const Color(0xFF1F2937),
           brightness: Brightness.light,
         ),
         useMaterial3: true,

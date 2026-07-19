@@ -62,7 +62,7 @@ class HomePageV3 extends StatelessWidget {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF0E3A66).withValues(alpha: 0.24),
+                            color: const Color(0xFF1F2937).withValues(alpha: 0.24),
                             blurRadius: 28,
                             offset: const Offset(0, 14),
                           ),
@@ -118,7 +118,7 @@ class HomePageV3 extends StatelessWidget {
                                 icon: const Icon(Icons.compress),
                                 label: const Text('Compress PDF'),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF0E3A66),
+                                  backgroundColor: const Color(0xFF1F2937),
                                   foregroundColor: Colors.white,
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                   shape: RoundedRectangleBorder(
@@ -132,7 +132,7 @@ class HomePageV3 extends StatelessWidget {
                                 label: const Text('Build Resume'),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.white,
-                                  foregroundColor: const Color(0xFF0E3A66),
+                                  foregroundColor: const Color(0xFF1F2937),
                                   side: const BorderSide(color: Color(0xFFD8E5F5)),
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                   shape: RoundedRectangleBorder(
@@ -198,12 +198,12 @@ class HomePageV3 extends StatelessWidget {
                         _StatusPill(
                           label: 'Resume Builder',
                           value: 'Ready',
-                          color: Color(0xFF0E3A66),
+                          color: Color(0xFF1F2937),
                         ),
                         _StatusPill(
                           label: 'Support',
                           value: PublicBrandConfig.supportEmail,
-                          color: Color(0xFF0E3A66),
+                          color: Color(0xFF1F2937),
                         ),
                       ],
                     ),
@@ -229,7 +229,7 @@ class HomePageV3 extends StatelessWidget {
                           icon: Icons.description_outlined,
                           label: 'Resume Builder',
                           subtitle: 'Create and export professional resumes',
-                          color: const Color(0xFF0E3A66),
+                          color: const Color(0xFF1F2937),
                           onTap: () => _openRoute(context, '/resume'),
                         ),
                         _QuickActionCard(
@@ -243,7 +243,7 @@ class HomePageV3 extends StatelessWidget {
                           icon: Icons.compress,
                           label: 'Compress',
                           subtitle: 'Target size workflow',
-                          color: const Color(0xFF0E3A66),
+                          color: const Color(0xFF1F2937),
                           onTap: () => _openRoute(context, '/compress'),
                         ),
                         _QuickActionCard(
@@ -324,7 +324,7 @@ class HomePageV3 extends StatelessWidget {
                             ),
                             child: const Icon(
                               Icons.support_agent_outlined,
-                              color: Color(0xFF0E3A66),
+                              color: Color(0xFF1F2937),
                               size: 28,
                             ),
                           ),

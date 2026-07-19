@@ -33,7 +33,7 @@ class _PdfToolsPageState extends State<PdfToolsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0E3A66),
+        backgroundColor: const Color(0xFF1F2937),
         foregroundColor: Colors.white,
         elevation: 0,
         title: const Text(
@@ -97,7 +97,7 @@ class _PdfToolsPageState extends State<PdfToolsPage> {
                               ),
                               child: const Icon(
                                 Icons.picture_as_pdf_rounded,
-                                color: Color(0xFF0E3A66),
+                                color: Color(0xFF1F2937),
                                 size: 24,
                               ),
                             ),
@@ -133,7 +133,7 @@ class _PdfToolsPageState extends State<PdfToolsPage> {
                           style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF0E3A66),
+                            color: Color(0xFF1F2937),
                           ),
                         ),
                       ],
@@ -283,7 +283,7 @@ class _PdfToolsPageState extends State<PdfToolsPage> {
                       children: [
                         const Icon(
                           Icons.info_outline_rounded,
-                          color: Color(0xFF0E3A66),
+                          color: Color(0xFF1F2937),
                           size: 16,
                         ),
                         const SizedBox(width: 8),
