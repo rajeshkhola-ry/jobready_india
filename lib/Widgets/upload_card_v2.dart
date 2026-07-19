@@ -245,9 +245,9 @@ class _UploadCardV2State extends State<UploadCardV2> {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFF8FBFF), Color(0xFFEEF6FF)],
+          colors: [Color(0xFFF5F8FC), Color(0xFFEAF1F8)],
         ),
-        border: Border.all(color: const Color(0xFFD1E4FF), width: 1.5),
+        border: Border.all(color: const Color(0xFFC9D9EA), width: 1.5),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF1F4E79).withValues(alpha: 0.12),
@@ -299,7 +299,7 @@ class _UploadCardV2State extends State<UploadCardV2> {
                 width: double.infinity,
                 height: 96,
                 decoration: BoxDecoration(
-                  color: _dragging ? const Color(0xFFDFF3FF) : Colors.white,
+                  color: _dragging ? const Color(0xFFE3ECF7) : Colors.white,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
                     color: _dragging ? const Color(0xFF1F4E79) : const Color(0xFFBFDBFE),
@@ -328,7 +328,7 @@ class _UploadCardV2State extends State<UploadCardV2> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: const Color(0xFFE0EAFF),
+                color: const Color(0xFFDCE6F4),
                 borderRadius: BorderRadius.circular(999),
               ),
               child: const Text(
@@ -336,7 +336,7 @@ class _UploadCardV2State extends State<UploadCardV2> {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF1E3A8A),
+                  color: Color(0xFF0E3A66),
                 ),
               ),
             ),

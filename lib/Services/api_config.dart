@@ -80,7 +80,7 @@ class ApiConfig {
   // ==================== SOCIAL MEDIA LINKS ====================
   static const Map<String, String> socialLinks = {
     'website': 'https://getreadyjob.com',
-    'email': 'rajesh.khola@outlook.com',
+    'email': 'hello@getreadyjob.com',
     'twitter': 'https://twitter.com/getreadyjob',
     'facebook': 'https://facebook.com/getreadyjob',
     'instagram': 'https://instagram.com/getreadyjob',

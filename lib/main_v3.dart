@@ -28,6 +28,10 @@ class JobReadyV3App extends StatelessWidget {
       title: 'JOBREADY V2 (Separate)',
       theme: ThemeData(
         scaffoldBackgroundColor: const Color(0xFFF3F7FC),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF0E3A66),
+          brightness: Brightness.light,
+        ),
         useMaterial3: true,
       ),
       initialRoute: '/',

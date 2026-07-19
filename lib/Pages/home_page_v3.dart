@@ -38,7 +38,7 @@ class HomePageV3 extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFF7FAFF), Color(0xFFEAF2FF)],
+            colors: [Color(0xFFF5F8FC), Color(0xFFE6EEF7)],
           ),
         ),
         child: SafeArea(
@@ -52,17 +52,37 @@ class HomePageV3 extends StatelessWidget {
                   children: [
                     Container(
                       width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEAF2FF),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFBFD4F3)),
+                      ),
+                      child: const Text(
+                        'Runtime: V2 | Entry: lib/main_v3.dart',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Color(0xFF0E3A66),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(28),
                         gradient: const LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
-                          colors: [Color(0xFF0051BA), Color(0xFF0A84FF)],
+                          colors: [Color(0xFF0B2E52), Color(0xFF1F4E79)],
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF0051BA).withValues(alpha: 0.24),
+                            color: const Color(0xFF0E3A66).withValues(alpha: 0.24),
                             blurRadius: 28,
                             offset: const Offset(0, 14),
                           ),
@@ -202,8 +222,8 @@ class HomePageV3 extends StatelessWidget {
                         ),
                         _StatusPill(
                           label: 'Support',
-                          value: 'hello@getreadyjob.com',
-                          color: Color(0xFF1D4ED8),
+                          value: PublicBrandConfig.supportEmail,
+                          color: Color(0xFF0E3A66),
                         ),
                       ],
                     ),
@@ -236,14 +256,14 @@ class HomePageV3 extends StatelessWidget {
                           icon: Icons.transform,
                           label: 'Converter',
                           subtitle: 'PDF and document format conversion',
-                          color: const Color(0xFF2563EB),
+                          color: const Color(0xFF1F4E79),
                           onTap: () => _openRoute(context, '/converter-v2'),
                         ),
                         _QuickActionCard(
                           icon: Icons.compress,
                           label: 'Compress',
                           subtitle: 'Target size workflow',
-                          color: const Color(0xFF2563EB),
+                          color: const Color(0xFF0E3A66),
                           onTap: () => _openRoute(context, '/compress'),
                         ),
                         _QuickActionCard(
@@ -285,7 +305,7 @@ class HomePageV3 extends StatelessWidget {
                           icon: Icons.picture_as_pdf,
                           label: 'PDF Tools',
                           subtitle: 'Workspace and edits',
-                          color: const Color(0xFF1D4ED8),
+                          color: const Color(0xFF1F4E79),
                           onTap: () => _openRoute(context, '/pdf-tools'),
                         ),
                         _QuickActionCard(
@@ -324,7 +344,7 @@ class HomePageV3 extends StatelessWidget {
                             ),
                             child: const Icon(
                               Icons.support_agent_outlined,
-                              color: Color(0xFF2563EB),
+                              color: Color(0xFF0E3A66),
                               size: 28,
                             ),
                           ),

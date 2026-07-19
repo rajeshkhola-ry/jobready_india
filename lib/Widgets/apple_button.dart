@@ -72,11 +72,11 @@ class _AppleButtonState extends State<AppleButton>
     // Apple color palette
     final primaryBg = widget.backgroundColor ??
         (widget.isPrimary
-            ? const Color(0xFF0051BA) // JOBREADY Dark Blue (Professional)
+        ? const Color(0xFF0E3A66) // JOBREADY Professional Navy
             : Colors.transparent);
 
     final primaryFg = widget.foregroundColor ??
-        (widget.isPrimary ? Colors.white : const Color(0xFF0051BA));
+      (widget.isPrimary ? Colors.white : const Color(0xFF0E3A66));
 
     final secondaryBg =
         isDarkMode ? Colors.grey.shade800 : Colors.grey.shade100;
@@ -94,7 +94,7 @@ class _AppleButtonState extends State<AppleButton>
           boxShadow: [
             if (widget.isPrimary && isEnabled)
               BoxShadow(
-                color: const Color(0xFF0051BA).withValues(alpha: 0.3),
+                color: const Color(0xFF0E3A66).withValues(alpha: 0.3),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               )
@@ -230,7 +230,7 @@ class _AppleSegmentedButtonState extends State<AppleSegmentedButton> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: _selectedIndex == index
-                      ? const Color(0xFF0051BA)
+                      ? const Color(0xFF0E3A66)
                         : Colors.grey,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
