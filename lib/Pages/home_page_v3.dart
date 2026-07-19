@@ -26,7 +26,7 @@ class HomePageV3 extends StatelessWidget {
         elevation: 0,
         foregroundColor: const Color(0xFF0F172A),
         title: const Text(
-          'JOBREADY',
+          'Get Job Ready',
           style: TextStyle(
             fontWeight: FontWeight.w800,
             letterSpacing: 0.8,

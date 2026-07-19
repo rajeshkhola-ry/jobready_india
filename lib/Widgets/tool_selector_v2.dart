@@ -25,12 +25,12 @@ class ToolSelectorV2 extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFF9FAFF), Color(0xFFF0F7FF)],
+          colors: [Color(0xFFF5F8FC), Color(0xFFEAF1F8)],
         ),
-        border: Border.all(color: const Color(0xFFD8E6FF), width: 1.4),
+        border: Border.all(color: const Color(0xFFC9D9EA), width: 1.4),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF1D4ED8).withValues(alpha: 0.10),
+            color: const Color(0xFF0E3A66).withValues(alpha: 0.10),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -243,13 +243,13 @@ class ToolSelectorV2 extends StatelessWidget {
     VoidCallback onTap,
   ) {
     final colorMap = <String, Color>{
-      'Compress': const Color(0xFF1D4ED8),
-      'Convert': const Color(0xFF7C3AED),
+      'Compress': const Color(0xFF0E3A66),
+      'Convert': const Color(0xFF1F4E79),
       'Merge': const Color(0xFF0F766E),
       'Split': const Color(0xFFB45309),
       'Extract': const Color(0xFFBE123C),
-      'Edit PDF': const Color(0xFF0C4A6E),
-      'PDF Tools': const Color(0xFF374151),
+      'Edit PDF': const Color(0xFF0E3A66),
+      'PDF Tools': const Color(0xFF1F4E79),
     };
 
     final accent = colorMap[title] ?? const Color(0xFF1F4E79);
