@@ -8,6 +8,8 @@ import '../Services/file_picker_service.dart';
 import '../Services/file_storage_service.dart';
 import '../Services/pdf_ocr_service.dart';
 import '../Widgets/download_result_dialog.dart';
+import '../Widgets/production_footer.dart';
+import '../Widgets/tool_guidance_panel.dart';
 
 class PdfEditPage extends StatefulWidget {
   final String? initialFileName;
@@ -597,6 +599,17 @@ class _PdfEditPageState extends State<PdfEditPage> {
               padding: const EdgeInsets.symmetric(vertical: 12),
             ),
           ),
+          const SizedBox(height: 16),
+          const ToolGuidancePanel(
+            title: 'About PDF Edit & OCR',
+            summary: 'Use this page to load text from a PDF, run OCR for scanned content, review extracted tables, and save an edited PDF output.',
+            supportedFormats: ['PDF'],
+            howToUse: ['Upload a PDF.', 'Load text or run OCR.', 'Edit content and save the updated PDF.'],
+            faqs: ['Will OCR work on every scan? Results vary by source quality.', 'Can I recover complex layouts perfectly? Some formatting may need manual review.'],
+            tips: ['Use cleaner scans for better OCR.', 'Review extracted text before saving.', 'Keep the original PDF for comparison.'],
+          ),
+          const SizedBox(height: 16),
+          const ProductionFooter(compact: true),
         ],
       ),
     );

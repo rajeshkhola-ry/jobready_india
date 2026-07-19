@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'dart:typed_data';
 import '../Widgets/download_result_dialog.dart';
 import '../Widgets/apple_button.dart';
+import '../Widgets/production_footer.dart';
 import '../Widgets/quota_gate.dart';
+import '../Widgets/tool_guidance_panel.dart';
 import '../Services/conversion_service.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/file_storage_service.dart';
@@ -346,28 +348,23 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
                         ),
                       ),
                     ],
+                    const SizedBox(height: 16),
+                    const ToolGuidancePanel(
+                      title: 'About Convert File',
+                      summary: 'Use this tool to move between document and image workflows from one guided page.',
+                      supportedFormats: ['PDF', 'DOCX', 'TXT', 'CSV', 'XLSX', 'JPG', 'PNG', 'WEBP', 'PPTX'],
+                      howToUse: ['Choose your input format.', 'Choose the output format you want.', 'Upload the file and start conversion.'],
+                      faqs: ['Will layout always stay identical? Some formats vary.', 'What if a legacy file fails? Resave older files in newer formats first.'],
+                      tips: ['Use DOCX instead of DOC when possible.', 'Use XLSX instead of XLS when possible.', 'Review converted files before final use.'],
+                    ),
+                    const SizedBox(height: 16),
+                    const ProductionFooter(compact: true),
                   ],
                 ),
               ),
             ),
           );
         },
-      ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Container(
-          color: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: const Text(
-            'getreadyjob.com',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF1F4E79),
-            ),
-          ),
-        ),
       ),
     );
   }

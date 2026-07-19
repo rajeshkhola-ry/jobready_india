@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'dart:typed_data';
 
 import '../Widgets/download_result_dialog.dart';
+import '../Widgets/production_footer.dart';
 import '../Widgets/quota_gate.dart';
+import '../Widgets/tool_guidance_panel.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/pdf_merge_service.dart';
 import '../Services/upload_context_service.dart';
@@ -329,6 +331,15 @@ class _MergeToolPageState extends State<MergeToolPage> {
                                 color: Color(0xFF0E3A66),
                               ),
                             ],
+                            const SizedBox(height: 14),
+                            const ToolGuidancePanel(
+                              title: 'About Merge PDFs',
+                              summary: 'Merge multiple PDF files into one ordered output document.',
+                              supportedFormats: ['PDF'],
+                              howToUse: ['Choose two or more PDF files.', 'Confirm the merge order.', 'Start merge and download the combined file.'],
+                              faqs: ['Can I merge non-PDF files here? No.', 'Does file order matter? Yes, files merge from top to bottom.'],
+                              tips: ['Check order before merging.', 'Use clear file names.', 'Keep original PDFs in case you need another version.'],
+                            ),
                           ],
                         ),
                       ),
@@ -337,6 +348,8 @@ class _MergeToolPageState extends State<MergeToolPage> {
 
                     // Status
                     _StatusRow(message: _statusMessage, type: _getStatusType()),
+                    const SizedBox(height: 16),
+                    const ProductionFooter(compact: true),
                   ],
                 ),
               ),

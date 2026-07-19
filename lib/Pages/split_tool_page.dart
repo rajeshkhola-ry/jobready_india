@@ -4,7 +4,9 @@ import 'package:syncfusion_flutter_pdf/pdf.dart' as sfpdf;
 import 'dart:typed_data';
 
 import '../Widgets/download_result_dialog.dart';
+import '../Widgets/production_footer.dart';
 import '../Widgets/quota_gate.dart';
+import '../Widgets/tool_guidance_panel.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/pdf_editor_service.dart';
 import '../Services/upload_context_service.dart';
@@ -332,11 +334,24 @@ class _SplitToolPageState extends State<SplitToolPage> {
                     ),
                   if (_selectedFile != null && _pageRanges.isNotEmpty) const SizedBox(height: 20),
 
+                  if (_selectedFile != null)
+                    const ToolGuidancePanel(
+                      title: 'About Split PDF',
+                      summary: 'Split a PDF by page ranges or extract specific pages into a new file.',
+                      supportedFormats: ['PDF'],
+                      howToUse: ['Choose a PDF file.', 'Select the split method.', 'Define page ranges and start the split process.'],
+                      faqs: ['Can I split multiple PDFs at once? This page works on one PDF at a time.', 'Do I need page numbers first? Yes, page ranges guide the output.'],
+                      tips: ['Double-check page ranges.', 'Use short ranges for cleaner outputs.', 'Keep the original file in case you need another version.'],
+                    ),
+                  if (_selectedFile != null) const SizedBox(height: 20),
+
                   // Status
                   _StatusRow(
                     message: _statusMessage,
                     type: _getStatusType(),
                   ),
+                  const SizedBox(height: 16),
+                  const ProductionFooter(compact: true),
                 ],
               ),
             ),

@@ -4,6 +4,8 @@ import 'package:syncfusion_flutter_pdf/pdf.dart' as sfpdf;
 import 'dart:typed_data';
 
 import '../Widgets/download_result_dialog.dart';
+import '../Widgets/production_footer.dart';
+import '../Widgets/tool_guidance_panel.dart';
 import '../Services/conversion_service.dart';
 import '../Services/pdf_editor_service.dart';
 import '../Services/pdf_ocr_service.dart';
@@ -360,11 +362,24 @@ class _ExtractToolPageState extends State<ExtractToolPage> {
                     ),
                   if (_selectedFile != null) const SizedBox(height: 20),
 
+                  if (_selectedFile != null)
+                    const ToolGuidancePanel(
+                      title: 'About Extract from PDF',
+                      summary: 'Extract text, images, pages, or table-oriented content from a supported source file.',
+                      supportedFormats: ['PDF', 'JPG', 'JPEG', 'PNG', 'DOC', 'DOCX'],
+                      howToUse: ['Choose a compatible file.', 'Select the extraction type.', 'Run extraction and review the result.'],
+                      faqs: ['Will scanned content always extract perfectly? No, OCR quality can vary.', 'Can I extract tables from every file? Structured extraction depends on the source.'],
+                      tips: ['Use clear source files.', 'Scanned pages may need OCR.', 'Review extracted content before final reuse.'],
+                    ),
+                  if (_selectedFile != null) const SizedBox(height: 20),
+
                   // Status
                   _StatusRow(
                     message: _statusMessage,
                     type: _getStatusType(),
                   ),
+                  const SizedBox(height: 16),
+                  const ProductionFooter(compact: true),
                 ],
               ),
             ),

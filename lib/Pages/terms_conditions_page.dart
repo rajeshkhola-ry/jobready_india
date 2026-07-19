@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../Services/public_brand_config.dart';
+import '../Widgets/production_footer.dart';
 
 class TermsConditionsPage extends StatelessWidget {
   const TermsConditionsPage({super.key});
@@ -49,7 +50,7 @@ class TermsConditionsPage extends StatelessWidget {
           const _Section(
             title: '6. Payment, Plans, and Promotions',
             body:
-                'Paid plans, discounts, and promo offers are governed by plan rules and validity windows. We may reject, deactivate, or revoke promotions in case of abuse, fraud, policy violations, or technical errors.',
+                'Paid plans, discounts, and promo offers are governed by plan rules and validity windows. Lifetime promotional access is limited to a maximum of 10 years from activation date. If the website, app, or service is permanently closed, lifetime access also ends at closure. We may reject, deactivate, or revoke promotions in case of abuse, fraud, policy violations, or technical errors.',
           ),
           const _Section(
             title: '7. Third-Party Integrations',
@@ -86,13 +87,18 @@ class TermsConditionsPage extends StatelessWidget {
             body:
                 'We may revise these terms periodically for legal, security, or product reasons. Updated terms apply from publication date.',
           ),
+          const _Section(
+            title: '14. App Download Permissions and Consent',
+            body:
+                'Before app download or install, required permissions are presented to the user (for example storage/files, camera, microphone, notifications, and network access as applicable by feature). Users can Accept or Cancel. If user selects Cancel, download/install does not continue. By selecting Accept, user consents to required permissions for enabled features.',
+          ),
           _Section(
-            title: '14. Contact',
+            title: '15. Contact',
             body: 'For legal and support matters: ${PublicBrandConfig.supportEmail}',
           ),
           const SizedBox(height: 14),
           const Text(
-            'Last updated: 2026-07-14',
+            'Last updated: 2026-07-17',
             style: TextStyle(fontSize: 12, color: Color(0xFF6B7280), fontWeight: FontWeight.w600),
           ),
         ],
@@ -152,6 +158,7 @@ class _Section extends StatelessWidget {
             body,
             style: const TextStyle(fontSize: 12, color: Color(0xFF4B5563), height: 1.4),
           ),
+                      const ProductionFooter(compact: true),
         ],
       ),
     );

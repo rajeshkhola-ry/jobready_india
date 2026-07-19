@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../Widgets/pdf_tool_card.dart';
+import '../Widgets/production_footer.dart';
+import '../Widgets/tool_guidance_panel.dart';
 import '../Services/public_brand_config.dart';
 import '../Services/upload_context_service.dart';
 
@@ -300,7 +302,17 @@ class _PdfToolsPageState extends State<PdfToolsPage> {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 20),
+                  const ToolGuidancePanel(
+                    title: 'About PDF Tools',
+                    summary: 'This hub groups the main PDF workflows available in GETREADYJOB so users can choose the right operation quickly.',
+                    supportedFormats: ['PDF for merge, split, compress, extract, and edit workflows'],
+                    howToUse: ['Choose the task you want to perform.', 'Open the matching tool page.', 'Upload your file and complete the guided steps.'],
+                    faqs: ['Where should I start? Choose the task that matches your goal.', 'Can one page do everything? No, each workflow has its own dedicated page.'],
+                    tips: ['Use merge for combining files.', 'Use split for page range extraction.', 'Use edit and OCR for text-focused workflows.'],
+                  ),
                   const SizedBox(height: 16),
+                  const ProductionFooter(compact: true),
                 ],
               ),
             ),

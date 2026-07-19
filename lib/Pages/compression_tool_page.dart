@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../Widgets/target_size_selector.dart';
 import '../Widgets/download_result_dialog.dart';
 import '../Widgets/apple_button.dart';
+import '../Widgets/production_footer.dart';
 import '../Widgets/quota_gate.dart';
+import '../Widgets/tool_guidance_panel.dart';
 import '../Services/compression_service.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/upload_context_service.dart';
@@ -360,27 +362,22 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
             // Results
             if (_compressedFileSize != null)
               _buildResultsCard(),
+            const SizedBox(height: 20),
+            const ToolGuidancePanel(
+              title: 'About Compress File',
+              summary: 'Use this tool to reduce file size while balancing usability and output quality.',
+              supportedFormats: ['PDF', 'JPG', 'JPEG', 'PNG', 'WEBP', 'BMP'],
+              howToUse: ['Choose a supported file.', 'Set your target size.', 'Start compression and review the result.'],
+              faqs: ['Can every file hit the exact target size? Not always.', 'Will quality change? It depends on the source and target.'],
+              tips: ['Choose realistic targets.', 'Keep the original file.', 'Review output quality before sharing.'],
+            ),
+            const SizedBox(height: 16),
+            const ProductionFooter(compact: true),
                 ],
               ),
             ),
           );
         },
-      ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Container(
-          color: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: const Text(
-            'getreadyjob.com',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF1F4E79),
-            ),
-          ),
-        ),
       ),
     );
   }
