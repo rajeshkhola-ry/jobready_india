@@ -108,10 +108,10 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
               navigator.pushNamedAndRemoveUntil('/home', (route) => false);
             }
           },
-          icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFFFFC72C)),
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
         ),
         iconTheme: const IconThemeData(
-          color: Color(0xFFFFC72C),
+          color: Colors.white,
           size: 30,
         ),
         actions: [
@@ -120,7 +120,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
             onPressed: () {
               Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
             },
-            icon: const Icon(Icons.home_rounded, color: Color(0xFFFFC72C)),
+            icon: const Icon(Icons.home_rounded, color: Colors.white),
           ),
         ],
         title: const Text(

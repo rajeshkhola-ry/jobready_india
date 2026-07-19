@@ -417,7 +417,7 @@ class _PdfEditPageState extends State<PdfEditPage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF1F2937),
-        iconTheme: const IconThemeData(color: Color(0xFFFFC72C), size: 28),
+        iconTheme: const IconThemeData(color: Colors.white, size: 28),
         title: const Text(
           'PDF to PDF (Edit)',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),

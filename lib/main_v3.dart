@@ -5,6 +5,7 @@ import 'Pages/convert_tool_page.dart';
 import 'Pages/extract_tool_page.dart';
 import 'Pages/home_page_v3.dart';
 import 'Pages/merge_tool_page.dart';
+import 'Pages/pdf_edit_page.dart';
 import 'Pages/pdf_tools_page.dart';
 import 'Pages/split_tool_page.dart';
 import 'Pages/system_check_page.dart';
@@ -43,6 +44,7 @@ class JobReadyV3App extends StatelessWidget {
         '/merge': (_) => const MergeToolPage(),
         '/split': (_) => const SplitToolPage(),
         '/extract': (_) => const ExtractToolPage(),
+        '/pdf-edit': (_) => const PdfEditPage(),
         '/pdf-tools': (_) => const PdfToolsPage(),
         '/system-check': (_) => const SystemCheckPage(),
         '/terms': (_) => const TermsConditionsPage(),

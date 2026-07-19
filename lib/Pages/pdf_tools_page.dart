@@ -34,6 +34,7 @@ class _PdfToolsPageState extends State<PdfToolsPage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF0E3A66),
+        foregroundColor: Colors.white,
         elevation: 0,
         title: const Text(
           'PDF Tools',

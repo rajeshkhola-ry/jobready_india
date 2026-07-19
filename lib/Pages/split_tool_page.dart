@@ -82,6 +82,7 @@ class _SplitToolPageState extends State<SplitToolPage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF0E3A66),
+        foregroundColor: Colors.white,
         elevation: 0,
         title: const Text(
           'Split PDF',

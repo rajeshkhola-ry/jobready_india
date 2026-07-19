@@ -138,21 +138,21 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF1F2937),
         iconTheme: const IconThemeData(
-          color: Color(0xFFFFC72C),
+          color: Colors.white,
           size: 30,
         ),
         actions: [
           IconButton(
             tooltip: 'Refresh & Clear Files',
             onPressed: _isConverting ? null : _resetSelection,
-            icon: const Icon(Icons.refresh_rounded, color: Color(0xFFFFC72C)),
+            icon: const Icon(Icons.refresh_rounded, color: Colors.white),
           ),
           IconButton(
             tooltip: 'Home',
             onPressed: () {
               Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
             },
-            icon: const Icon(Icons.home_rounded, color: Color(0xFFFFC72C)),
+            icon: const Icon(Icons.home_rounded, color: Colors.white),
           ),
         ],
         title: const Text(
