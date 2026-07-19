@@ -29,7 +29,7 @@ jobs:
         run: flutter pub get
 
       - name: Build Web (Custom domain root path)
-        run: flutter build web --release -t lib/main_v3.dart --base-href "/"
+        run: flutter build web --release -t lib/main_v1_1.dart --base-href "/"
 
       - name: Write deployment metadata
         run: |
@@ -37,7 +37,7 @@ jobs:
           {
             "commit": "${{ github.sha }}",
             "ref": "${{ github.ref }}",
-            "entrypoint": "lib/main_v3.dart",
+            "entrypoint": "lib/main_v1_1.dart",
             "built_at_utc": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           }
           EOF
