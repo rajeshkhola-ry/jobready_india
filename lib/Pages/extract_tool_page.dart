@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:archive/archive.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart' as sfpdf;
+import 'dart:typed_data';
 
 import '../Widgets/download_result_dialog.dart';
 import '../Services/conversion_service.dart';

@@ -2,6 +2,7 @@ import 'package:archive/archive.dart';
 import 'package:flutter/material.dart';
 import 'dart:typed_data';
 import '../Widgets/download_result_dialog.dart';
+import '../Widgets/apple_button.dart';
 import '../Widgets/quota_gate.dart';
 import '../Services/conversion_service.dart';
 import '../Services/file_picker_service.dart';
