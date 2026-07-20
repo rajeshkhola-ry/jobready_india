@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'extract_tool_page.dart';
+import 'merge_tool_page.dart';
+import 'split_tool_page.dart';
 import '../Widgets/pdf_tool_card.dart';
 import '../Widgets/production_footer.dart';
 import '../Widgets/tool_guidance_panel.dart';
@@ -193,7 +196,9 @@ class _PdfToolsPageState extends State<PdfToolsPage> {
                     title: 'Merge PDF',
                     subtitle: 'Combine multiple PDFs into one',
                     onTap: () {
-                      Navigator.of(context).pushNamed('/merge');
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const MergeToolPage()),
+                      );
                     },
                   ),
                   const SizedBox(height: 10),
@@ -203,7 +208,9 @@ class _PdfToolsPageState extends State<PdfToolsPage> {
                     title: 'Split PDF',
                     subtitle: 'Extract pages from a PDF',
                     onTap: () {
-                      Navigator.of(context).pushNamed('/split');
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const SplitToolPage()),
+                      );
                     },
                   ),
                   const SizedBox(height: 10),
@@ -213,7 +220,9 @@ class _PdfToolsPageState extends State<PdfToolsPage> {
                     title: 'Extract from PDF',
                     subtitle: 'Extract text, images, or pages',
                     onTap: () {
-                      Navigator.of(context).pushNamed('/extract');
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const ExtractToolPage()),
+                      );
                     },
                   ),
                   const SizedBox(height: 24),
