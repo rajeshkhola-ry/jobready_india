@@ -1,126 +1,2350 @@
 {
-  "version": "2.0.0",
-  "tasks": [
-    {
-      "label": "Run V2 Separate (Hold)",
-      "type": "shell",
-      "command": "flutter",
-      "args": [
-        "run",
-        "-d",
-        "chrome",
-        "--web-port",
-        "54322",
-        "-t",
-        "lib/main_v3.dart"
-      ],
-      "isBackground": true,
-      "options": {
-        "shell": {
-          "executable": "cmd.exe",
-          "args": [
-            "/d",
-            "/c"
-          ]
-        }
-      },
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated"
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Run V1 (Merged V1+V2) in Terminal",
-      "type": "shell",
-      "command": "flutter",
-      "args": [
-        "run",
-        "-t",
-        "lib/main.dart"
-      ],
-      "isBackground": true,
-      "options": {
-        "shell": {
-          "executable": "cmd.exe",
-          "args": [
-            "/d",
-            "/c"
-          ]
-        }
-      },
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated"
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Run V1 Publish Locked",
-      "type": "shell",
-      "command": "flutter",
-      "args": [
-        "run",
-        "-t",
-        "lib/main_v1_publish_locked.dart"
-      ],
-      "isBackground": true,
-      "options": {
-        "shell": {
-          "executable": "cmd.exe",
-          "args": [
-            "/d",
-            "/c"
-          ]
-        }
-      },
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated"
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Diagnose And Recover V2 Separate",
-      "type": "shell",
-      "command": "powershell",
-      "args": [
-        "-ExecutionPolicy",
-        "Bypass",
-        "-File",
-        "${workspaceFolder}\\scripts\\diagnose_recover.ps1",
-        "-WebPort",
-        "54322",
-        "-Target",
-        "lib/main_v3.dart"
-      ],
-      "isBackground": true,
-      "options": {
-        "shell": {
-          "executable": "cmd.exe",
-          "args": [
-            "/d",
-            "/c"
-          ]
-        }
-      },
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated"
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Run Daily Backup Now",
-      "type": "shell",
-      "command": "powershell",
-      "args": [
-        "-ExecutionPolicy",
-        "Bypass",
-        "-File",
-        "${workspaceFolder}\\scripts\\daily_backup.ps1"
-      ],
-      "problemMatcher": []
-    }
-  ]
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run Correct Version Only (V1 Merged)",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"$portOwner = (Get-NetTCPConnection -LocalPort 54323 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -First 1); if ($portOwner) { Stop-Process -Id $portOwner -Force -ErrorAction SilentlyContinue }; Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter run -d chrome --web-port 54323 --web-browser-flag=--user-data-dir=C:\\JobReadyIndia\\.chrome-profile-v1 --web-browser-flag=--disable-application-cache -t lib/main.dart"
+			],
+			"isBackground": true,
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated",
+				"clear": true
+			},
+			"problemMatcher": [],
+			"options": {
+				"shell": {
+					"executable": "cmd.exe",
+					"args": [
+						"/d",
+						"/c"
+					]
+				}
+			}
+		},
+		{
+			"label": "Run V2 Separate (Hold)",
+			"type": "shell",
+			"command": "flutter",
+								"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter build web -t lib/main_v1_1.dart --release"
+				"run",
+				"-d",
+				"chrome",
+				"--web-port",
+				"54322",
+				"--web-browser-flag",
+				"--user-data-dir=C:\\JobReadyIndia\\.chrome-profile-v2",
+				"--web-browser-flag",
+				"--disable-application-cache",
+				"-t",
+				"lib/V2_WORKING/main_v3.dart"
+			],
+			"isBackground": true,
+			"options": {
+				"shell": {
+					"executable": "cmd.exe",
+					"args": [
+						"/d",
+						"/c"
+					]
+				}
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated"
+			},
+			"problemMatcher": [],
+								"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter build web --release -t lib/main_v1_1.dart --base-href \"/\""
+		},
+		{
+			"label": "Run V1 (Merged V1+V2) in Terminal",
+			"type": "shell",
+			"command": "flutter",
+			"args": [
+				"run",
+				"-d",
+				"chrome",
+				"--web-port",
+				"54323",
+				"--web-browser-flag",
+				"--user-data-dir=C:\\JobReadyIndia\\.chrome-profile-v1",
+				"--web-browser-flag",
+				"--disable-application-cache",
+				"-t",
+				"lib/main.dart"
+			],
+			"isBackground": true,
+			"options": {
+				"shell": {
+					"executable": "cmd.exe",
+					"args": [
+						"/d",
+						"/c"
+					]
+				}
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated"
+			},
+			"problemMatcher": [],
+			"hide": true
+		},
+		{
+			"label": "Run V1 Publish Locked",
+			"type": "shell",
+			"command": "flutter",
+			"args": [
+				"run",
+				"-t",
+				"lib/main_v1_publish_locked.dart"
+			],
+			"isBackground": true,
+			"options": {
+				"shell": {
+					"executable": "cmd.exe",
+					"args": [
+						"/d",
+						"/c"
+					]
+				}
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated"
+			},
+			"problemMatcher": [],
+			"hide": true
+		},
+		{
+			"label": "Diagnose And Recover V2 Separate",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"${workspaceFolder}\\scripts\\diagnose_recover.ps1",
+				"-WebPort",
+				"54322",
+				"-Target",
+				"lib/V2_WORKING/main_v3.dart"
+			],
+			"isBackground": true,
+			"options": {
+				"shell": {
+					"executable": "cmd.exe",
+					"args": [
+						"/d",
+						"/c"
+					]
+				}
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated"
+			},
+			"problemMatcher": [],
+			"hide": true
+		},
+		{
+			"label": "Run Daily Backup Now",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"${workspaceFolder}\\scripts\\daily_backup.ps1"
+			],
+			"problemMatcher": [],
+			"hide": true
+		},
+		{
+			"label": "Build Android Release Artifacts For Master Export",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location ..; flutter pub get; flutter build apk --release; flutter build appbundle --release; $dst='C:\\JobReadyIndia\\GETREADYJOB_MASTER_PROJECT\\Releases'; New-Item -ItemType Directory -Force -Path $dst | Out-Null; Copy-Item -Force .\\build\\app\\outputs\\flutter-apk\\app-release.apk \"$dst\\GETREADYJOB-release.apk\"; Copy-Item -Force .\\build\\app\\outputs\\bundle\\release\\app-release.aab \"$dst\\GETREADYJOB-release.aab\""
+			],
+			"isBackground": false,
+			"hide": true
+		},
+		{
+			"label": "Build Release Artifacts (Android+Windows)",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter pub get; flutter build apk --release; flutter build appbundle --release; flutter build windows --release; $dst='C:\\JobReadyIndia\\GETREADYJOB_MASTER_PROJECT\\Releases'; New-Item -ItemType Directory -Force -Path $dst | Out-Null; Copy-Item -Force '.\\build\\app\\outputs\\flutter-apk\\app-release.apk' \"$dst\\GETREADYJOB-release.apk\"; Copy-Item -Force '.\\build\\app\\outputs\\bundle\\release\\app-release.aab' \"$dst\\GETREADYJOB-release.aab\"; $winOut='C:\\JobReadyIndia\\GETREADYJOB_MASTER_PROJECT\\Releases\\Windows_Release'; New-Item -ItemType Directory -Force -Path $winOut | Out-Null; Copy-Item -Recurse -Force '.\\build\\windows\\x64\\runner\\Release\\*' $winOut"
+			],
+			"isBackground": false,
+			"hide": true
+		},
+		{
+			"label": "Build Windows Release For Export",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter build windows --release; $src='C:\\JobReadyIndia\\jobready_india\\build\\windows\\x64\\runner\\Release'; $dst='C:\\JobReadyIndia\\GETREADYJOB_MASTER_PROJECT\\Releases\\Windows_Release'; if (Test-Path $src) { New-Item -ItemType Directory -Force -Path $dst | Out-Null; Copy-Item -Recurse -Force \"$src\\*\" $dst }"
+			],
+			"isBackground": false,
+			"hide": true
+		},
+		{
+			"label": "Repair Android NDK And Build Releases",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"$ErrorActionPreference='Continue'; Get-Process java,gradle,flutter,dart -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force 'C:\\JobReadyIndia\\jobready_india\\android\\.gradle\\noVersion\\buildLogic.lock' -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force 'C:\\Users\\Avita\\AppData\\Local\\Android\\Sdk\\ndk\\28.2.13676358' -ErrorAction SilentlyContinue; $sdk='C:\\Users\\Avita\\AppData\\Local\\Android\\Sdk\\cmdline-tools\\latest\\bin\\sdkmanager.bat'; if (Test-Path $sdk) { cmd /d /c \"\\\"$sdk\\\" --install \\\"ndk;28.2.13676358\\\" --sdk_root=\\\"C:\\Users\\Avita\\AppData\\Local\\Android\\Sdk\\\"\" }; Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter clean; flutter pub get; flutter build apk --release; flutter build appbundle --release; $dst='C:\\JobReadyIndia\\GETREADYJOB_MASTER_PROJECT\\Releases'; New-Item -ItemType Directory -Force -Path $dst | Out-Null; if (Test-Path '.\\build\\app\\outputs\\flutter-apk\\app-release.apk') { Copy-Item -Force '.\\build\\app\\outputs\\flutter-apk\\app-release.apk' \"$dst\\GETREADYJOB-release.apk\" }; if (Test-Path '.\\build\\app\\outputs\\bundle\\release\\app-release.aab') { Copy-Item -Force '.\\build\\app\\outputs\\bundle\\release\\app-release.aab' \"$dst\\GETREADYJOB-release.aab\" }"
+			],
+			"isBackground": false,
+			"hide": true
+		},
+		{
+			"label": "Repair NDK Build Android Artifacts v2",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"$ErrorActionPreference='Stop'; Get-Process java,gradle,flutter,dart -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue; Remove-Item -Force 'C:\\JobReadyIndia\\jobready_india\\android\\.gradle\\noVersion\\buildLogic.lock' -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force 'C:\\Users\\Avita\\AppData\\Local\\Android\\Sdk\\ndk\\28.2.13676358' -ErrorAction SilentlyContinue; $sdk='C:\\Users\\Avita\\AppData\\Local\\Android\\Sdk\\cmdline-tools\\latest\\bin\\sdkmanager.bat'; if (Test-Path $sdk) { & $sdk --install 'ndk;28.2.13676358' --sdk_root='C:\\Users\\Avita\\AppData\\Local\\Android\\Sdk' }; Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter clean; flutter pub get; flutter build apk --release; flutter build appbundle --release; $dst='C:\\JobReadyIndia\\GETREADYJOB_MASTER_PROJECT\\Releases'; New-Item -ItemType Directory -Force -Path $dst | Out-Null; Copy-Item -Force '.\\build\\app\\outputs\\flutter-apk\\app-release.apk' \"$dst\\GETREADYJOB-release.apk\"; Copy-Item -Force '.\\build\\app\\outputs\\bundle\\release\\app-release.aab' \"$dst\\GETREADYJOB-release.aab\""
+			],
+			"isBackground": false,
+			"hide": true
+		},
+		{
+			"label": "Repair NDK And Build Android via CMD",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/d",
+				"/c",
+				"taskkill /f /im java.exe >nul 2>nul & taskkill /f /im gradle.exe >nul 2>nul & taskkill /f /im flutter.exe >nul 2>nul & taskkill /f /im dart.exe >nul 2>nul & if exist \"C:\\JobReadyIndia\\jobready_india\\android\\.gradle\\noVersion\\buildLogic.lock\" del /f /q \"C:\\JobReadyIndia\\jobready_india\\android\\.gradle\\noVersion\\buildLogic.lock\" & if exist \"C:\\Users\\Avita\\AppData\\Local\\Android\\Sdk\\ndk\\28.2.13676358\" rmdir /s /q \"C:\\Users\\Avita\\AppData\\Local\\Android\\Sdk\\ndk\\28.2.13676358\" & \"C:\\Users\\Avita\\AppData\\Local\\Android\\Sdk\\cmdline-tools\\latest\\bin\\sdkmanager.bat\" --install \"ndk;28.2.13676358\" --sdk_root=\"C:\\Users\\Avita\\AppData\\Local\\Android\\Sdk\" & cd /d C:\\JobReadyIndia\\jobready_india & flutter clean & flutter pub get & flutter build apk --release & flutter build appbundle --release & if not exist \"C:\\JobReadyIndia\\GETREADYJOB_MASTER_PROJECT\\Releases\" mkdir \"C:\\JobReadyIndia\\GETREADYJOB_MASTER_PROJECT\\Releases\" & copy /y \"C:\\JobReadyIndia\\jobready_india\\build\\app\\outputs\\flutter-apk\\app-release.apk\" \"C:\\JobReadyIndia\\GETREADYJOB_MASTER_PROJECT\\Releases\\GETREADYJOB-release.apk\" & copy /y \"C:\\JobReadyIndia\\jobready_india\\build\\app\\outputs\\bundle\\release\\app-release.aab\" \"C:\\JobReadyIndia\\GETREADYJOB_MASTER_PROJECT\\Releases\\GETREADYJOB-release.aab\""
+			],
+			"isBackground": false,
+			"hide": true
+		},
+		{
+			"label": "Check Java Version For Android Build",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/d",
+				"/c",
+				"where java & java -version & echo JAVA_HOME=%JAVA_HOME%"
+			],
+			"isBackground": false,
+			"hide": true
+		},
+		{
+			"label": "Build Android Artifacts With JDK17",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/d",
+				"/c",
+				"set JAVA_HOME=C:\\Program Files\\Android\\Android Studio\\jbr & set PATH=%JAVA_HOME%\\bin;%PATH% & java -version & taskkill /f /im java.exe >nul 2>nul & taskkill /f /im gradle.exe >nul 2>nul & if exist \"C:\\JobReadyIndia\\jobready_india\\android\\.gradle\\noVersion\\buildLogic.lock\" del /f /q \"C:\\JobReadyIndia\\jobready_india\\android\\.gradle\\noVersion\\buildLogic.lock\" & if exist \"C:\\Users\\Avita\\AppData\\Local\\Android\\Sdk\\ndk\\28.2.13676358\" rmdir /s /q \"C:\\Users\\Avita\\AppData\\Local\\Android\\Sdk\\ndk\\28.2.13676358\" & \"C:\\Users\\Avita\\AppData\\Local\\Android\\Sdk\\cmdline-tools\\latest\\bin\\sdkmanager.bat\" --install \"ndk;28.2.13676358\" --sdk_root=\"C:\\Users\\Avita\\AppData\\Local\\Android\\Sdk\" & cd /d C:\\JobReadyIndia\\jobready_india & flutter clean & flutter pub get & flutter build apk --release & flutter build appbundle --release & copy /y \"C:\\JobReadyIndia\\jobready_india\\build\\app\\outputs\\flutter-apk\\app-release.apk\" \"C:\\JobReadyIndia\\GETREADYJOB_MASTER_PROJECT\\Releases\\GETREADYJOB-release.apk\" & copy /y \"C:\\JobReadyIndia\\jobready_india\\build\\app\\outputs\\bundle\\release\\app-release.aab\" \"C:\\JobReadyIndia\\GETREADYJOB_MASTER_PROJECT\\Releases\\GETREADYJOB-release.aab\""
+			],
+			"isBackground": false,
+			"hide": true
+		},
+		{
+			"label": "Check JDK17 from Android Studio",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/d",
+				"/c",
+				"set \"JAVA_HOME=C:\\Program Files\\Android\\Android Studio\\jbr\" & set \"PATH=%JAVA_HOME%\\bin;%PATH%\" & echo JAVA_HOME=%JAVA_HOME% & \"%JAVA_HOME%\\bin\\java.exe\" -version & java -version"
+			],
+			"isBackground": false,
+			"hide": true
+		},
+		{
+			"label": "Run Android Repair And Build Script",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\scripts\\repair_and_build_android_release.ps1"
+			],
+			"isBackground": false,
+			"hide": true
+		},
+		{
+			"label": "Run Android Repair And Build Script v2",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\scripts\\repair_and_build_android_release.ps1"
+			],
+			"isBackground": false,
+			"hide": true
+		},
+		{
+			"label": "Run Android Repair And Build Script v3",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\scripts\\repair_and_build_android_release.ps1"
+			],
+			"isBackground": false,
+			"hide": true
+		},
+		{
+			"label": "Run Android Repair And Build Script v4",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\scripts\\repair_and_build_android_release.ps1"
+			],
+			"isBackground": false,
+			"hide": true
+		},
+		{
+			"label": "Run Android Repair And Build Script v5",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\scripts\\repair_and_build_android_release.ps1"
+			],
+			"isBackground": false,
+			"hide": true
+		},
+		{
+			"label": "Run Android Repair And Build Script v6",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\scripts\\repair_and_build_android_release.ps1"
+			],
+			"isBackground": false,
+			"hide": true
+		},
+		{
+			"label": "Run Android Repair And Build Script v7",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\scripts\\repair_and_build_android_release.ps1"
+			],
+			"isBackground": false,
+			"hide": true
+		},
+		{
+			"label": "Run Android Repair And Build Script v8",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\scripts\\repair_and_build_android_release.ps1"
+			],
+			"isBackground": false,
+			"hide": true
+		},
+		{
+			"label": "Run Android Repair And Build Script v9",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\scripts\\repair_and_build_android_release.ps1"
+			],
+			"isBackground": false,
+			"hide": true
+		},
+		{
+			"label": "Run Android Repair And Build Script v10",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\scripts\\repair_and_build_android_release.ps1"
+			],
+			"isBackground": false,
+			"hide": true
+		},
+		{
+			"label": "Setup V2 Working Backup Folders",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/d",
+				"/c",
+				"xcopy /E /I /Y C:\\JobReadyIndia\\jobready_india\\lib\\Pages\\v2 C:\\JobReadyIndia\\jobready_india\\lib\\V2_WORKING\\Pages\\v2 && xcopy /E /I /Y C:\\JobReadyIndia\\jobready_india\\lib\\Pages\\v2 C:\\JobReadyIndia\\jobready_india\\lib\\V2_BACKUP\\Pages\\v2 && copy /Y C:\\JobReadyIndia\\jobready_india\\lib\\main_v3.dart C:\\JobReadyIndia\\jobready_india\\lib\\V2_WORKING\\main_v3.dart && copy /Y C:\\JobReadyIndia\\jobready_india\\lib\\main_v3.dart C:\\JobReadyIndia\\jobready_india\\lib\\V2_BACKUP\\main_v3.dart && copy /Y C:\\JobReadyIndia\\jobready_india\\lib\\Pages\\home_page_v3.dart C:\\JobReadyIndia\\jobready_india\\lib\\V2_WORKING\\Pages\\home_page_v3.dart && copy /Y C:\\JobReadyIndia\\jobready_india\\lib\\Pages\\home_page_v3.dart C:\\JobReadyIndia\\jobready_india\\lib\\V2_BACKUP\\Pages\\home_page_v3.dart && copy /Y C:\\JobReadyIndia\\jobready_india\\lib\\Services\\ai_service.dart C:\\JobReadyIndia\\jobready_india\\lib\\V2_WORKING\\Services\\ai_service.dart && copy /Y C:\\JobReadyIndia\\jobready_india\\lib\\Services\\ai_service.dart C:\\JobReadyIndia\\jobready_india\\lib\\V2_BACKUP\\Services\\ai_service.dart && echo DONE"
+			],
+			"group": "build",
+			"hide": true
+		},
+		{
+			"label": "Run V1 On Chrome Direct",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/d",
+				"/c",
+				"cd /d C:\\JobReadyIndia\\jobready_india && flutter run -d chrome -t lib/main.dart"
+			],
+			"isBackground": true,
+			"hide": true
+		},
+		{
+			"label": "Run V1 Chrome Explicit",
+			"type": "shell",
+			"command": "flutter",
+			"args": [
+				"run",
+				"-d",
+				"chrome",
+				"--web-port",
+				"54323",
+				"--web-browser-flag",
+				"--user-data-dir=C:\\JobReadyIndia\\.chrome-profile-v1",
+				"--web-browser-flag",
+				"--disable-application-cache",
+				"-t",
+				"lib/main.dart"
+			],
+			"isBackground": true,
+			"options": {
+				"shell": {
+					"executable": "cmd.exe",
+					"args": [
+						"/d",
+						"/c"
+					]
+				}
+			},
+			"hide": true
+		},
+		{
+			"label": "Validation: V2 Smoke Test",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter test test/v2_clean_start_smoke_test.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: V2 Smoke Test",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter test test/v2_clean_start_smoke_test.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: V2 Smoke Test",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter test test/v2_clean_start_smoke_test.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: V1.1 Integration Test",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter test test/v1_1_integration_validation_test.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: V1.1 Integration Test",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter test test/v1_1_integration_validation_test.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: V2 Smoke Test",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter test test/v2_clean_start_smoke_test.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: V1.1 Integration Test",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter test test/v1_1_integration_validation_test.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Analyze",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter analyze"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Analyze",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter analyze"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Build V1.1 Web",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter build web -t lib/main_v1_1.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Analyze",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter analyze"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Build V1.1 Web",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter build web -t lib/main_v1_1.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Analyze",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter analyze"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Run V1.1 Web Server",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter run -d web-server --web-port 54331 -t lib/main_v1_1.dart --release"
+			],
+			"isBackground": true
+		},
+		{
+			"label": "Validation: Analyze",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter analyze"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: V1.1 Integration Test",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter test test/v1_1_integration_validation_test.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Build V1.1 Web",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter build web -t lib/main_v1_1.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Build V1.1 Web",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter build web -t lib/main_v1_1.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Analyze",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter analyze"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: V1.1 Integration Test",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter test test/v1_1_integration_validation_test.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Build V1.1 Web",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter build web -t lib/main_v1_1.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Build V1.1 Web C2",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter build web -t lib/main_v1_1.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Build V1.1 Web C2 Final",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter build web -t lib/main_v1_1.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Analyze",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter analyze"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: V1.1 Integration Test",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter test test/v1_1_integration_validation_test.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: V1.1 Integration Test",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter test test/v1_1_integration_validation_test.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Analyze",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter analyze"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Build V1.1 Web C3",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter build web -t lib/main_v1_1.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Run V1.1 Web For Screenshot",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"$portOwner = (Get-NetTCPConnection -LocalPort 54323 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -First 1); if ($portOwner) { Stop-Process -Id $portOwner -Force -ErrorAction SilentlyContinue }; Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter run -d chrome --web-port 54323 --web-browser-flag=--user-data-dir=C:\\JobReadyIndia\\.chrome-profile-v1 --web-browser-flag=--disable-application-cache -t lib/main_v1_1.dart"
+			],
+			"isBackground": true
+		},
+		{
+			"label": "Validation: Payment Readiness Service Test",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter test test/payment_readiness_service_test.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: V1.1 Integration Test C4",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter test test/v1_1_integration_validation_test.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Payment Readiness Service Test",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter test test/payment_readiness_service_test.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: V1.1 Integration Test C4",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter test test/v1_1_integration_validation_test.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Analyze C4",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter analyze"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Build V1.1 Web C4",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter build web -t lib/main_v1_1.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Payment Readiness Service Test",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter test test/payment_readiness_service_test.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: V1.1 Integration Test C4",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter test test/v1_1_integration_validation_test.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Payment Readiness Service Test",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter test test/payment_readiness_service_test.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: V1.1 Integration Test C4",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter test test/v1_1_integration_validation_test.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Analyze C4",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter analyze"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Build V1.1 Web C4",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter build web -t lib/main_v1_1.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Run V1.1 Web Server C4",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"$portOwner = (Get-NetTCPConnection -LocalPort 54334 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -First 1); if ($portOwner) { Stop-Process -Id $portOwner -Force -ErrorAction SilentlyContinue }; Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter run -d web-server --web-port 54334 -t lib/main_v1_1.dart"
+			],
+			"isBackground": true
+		},
+		{
+			"label": "Validation: V1.1 Integration Test C5",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter test test/v1_1_integration_validation_test.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Analyze C5",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter analyze"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: V1.1 Integration Test C5",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter test test/v1_1_integration_validation_test.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Build V1.1 Web C5",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter build web -t lib/main_v1_1.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: V1.1 Integration Test C5",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter test test/v1_1_integration_validation_test.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Analyze C5",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter analyze"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: V1.1 Integration Test C5 Retry",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter test test/v1_1_integration_validation_test.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Build V1.1 Web C5 Final",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter build web -t lib/main_v1_1.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Build V2 Web Production",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter build web -t lib/main_v1_1.dart --release"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Analyze C5 Verify",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter analyze"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Verify Live Artifacts",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\scripts\\verify_live_artifacts.ps1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Verify Live Hashes",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india\\lib'; Invoke-WebRequest -Uri 'https://getreadyjob.com/' -UseBasicParsing | Select-Object -ExpandProperty Content | Out-File -FilePath 'live_index.html' -Encoding utf8; Invoke-WebRequest -Uri 'https://getreadyjob.com/main.dart.js' -OutFile 'live_main.dart.js' -UseBasicParsing; Write-Output 'LIVE_SHA'; Get-FileHash '.\\live_main.dart.js' -Algorithm SHA256 | Select-Object -ExpandProperty Hash; if (Test-Path '.\\build\\web\\main.dart.js') { Write-Output 'LOCAL_SHA'; Get-FileHash '.\\build\\web\\main.dart.js' -Algorithm SHA256 | Select-Object -ExpandProperty Hash } else { Write-Output 'LOCAL_SHA_NOT_FOUND' }"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Download Live Bootstrap SW",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india\\lib'; Invoke-WebRequest -Uri 'https://getreadyjob.com/flutter_bootstrap.js' -OutFile 'live_flutter_bootstrap.js' -UseBasicParsing; Invoke-WebRequest -Uri 'https://getreadyjob.com/flutter_service_worker.js' -OutFile 'live_flutter_service_worker.js' -UseBasicParsing; Invoke-WebRequest -Uri 'https://getreadyjob.com/flutter_bootstrap.js' -Method Head -UseBasicParsing | ForEach-Object { 'BOOTSTRAP_ETAG=' + $_.Headers['ETag']; 'BOOTSTRAP_LASTMOD=' + $_.Headers['Last-Modified']; 'BOOTSTRAP_CACHE=' + $_.Headers['Cache-Control'] }; Invoke-WebRequest -Uri 'https://getreadyjob.com/flutter_service_worker.js' -Method Head -UseBasicParsing | ForEach-Object { 'SW_ETAG=' + $_.Headers['ETag']; 'SW_LASTMOD=' + $_.Headers['Last-Modified']; 'SW_CACHE=' + $_.Headers['Cache-Control'] }"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Verify Live Cache Headers",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\lib\\scripts\\verify_live_cache.ps1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Compare Live Local Hash",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india\\lib'; Write-Output 'LIVE_SHA'; Get-FileHash '.\\live_main.dart.js' -Algorithm SHA256 | Select-Object -ExpandProperty Hash; if (Test-Path '..\\build\\web\\main.dart.js') { Write-Output 'LOCAL_ROOT_BUILD_SHA'; Get-FileHash '..\\build\\web\\main.dart.js' -Algorithm SHA256 | Select-Object -ExpandProperty Hash } else { Write-Output 'LOCAL_ROOT_BUILD_SHA_NOT_FOUND' }"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Artifact Timestamps",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india\\lib'; Get-Item '.\\live_main.dart.js' | Select-Object Name,Length,LastWriteTime; Get-Item '..\\build\\web\\main.dart.js' | Select-Object Name,Length,LastWriteTime"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Compare Signature Strings",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india\\lib'; Write-Output 'LIVE_HAS_V1_BANNER'; if (Select-String -Path '.\\live_main.dart.js' -Pattern 'Upload one document or multiple files together and start working instantly' -SimpleMatch) { 'YES' } else { 'NO' }; Write-Output 'LIVE_HAS_V2_RUNTIME_LABEL'; if (Select-String -Path '.\\live_main.dart.js' -Pattern 'Runtime: V2 | Entry: lib/main_v3.dart' -SimpleMatch) { 'YES' } else { 'NO' }; Write-Output 'LOCAL_HAS_V2_RUNTIME_LABEL'; if (Select-String -Path '..\\build\\web\\main.dart.js' -Pattern 'Runtime: V2 | Entry: lib/main_v3.dart' -SimpleMatch) { 'YES' } else { 'NO' }"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Compare JS Signatures",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\lib\\scripts\\compare_live_local_signatures.ps1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Verify Live Now",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india\\lib'; Invoke-WebRequest -Uri 'https://getreadyjob.com/' -UseBasicParsing | Select-Object -ExpandProperty Content | Out-File -FilePath 'live_index.html' -Encoding utf8; Invoke-WebRequest -Uri 'https://getreadyjob.com/main.dart.js' -OutFile 'live_main.dart.js' -UseBasicParsing; Write-Output 'LIVE_SHA'; Get-FileHash '.\\live_main.dart.js' -Algorithm SHA256 | Select-Object -ExpandProperty Hash; if (Test-Path '..\\build\\web\\main.dart.js') { Write-Output 'LOCAL_RC_SHA'; Get-FileHash '..\\build\\web\\main.dart.js' -Algorithm SHA256 | Select-Object -ExpandProperty Hash } else { Write-Output 'LOCAL_RC_SHA_NOT_FOUND' }; Write-Output 'LIVE_HAS_V2_RUNTIME_LABEL'; if (Select-String -Path '.\\live_main.dart.js' -Pattern 'Runtime: V2 | Entry: lib/main_v3.dart' -SimpleMatch -Quiet) { 'YES' } else { 'NO' }; Write-Output 'LIVE_HAS_V1_BANNER'; if (Select-String -Path '.\\live_main.dart.js' -Pattern 'Upload one document or multiple files together and start working instantly' -SimpleMatch -Quiet) { 'YES' } else { 'NO' }; Write-Output 'LIVE_HEADERS'; $h = Invoke-WebRequest -Uri 'https://getreadyjob.com/main.dart.js' -Method Head -UseBasicParsing; 'ETag=' + $h.Headers['ETag']; 'Last-Modified=' + $h.Headers['Last-Modified']; 'Cache-Control=' + $h.Headers['Cache-Control']"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Verify Live Cache Headers Recheck",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\lib\\scripts\\verify_live_cache.ps1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Compare JS Signatures Recheck",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\lib\\scripts\\compare_live_local_signatures.ps1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Verify Live Local Hash Recheck",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india\\lib'; Invoke-WebRequest -Uri 'https://getreadyjob.com/main.dart.js' -OutFile 'live_main.dart.js' -UseBasicParsing; Write-Output 'LIVE_SHA'; Get-FileHash '.\\live_main.dart.js' -Algorithm SHA256 | Select-Object -ExpandProperty Hash; Write-Output 'LOCAL_RC_SHA'; Get-FileHash '..\\build\\web\\main.dart.js' -Algorithm SHA256 | Select-Object -ExpandProperty Hash"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Compare JS Signatures Final",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\lib\\scripts\\compare_live_local_signatures.ps1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Verify Live Cache Headers Final",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\lib\\scripts\\verify_live_cache.ps1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Verify Live Hash Final",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india\\lib'; Invoke-WebRequest -Uri 'https://getreadyjob.com/' -UseBasicParsing | Select-Object -ExpandProperty Content | Out-File -FilePath 'live_index.html' -Encoding utf8; Invoke-WebRequest -Uri 'https://getreadyjob.com/main.dart.js' -OutFile 'live_main.dart.js' -UseBasicParsing; Write-Output 'LIVE_SHA'; Get-FileHash '.\\live_main.dart.js' -Algorithm SHA256 | Select-Object -ExpandProperty Hash; Write-Output 'LOCAL_RC_SHA'; Get-FileHash '..\\build\\web\\main.dart.js' -Algorithm SHA256 | Select-Object -ExpandProperty Hash"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Git Status Short",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git status --short"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Git Branch VV",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git branch -vv"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Git Remote V",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git remote -v"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Workflow Diff Stat",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git diff --stat -- .github/workflows/deploy-preview-gh-pages.yml"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Workflow Diff Full",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git diff -- .github/workflows/deploy-preview-gh-pages.yml"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Stage Workflow Only",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git add .github/workflows/deploy-preview-gh-pages.yml; git diff --cached --stat; Write-Output '---STATUS---'; git status --short"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Commit Workflow Fix",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git commit -m \"ci(deploy): publish V2 RC from main_v3 workflow\""
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Show Latest Commit",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git log -1 --stat --oneline"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Commit Workflow Fix CMD",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/d",
+				"/c",
+				"cd /d C:\\JobReadyIndia\\jobready_india && git commit -m \"ci(deploy): publish V2 RC from main_v3 workflow\""
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Show Latest Commit After",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/d",
+				"/c",
+				"cd /d C:\\JobReadyIndia\\jobready_india && git log -1 --stat --oneline"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Commit Workflow Fix Safe",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git commit -m deploy-v2-main_v3-workflow"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Latest Commit Safe",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git log -1 --stat --oneline"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Push RC Workflow Commit",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git push origin work/today-updates-2026-07-17"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Show Commit Diff",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git show --stat --oneline --no-patch HEAD; git diff HEAD~1 HEAD --stat"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Verify Live Hash After Push",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india\\lib'; Invoke-WebRequest -Uri 'https://getreadyjob.com/' -UseBasicParsing | Select-Object -ExpandProperty Content | Out-File -FilePath 'live_index.html' -Encoding utf8; Invoke-WebRequest -Uri 'https://getreadyjob.com/main.dart.js' -OutFile 'live_main.dart.js' -UseBasicParsing; Write-Output 'LIVE_SHA'; Get-FileHash '.\\live_main.dart.js' -Algorithm SHA256 | Select-Object -ExpandProperty Hash; Write-Output 'LOCAL_RC_SHA'; Get-FileHash '..\\build\\web\\main.dart.js' -Algorithm SHA256 | Select-Object -ExpandProperty Hash"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Compare JS Signatures After Push",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\lib\\scripts\\compare_live_local_signatures.ps1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Verify Live Cache After Push",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\lib\\scripts\\verify_live_cache.ps1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Compare JS Signatures Verify Now",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\lib\\scripts\\compare_live_local_signatures.ps1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Verify Live Cache Verify Now",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\lib\\scripts\\verify_live_cache.ps1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Verify Live Hash Final Recheck",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india\\lib'; Invoke-WebRequest -Uri 'https://getreadyjob.com/' -UseBasicParsing | Select-Object -ExpandProperty Content | Out-File -FilePath 'live_index.html' -Encoding utf8; Invoke-WebRequest -Uri 'https://getreadyjob.com/main.dart.js' -OutFile 'live_main.dart.js' -UseBasicParsing; Write-Output 'LIVE_SHA'; Get-FileHash '.\\live_main.dart.js' -Algorithm SHA256 | Select-Object -ExpandProperty Hash; Write-Output 'LOCAL_RC_SHA'; Get-FileHash '..\\build\\web\\main.dart.js' -Algorithm SHA256 | Select-Object -ExpandProperty Hash"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Compare JS Signatures Final Recheck",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\lib\\scripts\\compare_live_local_signatures.ps1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Verify Live Cache Final Recheck",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\lib\\scripts\\verify_live_cache.ps1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Diff Required Build Fixes",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git diff -- lib/Pages/compression_tool_page.dart lib/Pages/convert_tool_page.dart lib/Pages/extract_tool_page.dart lib/Pages/merge_tool_page.dart lib/Pages/split_tool_page.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Diff Stat Required Build Fixes",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git diff --stat -- lib/Pages/compression_tool_page.dart lib/Pages/convert_tool_page.dart lib/Pages/extract_tool_page.dart lib/Pages/merge_tool_page.dart lib/Pages/split_tool_page.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Check Candidate Diff Names",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git diff --name-only -- lib/Pages/compression_tool_page.dart lib/Pages/convert_tool_page.dart lib/Pages/extract_tool_page.dart lib/Pages/merge_tool_page.dart lib/Pages/split_tool_page.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Candidate CI Fix Full Diff",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git diff -- lib/Pages/compression_tool_page.dart lib/Pages/convert_tool_page.dart lib/Pages/extract_tool_page.dart lib/Pages/merge_tool_page.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Diff compression",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git diff -- lib/Pages/compression_tool_page.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Diff convert",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git diff -- lib/Pages/convert_tool_page.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Diff extract",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git diff -- lib/Pages/extract_tool_page.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Diff merge",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git diff -- lib/Pages/merge_tool_page.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Write CI candidate diff file",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git diff -- lib/Pages/compression_tool_page.dart lib/Pages/convert_tool_page.dart lib/Pages/extract_tool_page.dart lib/Pages/merge_tool_page.dart lib/Pages/split_tool_page.dart | Out-File -FilePath 'lib\\ci_candidate_diff.txt' -Encoding utf8; Write-Output 'WROTE lib/ci_candidate_diff.txt'"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Rebuild V2 RC for exact errors",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter build web -t lib/main_v1_1.dart --release *>&1 | Tee-Object -FilePath 'lib\\ci_build_recheck_log.txt'"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Precommit status snapshot",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git status --short | Out-File -FilePath 'lib\\precommit_status_c6.txt' -Encoding utf8; git diff --cached --name-only | Out-File -FilePath 'lib\\precommit_cached_c6.txt' -Encoding utf8; Write-Output 'WROTE status snapshots'"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Stage minimal build-fix files",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git add lib/Pages/compression_tool_page.dart lib/Pages/convert_tool_page.dart lib/Pages/extract_tool_page.dart lib/Pages/merge_tool_page.dart lib/Pages/split_tool_page.dart; git diff --cached --stat | Out-File -FilePath 'lib\\c6_cached_stat.txt' -Encoding utf8; git diff --cached --name-only | Out-File -FilePath 'lib\\c6_cached_names.txt' -Encoding utf8; Write-Output 'STAGED minimal files'"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Commit C6 minimal build fix",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git commit -m deploy-v2-ci-build-fix-imports"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Show C6 commit info",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git log -1 --oneline --stat | Out-File -FilePath 'lib\\c6_commit_info.txt' -Encoding utf8; git show --name-only --pretty=format: HEAD | Out-File -FilePath 'lib\\c6_commit_files.txt' -Encoding utf8; Write-Output 'WROTE c6 commit info files'"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Push C6 commit",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git push origin work/today-updates-2026-07-17"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Fresh run status to file",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; $u='https://api.github.com/repos/rajeshkhola-ry/jobready_india/actions/runs/29673927091?ts=' + [DateTimeOffset]::UtcNow.ToUnixTimeSeconds(); $r=Invoke-RestMethod -Uri $u -Headers @{ 'User-Agent'='jobready-check' }; @('STATUS=' + $r.status,'CONCLUSION=' + $r.conclusion,'UPDATED_AT=' + $r.updated_at,'HEAD_SHA=' + $r.head_sha) | Out-File -FilePath 'lib\\run51_status.txt' -Encoding utf8; Write-Output 'WROTE run51_status.txt'"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: GH CLI run51 status",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; gh api repos/rajeshkhola-ry/jobready_india/actions/runs/29673927091 --jq '\"STATUS=\" + .status + \"`nCONCLUSION=\" + (.conclusion // \"null\") + \"`nUPDATED_AT=\" + .updated_at + \"`nHEAD_SHA=\" + .head_sha'"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Verify live hash now",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india\\lib'; Invoke-WebRequest -Uri 'https://getreadyjob.com/' -UseBasicParsing | Select-Object -ExpandProperty Content | Out-File -FilePath 'live_index.html' -Encoding utf8; Invoke-WebRequest -Uri 'https://getreadyjob.com/main.dart.js' -OutFile 'live_main.dart.js' -UseBasicParsing; 'LIVE_SHA=' + (Get-FileHash '.\\live_main.dart.js' -Algorithm SHA256).Hash; 'LOCAL_RC_SHA=' + (Get-FileHash '..\\build\\web\\main.dart.js' -Algorithm SHA256).Hash"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Compare signatures now",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\lib\\scripts\\compare_live_local_signatures.ps1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Verify cache now",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\lib\\scripts\\verify_live_cache.ps1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Hash compare final",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/d",
+				"/c",
+				"cd /d C:\\JobReadyIndia\\jobready_india\\lib && curl -L -o live_main.dart.js https://getreadyjob.com/main.dart.js && echo LIVE_SHA && certutil -hashfile live_main.dart.js SHA256 && echo LOCAL_RC_SHA && certutil -hashfile ..\\build\\web\\main.dart.js SHA256"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: rg email literals",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/d",
+				"/c",
+				"cd /d C:\\JobReadyIndia\\jobready_india && rg -n \"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\" lib"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Commit branding navy + email",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git add lib/Services/api_config.dart lib/Widgets/apple_button.dart lib/Pages/home_page_v3.dart lib/Widgets/tool_selector_v2.dart lib/Widgets/upload_card_v2.dart lib/main_v3.dart; git diff --cached --stat; git commit -m rc-branding-navy-email-update"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Verify branding commit",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git log -1 --oneline --stat"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: status after commit attempt",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git status --short"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Commit branding retry",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/d",
+				"/c",
+				"cd /d C:\\JobReadyIndia\\jobready_india && git commit -m rc-branding-navy-email-update"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Push branding commit",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/d",
+				"/c",
+				"cd /d C:\\JobReadyIndia\\jobready_india && git push origin work/today-updates-2026-07-17"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: GH latest run status",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/d",
+				"/c",
+				"cd /d C:\\JobReadyIndia\\jobready_india && gh run list --workflow deploy-preview-gh-pages.yml --branch work/today-updates-2026-07-17 --limit 5"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Live build info and email check",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/d",
+				"/c",
+				"cd /d C:\\JobReadyIndia\\jobready_india\\lib && curl -L -o live_build_info.json https://getreadyjob.com/build-info.json && curl -L -o live_index.html https://getreadyjob.com/ && echo ==== BUILD_INFO ==== && type live_build_info.json && echo ==== EMAIL_CHECK ==== && findstr /I /C:\"hello@getreadyjob.com\" live_index.html"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Live JS email check",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/d",
+				"/c",
+				"cd /d C:\\JobReadyIndia\\jobready_india\\lib && curl -L -o live_main.dart.js https://getreadyjob.com/main.dart.js && findstr /I /C:\"hello@getreadyjob.com\" live_main.dart.js"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Commit+Push remove runtime banner",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/d",
+				"/c",
+				"cd /d C:\\JobReadyIndia\\jobready_india && git add lib/Pages/home_page_v3.dart && git commit -m remove-runtime-banner-v2-home && git push origin work/today-updates-2026-07-17"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: phase1 git status",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/d",
+				"/c",
+				"cd /d C:\\JobReadyIndia\\jobready_india && git status --short"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Diff home_v3 + tool_selector",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/d",
+				"/c",
+				"cd /d C:\\JobReadyIndia\\jobready_india && git diff -- lib/Pages/home_page_v3.dart lib/Widgets/tool_selector_v2.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Write phase1 diffs",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/d",
+				"/c",
+				"cd /d C:\\JobReadyIndia\\jobready_india && git diff -- lib/Pages/home_page_v3.dart lib/Widgets/tool_selector_v2.dart > lib\\phase1_brand_diff.txt && echo wrote"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Git status short repo",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/d",
+				"/c",
+				"cd /d C:\\JobReadyIndia\\jobready_india && git status --short"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Current branch",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/d",
+				"/c",
+				"cd /d C:\\JobReadyIndia\\jobready_india && git rev-parse --abbrev-ref HEAD"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Commit phase1 checkpoint",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/d",
+				"/c",
+				"cd /d C:\\JobReadyIndia\\jobready_india && git add lib/Pages/home_page_v3.dart lib/Widgets/tool_selector_v2.dart && git commit -m \"chore(v2): polish home title and navy tool selector accents\""
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Commit phase1 checkpoint ps",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git add lib/Pages/home_page_v3.dart lib/Widgets/tool_selector_v2.dart; git commit -m 'chore(v2): polish home title and navy tool selector accents'"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Stage checkpoint files",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"-C",
+				"C:\\JobReadyIndia\\jobready_india",
+				"add",
+				"lib/Pages/home_page_v3.dart",
+				"lib/Widgets/tool_selector_v2.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Verify staged names",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"-C",
+				"C:\\JobReadyIndia\\jobready_india",
+				"diff",
+				"--cached",
+				"--name-only"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Commit checkpoint files",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"-C",
+				"C:\\JobReadyIndia\\jobready_india",
+				"commit",
+				"-m",
+				"phase1: polish home title and navy tool selector accents"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Push checkpoint commit",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"-C",
+				"C:\\JobReadyIndia\\jobready_india",
+				"push",
+				"origin",
+				"work/today-updates-2026-07-17"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Deploy: Commit and Push PDF fixes",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git add lib/main_v3.dart lib/Pages/compression_tool_page.dart lib/Pages/convert_tool_page.dart lib/Pages/split_tool_page.dart lib/Pages/extract_tool_page.dart lib/Pages/pdf_tools_page.dart lib/Pages/pdf_edit_page.dart; git commit -m \"fix(pdf-tools): add pdf-edit route and unify appbar arrow colors\"; git push origin work/today-updates-2026-07-17"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Deploy: Commit and Push PDF fixes (cmd)",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"cd /d C:\\JobReadyIndia\\jobready_india && git add lib/main_v3.dart lib/Pages/compression_tool_page.dart lib/Pages/convert_tool_page.dart lib/Pages/split_tool_page.dart lib/Pages/extract_tool_page.dart lib/Pages/pdf_tools_page.dart lib/Pages/pdf_edit_page.dart && git commit -m \"fix pdf tools route and appbar icons\" && git push origin work/today-updates-2026-07-17"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Deploy: Commit and Push PDF fixes (noquote msg)",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"cd /d C:\\JobReadyIndia\\jobready_india && git add lib/main_v3.dart lib/Pages/compression_tool_page.dart lib/Pages/convert_tool_page.dart lib/Pages/split_tool_page.dart lib/Pages/extract_tool_page.dart lib/Pages/pdf_tools_page.dart lib/Pages/pdf_edit_page.dart && git commit -m fix_pdf_tools_route_and_appbar_icons && git push origin work/today-updates-2026-07-17"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Deploy: V1 Lufthansa Blue update",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"cd /d C:\\JobReadyIndia\\jobready_india && git add lib/main_v3.dart lib/Pages/home_page_v2.dart lib/Pages/home_page_v3.dart lib/Pages/pdf_tools_page.dart lib/Pages/merge_tool_page.dart lib/Pages/split_tool_page.dart lib/Pages/extract_tool_page.dart && git commit -m v1_lufthansa_blue_update && git push origin work/today-updates-2026-07-17"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Build main_v3 CI parity",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter build web --release -t lib/main_v1_1.dart --base-href \"/\""
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Git head and status",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git rev-parse HEAD; git status --short"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Deploy unblock: empty commit push",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git commit --allow-empty -m 'chore: trigger pages redeploy (no-op)'; git push origin work/today-updates-2026-07-17"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Deploy unblock: empty commit push retry",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location \"C:\\JobReadyIndia\\jobready_india\"; git commit --allow-empty -m \"chore: trigger pages redeploy no-op\"; git push origin work/today-updates-2026-07-17"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Deploy unblock: empty commit push final",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location C:\\JobReadyIndia\\jobready_india; git commit --allow-empty -m chore_trigger_pages_redeploy_noop; git push origin work/today-updates-2026-07-17"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Backup Prep: Detect OneDrive and HEAD",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"$oneDrive = Join-Path $env:USERPROFILE 'OneDrive'; Write-Host \"ONEDRIVE_PATH=$oneDrive\"; Write-Host \"ONEDRIVE_EXISTS=$((Test-Path $oneDrive))\"; Set-Location 'C:\\JobReadyIndia\\jobready_india'; git rev-parse --short HEAD"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Backup: Create OneDrive Zip",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"$src='C:\\JobReadyIndia\\jobready_india'; $backupDir='C:\\Users\\Avita\\OneDrive\\JobReadyIndia_Backups'; New-Item -ItemType Directory -Path $backupDir -Force | Out-Null; $stamp=Get-Date -Format 'yyyyMMdd_HHmmss'; $commit=(git -C $src rev-parse --short HEAD).Trim(); $zip=Join-Path $backupDir (\"jobready_india_{0}_{1}.zip\" -f $stamp,$commit); Compress-Archive -Path (Join-Path $src '*') -DestinationPath $zip -CompressionLevel Optimal -Force; Get-Item $zip | Select-Object FullName,Length,LastWriteTime | Format-List"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Backup: Create OneDrive Zip Retry",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"$src=\"C:\\JobReadyIndia\\jobready_india\"; $backupDir=\"C:\\Users\\Avita\\OneDrive\\JobReadyIndia_Backups\"; New-Item -ItemType Directory -Path $backupDir -Force | Out-Null; $stamp=Get-Date -Format \"yyyyMMdd_HHmmss\"; $commit=(git -C $src rev-parse --short HEAD).Trim(); $zip=Join-Path $backupDir (\"jobready_india_\"+$stamp+\"_\"+$commit+\".zip\"); Compress-Archive -Path (Join-Path $src \"*\") -DestinationPath $zip -CompressionLevel Optimal -Force; Get-Item $zip | Select-Object FullName,Length,LastWriteTime | Format-List"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Backup: Run daily backup script",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\lib\\scripts\\daily_backup.ps1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Backup: Copy latest zip to OneDrive",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"$srcDir='C:\\JobReadyIndia\\jobready_india\\backups'; $dstDir='C:\\Users\\Avita\\OneDrive\\JobReadyIndia_Backups'; New-Item -ItemType Directory -Path $dstDir -Force | Out-Null; $latest=Get-ChildItem -Path $srcDir -Filter 'jobready_lib_backup_*.zip' | Sort-Object LastWriteTime -Descending | Select-Object -First 1; Copy-Item -Path $latest.FullName -Destination $dstDir -Force; Get-ChildItem -Path $dstDir -Filter ($latest.Name) | Select-Object FullName,Length,LastWriteTime | Format-List"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Backup: Copy zip to OneDrive via cmd",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"if not exist C:\\Users\\Avita\\OneDrive\\JobReadyIndia_Backups mkdir C:\\Users\\Avita\\OneDrive\\JobReadyIndia_Backups && copy /Y C:\\JobReadyIndia\\jobready_india\\backups\\jobready_lib_backup_2026-07-19_160035.zip C:\\Users\\Avita\\OneDrive\\JobReadyIndia_Backups\\ && dir C:\\Users\\Avita\\OneDrive\\JobReadyIndia_Backups\\jobready_lib_backup_2026-07-19_160035.zip"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Backup: Sync checks",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"tasklist | findstr /I OneDrive.exe && attrib C:\\Users\\Avita\\OneDrive\\JobReadyIndia_Backups\\jobready_lib_backup_2026-07-19_160035.zip"
+			],
+			"isBackground": false
+		}
+	]
 }

@@ -1,6 +1,6 @@
 param(
   [int]$WebPort = 54322,
-  [string]$Target = "lib/main_v3.dart",
+  [string]$Target = "lib/main_v1_1.dart",
   [switch]$SkipAnalyze
 )
 
@@ -55,15 +55,12 @@ try {
   Write-Step "Project root: $projectRoot"
 
   $requiredFiles = @(
-    "main_v3.dart",
-    "main_v1_v2_combined_check.dart",
-    "Pages/pdf_tools_page.dart",
-    "Pages/compression_tool_page.dart",
-    "Pages/merge_tool_page.dart",
-    "Pages/split_tool_page.dart",
-    "Pages/convert_tool_page.dart",
-    "Pages/home_page_v3.dart",
-    "Services/conversion_service.dart"
+    "main_v1_1.dart",
+    "Pages/admin_gate_page.dart",
+    "Pages/coming_soon_page.dart",
+    "Pages/home_page_v2.dart",
+    "Pages/v2/converter/converter_workspace_page.dart",
+    "Pages/system_check_page.dart"
   )
 
   Write-Step "Checking core files"
@@ -86,7 +83,7 @@ try {
     "coming soon"
   )
 
-  $scanPaths = @("main_v1_v2_combined_check.dart", "Pages", "Widgets", "Services")
+  $scanPaths = @("main_v1_1.dart", "Pages", "Widgets", "Services")
   $scanFiles = @()
   foreach ($scanPath in $scanPaths) {
     if (Test-Path $scanPath -PathType Leaf) {
