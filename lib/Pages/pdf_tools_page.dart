@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
 import 'extract_tool_page.dart';
+import 'compression_tool_page.dart';
+import 'convert_tool_page.dart';
 import 'merge_tool_page.dart';
+import 'pdf_edit_page.dart';
 import 'split_tool_page.dart';
 import '../Widgets/pdf_tool_card.dart';
 import '../Widgets/production_footer.dart';
@@ -244,7 +247,9 @@ class _PdfToolsPageState extends State<PdfToolsPage> {
                     title: 'Compress PDF',
                     subtitle: 'Reduce file size while maintaining quality',
                     onTap: () {
-                      Navigator.of(context).pushNamed('/compress');
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const CompressionToolPage()),
+                      );
                     },
                   ),
                   const SizedBox(height: 10),
@@ -254,7 +259,9 @@ class _PdfToolsPageState extends State<PdfToolsPage> {
                     title: 'PDF to Word',
                     subtitle: 'Convert PDFs to editable Word documents',
                     onTap: () {
-                      Navigator.of(context).pushNamed('/convert');
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const ConvertToolPage()),
+                      );
                     },
                   ),
                   const SizedBox(height: 24),
@@ -276,7 +283,9 @@ class _PdfToolsPageState extends State<PdfToolsPage> {
                     title: 'PDF Edit & OCR',
                     subtitle: 'Edit PDFs and extract text from scans',
                     onTap: () {
-                      Navigator.of(context).pushNamed('/pdf-edit');
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const PdfEditPage()),
+                      );
                     },
                   ),
                   const SizedBox(height: 32),
