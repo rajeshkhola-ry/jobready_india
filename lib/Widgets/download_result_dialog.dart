@@ -66,7 +66,7 @@ class DownloadResultDialog extends StatelessWidget {
   }
 
   String _shareMessage(String fileUrl) {
-    return 'File ready from JOBREADY.\nFile: $fileName\nDownload: $fileUrl';
+    return 'File ready from GETREADYJOB.\nFile: $fileName\nDownload: $fileUrl';
   }
 
   Future<void> _copyShareText(BuildContext context, String text) async {

@@ -160,7 +160,7 @@ class _ConversionProgressDialogState
 
           Expanded(
             child: Text(
-              "Please don't close JOBREADY while conversion is in progress.",
+              "Please don't close GETREADYJOB while conversion is in progress.",
               style: TextStyle(
                 fontSize: 13,
                 color: Colors.grey,

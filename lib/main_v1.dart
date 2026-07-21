@@ -14,7 +14,7 @@ class JobReadyV1App extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'JOBREADY V1',
+      title: 'GETREADYJOB V1',
       theme: ThemeData(
         scaffoldBackgroundColor: const Color(0xFFF8F9FA),
         useMaterial3: true,

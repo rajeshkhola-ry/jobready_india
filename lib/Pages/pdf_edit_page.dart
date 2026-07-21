@@ -364,7 +364,7 @@ class _PdfEditPageState extends State<PdfEditPage> {
             9,
           );
           page.graphics.drawString(
-            'Edited by JOBREADY PDF Editor',
+            'Edited by GETREADYJOB PDF Editor',
             footerFont,
             pen: sfpdf.PdfPen(sfpdf.PdfColor(150, 150, 150)),
             bounds: Rect.fromLTWH(

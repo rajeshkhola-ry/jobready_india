@@ -107,7 +107,7 @@ class WhyChooseCard extends StatelessWidget {
             ),
             SizedBox(height: _s(12)),
             Text(
-              'Why Choose JOBREADY?',
+              'Why Choose GETREADYJOB?',
               style: TextStyle(
                 fontSize: _s(18),
                 fontWeight: FontWeight.w800,
@@ -147,7 +147,7 @@ class WhyChooseCard extends StatelessWidget {
             item(
               Icons.support_agent_rounded,
               '24×7 Customer Support',
-              'Clear support path through JOBREADY whenever users need help.',
+              'Clear support path through GETREADYJOB whenever users need help.',
             ),
           ],
         ),

@@ -1,11 +1,11 @@
 {
-    "name": "jobready_india",
-    "short_name": "jobready_india",
+    "name": "GETREADYJOB",
+    "short_name": "GETREADYJOB",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "GETREADYJOB helps users work faster with resumes, documents, and PDF workflows.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

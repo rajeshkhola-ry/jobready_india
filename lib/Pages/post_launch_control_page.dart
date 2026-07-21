@@ -179,7 +179,7 @@ class _PostLaunchControlPageState extends State<PostLaunchControlPage> {
       final signoffFile = File('${evidenceDir.path}/launch_signoff_$tag.md');
       final gatePass = _productionRows > 0 && _passRate >= 85.0 && _averageQuality >= 85.0;
 
-      final text = '''# JOBREADY Post-Launch Sign-off
+      final text = '''# GETREADYJOB Post-Launch Sign-off
 
 Generated: ${now.toIso8601String()}
 

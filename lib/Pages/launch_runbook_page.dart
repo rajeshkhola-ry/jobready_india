@@ -91,7 +91,7 @@ class _LaunchRunbookPageState extends State<LaunchRunbookPage> {
       await _latestCsv!.copy(csvCopy.path);
 
       final runbookFile = File('${outputDir.path}/launch_runbook_$tag.md');
-      final runbookText = '''# JOBREADY Launch Runbook Snapshot
+      final runbookText = '''# GETREADYJOB Launch Runbook Snapshot
 
 Generated: ${timestamp.toIso8601String()}
 

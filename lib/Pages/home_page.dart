@@ -90,7 +90,7 @@ class _HomePageState extends State<HomePage> {
             const GlowingLogoBadge(size: 36, circular: false),
             const SizedBox(width: 12),
             const Text(
-              "JOBREADY",
+              "GETREADYJOB",
               style: TextStyle(
               color: Color(0xFFFFCC00),
                 fontWeight: FontWeight.bold,

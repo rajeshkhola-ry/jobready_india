@@ -40,7 +40,7 @@ const JobReadyApp({super.key});
 Widget build(BuildContext context) {
 return MaterialApp(
 debugShowCheckedModeBanner: false,
-title: 'JOBREADY',
+title: 'GETREADYJOB',
 theme: ThemeData(
 scaffoldBackgroundColor: const Color(0xFFF8F9FA),
 useMaterial3: true,
@@ -76,7 +76,7 @@ appBar: AppBar(
   centerTitle: true,
 
     title: const Text(
-    'JOBREADY',
+    'GETREADYJOB',
     style: TextStyle(
       color: Colors.white,
       fontWeight: FontWeight.bold,
@@ -123,7 +123,7 @@ children: [
               SizedBox(height: 18),
 
               Text(
-                'JOBREADY',
+                'GETREADYJOB',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white,
@@ -429,7 +429,7 @@ PdfToolCard(
 const SizedBox(height: 25),
 
 const Text(
-'Why Choose JOBREADY?',
+'Why Choose GETREADYJOB?',
 style: TextStyle(
 fontSize: 24,
 fontWeight: FontWeight.bold,
@@ -527,7 +527,7 @@ Center(
 child: Column(
 children: [
 const Text(
-'JOBREADY',
+'GETREADYJOB',
 style: TextStyle(
 fontWeight: FontWeight.bold,
 ),
@@ -535,7 +535,7 @@ fontWeight: FontWeight.bold,
 const Text('Smart Document & Career Toolkit'),
 Text(PublicBrandConfig.websiteDomain),
 const SizedBox(height: 5),
-const Text('© 2026 JOBREADY'),
+const Text('© 2026 GETREADYJOB'),
 ],
 ),
 ),

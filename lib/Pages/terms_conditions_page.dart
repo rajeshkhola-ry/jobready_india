@@ -25,7 +25,7 @@ class TermsConditionsPage extends StatelessWidget {
           const _Section(
             title: '1. Acceptance of Terms',
             body:
-                'By using JOBREADY, users agree to these Terms and Conditions. Continued use after updates means acceptance of revised terms.',
+                'By using GETREADYJOB, users agree to these Terms and Conditions. Continued use after updates means acceptance of revised terms.',
           ),
           const _Section(
             title: '2. Service Scope and Availability',
@@ -60,12 +60,12 @@ class TermsConditionsPage extends StatelessWidget {
           const _Section(
             title: '8. Limitation of Liability',
             body:
-                'To the maximum extent permitted by law, JOBREADY and its operators are not liable for indirect, incidental, special, consequential, or punitive damages, including business loss, loss of profit, or loss of data arising from platform use or inability to use the service.',
+                'To the maximum extent permitted by law, GETREADYJOB and its operators are not liable for indirect, incidental, special, consequential, or punitive damages, including business loss, loss of profit, or loss of data arising from platform use or inability to use the service.',
           ),
           const _Section(
             title: '9. Indemnification',
             body:
-                'Users agree to indemnify and hold harmless JOBREADY from claims, losses, damages, and costs resulting from user content, misuse, policy violations, or unlawful activities.',
+                'Users agree to indemnify and hold harmless GETREADYJOB from claims, losses, damages, and costs resulting from user content, misuse, policy violations, or unlawful activities.',
           ),
           const _Section(
             title: '10. Suspension and Termination',
