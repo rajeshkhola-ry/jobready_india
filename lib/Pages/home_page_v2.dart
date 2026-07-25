@@ -324,6 +324,75 @@ class _HomePageV2State extends State<HomePageV2> {
     });
   }
 
+  Future<void> _showQuickPanel(Widget child) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 760, maxHeight: 680),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(12),
+            child: child,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleUsageMenu(String value) async {
+    switch (value) {
+      case 'view':
+        await _showQuickPanel(const _DailyUsageQuotaSection());
+        break;
+      case 'reset':
+        await UsageQuotaService.clearToday();
+        if (!mounted) {
+          return;
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Today usage counters cleared.')),
+        );
+        break;
+    }
+  }
+
+  Future<void> _handleRecentDocumentsMenu(String value) async {
+    if (value == 'open') {
+      await _showQuickPanel(const _RecentDocumentsSection());
+      return;
+    }
+
+    if (value == 'clear') {
+      await DocumentHistoryService.clear();
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Recent document history cleared.')),
+      );
+      return;
+    }
+
+    if (value.startsWith('keep:')) {
+      final limit = int.tryParse(value.split(':').last);
+      if (limit == null) {
+        return;
+      }
+      await DocumentHistoryService.setRetentionLimit(limit);
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('History retention updated to last $limit entries.')),
+      );
+    }
+  }
+
+  Future<void> _openUserLoginPanel() async {
+    await _showQuickPanel(const _UserAccountPrivacySection());
+  }
+
   @override
   Widget build(BuildContext context) {
     final sevenDayPriceLine = _planPriceLine('7Days', ' for 7 days');
@@ -339,6 +408,15 @@ class _HomePageV2State extends State<HomePageV2> {
         centerTitle: true,
         toolbarHeight: 64,
         actions: [
+          TextButton.icon(
+            onPressed: _openUserLoginPanel,
+            icon: const Icon(Icons.person_outline_rounded, size: 16),
+            label: const Text('User Login'),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFE9D5FF),
+              textStyle: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
           _TopActionIcon(
             tooltip: 'Benchmark',
             icon: Icons.bar_chart_rounded,
@@ -668,11 +746,90 @@ class _HomePageV2State extends State<HomePageV2> {
               },
             ),
             const SizedBox(height: 10),
-            const _DailyUsageQuotaSection(),
-            const SizedBox(height: 10),
-            const _RecentDocumentsSection(),
-            const SizedBox(height: 10),
-            const _UserAccountPrivacySection(),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF1F2937).withOpacity(0.05),
+                    blurRadius: 12,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  PopupMenuButton<String>(
+                    tooltip: 'Daily usage options',
+                    onSelected: _handleUsageMenu,
+                    itemBuilder: (_) => const [
+                      PopupMenuItem<String>(
+                        value: 'view',
+                        child: Text('Open Daily Usage'),
+                      ),
+                      PopupMenuItem<String>(
+                        value: 'reset',
+                        child: Text('Reset Today Counters'),
+                      ),
+                    ],
+                    child: _QuickAccessButton(
+                      icon: Icons.tune_rounded,
+                      label: 'Daily Usage',
+                      accent: const Color(0xFF1F4E79),
+                    ),
+                  ),
+                  PopupMenuButton<String>(
+                    tooltip: 'Recent documents options',
+                    onSelected: _handleRecentDocumentsMenu,
+                    itemBuilder: (_) => const [
+                      PopupMenuItem<String>(
+                        value: 'open',
+                        child: Text('Open Recent Documents'),
+                      ),
+                      PopupMenuItem<String>(
+                        value: 'clear',
+                        child: Text('Clear Recent Documents'),
+                      ),
+                      PopupMenuItem<String>(
+                        value: 'keep:20',
+                        child: Text('Keep 20'),
+                      ),
+                      PopupMenuItem<String>(
+                        value: 'keep:50',
+                        child: Text('Keep 50'),
+                      ),
+                      PopupMenuItem<String>(
+                        value: 'keep:100',
+                        child: Text('Keep 100'),
+                      ),
+                      PopupMenuItem<String>(
+                        value: 'keep:200',
+                        child: Text('Keep 200'),
+                      ),
+                    ],
+                    child: _QuickAccessButton(
+                      icon: Icons.keyboard_arrow_down_rounded,
+                      label: 'Recent Documents',
+                      accent: const Color(0xFF0F766E),
+                    ),
+                  ),
+                  _QuickAccessActionButton(
+                    icon: Icons.admin_panel_settings_outlined,
+                    label: 'Admin Login',
+                    accent: const Color(0xFFB45309),
+                    onTap: () {
+                      Navigator.of(context).pushNamed('/admin');
+                    },
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 10),
             _FooterInfoRow(
               icon: Icons.language_rounded,
@@ -686,6 +843,90 @@ class _HomePageV2State extends State<HomePageV2> {
               value: PublicBrandConfig.supportEmail,
             ),
             const SizedBox(height: 6),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _QuickAccessButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color accent;
+
+  const _QuickAccessButton({
+    required this.icon,
+    required this.label,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: accent.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: accent.withOpacity(0.22)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: accent),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: accent,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickAccessActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color accent;
+  final VoidCallback onTap;
+
+  const _QuickAccessActionButton({
+    required this.icon,
+    required this.label,
+    required this.accent,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: accent.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: accent.withOpacity(0.22)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18, color: accent),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: accent,
+              ),
+            ),
           ],
         ),
       ),
@@ -3602,7 +3843,9 @@ class _PopularToolRow extends StatelessWidget {
 }
 
 class _RecentDocumentsSection extends StatefulWidget {
-  const _RecentDocumentsSection();
+  final bool showHeader;
+
+  const _RecentDocumentsSection({this.showHeader = true});
 
   @override
   State<_RecentDocumentsSection> createState() => _RecentDocumentsSectionState();
@@ -3733,49 +3976,48 @@ class _RecentDocumentsSectionState extends State<_RecentDocumentsSection> {
         children: [
           Row(
             children: [
-              const Expanded(
-                child: Text(
-                  'Recent Documents',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF1F2937),
+              if (widget.showHeader)
+                const Expanded(
+                  child: Text(
+                    'Document History',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF1F2937),
+                    ),
+                  ),
+                )
+              else
+                const Expanded(
+                  child: Text(
+                    'Manage recent outputs from the top menu options.',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF64748B),
+                    ),
                   ),
                 ),
-              ),
-              TextButton.icon(
-                onPressed: _refresh,
-                icon: const Icon(Icons.refresh_rounded, size: 15),
-                label: const Text('Refresh'),
-                style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF1F4E79),
-                  visualDensity: VisualDensity.compact,
-                ),
-              ),
-              TextButton.icon(
-                onPressed: _entries.isEmpty ? null : _clearHistory,
-                icon: const Icon(Icons.delete_outline_rounded, size: 15),
-                label: const Text('Clear'),
-                style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFFB91C1C),
-                  visualDensity: VisualDensity.compact,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Privacy tip: Use User Account and Privacy section below to disable new history recording.',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF64748B),
+              if (widget.showHeader)
+                TextButton.icon(
+                  onPressed: _refresh,
+                  icon: const Icon(Icons.refresh_rounded, size: 15),
+                  label: const Text('Refresh'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF1F4E79),
+                    visualDensity: VisualDensity.compact,
                   ),
                 ),
-              ),
+              if (widget.showHeader)
+                TextButton.icon(
+                  onPressed: _entries.isEmpty ? null : _clearHistory,
+                  icon: const Icon(Icons.delete_outline_rounded, size: 15),
+                  label: const Text('Clear'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFFB91C1C),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
               const SizedBox(width: 8),
               SizedBox(
                 width: 130,
@@ -3935,7 +4177,9 @@ class _RecentDocumentsSectionState extends State<_RecentDocumentsSection> {
 }
 
 class _DailyUsageQuotaSection extends StatefulWidget {
-  const _DailyUsageQuotaSection();
+  final bool showHeader;
+
+  const _DailyUsageQuotaSection({this.showHeader = true});
 
   @override
   State<_DailyUsageQuotaSection> createState() => _DailyUsageQuotaSectionState();
@@ -4039,24 +4283,34 @@ class _DailyUsageQuotaSectionState extends State<_DailyUsageQuotaSection> {
         children: [
           Row(
             children: [
-              const Expanded(
-                child: Text(
-                  'Daily Usage Status',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
+              if (widget.showHeader)
+                const Expanded(
+                  child: Text(
+                    'Daily Usage',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
+                  ),
+                )
+              else
+                const Expanded(
+                  child: Text(
+                    'Today\'s usage counters',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
+                  ),
                 ),
-              ),
-              TextButton.icon(
-                onPressed: _refresh,
-                icon: const Icon(Icons.refresh_rounded, size: 15),
-                label: const Text('Refresh'),
-                style: TextButton.styleFrom(foregroundColor: const Color(0xFF1F4E79), visualDensity: VisualDensity.compact),
-              ),
-              TextButton.icon(
-                onPressed: _clearToday,
-                icon: const Icon(Icons.restart_alt_rounded, size: 15),
-                label: const Text('Reset'),
-                style: TextButton.styleFrom(foregroundColor: const Color(0xFFB91C1C), visualDensity: VisualDensity.compact),
-              ),
+              if (widget.showHeader)
+                TextButton.icon(
+                  onPressed: _refresh,
+                  icon: const Icon(Icons.refresh_rounded, size: 15),
+                  label: const Text('Refresh'),
+                  style: TextButton.styleFrom(foregroundColor: const Color(0xFF1F4E79), visualDensity: VisualDensity.compact),
+                ),
+              if (widget.showHeader)
+                TextButton.icon(
+                  onPressed: _clearToday,
+                  icon: const Icon(Icons.restart_alt_rounded, size: 15),
+                  label: const Text('Reset'),
+                  style: TextButton.styleFrom(foregroundColor: const Color(0xFFB91C1C), visualDensity: VisualDensity.compact),
+                ),
             ],
           ),
           const SizedBox(height: 6),
@@ -4111,7 +4365,9 @@ class _DailyUsageQuotaSectionState extends State<_DailyUsageQuotaSection> {
 }
 
 class _UserAccountPrivacySection extends StatefulWidget {
-  const _UserAccountPrivacySection();
+  final bool showHeader;
+
+  const _UserAccountPrivacySection({this.showHeader = true});
 
   @override
   State<_UserAccountPrivacySection> createState() => _UserAccountPrivacySectionState();
@@ -4183,15 +4439,17 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'User Account and Privacy',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF1F2937),
+          if (widget.showHeader) ...[
+            const Text(
+              'User Login',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF1F2937),
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
+            const SizedBox(height: 8),
+          ],
           TextField(
             controller: _nameController,
             decoration: InputDecoration(
