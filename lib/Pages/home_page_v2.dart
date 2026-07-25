@@ -11,6 +11,7 @@ import '../Services/coupon_service.dart';
 import '../Services/document_history_service.dart';
 import '../Services/integration_hub_service.dart';
 import '../Services/owner_admin_access_service.dart';
+import '../Services/plan_catalog_service.dart';
 import '../Services/support_ticket_service.dart';
 import '../Services/user_rating_service.dart';
 import '../Services/user_account_service.dart';
@@ -126,7 +127,7 @@ class _HomePageV2State extends State<HomePageV2> {
   String? _selectedUsageType;
   bool _showLiveOfferBanner = false;
   String _liveOfferText = '';
-  static const String _ownerOfferCode = 'JR-OWNER-2026';
+  late PlanCatalogConfig _planCatalog;
   bool get _showAdminControls => OwnerAdminAccessService.isUnlocked;
 
   // Manual pricing control: update these values any time.
@@ -144,6 +145,12 @@ class _HomePageV2State extends State<HomePageV2> {
 
   static const double _businessIncreaseMultiplier = 1.75;
 
+  @override
+  void initState() {
+    super.initState();
+    _planCatalog = PlanCatalogService.load();
+  }
+
   double _priceForUsage(double personalMonthlyPrice) {
     if (_selectedUsageType == 'Business') {
       return personalMonthlyPrice * _businessIncreaseMultiplier;
@@ -152,6 +159,11 @@ class _HomePageV2State extends State<HomePageV2> {
   }
 
   double _baseUsdPriceForPlan(String plan) {
+    final configured = _planCatalog.usdPrices[plan];
+    if (configured != null) {
+      return configured;
+    }
+
     switch (plan) {
       case '7Days':
         return _sevenDayPlanUsd;
@@ -167,6 +179,11 @@ class _HomePageV2State extends State<HomePageV2> {
   }
 
   double _baseInrPriceForPlan(String plan) {
+    final configured = _planCatalog.inrPrices[plan];
+    if (configured != null) {
+      return configured;
+    }
+
     switch (plan) {
       case '7Days':
         return _sevenDayPlanInr;
@@ -209,6 +226,10 @@ class _HomePageV2State extends State<HomePageV2> {
     final mailto =
         '${PublicBrandConfig.supportEmailMailto}?subject=${Uri.encodeComponent(subject)}&body=${Uri.encodeComponent(body)}';
     html.window.open(mailto, '_blank');
+  }
+
+  void _openDownloadFile(String path) {
+    html.window.open(path, '_blank');
   }
 
   void _showSuggestionDialog() {
@@ -668,6 +689,7 @@ class _HomePageV2State extends State<HomePageV2> {
               monthlyPriceLine: monthlyPriceLine,
               yearlyPriceLine: yearlyPriceLine,
               lifetimePriceLine: lifetimePriceLine,
+              enabledToolsByPlan: _planCatalog.enabledToolsByPlan,
               discountPercent: _pricingDiscountPercent,
               selectedPlan: _selectedPlanForPayment,
               usageType: _selectedUsageType,
@@ -713,9 +735,27 @@ class _HomePageV2State extends State<HomePageV2> {
             ),
 
             const SizedBox(height: 10),
+            if (!_showAdminControls) ...[
+              _AdminLoginPanel(
+                onUnlocked: () {
+                  setState(() {});
+                },
+              ),
+              const SizedBox(height: 10),
+            ],
             if (_showAdminControls) ...[
+              const _AdminCredentialsPanel(),
+              const SizedBox(height: 10),
+              _PlanCatalogManagerPanel(
+                initialConfig: _planCatalog,
+                onConfigSaved: (updatedConfig) {
+                  setState(() {
+                    _planCatalog = updatedConfig;
+                  });
+                },
+              ),
+              const SizedBox(height: 10),
               _OwnerOfferManagerPanel(
-                ownerCode: _ownerOfferCode,
                 onOfferUpdated: (enabled, text, promoCode, validity) {
                   setState(() {
                     _showLiveOfferBanner = enabled;
@@ -734,6 +774,10 @@ class _HomePageV2State extends State<HomePageV2> {
               ),
               const SizedBox(height: 10),
             ],
+            _ApiDownloadsPanel(
+              onDownloadRequested: _openDownloadFile,
+            ),
+            const SizedBox(height: 10),
             const _AboutUsSection(),
             const SizedBox(height: 10),
             const _FuturePlanSection(),
@@ -1127,6 +1171,7 @@ class _PlanCardsSection extends StatelessWidget {
   final String monthlyPriceLine;
   final String yearlyPriceLine;
   final String lifetimePriceLine;
+  final Map<String, List<String>> enabledToolsByPlan;
   final int discountPercent;
   final String selectedPlan;
   final String? usageType;
@@ -1138,6 +1183,7 @@ class _PlanCardsSection extends StatelessWidget {
     required this.monthlyPriceLine,
     required this.yearlyPriceLine,
     required this.lifetimePriceLine,
+    required this.enabledToolsByPlan,
     required this.discountPercent,
     required this.selectedPlan,
     required this.usageType,
@@ -1154,6 +1200,7 @@ class _PlanCardsSection extends StatelessWidget {
             title: 'FREE',
             subtitle: 'Core tools, quick checks, and starter workflow access',
             priceLine: '₹0 / \$0',
+            enabledTools: enabledToolsByPlan['Free'] ?? const <String>[],
             buttonLabel: 'Get Started',
             selected: selectedPlan == 'Free',
             onSelected: () => onPlanSelected('Free'),
@@ -1162,6 +1209,7 @@ class _PlanCardsSection extends StatelessWidget {
             title: '7 DAYS',
             subtitle: 'Test PDF edit, PDF to Word, OCR, and premium workflow controls',
             priceLine: sevenDayPriceLine,
+            enabledTools: enabledToolsByPlan['7Days'] ?? const <String>[],
             buttonLabel: 'Try 7 Days',
             selected: selectedPlan == '7Days',
             onSelected: () => onPlanSelected('7Days'),
@@ -1170,6 +1218,7 @@ class _PlanCardsSection extends StatelessWidget {
             title: 'MONTHLY',
             subtitle: 'Monthly access with document conversion, edit, and support workflows',
             priceLine: monthlyPriceLine,
+            enabledTools: enabledToolsByPlan['Monthly'] ?? const <String>[],
             buttonLabel: 'Get Monthly',
             selected: selectedPlan == 'Monthly',
             onSelected: () => onPlanSelected('Monthly'),
@@ -1178,6 +1227,7 @@ class _PlanCardsSection extends StatelessWidget {
             title: 'YEARLY',
             subtitle: 'Best value for regular use, higher limits, and full plan coverage',
             priceLine: '$yearlyPriceLine ⭐ Best Value',
+            enabledTools: enabledToolsByPlan['Yearly'] ?? const <String>[],
             buttonLabel: 'Get Yearly',
             recommended: true,
             selected: selectedPlan == 'Yearly',
@@ -1187,6 +1237,7 @@ class _PlanCardsSection extends StatelessWidget {
             title: 'LIFETIME LAUNCH OFFER',
             subtitle: 'One-time access with PDF edit, OCR, and long-term workspace usage',
             priceLine: lifetimePriceLine,
+            enabledTools: enabledToolsByPlan['Lifetime'] ?? const <String>[],
             buttonLabel: 'Get Lifetime',
             selected: selectedPlan == 'Lifetime',
             onSelected: () => onPlanSelected('Lifetime'),
@@ -1339,6 +1390,7 @@ class _PlanCardTile extends StatelessWidget {
   final String title;
   final String subtitle;
   final String priceLine;
+  final List<String> enabledTools;
   final String buttonLabel;
   final bool recommended;
   final bool selected;
@@ -1348,6 +1400,7 @@ class _PlanCardTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.priceLine,
+    required this.enabledTools,
     required this.buttonLabel,
     this.recommended = false,
     required this.selected,
@@ -1476,6 +1529,18 @@ class _PlanCardTile extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
+                if (enabledTools.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Enabled tools: ${enabledTools.join(', ')}',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFF475569),
+                      height: 1.3,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 11),
                 Container(
                   width: double.infinity,
@@ -2564,12 +2629,10 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
 }
 
 class _OwnerOfferManagerPanel extends StatefulWidget {
-  final String ownerCode;
   final void Function(bool enabled, String offerText, String promoCode, Duration? validity)
       onOfferUpdated;
 
   const _OwnerOfferManagerPanel({
-    required this.ownerCode,
     required this.onOfferUpdated,
   });
 
@@ -2577,35 +2640,559 @@ class _OwnerOfferManagerPanel extends StatefulWidget {
   State<_OwnerOfferManagerPanel> createState() => _OwnerOfferManagerPanelState();
 }
 
-class _OwnerOfferManagerPanelState extends State<_OwnerOfferManagerPanel> {
-  final TextEditingController _unlockController = TextEditingController();
-  final TextEditingController _offerController = TextEditingController();
-  final TextEditingController _promoController = TextEditingController(text: 'JRFREE1001Y');
-  bool _unlocked = _OwnerAdminSession.isUnlocked;
-  bool _showOffer = false;
-  Duration? _validity = const Duration(days: 365);
+class _AdminLoginPanel extends StatefulWidget {
+  final VoidCallback onUnlocked;
+
+  const _AdminLoginPanel({
+    required this.onUnlocked,
+  });
+
+  @override
+  State<_AdminLoginPanel> createState() => _AdminLoginPanelState();
+}
+
+class _AdminLoginPanelState extends State<_AdminLoginPanel> {
+  late final TextEditingController _adminIdController;
+  final TextEditingController _passwordController = TextEditingController();
+  String _status = 'Admin login required to edit rate cards and promo codes.';
 
   @override
   void initState() {
     super.initState();
-    _unlocked = _OwnerAdminSession.isUnlocked;
+    _adminIdController = TextEditingController(text: OwnerAdminAccessService.adminId);
   }
 
   @override
   void dispose() {
-    _unlockController.dispose();
-    _offerController.dispose();
-    _promoController.dispose();
+    _adminIdController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
   void _unlock() {
+    final ok = OwnerAdminAccessService.unlockWithCredentials(
+      _adminIdController.text,
+      _passwordController.text,
+    );
     setState(() {
-      _unlocked = _unlockController.text.trim() == widget.ownerCode;
-      if (_unlocked) {
-        _OwnerAdminSession.isUnlocked = true;
-      }
+      _status = ok ? 'Admin unlocked. You can now update plans and promo.' : 'Invalid admin ID or password.';
     });
+    if (ok) {
+      widget.onUnlocked();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Admin Login',
+            style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _adminIdController,
+            decoration: InputDecoration(
+              labelText: 'Admin ID',
+              isDense: true,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _passwordController,
+            obscureText: true,
+            decoration: InputDecoration(
+              labelText: 'Password',
+              isDense: true,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _unlock,
+              icon: const Icon(Icons.lock_open_rounded),
+              label: const Text('Login for Admin Controls'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1F4E79),
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _status,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: _status.toLowerCase().contains('invalid')
+                  ? const Color(0xFFB91C1C)
+                  : const Color(0xFF475569),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ApiDownloadsPanel extends StatelessWidget {
+  final ValueChanged<String> onDownloadRequested;
+
+  const _ApiDownloadsPanel({
+    required this.onDownloadRequested,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEEF6FF),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFBFDBFE)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Bank & Ads API Files',
+            style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF1E3A8A)),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Click to open and download the latest API documents.',
+            style: TextStyle(fontSize: 12, color: Color(0xFF334155), fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              OutlinedButton.icon(
+                onPressed: () => onDownloadRequested('/downloads/bank_api_packet_v1_1.md'),
+                icon: const Icon(Icons.account_balance_rounded),
+                label: const Text('Download Bank API File'),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => onDownloadRequested('/downloads/ads_api_packet_v1_1.md'),
+                icon: const Icon(Icons.campaign_rounded),
+                label: const Text('Download Ads API File'),
+              ),
+              ElevatedButton.icon(
+                onPressed: () => onDownloadRequested('/downloads/bank_ads_api_packet_v1_1.html'),
+                icon: const Icon(Icons.picture_as_pdf_rounded),
+                label: const Text('Open Combined HTML Packet'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1F4E79),
+                  foregroundColor: Colors.white,
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: () => onDownloadRequested('/downloads/bank_ads_api_packet_v1_1.pdf'),
+                icon: const Icon(Icons.download_rounded),
+                label: const Text('Download Combined PDF Packet'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0F766E),
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AdminCredentialsPanel extends StatefulWidget {
+  const _AdminCredentialsPanel();
+
+  @override
+  State<_AdminCredentialsPanel> createState() => _AdminCredentialsPanelState();
+}
+
+class _AdminCredentialsPanelState extends State<_AdminCredentialsPanel> {
+  late final TextEditingController _adminIdController;
+  final TextEditingController _passwordController = TextEditingController();
+  String _status = 'Set your admin ID/password here. Leave password blank to keep existing one.';
+
+  @override
+  void initState() {
+    super.initState();
+    _adminIdController = TextEditingController(text: OwnerAdminAccessService.adminId);
+  }
+
+  @override
+  void dispose() {
+    _adminIdController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveCredentials() async {
+    final currentPassword = OwnerAdminAccessService.adminPassword;
+    final nextPassword = _passwordController.text.trim().isEmpty
+        ? currentPassword
+        : _passwordController.text.trim();
+
+    await OwnerAdminAccessService.setCredentials(
+      adminId: _adminIdController.text.trim(),
+      password: nextPassword,
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _status = 'Admin credentials updated. Use new values on next login.';
+      _passwordController.clear();
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Admin login ID/password saved.')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F9FF),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFBAE6FD)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Admin Login Settings',
+            style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF0C4A6E)),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _adminIdController,
+            decoration: InputDecoration(
+              labelText: 'Admin ID',
+              isDense: true,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _passwordController,
+            obscureText: true,
+            decoration: InputDecoration(
+              labelText: 'New Password (optional)',
+              isDense: true,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _saveCredentials,
+              icon: const Icon(Icons.password_rounded),
+              label: const Text('Save Admin ID / Password'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0369A1),
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _status,
+            style: const TextStyle(
+              fontSize: 11,
+              color: Color(0xFF334155),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlanCatalogManagerPanel extends StatefulWidget {
+  final PlanCatalogConfig initialConfig;
+  final ValueChanged<PlanCatalogConfig> onConfigSaved;
+
+  const _PlanCatalogManagerPanel({
+    required this.initialConfig,
+    required this.onConfigSaved,
+  });
+
+  @override
+  State<_PlanCatalogManagerPanel> createState() => _PlanCatalogManagerPanelState();
+}
+
+class _PlanCatalogManagerPanelState extends State<_PlanCatalogManagerPanel> {
+  static const List<String> _plans = <String>['Free', '7Days', 'Monthly', 'Yearly', 'Lifetime'];
+  static const List<String> _allTools = <String>[
+    'Compress',
+    'Convert',
+    'Merge',
+    'Split',
+    'Extract',
+    'Edit PDF',
+    'OCR',
+    'Resume',
+    'History',
+  ];
+
+  late Map<String, TextEditingController> _inrControllers;
+  late Map<String, TextEditingController> _usdControllers;
+  late Map<String, List<String>> _enabledToolsByPlan;
+
+  @override
+  void initState() {
+    super.initState();
+    _hydrateFromConfig(widget.initialConfig);
+  }
+
+  @override
+  void didUpdateWidget(covariant _PlanCatalogManagerPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialConfig != widget.initialConfig) {
+      _disposeControllers();
+      _hydrateFromConfig(widget.initialConfig);
+    }
+  }
+
+  @override
+  void dispose() {
+    _disposeControllers();
+    super.dispose();
+  }
+
+  void _hydrateFromConfig(PlanCatalogConfig config) {
+    _inrControllers = {
+      for (final plan in _plans)
+        plan: TextEditingController(text: (config.inrPrices[plan] ?? 0).toString())
+    };
+    _usdControllers = {
+      for (final plan in _plans)
+        plan: TextEditingController(text: (config.usdPrices[plan] ?? 0).toString())
+    };
+    _enabledToolsByPlan = {
+      for (final plan in _plans)
+        plan: List<String>.from(config.enabledToolsByPlan[plan] ?? const <String>[])
+    };
+  }
+
+  void _disposeControllers() {
+    for (final controller in _inrControllers.values) {
+      controller.dispose();
+    }
+    for (final controller in _usdControllers.values) {
+      controller.dispose();
+    }
+  }
+
+  double _readAmount(TextEditingController controller, double fallback) {
+    return double.tryParse(controller.text.trim()) ?? fallback;
+  }
+
+  Future<void> _saveConfig() async {
+    final defaults = PlanCatalogConfig.defaults();
+    final inr = <String, double>{};
+    final usd = <String, double>{};
+
+    for (final plan in _plans) {
+      inr[plan] = _readAmount(_inrControllers[plan]!, defaults.inrPrices[plan] ?? 0);
+      usd[plan] = _readAmount(_usdControllers[plan]!, defaults.usdPrices[plan] ?? 0);
+    }
+
+    final config = PlanCatalogConfig(
+      inrPrices: inr,
+      usdPrices: usd,
+      enabledToolsByPlan: {
+        for (final plan in _plans) plan: List<String>.from(_enabledToolsByPlan[plan] ?? const <String>[])
+      },
+    );
+
+    await PlanCatalogService.save(config);
+    widget.onConfigSaved(config);
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Plan rates and tool permissions saved.')),
+    );
+  }
+
+  Future<void> _resetConfig() async {
+    await PlanCatalogService.reset();
+    final resetConfig = PlanCatalogConfig.defaults();
+    setState(() {
+      _disposeControllers();
+      _hydrateFromConfig(resetConfig);
+    });
+    widget.onConfigSaved(resetConfig);
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Plan catalog reset to defaults.')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Plan Card Manager',
+            style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Update plan amounts and tick tools per plan. Saved settings apply instantly on cards.',
+            style: TextStyle(fontSize: 12, color: Color(0xFF475569), fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 10),
+          for (final plan in _plans) ...[
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    plan,
+                    style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF111827)),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _inrControllers[plan],
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: InputDecoration(
+                            labelText: 'INR',
+                            isDense: true,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: _usdControllers[plan],
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: InputDecoration(
+                            labelText: 'USD',
+                            isDense: true,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 0,
+                    children: [
+                      for (final tool in _allTools)
+                        FilterChip(
+                          label: Text(tool),
+                          selected: (_enabledToolsByPlan[plan] ?? const <String>[]).contains(tool),
+                          onSelected: (selected) {
+                            setState(() {
+                              final selectedTools = _enabledToolsByPlan[plan] ?? <String>[];
+                              if (selected) {
+                                if (!selectedTools.contains(tool)) {
+                                  selectedTools.add(tool);
+                                }
+                              } else {
+                                selectedTools.remove(tool);
+                              }
+                              _enabledToolsByPlan[plan] = selectedTools;
+                            });
+                          },
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _saveConfig,
+                  icon: const Icon(Icons.save_rounded),
+                  label: const Text('Save Plan Settings'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1F4E79),
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _resetConfig,
+                  icon: const Icon(Icons.restart_alt_rounded),
+                  label: const Text('Reset Defaults'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OwnerOfferManagerPanelState extends State<_OwnerOfferManagerPanel> {
+  final TextEditingController _offerController = TextEditingController();
+  final TextEditingController _promoController = TextEditingController(text: 'JRFREE1001Y');
+  bool _showOffer = false;
+  Duration? _validity = const Duration(days: 365);
+
+  @override
+  void dispose() {
+    _offerController.dispose();
+    _promoController.dispose();
+    super.dispose();
   }
 
   void _applyOffer() {
@@ -2640,81 +3227,63 @@ class _OwnerOfferManagerPanelState extends State<_OwnerOfferManagerPanel> {
             style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
           ),
           const SizedBox(height: 8),
-          if (!_unlocked) ...[
-            TextField(
-              controller: _unlockController,
-              obscureText: true,
-              decoration: InputDecoration(
-                hintText: 'Enter owner code',
-                isDense: true,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
-            const SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: _unlock,
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1F4E79), foregroundColor: Colors.white),
-              child: const Text('Unlock Offer Box'),
-            ),
-          ] else ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'Show offer on home page',
-                      style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF334155)),
-                    ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Show offer on home page',
+                    style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF334155)),
                   ),
-                  Switch(
-                    value: _showOffer,
-                    onChanged: (value) => setState(() => _showOffer = value),
-                  ),
-                ],
-              ),
-            ),
-            TextField(
-              controller: _offerController,
-              maxLines: 2,
-              decoration: InputDecoration(
-                hintText: 'Write offer text here (New Year, Diwali, etc.)',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _promoController,
-              decoration: InputDecoration(
-                hintText: 'Promo code (example: NEWYEAR100)',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<Duration?>(
-              initialValue: _validity,
-              items: const [
-                DropdownMenuItem<Duration?>(value: Duration(days: 365), child: Text('1 Year')),
-                DropdownMenuItem<Duration?>(value: Duration(days: 30), child: Text('1 Month')),
-                DropdownMenuItem<Duration?>(value: Duration(days: 7), child: Text('1 Week')),
+                ),
+                Switch(
+                  value: _showOffer,
+                  onChanged: (value) => setState(() => _showOffer = value),
+                ),
               ],
-              onChanged: (value) => setState(() => _validity = value),
-              decoration: InputDecoration(
-                labelText: 'Promo validity',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              ),
             ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _applyOffer,
-                icon: const Icon(Icons.publish_rounded),
-                label: const Text('Publish Offer & Promo'),
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1F4E79), foregroundColor: Colors.white),
-              ),
+          ),
+          TextField(
+            controller: _offerController,
+            maxLines: 2,
+            decoration: InputDecoration(
+              hintText: 'Write offer text here (New Year, Diwali, etc.)',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
             ),
-          ],
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _promoController,
+            decoration: InputDecoration(
+              hintText: 'Promo code (example: NEWYEAR100)',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<Duration?>(
+            initialValue: _validity,
+            items: const [
+              DropdownMenuItem<Duration?>(value: Duration(days: 365), child: Text('1 Year')),
+              DropdownMenuItem<Duration?>(value: Duration(days: 30), child: Text('1 Month')),
+              DropdownMenuItem<Duration?>(value: Duration(days: 7), child: Text('1 Week')),
+            ],
+            onChanged: (value) => setState(() => _validity = value),
+            decoration: InputDecoration(
+              labelText: 'Promo validity',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _applyOffer,
+              icon: const Icon(Icons.publish_rounded),
+              label: const Text('Publish Offer & Promo'),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1F4E79), foregroundColor: Colors.white),
+            ),
+          ),
         ],
       ),
     );

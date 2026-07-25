@@ -15,7 +15,10 @@ class AdminGatePage extends StatefulWidget {
 }
 
 class _AdminGatePageState extends State<AdminGatePage> {
-  final TextEditingController _codeController = TextEditingController();
+  final TextEditingController _adminIdController = TextEditingController(
+    text: OwnerAdminAccessService.adminId,
+  );
+  final TextEditingController _passwordController = TextEditingController();
   String? _errorText;
 
   @override
@@ -26,7 +29,8 @@ class _AdminGatePageState extends State<AdminGatePage> {
 
   @override
   void dispose() {
-    _codeController.dispose();
+    _adminIdController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
@@ -44,14 +48,17 @@ class _AdminGatePageState extends State<AdminGatePage> {
   }
 
   void _unlock() {
-    final ok = OwnerAdminAccessService.unlockWithCode(_codeController.text);
+    final ok = OwnerAdminAccessService.unlockWithCredentials(
+      _adminIdController.text,
+      _passwordController.text,
+    );
     if (ok) {
       Navigator.of(context).pushReplacementNamed(widget.targetRoute);
       return;
     }
 
     setState(() {
-      _errorText = 'Invalid owner code';
+      _errorText = 'Invalid admin login credentials';
     });
   }
 
@@ -89,7 +96,7 @@ class _AdminGatePageState extends State<AdminGatePage> {
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        'Enter owner code to continue.',
+                        'Enter admin ID and password to continue.',
                         style: TextStyle(
                           fontSize: 13,
                           color: Color(0xFF475569),
@@ -97,7 +104,24 @@ class _AdminGatePageState extends State<AdminGatePage> {
                       ),
                       const SizedBox(height: 14),
                       TextField(
-                        controller: _codeController,
+                        controller: _adminIdController,
+                        onChanged: (_) {
+                          if (_errorText != null) {
+                            setState(() {
+                              _errorText = null;
+                            });
+                          }
+                        },
+                        decoration: InputDecoration(
+                          labelText: 'Admin ID',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: _passwordController,
                         obscureText: true,
                         onChanged: (_) {
                           if (_errorText != null) {
@@ -107,7 +131,7 @@ class _AdminGatePageState extends State<AdminGatePage> {
                           }
                         },
                         decoration: InputDecoration(
-                          labelText: 'Owner code',
+                          labelText: 'Password',
                           errorText: _errorText,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
