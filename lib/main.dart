@@ -8,6 +8,7 @@ import 'Pages/pdf_tools_page.dart';
 import 'Pages/home_page_v2.dart';
 import 'Pages/admin_gate_page.dart';
 import 'Pages/system_check_page.dart';
+import 'main_v1_1.dart' as production;
 // ===============================
 // GLOBAL RESUME DATA MODEL
 // ===============================
@@ -30,7 +31,9 @@ class ResumeData {
   ];
 }
 void main() {
-runApp(const JobReadyApp());
+  // Keep Flutter's default lib/main.dart launcher authoritative for production
+  // while delegating to the validated V1 integration app used for V1.2 work.
+  production.main();
 }
 
 class JobReadyApp extends StatelessWidget {

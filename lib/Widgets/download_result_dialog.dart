@@ -344,7 +344,7 @@ class DownloadResultDialog extends StatelessWidget {
     } catch (_) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Download blocked by browser. Opening file link in new tab.'),
+          content: Text('Download was blocked. We opened the file in a new tab. If it still fails, allow pop-ups or use Save Link.'),
           backgroundColor: Colors.orange,
         ),
       );

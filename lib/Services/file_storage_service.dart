@@ -69,7 +69,6 @@ class StoredFile {
 
 class FileStorageService {
   static const String _storageKey = 'jobready_file_storage_v1';
-  static const String _maxFilesKey = 'jobready_file_storage_count';
   static const int _maxStoredFiles = 5;
 
   /// Store a file for access across tool pages

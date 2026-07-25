@@ -18,6 +18,7 @@ import 'Pages/pricing_page.dart';
 import 'Pages/privacy_policy_page.dart';
 import 'Pages/split_tool_page.dart';
 import 'Pages/support_page.dart';
+import 'Pages/v2/resume/resume_workspace_page.dart';
 import 'Pages/v2/converter/converter_workspace_page.dart';
 import 'Pages/v2/history/history_page.dart';
 import 'Pages/system_check_page.dart';
@@ -63,11 +64,15 @@ class JobReadyV11App extends StatelessWidget {
         '/pdf-edit': (_) => const PdfEditPage(),
         '/pdf-tools': (_) => const PdfToolsPage(),
         '/history': (_) => const HistoryPage(),
+        '/resume': (_) => const ResumeWorkspacePage(),
         '/converter-workspace': (_) => const ConverterWorkspacePage(),
         '/admin': (_) => const AdminGatePage(targetRoute: '/system-check'),
         '/coming-soon': (_) => const ComingSoonPage(),
         '/system-check': (_) => const SystemCheckPage(),
       },
+      onUnknownRoute: (_) => MaterialPageRoute<void>(
+        builder: (_) => const HomePageV2(),
+      ),
     );
   }
 }

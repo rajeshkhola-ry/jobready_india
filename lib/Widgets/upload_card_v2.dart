@@ -89,7 +89,7 @@ class _UploadCardV2State extends State<UploadCardV2> {
         _dragging = false;
       });
 
-      final fileList = event.dataTransfer?.files;
+      final fileList = event.dataTransfer.files;
       if (fileList == null || fileList.isEmpty) {
         return;
       }
@@ -223,11 +223,50 @@ class _UploadCardV2State extends State<UploadCardV2> {
   }
 
   Future<void> _pickFile() async {
-    final files = await FilePickerService.pickMultipleFileData(
-      allowedExtensions: _allowedExtensions,
-    );
+    try {
+      final files = await FilePickerService.pickMultipleFileData(
+        allowedExtensions: _allowedExtensions,
+      );
 
-    _applyUploadedFiles(files);
+      if (!mounted) {
+        return;
+      }
+
+      final report = FilePickerService.lastSelectionReport;
+      if (files.isEmpty) {
+        final message = report.cancelled
+            ? 'File selection cancelled.'
+            : (report.hasFilteredFiles
+                ? report.buildSummaryMessage()
+                : 'No usable files were selected. Please choose supported files and try again.');
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+        return;
+      }
+
+      _applyUploadedFiles(files);
+
+      if (report.hasFilteredFiles && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(report.buildSummaryMessage()),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Upload failed to start. Please check browser permissions and try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   String _formatBytes(int bytes) {

@@ -205,7 +205,7 @@ class ConversionService {
     } catch (e) {
       return ConversionResult(
         success: false,
-        message: 'Conversion failed: $e',
+        message: 'Conversion failed. Please try again with a supported file.',
       );
     }
   }
@@ -338,7 +338,7 @@ class ConversionService {
         } catch (e) {
           return ConversionResult(
             success: false,
-            message: 'Unable to export PDF pages as ${targetType.toUpperCase()} images on web: $e',
+            message: 'Unable to export PDF pages as ${targetType.toUpperCase()} images on web. Please try a smaller PDF or split it first.',
           );
         }
       }
@@ -368,7 +368,7 @@ class ConversionService {
 
         return ConversionResult(
           success: false,
-          message: 'Unable to export PDF pages as images: $e',
+          message: 'Unable to export PDF pages as images. Please try again or use a smaller file.',
         );
       }
     }
@@ -421,7 +421,7 @@ class ConversionService {
     } catch (e) {
       return ConversionResult(
         success: false,
-        message: 'PowerPoint conversion failed: $e',
+        message: 'PowerPoint conversion failed. Please try again with a simpler file.',
       );
     }
   }
@@ -732,7 +732,7 @@ ${List<String>.generate(slideGroups.length, (index) => '  <Relationship Id="rId$
       if (_isLikelyPasswordProtectedError(message)) {
         return 'This PDF appears to be password-protected. Remove password and try again.';
       }
-      return 'Unable to extract text from the selected PDF. Error: $e';
+      return 'Unable to extract text from the selected PDF. Please try another file or split the PDF and retry.';
     }
   }
 

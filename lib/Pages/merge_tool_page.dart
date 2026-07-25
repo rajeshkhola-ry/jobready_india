@@ -51,6 +51,27 @@ class _MergeToolPageState extends State<MergeToolPage> {
         title: const Text('Merge PDFs'),
         backgroundColor: const Color(0xFF1F2937),
         foregroundColor: Colors.white,
+        leading: IconButton(
+          tooltip: 'Back',
+          onPressed: () {
+            final navigator = Navigator.of(context);
+            if (navigator.canPop()) {
+              navigator.pop();
+            } else {
+              navigator.pushNamedAndRemoveUntil('/home', (route) => false);
+            }
+          },
+          icon: const Icon(Icons.arrow_back_rounded),
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'Home',
+            onPressed: () {
+              Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+            },
+            icon: const Icon(Icons.home_rounded),
+          ),
+        ],
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -594,6 +615,8 @@ class _MergeToolPageState extends State<MergeToolPage> {
       final files = await FilePickerService.pickMultipleFileData(
         allowedExtensions: ['pdf'],
       );
+      if (!mounted) return;
+      final report = FilePickerService.lastSelectionReport;
 
       if (files.isNotEmpty) {
         setState(() {
@@ -602,30 +625,47 @@ class _MergeToolPageState extends State<MergeToolPage> {
           _selectedFileSizes = files.map((f) => f.size).toList();
           _statusMessage = '✓ ${files.length} PDF file(s) selected';
         });
+        if (report.hasFilteredFiles && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(report.buildSummaryMessage()),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
       } else {
         setState(() {
-          _statusMessage = 'File selection cancelled';
+          _statusMessage = report.cancelled
+              ? 'File selection cancelled'
+              : 'No usable files selected. ${report.buildSummaryMessage()}';
         });
+        if (!report.cancelled && mounted && report.hasFilteredFiles) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(report.buildSummaryMessage()),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
-        _statusMessage = '✗ Error selecting files: $e';
+        _statusMessage = '✗ Unable to open file picker. Please try again.';
       });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to open file picker. Please check permissions and try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
   Future<void> _startMerge() async {
-    if (_selectedFiles.isEmpty) {
+    if (_selectedFiles.length < 2) {
       setState(() {
-        _statusMessage = '✗ Select at least 1 PDF to merge';
+        _statusMessage = '✗ Select at least 2 PDFs to merge';
       });
       return;
     }
@@ -683,16 +723,14 @@ class _MergeToolPageState extends State<MergeToolPage> {
       if (!mounted) return;
       setState(() {
         _isMerging = false;
-        _statusMessage = '✗ Merge failed: $e';
+        _statusMessage = '✗ Merge failed. Please check your PDF files and try again.';
       });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Merge failed: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Merge failed. Please use valid PDF files and try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 

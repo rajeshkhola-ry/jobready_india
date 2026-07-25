@@ -301,7 +301,7 @@ class _HomePageV2State extends State<HomePageV2> {
                 Navigator.of(dialogContext).pop();
 
                 _openMailComposer(
-                  subject: 'JOBREADY $selectedType - ${ticket.ticketNumber}',
+                  subject: 'GETREADYJOB $selectedType - ${ticket.ticketNumber}',
                   body:
                       'Ticket Number: ${ticket.ticketNumber}\nType: ${ticket.type}\nSource: ${ticket.source}\nCreated: ${ticket.createdAtIso}\n\nMessage:\n$message',
                 );
@@ -397,8 +397,8 @@ class _HomePageV2State extends State<HomePageV2> {
             iconColor: const Color(0xFFFFC72C),
             onTap: () {
               _openMailComposer(
-                subject: 'JOBREADY Support Request',
-                body: 'Hi JOBREADY Team,%0A%0APlease help me with:%0A',
+                subject: 'GETREADYJOB Support Request',
+                body: 'Hi GETREADYJOB Team,%0A%0APlease help me with:%0A',
               );
             },
           ),
@@ -481,7 +481,7 @@ class _HomePageV2State extends State<HomePageV2> {
                 border: Border.all(color: const Color(0xFFBFD4F3)),
               ),
               child: const Text(
-                'Runtime: V1.1 (Merged) | Entry: lib/main_v1_1.dart',
+                'Welcome to GETREADYJOB!',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Color(0xFF0E3A66),
@@ -1508,7 +1508,7 @@ class _BrowserSupportNotice extends StatelessWidget {
           SizedBox(width: 8),
           Expanded(
             child: Text(
-              'JOBREADY is now live. Full access is free for the next 30 days. If you notice any issue, please share it in Suggestion and we will fix it quickly.',
+              'GETREADYJOB is now live. Full access is free for the next 30 days. If you notice any issue, please share it in Suggestion and we will fix it quickly.',
               style: TextStyle(
                 fontSize: 12,
                 height: 1.35,
@@ -2499,7 +2499,7 @@ class _AboutUsSection extends StatelessWidget {
           Text('About Us', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1F2937))),
           SizedBox(height: 6),
           Text(
-            'JOBREADY helps users process documents faster with reliable tools for conversion, compression, and premium workflow automation. We focus on simple steps, stable output quality, and practical productivity for individuals and teams.',
+            'GETREADYJOB helps users process documents faster with reliable tools for conversion, compression, and premium workflow automation. We focus on simple steps, stable output quality, and practical productivity for individuals and teams.',
             style: TextStyle(fontSize: 13, height: 1.4, color: Color(0xFF4B5563)),
           ),
         ],
@@ -3490,7 +3490,7 @@ class _MostPopularToolsCard extends StatelessWidget {
             label: 'PDF to Word',
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const PdfToolsPage()),
+              MaterialPageRoute(builder: (_) => const ConvertToolPage()),
             ),
           ),
           _PopularToolRow(

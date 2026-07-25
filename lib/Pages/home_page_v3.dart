@@ -167,7 +167,7 @@ class HomePageV3 extends StatelessWidget {
                       spacing: 10,
                       runSpacing: 10,
                       children: const [
-                        _StatusPill(label: 'Free for 15 days', value: 'All features except AI', color: Color(0xFF0F766E)),
+                        _StatusPill(label: 'Welcome User!', value: '', color: Color(0xFF0F766E)),
                         _StatusPill(label: 'Resume Builder', value: 'Ready', color: Color(0xFF1F2937)),
                         _StatusPill(label: 'Support', value: PublicBrandConfig.supportEmail, color: Color(0xFF1F2937)),
                       ],

@@ -28,7 +28,7 @@ class _SplitToolPageState extends State<SplitToolPage> {
   int _totalPages = 0;
   String _splitMethod = 'range'; // 'range' or 'extract'
   List<String> _pageRanges = ['1-5']; // e.g., ['1-5', '10-15']
-  TextEditingController _pageRangeController = TextEditingController();
+  final TextEditingController _pageRangeController = TextEditingController();
   bool _isSplitting = false;
   String _statusMessage = 'Ready to split';
 
@@ -86,6 +86,27 @@ class _SplitToolPageState extends State<SplitToolPage> {
         backgroundColor: const Color(0xFF1F2937),
         foregroundColor: Colors.white,
         elevation: 0,
+        leading: IconButton(
+          tooltip: 'Back',
+          onPressed: () {
+            final navigator = Navigator.of(context);
+            if (navigator.canPop()) {
+              navigator.pop();
+            } else {
+              navigator.pushNamedAndRemoveUntil('/home', (route) => false);
+            }
+          },
+          icon: const Icon(Icons.arrow_back_rounded),
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'Home',
+            onPressed: () {
+              Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+            },
+            icon: const Icon(Icons.home_rounded),
+          ),
+        ],
         title: const Text(
           'Split PDF',
           style: TextStyle(
@@ -598,11 +619,23 @@ class _SplitToolPageState extends State<SplitToolPage> {
       final files = await FilePickerService.pickMultipleFileData(
         allowedExtensions: ['pdf'],
       );
+      if (!mounted) return;
+      final report = FilePickerService.lastSelectionReport;
 
       if (files.isEmpty) {
         setState(() {
-          _statusMessage = 'File selection cancelled';
+          _statusMessage = report.cancelled
+              ? 'File selection cancelled'
+              : 'No usable files selected. ${report.buildSummaryMessage()}';
         });
+        if (!report.cancelled && mounted && report.hasFilteredFiles) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(report.buildSummaryMessage()),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
         return;
       }
 
@@ -618,18 +651,25 @@ class _SplitToolPageState extends State<SplitToolPage> {
             ? '✓ ${file.name} selected (${totalPages} pages)'
             : '✓ ${files.length} files selected';
       });
-    } catch (e) {
-      setState(() {
-        _statusMessage = '✗ Error selecting files: $e';
-      });
-      if (mounted) {
+      if (report.hasFilteredFiles && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
+            content: Text(report.buildSummaryMessage()),
+            backgroundColor: Colors.orange,
           ),
         );
       }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _statusMessage = '✗ Unable to open file picker. Please try again.';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to open file picker. Please check permissions and try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -675,6 +715,10 @@ class _SplitToolPageState extends State<SplitToolPage> {
         }
       }
 
+      if (archive.files.isEmpty) {
+        throw Exception('No valid pages found for the selected range(s).');
+      }
+
       final zipBytes = ZipEncoder().encode(archive);
       if (zipBytes == null) {
         throw Exception('Unable to create split ZIP output');
@@ -707,16 +751,14 @@ class _SplitToolPageState extends State<SplitToolPage> {
       if (!mounted) return;
       setState(() {
         _isSplitting = false;
-        _statusMessage = '✗ Split failed: $e';
+        _statusMessage = '✗ Split failed. Please verify page ranges and try again.';
       });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Split failed: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Split failed. Please check page ranges and try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 

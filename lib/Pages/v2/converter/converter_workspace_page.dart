@@ -11,10 +11,14 @@ class ConverterWorkspacePage extends StatefulWidget {
 }
 
 class _ConverterWorkspacePageState extends State<ConverterWorkspacePage> {
+  final TextEditingController _searchController = TextEditingController();
   String _inputFormat = 'PDF';
   String _outputFormat = 'DOCX';
   bool _keepLayout = true;
   bool _highQuality = true;
+  String _searchQuery = '';
+  String _selectedFormat = 'All';
+  int _retentionLimit = DocumentHistoryService.getRetentionLimit();
   List<DocumentHistoryEntry> _recentEntries = const <DocumentHistoryEntry>[];
   int _todayConversions = 0;
 
@@ -32,17 +36,77 @@ class _ConverterWorkspacePageState extends State<ConverterWorkspacePage> {
     _refreshHistory();
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   void _refreshHistory() {
     final entries = DocumentHistoryService.getEntries()
         .where((entry) => _matchesConversionEntry(entry.outputFormat))
-        .take(4)
         .toList(growable: false);
     final summary = UsageQuotaService.getTodaySummary();
 
     setState(() {
       _recentEntries = entries;
       _todayConversions = summary.conversions;
+      final formats = _availableFormats();
+      if (!formats.contains(_selectedFormat)) {
+        _selectedFormat = 'All';
+      }
     });
+  }
+
+  List<String> _availableFormats() {
+    final formats = _recentEntries
+        .map((entry) => entry.outputFormat.trim())
+        .where((format) => format.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+    return ['All', ...formats];
+  }
+
+  List<DocumentHistoryEntry> _filteredEntries() {
+    final query = _searchQuery.trim().toLowerCase();
+    return _recentEntries.where((entry) {
+      if (_selectedFormat != 'All' && entry.outputFormat != _selectedFormat) {
+        return false;
+      }
+      if (query.isEmpty) {
+        return true;
+      }
+      return entry.fileName.toLowerCase().contains(query) ||
+          entry.outputFormat.toLowerCase().contains(query);
+    }).toList(growable: false);
+  }
+
+  Future<void> _clearHistory() async {
+    await DocumentHistoryService.clear();
+    if (!mounted) {
+      return;
+    }
+    _refreshHistory();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Conversion history cleared.')),
+    );
+  }
+
+  Future<void> _updateRetentionLimit(int limit) async {
+    await DocumentHistoryService.setRetentionLimit(limit);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _retentionLimit = limit;
+      _recentEntries = DocumentHistoryService.getEntries()
+          .where((entry) => _matchesConversionEntry(entry.outputFormat))
+          .toList(growable: false);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Retention updated to last $limit conversion entries.')),
+    );
   }
 
   bool _matchesConversionEntry(String outputFormat) {
@@ -64,16 +128,24 @@ class _ConverterWorkspacePageState extends State<ConverterWorkspacePage> {
   }
 
   void _startConversionPlan() {
+    if (_inputFormat == _outputFormat) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Input and output format must be different.'),
+          backgroundColor: Color(0xFFDC2626),
+        ),
+      );
+      return;
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Plan created: $_inputFormat to $_outputFormat, '
-          'layout ${_keepLayout ? 'kept' : 'flexible'}, '
-          'quality ${_highQuality ? 'high' : 'balanced'}. Opening converter tool...',
+          'Opening converter: $_inputFormat → $_outputFormat'
+          '${_keepLayout ? ', layout preserved' : ''}'
+          '${_highQuality ? ', high quality' : ''}.',
         ),
       ),
     );
-
     Navigator.pushNamed(context, '/convert');
   }
 
@@ -103,14 +175,51 @@ class _ConverterWorkspacePageState extends State<ConverterWorkspacePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _panel(
-                      child: const Text(
-                        'V2 converter module workspace. Configure conversion plans here before execution.',
-                        style: TextStyle(
-                          fontSize: 14,
-                          height: 1.45,
-                          color: Color(0xFF334155),
-                          fontWeight: FontWeight.w600,
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF0E3A66),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  Icons.swap_horiz_rounded,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              const Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Converter Workspace',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF0F172A),
+                                      ),
+                                    ),
+                                    SizedBox(height: 2),
+                                    Text(
+                                      'Choose your formats, apply a preset, and convert.',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Color(0xFF64748B),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 14),
@@ -142,18 +251,22 @@ class _ConverterWorkspacePageState extends State<ConverterWorkspacePage> {
                             children: [
                               _PresetChip(
                                 label: 'PDF to DOCX',
+                                isActive: _inputFormat == 'PDF' && _outputFormat == 'DOCX',
                                 onTap: () => _applyPreset('PDF', 'DOCX'),
                               ),
                               _PresetChip(
                                 label: 'DOCX to PDF',
+                                isActive: _inputFormat == 'DOCX' && _outputFormat == 'PDF',
                                 onTap: () => _applyPreset('DOCX', 'PDF'),
                               ),
                               _PresetChip(
                                 label: 'PDF to JPG',
+                                isActive: _inputFormat == 'PDF' && _outputFormat == 'JPG',
                                 onTap: () => _applyPreset('PDF', 'JPG'),
                               ),
                               _PresetChip(
                                 label: 'PNG to PDF',
+                                isActive: _inputFormat == 'PNG' && _outputFormat == 'PDF',
                                 onTap: () => _applyPreset('PNG', 'PDF'),
                               ),
                             ],
@@ -176,7 +289,7 @@ class _ConverterWorkspacePageState extends State<ConverterWorkspacePage> {
                           ),
                           const SizedBox(height: 8),
                           DropdownButtonFormField<String>(
-                            initialValue: _inputFormat,
+                            value: _inputFormat,
                             items: _formats
                                 .map((format) => DropdownMenuItem<String>(
                                       value: format,
@@ -204,7 +317,7 @@ class _ConverterWorkspacePageState extends State<ConverterWorkspacePage> {
                           ),
                           const SizedBox(height: 8),
                           DropdownButtonFormField<String>(
-                            initialValue: _outputFormat,
+                            value: _outputFormat,
                             items: _formats
                                 .map((format) => DropdownMenuItem<String>(
                                       value: format,
@@ -241,15 +354,38 @@ class _ConverterWorkspacePageState extends State<ConverterWorkspacePage> {
                             contentPadding: EdgeInsets.zero,
                             title: const Text('Prefer high quality output'),
                           ),
+                          if (_inputFormat == _outputFormat)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 10, bottom: 4),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.warning_amber_rounded,
+                                      size: 16, color: Color(0xFFD97706)),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Input and output format are the same ($_inputFormat). Please select a different output.',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFFD97706),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           const SizedBox(height: 8),
                           Wrap(
                             spacing: 10,
                             runSpacing: 10,
                             children: [
                               ElevatedButton.icon(
-                                onPressed: _startConversionPlan,
-                                icon: const Icon(Icons.play_arrow_rounded),
-                                label: const Text('Create Plan & Open Tool'),
+                                onPressed: _inputFormat == _outputFormat ? null : _startConversionPlan,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF0E3A66),
+                                  foregroundColor: Colors.white,
+                                ),
+                                icon: const Icon(Icons.swap_horiz_rounded),
+                                label: const Text('Convert Now'),
                               ),
                               OutlinedButton.icon(
                                 onPressed: _refreshHistory,
@@ -259,7 +395,7 @@ class _ConverterWorkspacePageState extends State<ConverterWorkspacePage> {
                               OutlinedButton.icon(
                                 onPressed: () => Navigator.pop(context),
                                 icon: const Icon(Icons.home_outlined),
-                                label: const Text('Back to V2 Home'),
+                                label: const Text('Back to Home'),
                               ),
                             ],
                           ),
@@ -301,6 +437,80 @@ class _ConverterWorkspacePageState extends State<ConverterWorkspacePage> {
                             ],
                           ),
                           const SizedBox(height: 10),
+                          TextField(
+                            controller: _searchController,
+                            onChanged: (value) {
+                              setState(() {
+                                _searchQuery = value;
+                              });
+                            },
+                            decoration: const InputDecoration(
+                              labelText: 'Search conversion history',
+                              hintText: 'Search file name or format',
+                              prefixIcon: Icon(Icons.search_rounded),
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          DropdownButtonFormField<String>(
+                            value: _selectedFormat,
+                            items: _availableFormats()
+                                .map(
+                                  (format) => DropdownMenuItem<String>(
+                                    value: format,
+                                    child: Text(format),
+                                  ),
+                                )
+                                .toList(growable: false),
+                            onChanged: (value) {
+                              if (value == null) {
+                                return;
+                              }
+                              setState(() {
+                                _selectedFormat = value;
+                              });
+                            },
+                            decoration: const InputDecoration(
+                              labelText: 'Filter by format',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              for (final limit in const [20, 50, 100, 200])
+                                ChoiceChip(
+                                  label: Text('Retention: $limit'),
+                                  selected: _retentionLimit == limit,
+                                  onSelected: (_) => _updateRetentionLimit(limit),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'Showing ${_filteredEntries().length} of ${_recentEntries.length} entries',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF64748B),
+                                  ),
+                                ),
+                              ),
+                              TextButton.icon(
+                                onPressed: _recentEntries.isEmpty ? null : _clearHistory,
+                                icon: const Icon(Icons.delete_outline_rounded, size: 16),
+                                label: const Text('Clear History'),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
                           if (_recentEntries.isEmpty)
                             const Text(
                               'No conversion history yet. Complete one conversion from the main tool and it will appear here.',
@@ -310,9 +520,18 @@ class _ConverterWorkspacePageState extends State<ConverterWorkspacePage> {
                                 color: Color(0xFF64748B),
                               ),
                             )
+                          else if (_filteredEntries().isEmpty)
+                            const Text(
+                              'No conversion history matches the current search or format filter.',
+                              style: TextStyle(
+                                fontSize: 13,
+                                height: 1.45,
+                                color: Color(0xFF64748B),
+                              ),
+                            )
                           else
                             Column(
-                              children: _recentEntries
+                              children: _filteredEntries()
                                   .map((entry) => Padding(
                                         padding: const EdgeInsets.only(bottom: 10),
                                         child: _HistoryRow(entry: entry),
@@ -348,21 +567,39 @@ class _ConverterWorkspacePageState extends State<ConverterWorkspacePage> {
 
 class _PresetChip extends StatelessWidget {
   final String label;
+  final bool isActive;
   final VoidCallback onTap;
 
-  const _PresetChip({required this.label, required this.onTap});
+  const _PresetChip({
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return ActionChip(
-      label: Text(
-        label,
-        style: const TextStyle(fontWeight: FontWeight.w700),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 160),
+      child: ActionChip(
+        label: Text(
+          label,
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: isActive ? Colors.white : const Color(0xFF0E3A66),
+          ),
+        ),
+        onPressed: onTap,
+        backgroundColor:
+            isActive ? const Color(0xFF0E3A66) : const Color(0xFFEAF2FF),
+        side: BorderSide(
+          color: isActive ? const Color(0xFF0E3A66) : const Color(0xFFD8E5F5),
+        ),
+        avatar: isActive
+            ? const Icon(Icons.check_rounded, size: 16, color: Colors.white)
+            : null,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
       ),
-      onPressed: onTap,
-      backgroundColor: const Color(0xFFEAF2FF),
-      side: const BorderSide(color: Color(0xFFD8E5F5)),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
     );
   }
 }

@@ -597,11 +597,23 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
       final files = await FilePickerService.pickMultipleFileData(
         allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'bmp'],
       );
+      if (!mounted) return;
+      final report = FilePickerService.lastSelectionReport;
 
       if (files.isEmpty) {
         setState(() {
-          _statusMessage = 'File selection cancelled';
+          _statusMessage = report.cancelled
+              ? 'File selection cancelled'
+              : 'No usable files selected. ${report.buildSummaryMessage()}';
         });
+        if (!report.cancelled && mounted && report.hasFilteredFiles) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(report.buildSummaryMessage()),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
         return;
       }
 
@@ -618,10 +630,19 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
         _filesAboveTarget = [];
         _qualityImpactNotes = [];
       });
+      if (report.hasFilteredFiles && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(report.buildSummaryMessage()),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
+        const SnackBar(
+          content: Text('Unable to open file picker. Please check permissions and try again.'),
           backgroundColor: Colors.red,
         ),
       );
@@ -813,14 +834,15 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
         ),
       );
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isCompressing = false;
-        _statusMessage = '✗ Compression failed: $e';
+        _statusMessage = '✗ Compression failed. Please try again with another file or target size.';
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
+        const SnackBar(
+          content: Text('Compression failed. Please retry with a smaller target or another file.'),
           backgroundColor: Colors.red,
         ),
       );

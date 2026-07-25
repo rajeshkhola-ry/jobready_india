@@ -817,11 +817,23 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
       final files = await FilePickerService.pickMultipleFileData(
         allowedExtensions: inputExtensions[_selectedInputFormat!] ?? [],
       );
+      if (!mounted) return;
+      final report = FilePickerService.lastSelectionReport;
 
       if (files.isEmpty) {
         setState(() {
-          _statusMessage = 'File selection cancelled';
+          _statusMessage = report.cancelled
+              ? 'File selection cancelled'
+              : 'No usable files selected. ${report.buildSummaryMessage()}';
         });
+        if (!report.cancelled && mounted && report.hasFilteredFiles) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(report.buildSummaryMessage()),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
         return;
       }
       setState(() {
@@ -832,13 +844,22 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
         ? 'File selected. Tap Start Convert to continue.'
         : '${files.length} files selected. Tap Start Convert to continue.';
       });
+      if (report.hasFilteredFiles && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(report.buildSummaryMessage()),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
-        _statusMessage = '✗ Error: $e';
+        _statusMessage = '✗ Unable to open file picker. Please try again.';
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
+        const SnackBar(
+          content: Text('Unable to open file picker. Please check permissions and try again.'),
           backgroundColor: Colors.red,
         ),
       );
@@ -1009,8 +1030,15 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
 
       setState(() {
         _isConverting = false;
-        _statusMessage = '✗ Error: $e';
+        _statusMessage = '✗ Conversion failed. Please try again with a supported file.';
       });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Conversion failed. Please try again or use a smaller/simpler file.'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
