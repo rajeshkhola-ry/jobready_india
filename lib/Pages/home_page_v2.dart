@@ -4376,7 +4376,21 @@ class _UserAccountPrivacySection extends StatefulWidget {
 class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> {
   late final TextEditingController _nameController;
   late final TextEditingController _emailController;
-  bool _historyEnabled = true;
+  static const List<String> _countryOptions = <String>[
+    'India',
+    'United States',
+    'United Kingdom',
+    'Canada',
+    'Australia',
+    'Germany',
+    'France',
+    'Singapore',
+    'UAE',
+    'Other',
+  ];
+
+  String _selectedCountry = 'India';
+  bool _googleLoginPreferred = false;
 
   @override
   void initState() {
@@ -4384,7 +4398,8 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
     final profile = UserAccountService.getProfile();
     _nameController = TextEditingController(text: profile.displayName);
     _emailController = TextEditingController(text: profile.email);
-    _historyEnabled = profile.historyEnabled;
+    _selectedCountry = profile.country.isNotEmpty ? profile.country : 'India';
+    _googleLoginPreferred = profile.googleLoginPreferred;
   }
 
   @override
@@ -4395,7 +4410,16 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
   }
 
   Future<void> _saveProfile() async {
+    final name = _nameController.text.trim();
     final email = _emailController.text.trim();
+
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your name.')),
+      );
+      return;
+    }
+
     if (email.isNotEmpty && !RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a valid email address.')),
@@ -4404,9 +4428,11 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
     }
 
     final profile = UserAccountProfile(
-      displayName: _nameController.text.trim(),
+      displayName: name,
       email: email,
-      historyEnabled: _historyEnabled,
+      country: _selectedCountry,
+      historyEnabled: true,
+      googleLoginPreferred: _googleLoginPreferred,
     );
 
     await UserAccountService.saveProfile(profile);
@@ -4415,7 +4441,18 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Account and privacy settings saved.')),
+      const SnackBar(content: Text('Account details saved.')),
+    );
+  }
+
+  void _loginWithGoogle() {
+    html.window.open('https://accounts.google.com/signin', '_blank');
+    setState(() {
+      _googleLoginPreferred = true;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Google sign-in page opened.')),
     );
   }
 
@@ -4453,7 +4490,7 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
           TextField(
             controller: _nameController,
             decoration: InputDecoration(
-              labelText: 'Display Name',
+              labelText: 'Name',
               hintText: 'Enter your name',
               isDense: true,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
@@ -4464,42 +4501,57 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
             decoration: InputDecoration(
-              labelText: 'Email',
+              labelText: 'Email ID',
               hintText: 'name@example.com',
               isDense: true,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
             ),
           ),
           const SizedBox(height: 8),
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Enable document history',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-                ),
-              ),
-              Switch.adaptive(
-                value: _historyEnabled,
-                onChanged: (value) {
-                  setState(() {
-                    _historyEnabled = value;
-                  });
-                },
-              ),
-            ],
+          DropdownButtonFormField<String>(
+            initialValue: _selectedCountry,
+            items: _countryOptions
+                .map(
+                  (country) => DropdownMenuItem<String>(
+                    value: country,
+                    child: Text(country),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) {
+              if (value == null) {
+                return;
+              }
+              setState(() {
+                _selectedCountry = value;
+              });
+            },
+            decoration: InputDecoration(
+              labelText: 'Country',
+              isDense: true,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            ),
           ),
-          const Text(
-            'Turn off to stop recording new recent documents.',
-            style: TextStyle(fontSize: 11, color: Color(0xFF6B7280), fontWeight: FontWeight.w600),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _loginWithGoogle,
+              icon: const Icon(Icons.g_mobiledata_rounded, size: 20),
+              label: const Text('Login with Google'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF1F4E79),
+                side: const BorderSide(color: Color(0xFFBFDBFE)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
           ),
-          const SizedBox(height: 6),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: _saveProfile,
-              icon: const Icon(Icons.save_outlined, size: 16),
-              label: const Text('Save Settings'),
+              icon: const Icon(Icons.person_add_alt_1_rounded, size: 16),
+              label: const Text('Create Account'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1F4E79),
                 foregroundColor: Colors.white,

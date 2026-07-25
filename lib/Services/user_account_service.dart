@@ -5,31 +5,41 @@ import 'package:universal_html/html.dart' as html;
 class UserAccountProfile {
   final String displayName;
   final String email;
+  final String country;
   final bool historyEnabled;
+  final bool googleLoginPreferred;
 
   const UserAccountProfile({
     required this.displayName,
     required this.email,
+    required this.country,
     required this.historyEnabled,
+    required this.googleLoginPreferred,
   });
 
   factory UserAccountProfile.initial() {
     return const UserAccountProfile(
       displayName: '',
       email: '',
+      country: 'India',
       historyEnabled: true,
+      googleLoginPreferred: false,
     );
   }
 
   UserAccountProfile copyWith({
     String? displayName,
     String? email,
+    String? country,
     bool? historyEnabled,
+    bool? googleLoginPreferred,
   }) {
     return UserAccountProfile(
       displayName: displayName ?? this.displayName,
       email: email ?? this.email,
+      country: country ?? this.country,
       historyEnabled: historyEnabled ?? this.historyEnabled,
+      googleLoginPreferred: googleLoginPreferred ?? this.googleLoginPreferred,
     );
   }
 
@@ -37,7 +47,9 @@ class UserAccountProfile {
     return {
       'display_name': displayName,
       'email': email,
+      'country': country,
       'history_enabled': historyEnabled,
+      'google_login_preferred': googleLoginPreferred,
     };
   }
 
@@ -45,7 +57,11 @@ class UserAccountProfile {
     return UserAccountProfile(
       displayName: map['display_name']?.toString() ?? '',
       email: map['email']?.toString() ?? '',
+      country: map['country']?.toString().trim().isNotEmpty == true
+          ? map['country'].toString()
+          : 'India',
       historyEnabled: map['history_enabled'] == true,
+      googleLoginPreferred: map['google_login_preferred'] == true,
     );
   }
 }
