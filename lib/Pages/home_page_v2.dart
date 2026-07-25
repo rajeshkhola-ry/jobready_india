@@ -600,9 +600,35 @@ class _HomePageV2State extends State<HomePageV2> {
             ],
             const SizedBox(height: 12),
             const SizedBox(height: 4),
-            const SizedBox(height: 12),
-            const _FixedAdSpace(adPlacement: 'banner_home'),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    child: Text(
+                      'Ad Space',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 6),
+                  _FixedAdSpace(adPlacement: 'banner_home'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
             const _SectionHeader(
               title: 'Plans',
               subtitle: 'Simple access today, premium workspace upgrades coming next.',
@@ -2698,6 +2724,16 @@ class _AdminLoginPanelState extends State<_AdminLoginPanel> {
           const Text(
             'Admin Login',
             style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'First login: ID rajesh.khola and password Rajesh@2026. After login, open Admin Login Settings to set your own password.',
+            style: TextStyle(
+              fontSize: 11,
+              color: Color(0xFF475569),
+              fontWeight: FontWeight.w600,
+              height: 1.35,
+            ),
           ),
           const SizedBox(height: 8),
           TextField(
