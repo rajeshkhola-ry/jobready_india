@@ -216,6 +216,69 @@
       color: var(--color-bg-white);
     }
 
+    /* Compression Mode Selector */
+    .compression-mode-group {
+      display: none;
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .compression-mode-group.active {
+      display: block;
+    }
+
+    .compression-mode-label {
+      display: block;
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text-dark);
+      margin-bottom: var(--spacing-md);
+      text-transform: uppercase;
+      letter-spacing: var(--letter-spacing-wide);
+    }
+
+    .mode-selector {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--spacing-md);
+    }
+
+    .mode-btn {
+      padding: var(--spacing-md);
+      border: 2px solid var(--color-border);
+      background: var(--color-bg-white);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-weight: var(--font-weight-medium);
+      color: var(--color-text-medium);
+      transition: all var(--transition-fast);
+      font-size: var(--font-size-sm);
+      text-align: left;
+    }
+
+    .mode-btn:hover {
+      border-color: var(--color-primary);
+      background: var(--color-primary-lighter);
+    }
+
+    .mode-btn.active {
+      border-color: var(--color-primary);
+      background: var(--color-primary);
+      color: var(--color-bg-white);
+    }
+
+    .mode-title {
+      display: block;
+      font-weight: var(--font-weight-semibold);
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .mode-desc {
+      display: block;
+      font-size: 0.8em;
+      opacity: 0.75;
+      margin-top: var(--spacing-xs);
+    }
+
     /* Action Buttons */
     .action-buttons {
       display: grid;
@@ -441,6 +504,31 @@
       50% { transform: translateY(-10px); }
     }
 
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: var(--spacing-xl);
+      right: var(--spacing-xl);
+      background: var(--color-primary);
+      color: white;
+      padding: var(--spacing-md) var(--spacing-lg);
+      border-radius: var(--radius-md);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semibold);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      animation: slideUp 0.3s ease-out;
+      z-index: 1000;
+      max-width: 90vw;
+    }
+
+    @media (max-width: 480px) {
+      .toast {
+        bottom: var(--spacing-lg);
+        right: var(--spacing-lg);
+        left: var(--spacing-lg);
+      }
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
       .tool-content {
@@ -512,6 +600,21 @@
 
           <!-- Controls -->
           <div class="controls" id="controlsSection">
+          <!-- Compression Mode (PDF only) -->
+          <div class="compression-mode-group" id="compressionModeGroup">
+            <label class="compression-mode-label">Compression Mode</label>
+            <div class="mode-selector">
+              <button type="button" class="mode-btn active" data-mode="standard">
+                <span class="mode-title">Standard</span>
+                <span class="mode-desc">Structure optimization • 10-20% reduction</span>
+              </button>
+              <button type="button" class="mode-btn" data-mode="high-compression">
+                <span class="mode-title">High (Image-Only)</span>
+                <span class="mode-desc">Page-to-image conversion • 50-70% reduction</span>
+              </button>
+            </div>
+          </div>
+
             <!-- Quality Control -->
             <div class="control-group">
               <div class="control-label">
@@ -602,15 +705,19 @@
     // State
     let selectedFile = null;
     let selectedFormat = 'webp';
+    let selectedMode = 'standard';
     let compressedUrl = null;
 
     // ============= EVENT LISTENERS =============
 
     uploadArea.addEventListener('click', () => fileInput.click());
 
-    fileInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (file) selectFile(file);
+    fileInput.addEventListener('change', (event) => {
+      if (event.target.files.length === 0) {
+        showToast('No file selected — please choose a file.');
+      } else {
+        handleFileUpload(event.target.files[0]);
+      }
     });
 
     uploadArea.addEventListener('dragover', (e) => {
@@ -645,6 +752,17 @@
       });
     });
 
+    // Compression mode selection
+    const modeBtns = document.querySelectorAll('.mode-btn');
+    modeBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        modeBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedMode = btn.dataset.mode;
+      });
+    });
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (selectedFile) await compressFile();
@@ -667,6 +785,10 @@
 
     // ============= FUNCTIONS =============
 
+    function handleFileUpload(file) {
+      selectFile(file);
+    }
+
     function selectFile(file) {
       selectedFile = file;
       fileName.textContent = `📄 ${file.name}`;
@@ -675,6 +797,16 @@
       controlsSection.classList.add('active');
       buttonGroup.classList.add('active');
       resultSection.classList.remove('active');
+
+      const isPdf = file.type === 'application/pdf';
+      const compressionModeGroup = document.getElementById('compressionModeGroup');
+      const formatGroup = document.getElementById('formatGroup');
+
+      if (isPdf) {
+        compressionModeGroup.classList.add('active');
+      } else {
+        compressionModeGroup.classList.remove('active');
+      }
 
       if (file.type.startsWith('image/')) {
         formatGroup.style.display = 'block';
@@ -690,6 +822,7 @@
       formData.append('file', selectedFile);
       formData.append('quality', qualitySlider.value);
       formData.append('format', selectedFormat);
+      formData.append('compressionMode', selectedMode);
 
       try {
         progressSection.classList.add('active');
@@ -707,7 +840,12 @@
           progressText.textContent = `Processing... ${Math.round(progress)}%`;
         }, 150);
 
-        const response = await fetch('https://getreadyjob.onrender.com/api/compress', {
+        // Use relative path for localhost, absolute for production
+        const apiUrl = window.location.hostname === 'localhost'
+          ? '/api/compress'
+          : 'https://getreadyjob.onrender.com/api/compress';
+
+        const response = await fetch(apiUrl, {
           method: 'POST',
           body: formData
         });
@@ -739,6 +877,14 @@
       }
     }
 
+    function showToast(message) {
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
     function showResult(success, originalSize, compressedSize, ratio, errorMsg) {
       const resultIcon = document.getElementById('resultIcon');
       const resultTitle = document.getElementById('resultTitle');
@@ -750,10 +896,18 @@
         resultSection.classList.remove('error');
         resultIcon.textContent = '✅';
         resultTitle.textContent = 'Compression Successful!';
-        resultDetails.innerHTML = `
-          <strong>Quality:</strong> ${qualitySlider.value}% •
-          <strong>Format:</strong> ${selectedFormat === 'webp' ? 'WebP' : 'JPEG'}
-        `;
+
+        let detailsHtml = '';
+        if (selectedFile.type === 'application/pdf') {
+          const modeLabel = selectedMode === 'standard' ? 'Standard' : 'High Compression (Image-Only)';
+          detailsHtml = `<strong>Mode:</strong> ${modeLabel}`;
+        } else {
+          detailsHtml = `
+            <strong>Quality:</strong> ${qualitySlider.value}% •
+            <strong>Format:</strong> ${selectedFormat === 'webp' ? 'WebP' : 'JPEG'}
+          `;
+        }
+        resultDetails.innerHTML = detailsHtml;
 
         resultStats.innerHTML = `
           <div class="stat">
