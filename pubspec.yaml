@@ -35,6 +35,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   docx_template: ^0.4.0
+  flutter_svg: ^2.0.9
   universal_html: ^2.2.4
   file_picker: ^8.1.2
   path: ^1.8.3
@@ -69,6 +70,8 @@ flutter:
 
   assets:
     - assets/template.docx
+    - lib/public/assets/logo-gold.svg
+    - lib/public/assets/logo-gold-transparent.svg
 
   # To add assets to your application, add an assets section, like this:
   # assets:

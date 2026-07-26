@@ -1,0 +1,18 @@
+{
+  "name": "GET READY JOB",
+  "short_name": "GETREADYJOB",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#1F4E79",
+  "theme_color": "#1F4E79",
+  "description": "GET READY JOB helps users work faster with resumes, documents, and PDF workflows.",
+  "orientation": "portrait-primary",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/assets/logo-gold.svg?v=grj-20260726-gold",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

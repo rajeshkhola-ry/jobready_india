@@ -29,7 +29,7 @@ jobs:
         run: flutter pub get
 
       - name: Build Web (Custom domain root path)
-        run: flutter build web --release -t lib/main_v1_1.dart --base-href "/"
+        run: flutter build web --release -t lib/main_v3.dart --base-href "/"
 
       - name: Add SPA 404 fallback
         run: cp web/404.html build/web/404.html
@@ -40,7 +40,7 @@ jobs:
           {
             "commit": "${{ github.sha }}",
             "ref": "${{ github.ref }}",
-            "entrypoint": "lib/main_v1_1.dart",
+            "entrypoint": "lib/main_v3.dart",
             "built_at_utc": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           }
           EOF
