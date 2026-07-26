@@ -14,7 +14,7 @@ class ApiConfig {
       case ApiEnvironment.staging:
         return 'https://staging-api.getreadyjob.com/api/v1';
       case ApiEnvironment.production:
-        return 'https://api.getreadyjob.com/api/v1';
+        return 'https://getreadyjob.onrender.com';
     }
   }
 
@@ -103,8 +103,8 @@ class ApiConfig {
   };
 
   // ==================== API ENDPOINTS ====================
-  /// Compression Service Endpoints
-  static const String compressionEndpoint = '/files/compress';
+  /// Compression Service Endpoints (Render backend)
+  static const String compressionEndpoint = '/api/compress';
   static const String compressionStatusEndpoint = '/files/compress/status';
 
   /// Conversion Service Endpoints
@@ -438,10 +438,7 @@ class ApiService {
     required String method,
     Map<String, dynamic>? data,
   }) async {
-    print('[$logTag] $method $endpoint');
-    if (data != null) {
-      print('[$logTag] Payload: $data');
-    }
+    // Production-safe no-op placeholder until a backend logger is wired.
   }
 
   /// Log API response
@@ -450,10 +447,7 @@ class ApiService {
     required int statusCode,
     dynamic response,
   }) async {
-    print('[$logTag] Response [$statusCode]: $endpoint');
-    if (response != null) {
-      print('[$logTag] Body: $response');
-    }
+    // Production-safe no-op placeholder until a backend logger is wired.
   }
 
   /// Log analytics event
@@ -462,17 +456,10 @@ class ApiService {
     Map<String, dynamic>? parameters,
   }) async {
     if (!ApiConfig.supportedEvents.contains(eventName)) {
-      print('[$logTag] Warning: Unknown event - $eventName');
       return;
     }
 
-    print('[$logTag] Event logged: $eventName');
-    if (parameters != null) {
-      print('[$logTag] Parameters: $parameters');
-    }
-
-    // TODO: Send to Analytics endpoint
-    // Example: POST /api/v1/analytics/events
+    // Production-safe no-op placeholder until analytics endpoint is wired.
   }
 
   /// Get compression estimate
@@ -830,8 +817,7 @@ class ApiService {
     required String feedbackText,
     required double rating,
   }) async {
-    print('[$logTag] Submitting feedback: $feedbackText (Rating: $rating)');
-    // TODO: POST to /api/v1/feedback
+    // Production-safe no-op placeholder until feedback API is wired.
     return true;
   }
 
@@ -840,8 +826,7 @@ class ApiService {
     required String bugDescription,
     required String stackTrace,
   }) async {
-    print('[$logTag] Reporting bug: $bugDescription');
-    // TODO: POST to /api/v1/bug-report
+    // Production-safe no-op placeholder until bug report API is wired.
     return true;
   }
 }

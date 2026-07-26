@@ -15,11 +15,15 @@ class _CompressionOutcome {
   final Uint8List bytes;
   final bool aggressiveUsed;
   final double reductionPercent;
+  final bool targetMet;
+  final String note;
 
   const _CompressionOutcome({
     required this.bytes,
     required this.aggressiveUsed,
     required this.reductionPercent,
+    required this.targetMet,
+    required this.note,
   });
 }
 
@@ -37,6 +41,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
 
   int? _targetSizeBytes;
   String? _selectedUnit;
+  PdfCompressionMode _selectedCompressionMode = PdfCompressionMode.recommended;
   bool _isCompressing = false;
   String _statusMessage = 'Ready to compress';
 
@@ -60,7 +65,13 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
   }
 
   void _applyDefaultTargetSize(int sourceBytes) {
-    final defaultTarget = (sourceBytes * 0.7).round();
+    final ratio = switch (_selectedCompressionMode) {
+      PdfCompressionMode.smallSize => 0.35,
+      PdfCompressionMode.recommended => 0.55,
+      PdfCompressionMode.highQuality => 0.72,
+      PdfCompressionMode.targetSize => 0.7,
+    };
+    final defaultTarget = (sourceBytes * ratio).round();
     _targetSizeBytes = defaultTarget > 0 ? defaultTarget : sourceBytes;
     _selectedUnit = (_targetSizeBytes ?? 0) < (1024 * 1024) ? 'KB' : 'MB';
   }
@@ -259,6 +270,14 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
                       _selectedUnit = unit;
                     });
                   },
+                  onModeChanged: (mode) {
+                    setState(() {
+                      _selectedCompressionMode = mode;
+                    });
+                  },
+                  sourceBytes: _selectedFiles.isNotEmpty
+                      ? _selectedFiles.first.size
+                      : (_selectedFile?.length ?? 0),
                   initialValue: _targetSizeBytes != null
                       ? (_selectedUnit == 'KB'
                           ? _targetSizeBytes! ~/ 1024
@@ -283,7 +302,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'We try our best to reach your target size, but some files may stay above target based on file content.',
+                      'Smart compression picks adaptive strategies. If exact target is unsafe for readability, the tool returns the best optimized output with a warning.',
                       style: TextStyle(
                         fontSize: 12,
                         color: Color(0xFF6B7280),
@@ -689,6 +708,10 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
                 bytes: forced,
                 aggressiveUsed: true,
                 reductionPercent: _reductionPercent(selected.size, forced.length),
+                targetMet: forced.length <= _targetSizeBytes!,
+                note: forced.length <= _targetSizeBytes!
+                    ? 'Target achieved after force compression.'
+                    : 'Requested target could not be reached without unacceptable quality loss. Returning best possible output.',
               );
             }
           }
@@ -713,7 +736,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
               ? (outcome.aggressiveUsed
                   ? '✓ Compressed to ${_formatBytes(compressed.length)} (target met with quality reduction)'
                   : '✓ Compressed to ${_formatBytes(compressed.length)} (target met)')
-              : '⚠ Best effort only: this PDF could not be reduced to the requested size in the browser.';
+              : '⚠ ${outcome.note}';
         });
 
         if (!mounted) return;
@@ -852,23 +875,37 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
   Future<_CompressionOutcome> _compressSingleFile(PickedFileData file) async {
     final lowerName = file.name.toLowerCase();
     if (lowerName.endsWith('.pdf')) {
-      final primary = await _compressionService.compressPdf(file.bytes, _targetSizeBytes!, file.name);
-      if (primary.length <= _targetSizeBytes!) {
+      final smart = await _compressionService.compressPdfSmart(
+        file.bytes,
+        _targetSizeBytes!,
+        file.name,
+        mode: _selectedCompressionMode,
+      );
+
+      if (smart.targetMet) {
         return _CompressionOutcome(
-          bytes: primary,
+          bytes: smart.bytes,
           aggressiveUsed: false,
-          reductionPercent: _reductionPercent(file.size, primary.length),
+          reductionPercent: _reductionPercent(file.size, smart.bytes.length),
+          targetMet: true,
+          note: smart.message,
         );
       }
 
-      // 200% effort retry: ask compressor to push harder than requested target.
-      final aggressiveTarget = (_targetSizeBytes! / 2).round().clamp(1, _targetSizeBytes!);
-      final aggressive = await _compressionService.compressPdf(primary, aggressiveTarget, file.name);
-      final best = aggressive.length < primary.length ? aggressive : primary;
+      final aggressive = await _compressionService.forceCompressPdfToTarget(
+        smart.bytes,
+        _targetSizeBytes!,
+        file.name,
+      );
+      final best = aggressive.length < smart.bytes.length ? aggressive : smart.bytes;
       return _CompressionOutcome(
         bytes: best,
         aggressiveUsed: true,
         reductionPercent: _reductionPercent(file.size, best.length),
+        targetMet: best.length <= _targetSizeBytes!,
+        note: best.length <= _targetSizeBytes!
+            ? 'Target achieved after force compression.'
+            : 'Requested target could not be reached without unacceptable quality loss. Returning best possible output.',
       );
     }
 
@@ -879,6 +916,8 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
           bytes: primary,
           aggressiveUsed: false,
           reductionPercent: _reductionPercent(file.size, primary.length),
+          targetMet: true,
+          note: 'Target achieved.',
         );
       }
 
@@ -889,6 +928,10 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
         bytes: best,
         aggressiveUsed: true,
         reductionPercent: _reductionPercent(file.size, best.length),
+        targetMet: best.length <= _targetSizeBytes!,
+        note: best.length <= _targetSizeBytes!
+            ? 'Target achieved after additional pass.'
+            : 'Requested target could not be reached without unacceptable quality loss. Returning best possible output.',
       );
     }
 
@@ -899,6 +942,8 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
           bytes: primary,
           aggressiveUsed: false,
           reductionPercent: _reductionPercent(file.size, primary.length),
+          targetMet: true,
+          note: 'Target achieved.',
         );
       }
 
@@ -909,6 +954,10 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
         bytes: best,
         aggressiveUsed: true,
         reductionPercent: _reductionPercent(file.size, best.length),
+        targetMet: best.length <= _targetSizeBytes!,
+        note: best.length <= _targetSizeBytes!
+            ? 'Target achieved after additional pass.'
+            : 'Requested target could not be reached without unacceptable quality loss. Returning best possible output.',
       );
     }
 

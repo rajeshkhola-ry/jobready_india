@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:jobready_india/Pages/v2/converter/converter_workspace_page.dart';
 import 'package:jobready_india/Pages/system_check_page.dart';
 import 'package:jobready_india/Services/api_config.dart';
 import 'package:jobready_india/main_v1_1.dart';
@@ -15,7 +16,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 600));
 
       final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
-      expect(app.title, 'JOBREADY V1.1');
+      expect(app.title, 'GETREADYJOB V1.1');
       expect(app.theme?.scaffoldBackgroundColor, const Color(0xFFF8F9FA));
       expect(tester.takeException(), isNull);
     });
@@ -52,7 +53,7 @@ void main() {
 
       await tester.pumpWidget(const MaterialApp(home: SystemCheckPage()));
       await tester.pump(const Duration(milliseconds: 500));
-      expect(find.text('System Check'), findsOneWidget);
+      expect(find.text('System Check'), findsWidgets);
       await tester.scrollUntilVisible(
         find.text('Mark QA Matrix Sign-off'),
         300,
@@ -81,6 +82,19 @@ void main() {
       expect(find.textContaining('Selected payment gateway:'), findsOneWidget);
       expect(find.text('Configuration Required'), findsOneWidget);
       expect(find.text('Continue to Payment'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('converter workspace shows searchable history controls', (tester) async {
+      await tester.pumpWidget(const MaterialApp(home: ConverterWorkspacePage()));
+      await tester.pump(const Duration(milliseconds: 600));
+
+      expect(find.text('Converter Workspace'), findsWidgets);
+      expect(find.text('Recent Conversion History'), findsOneWidget);
+      expect(find.text('Search conversion history'), findsOneWidget);
+      expect(find.text('Filter by format'), findsOneWidget);
+      expect(find.textContaining('Retention:'), findsWidgets);
+      expect(find.text('Clear History'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   });

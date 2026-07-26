@@ -34,6 +34,23 @@
 			}
 		},
 		{
+			"label": "Temp: Inspect HEAD V1.1 Account Form",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location \"C:\\JobReadyIndia\\jobready_india\"; git rev-parse --short HEAD; git show HEAD:lib/Pages/home_page_v2.dart | Select-String -Pattern \"Email ID|Login with Google|Create Account|Display Name|Save Settings\""
+			],
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated"
+			},
+			"problemMatcher": []
+		},
+		{
 			"label": "Run V2 Separate (Hold)",
 			"type": "shell",
 			"command": "flutter",

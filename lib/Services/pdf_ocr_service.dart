@@ -26,6 +26,36 @@ class PdfOcrResult {
 class PdfOcrService {
   const PdfOcrService();
 
+  Future<List<String>> extractPageTexts({
+    required Uint8List pdfBytes,
+    required String fileName,
+    bool forceOcr = false,
+  }) async {
+    if (!forceOcr) {
+      final pages = _extractEmbeddedPageTexts(pdfBytes);
+      if (pages.any((page) => page.trim().isNotEmpty)) {
+        return pages;
+      }
+    }
+
+    final result = await extractText(
+      pdfBytes: pdfBytes,
+      fileName: fileName,
+      forceOcr: forceOcr,
+      mode: PdfExtractionMode.tableAware,
+    );
+
+    if (result.text.trim().isEmpty) {
+      return const [];
+    }
+
+    return result.text
+        .split(RegExp(r'--- Page \d+ ---'))
+        .map((page) => page.trim())
+        .where((page) => page.isNotEmpty)
+        .toList(growable: false);
+  }
+
   Future<PdfOcrResult> extractText({
     required Uint8List pdfBytes,
     required String fileName,
@@ -100,6 +130,27 @@ class PdfOcrService {
       }
     } catch (_) {
       return '';
+    }
+  }
+
+  List<String> _extractEmbeddedPageTexts(Uint8List pdfBytes) {
+    try {
+      final document = sfpdf.PdfDocument(inputBytes: pdfBytes);
+      try {
+        final extractor = sfpdf.PdfTextExtractor(document);
+        final pages = <String>[];
+        for (var pageIndex = 0; pageIndex < document.pages.count; pageIndex++) {
+          final text = extractor
+              .extractText(startPageIndex: pageIndex, endPageIndex: pageIndex)
+              .trim();
+          pages.add(text);
+        }
+        return pages;
+      } finally {
+        document.dispose();
+      }
+    } catch (_) {
+      return const [];
     }
   }
 

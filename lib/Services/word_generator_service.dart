@@ -15,6 +15,7 @@ class WordGeneratorService {
   Future<Uint8List> createWordDocumentFromPdfLayout({
     required Uint8List pdfBytes,
     required String pdfFileName,
+    List<String>? pageTexts,
     int preferredTargetWidth = 1400,
     double maxScale = 2.2,
   }) async {
@@ -88,7 +89,7 @@ class WordGeneratorService {
       throw Exception('Unable to render PDF pages for Word layout conversion.');
     }
 
-    return _buildImageDocx(pdfFileName, renderedPages);
+    return _buildImageDocx(pdfFileName, renderedPages, pageTexts: pageTexts);
   }
 
   Future<Uint8List> createWordDocument({
@@ -364,7 +365,11 @@ $buffer    <w:sectPr>
     return Uint8List.fromList(encoded ?? <int>[]);
   }
 
-  Uint8List _buildImageDocx(String pdfFileName, List<_RenderedPage> pages) {
+  Uint8List _buildImageDocx(
+    String pdfFileName,
+    List<_RenderedPage> pages, {
+    List<String>? pageTexts,
+  }) {
     final contentTypes = StringBuffer()
       ..writeln('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>')
       ..writeln('<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">')
@@ -391,20 +396,7 @@ $buffer    <w:sectPr>
     docRels.writeln('</Relationships>');
 
     const maxContentWidthEmu = 5486400; // about 6.0 inch drawable area
-    final safeTitle = pdfFileName
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&apos;');
-
     final body = StringBuffer();
-
-    body.writeln(
-      '<w:p><w:r><w:rPr><w:b/><w:sz w:val="30"/></w:rPr><w:t xml:space="preserve">$safeTitle</w:t></w:r></w:p>',
-    );
-    body.writeln('<w:p><w:r><w:t xml:space="preserve">Layout-preserved PDF to Word export</w:t></w:r></w:p>');
-    body.writeln('<w:p><w:r><w:t xml:space="preserve"></w:t></w:r></w:p>');
 
     for (var i = 0; i < pages.length; i++) {
       final page = pages[i];
@@ -450,6 +442,24 @@ $buffer    <w:sectPr>
 </w:p>
 ''');
 
+      final hiddenText = (pageTexts != null && i < pageTexts.length)
+          ? _escapeXml(pageTexts[i].trim())
+          : '';
+      if (hiddenText.isNotEmpty) {
+        body.writeln('''
+<w:p>
+  <w:r>
+    <w:rPr>
+      <w:vanish/>
+      <w:sz w:val="2"/>
+      <w:color w:val="FFFFFF"/>
+    </w:rPr>
+    <w:t xml:space="preserve">$hiddenText</w:t>
+  </w:r>
+</w:p>
+''');
+      }
+
       if (i < pages.length - 1) {
         body.writeln('<w:p><w:r><w:br w:type="page"/></w:r></w:p>');
       }
@@ -488,6 +498,15 @@ $buffer    <w:sectPr>
 
     final encoded = ZipEncoder().encode(archive);
     return Uint8List.fromList(encoded ?? <int>[]);
+  }
+
+  String _escapeXml(String value) {
+    return value
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&apos;');
   }
 }
 

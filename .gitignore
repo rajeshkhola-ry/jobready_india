@@ -43,3 +43,25 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+# GETREADYJOB local logs and analysis
+analyze_output.txt
+build_output.log
+build_v2_log.txt
+flutter_*.log
+
+# Temporary comparison/cache files
+c6_*
+precommit_*
+ci_*.txt
+phase1_brand_diff.txt
+
+# Local deployment snapshots
+live_*.js
+live_*.html
+live_*.json
+
+# Backup archives
+backups/**/*.zip
+
+# Windows
+Thumbs.db

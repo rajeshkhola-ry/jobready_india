@@ -1,58 +1,422 @@
 {
-  "version": "2.0.0",
-  "tasks": [
-    {
-      "label": "Auto Run V2 on Open",
-      "type": "shell",
-      "command": "powershell",
-      "args": [
-        "-NoProfile",
-        "-Command",
-        "flutter run -d chrome --web-port 54325 -t lib/main_phase_7.5_.dart"
-      ],
-      "isBackground": true,
-      "runOptions": {
-        "runOn": "folderOpen"
-      },
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Run V1 in Terminal",
-      "type": "shell",
-      "command": "flutter",
-      "args": [
-        "run",
-        "-d",
-        "chrome",
-        "-t",
-        "lib/main.dart"
-      ],
-      "isBackground": true,
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Run Daily Backup Now",
-      "type": "shell",
-      "command": "powershell",
-      "args": [
-        "-ExecutionPolicy",
-        "Bypass",
-        "-File",
-        "${workspaceFolder}\\scripts\\daily_backup.ps1"
-      ],
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      },
-      "problemMatcher": []
-    }
-  ]
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run V2 Separate (Hold)",
+			"type": "shell",
+			"command": "flutter",
+			"args": [
+				"run",
+				"-d",
+				"chrome",
+				"--web-port",
+				"54322",
+				"-t",
+				"lib/main_v3.dart"
+			],
+			"isBackground": true,
+			"options": {
+				"shell": {
+					"executable": "cmd.exe",
+					"args": [
+						"/d",
+						"/c"
+					]
+				}
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Temp: Commit and Push V1.1 Account Form",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/d",
+				"/c",
+				"cd /d C:\\JobReadyIndia\\jobready_india && git add lib\\Pages\\home_page_v2.dart lib\\Services\\user_account_service.dart && git diff --cached --stat && git commit -m feat_v1_1_account_form_name_email_country_google && git push origin work/today-updates-2026-07-17"
+			],
+			"options": {
+				"shell": {
+					"executable": "cmd.exe",
+					"args": [
+						"/d",
+						"/c"
+					]
+				}
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Run V1 (Merged V1+V2) in Terminal",
+			"type": "shell",
+			"command": "flutter",
+			"args": [
+				"run",
+				"-t",
+				"lib/main.dart"
+			],
+			"isBackground": true,
+			"options": {
+				"shell": {
+					"executable": "cmd.exe",
+					"args": [
+						"/d",
+						"/c"
+					]
+				}
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Run V1 Publish Locked",
+			"type": "shell",
+			"command": "flutter",
+			"args": [
+				"run",
+				"-t",
+				"lib/main_v1_publish_locked.dart"
+			],
+			"isBackground": true,
+			"options": {
+				"shell": {
+					"executable": "cmd.exe",
+					"args": [
+						"/d",
+						"/c"
+					]
+				}
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Diagnose And Recover V2 Separate",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"${workspaceFolder}\\scripts\\diagnose_recover.ps1",
+				"-WebPort",
+				"54322",
+				"-Target",
+				"lib/main_v3.dart"
+			],
+			"isBackground": true,
+			"options": {
+				"shell": {
+					"executable": "cmd.exe",
+					"args": [
+						"/d",
+						"/c"
+					]
+				}
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Run Daily Backup Now",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"${workspaceFolder}\\scripts\\daily_backup.ps1"
+			],
+			"problemMatcher": []
+		},
+		{
+			"label": "Build Android Release Artifacts For Master Export",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location ..; flutter pub get; flutter build apk --release; flutter build appbundle --release; $dst='C:\\JobReadyIndia\\GETREADYJOB_MASTER_PROJECT\\Releases'; New-Item -ItemType Directory -Force -Path $dst | Out-Null; Copy-Item -Force .\\build\\app\\outputs\\flutter-apk\\app-release.apk \"$dst\\GETREADYJOB-release.apk\"; Copy-Item -Force .\\build\\app\\outputs\\bundle\\release\\app-release.aab \"$dst\\GETREADYJOB-release.aab\""
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Build Release Artifacts (Android+Windows)",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter pub get; flutter build apk --release; flutter build appbundle --release; flutter build windows --release; $dst='C:\\JobReadyIndia\\GETREADYJOB_MASTER_PROJECT\\Releases'; New-Item -ItemType Directory -Force -Path $dst | Out-Null; Copy-Item -Force '.\\build\\app\\outputs\\flutter-apk\\app-release.apk' \"$dst\\GETREADYJOB-release.apk\"; Copy-Item -Force '.\\build\\app\\outputs\\bundle\\release\\app-release.aab' \"$dst\\GETREADYJOB-release.aab\"; $winOut='C:\\JobReadyIndia\\GETREADYJOB_MASTER_PROJECT\\Releases\\Windows_Release'; New-Item -ItemType Directory -Force -Path $winOut | Out-Null; Copy-Item -Recurse -Force '.\\build\\windows\\x64\\runner\\Release\\*' $winOut"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Build Windows Release For Export",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter build windows --release; $src='C:\\JobReadyIndia\\jobready_india\\build\\windows\\x64\\runner\\Release'; $dst='C:\\JobReadyIndia\\GETREADYJOB_MASTER_PROJECT\\Releases\\Windows_Release'; if (Test-Path $src) { New-Item -ItemType Directory -Force -Path $dst | Out-Null; Copy-Item -Recurse -Force \"$src\\*\" $dst }"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Repair Android NDK And Build Releases",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"$ErrorActionPreference='Continue'; Get-Process java,gradle,flutter,dart -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force 'C:\\JobReadyIndia\\jobready_india\\android\\.gradle\\noVersion\\buildLogic.lock' -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force 'C:\\Users\\Avita\\AppData\\Local\\Android\\Sdk\\ndk\\28.2.13676358' -ErrorAction SilentlyContinue; $sdk='C:\\Users\\Avita\\AppData\\Local\\Android\\Sdk\\cmdline-tools\\latest\\bin\\sdkmanager.bat'; if (Test-Path $sdk) { cmd /d /c \"\\\"$sdk\\\" --install \\\"ndk;28.2.13676358\\\" --sdk_root=\\\"C:\\Users\\Avita\\AppData\\Local\\Android\\Sdk\\\"\" }; Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter clean; flutter pub get; flutter build apk --release; flutter build appbundle --release; $dst='C:\\JobReadyIndia\\GETREADYJOB_MASTER_PROJECT\\Releases'; New-Item -ItemType Directory -Force -Path $dst | Out-Null; if (Test-Path '.\\build\\app\\outputs\\flutter-apk\\app-release.apk') { Copy-Item -Force '.\\build\\app\\outputs\\flutter-apk\\app-release.apk' \"$dst\\GETREADYJOB-release.apk\" }; if (Test-Path '.\\build\\app\\outputs\\bundle\\release\\app-release.aab') { Copy-Item -Force '.\\build\\app\\outputs\\bundle\\release\\app-release.aab' \"$dst\\GETREADYJOB-release.aab\" }"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Repair NDK Build Android Artifacts v2",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"$ErrorActionPreference='Stop'; Get-Process java,gradle,flutter,dart -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue; Remove-Item -Force 'C:\\JobReadyIndia\\jobready_india\\android\\.gradle\\noVersion\\buildLogic.lock' -ErrorAction SilentlyContinue; Remove-Item -Recurse -Force 'C:\\Users\\Avita\\AppData\\Local\\Android\\Sdk\\ndk\\28.2.13676358' -ErrorAction SilentlyContinue; $sdk='C:\\Users\\Avita\\AppData\\Local\\Android\\Sdk\\cmdline-tools\\latest\\bin\\sdkmanager.bat'; if (Test-Path $sdk) { & $sdk --install 'ndk;28.2.13676358' --sdk_root='C:\\Users\\Avita\\AppData\\Local\\Android\\Sdk' }; Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter clean; flutter pub get; flutter build apk --release; flutter build appbundle --release; $dst='C:\\JobReadyIndia\\GETREADYJOB_MASTER_PROJECT\\Releases'; New-Item -ItemType Directory -Force -Path $dst | Out-Null; Copy-Item -Force '.\\build\\app\\outputs\\flutter-apk\\app-release.apk' \"$dst\\GETREADYJOB-release.apk\"; Copy-Item -Force '.\\build\\app\\outputs\\bundle\\release\\app-release.aab' \"$dst\\GETREADYJOB-release.aab\""
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Repair NDK And Build Android via CMD",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/d",
+				"/c",
+				"taskkill /f /im java.exe >nul 2>nul & taskkill /f /im gradle.exe >nul 2>nul & taskkill /f /im flutter.exe >nul 2>nul & taskkill /f /im dart.exe >nul 2>nul & if exist \"C:\\JobReadyIndia\\jobready_india\\android\\.gradle\\noVersion\\buildLogic.lock\" del /f /q \"C:\\JobReadyIndia\\jobready_india\\android\\.gradle\\noVersion\\buildLogic.lock\" & if exist \"C:\\Users\\Avita\\AppData\\Local\\Android\\Sdk\\ndk\\28.2.13676358\" rmdir /s /q \"C:\\Users\\Avita\\AppData\\Local\\Android\\Sdk\\ndk\\28.2.13676358\" & \"C:\\Users\\Avita\\AppData\\Local\\Android\\Sdk\\cmdline-tools\\latest\\bin\\sdkmanager.bat\" --install \"ndk;28.2.13676358\" --sdk_root=\"C:\\Users\\Avita\\AppData\\Local\\Android\\Sdk\" & cd /d C:\\JobReadyIndia\\jobready_india & flutter clean & flutter pub get & flutter build apk --release & flutter build appbundle --release & if not exist \"C:\\JobReadyIndia\\GETREADYJOB_MASTER_PROJECT\\Releases\" mkdir \"C:\\JobReadyIndia\\GETREADYJOB_MASTER_PROJECT\\Releases\" & copy /y \"C:\\JobReadyIndia\\jobready_india\\build\\app\\outputs\\flutter-apk\\app-release.apk\" \"C:\\JobReadyIndia\\GETREADYJOB_MASTER_PROJECT\\Releases\\GETREADYJOB-release.apk\" & copy /y \"C:\\JobReadyIndia\\jobready_india\\build\\app\\outputs\\bundle\\release\\app-release.aab\" \"C:\\JobReadyIndia\\GETREADYJOB_MASTER_PROJECT\\Releases\\GETREADYJOB-release.aab\""
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Check Java Version For Android Build",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/d",
+				"/c",
+				"where java & java -version & echo JAVA_HOME=%JAVA_HOME%"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Build Android Artifacts With JDK17",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/d",
+				"/c",
+				"set JAVA_HOME=C:\\Program Files\\Android\\Android Studio\\jbr & set PATH=%JAVA_HOME%\\bin;%PATH% & java -version & taskkill /f /im java.exe >nul 2>nul & taskkill /f /im gradle.exe >nul 2>nul & if exist \"C:\\JobReadyIndia\\jobready_india\\android\\.gradle\\noVersion\\buildLogic.lock\" del /f /q \"C:\\JobReadyIndia\\jobready_india\\android\\.gradle\\noVersion\\buildLogic.lock\" & if exist \"C:\\Users\\Avita\\AppData\\Local\\Android\\Sdk\\ndk\\28.2.13676358\" rmdir /s /q \"C:\\Users\\Avita\\AppData\\Local\\Android\\Sdk\\ndk\\28.2.13676358\" & \"C:\\Users\\Avita\\AppData\\Local\\Android\\Sdk\\cmdline-tools\\latest\\bin\\sdkmanager.bat\" --install \"ndk;28.2.13676358\" --sdk_root=\"C:\\Users\\Avita\\AppData\\Local\\Android\\Sdk\" & cd /d C:\\JobReadyIndia\\jobready_india & flutter clean & flutter pub get & flutter build apk --release & flutter build appbundle --release & copy /y \"C:\\JobReadyIndia\\jobready_india\\build\\app\\outputs\\flutter-apk\\app-release.apk\" \"C:\\JobReadyIndia\\GETREADYJOB_MASTER_PROJECT\\Releases\\GETREADYJOB-release.apk\" & copy /y \"C:\\JobReadyIndia\\jobready_india\\build\\app\\outputs\\bundle\\release\\app-release.aab\" \"C:\\JobReadyIndia\\GETREADYJOB_MASTER_PROJECT\\Releases\\GETREADYJOB-release.aab\""
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Check JDK17 from Android Studio",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/d",
+				"/c",
+				"set \"JAVA_HOME=C:\\Program Files\\Android\\Android Studio\\jbr\" & set \"PATH=%JAVA_HOME%\\bin;%PATH%\" & echo JAVA_HOME=%JAVA_HOME% & \"%JAVA_HOME%\\bin\\java.exe\" -version & java -version"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Run Android Repair And Build Script",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\scripts\\repair_and_build_android_release.ps1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Run Android Repair And Build Script v2",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\scripts\\repair_and_build_android_release.ps1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Run Android Repair And Build Script v3",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\scripts\\repair_and_build_android_release.ps1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Run Android Repair And Build Script v4",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\scripts\\repair_and_build_android_release.ps1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Run Android Repair And Build Script v5",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\scripts\\repair_and_build_android_release.ps1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Run Android Repair And Build Script v6",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\scripts\\repair_and_build_android_release.ps1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Run Android Repair And Build Script v7",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\scripts\\repair_and_build_android_release.ps1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Run Android Repair And Build Script v8",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\scripts\\repair_and_build_android_release.ps1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Run Android Repair And Build Script v9",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\scripts\\repair_and_build_android_release.ps1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Run Android Repair And Build Script v10",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\JobReadyIndia\\jobready_india\\scripts\\repair_and_build_android_release.ps1"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: Full Flutter Test Master",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter test"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Validation: v2 clean smoke",
+			"type": "shell",
+			"command": "flutter",
+			"args": [
+				"test",
+				"test/v2_clean_start_smoke_test.dart"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp Commit Push Account Form",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"add",
+				"lib/Pages/home_page_v2.dart",
+				"lib/Services/user_account_service.dart"
+			]
+		}
+	]
 }

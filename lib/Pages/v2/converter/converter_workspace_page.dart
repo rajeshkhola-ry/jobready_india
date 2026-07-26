@@ -342,17 +342,23 @@ class _ConverterWorkspacePageState extends State<ConverterWorkspacePage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SwitchListTile.adaptive(
-                            value: _keepLayout,
-                            onChanged: (value) => setState(() => _keepLayout = value),
-                            contentPadding: EdgeInsets.zero,
-                            title: const Text('Preserve document layout'),
+                          Material(
+                            color: Colors.transparent,
+                            child: SwitchListTile.adaptive(
+                              value: _keepLayout,
+                              onChanged: (value) => setState(() => _keepLayout = value),
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('Preserve document layout'),
+                            ),
                           ),
-                          SwitchListTile.adaptive(
-                            value: _highQuality,
-                            onChanged: (value) => setState(() => _highQuality = value),
-                            contentPadding: EdgeInsets.zero,
-                            title: const Text('Prefer high quality output'),
+                          Material(
+                            color: Colors.transparent,
+                            child: SwitchListTile.adaptive(
+                              value: _highQuality,
+                              onChanged: (value) => setState(() => _highQuality = value),
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('Prefer high quality output'),
+                            ),
                           ),
                           if (_inputFormat == _outputFormat)
                             Padding(

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GETREADYJOB Bank + Ads API Packet (V1.1)</title>
+  <style>
+    body { font-family: "Segoe UI", Arial, sans-serif; margin: 36px; color: #1f2937; line-height: 1.45; }
+    h1 { font-size: 24px; margin: 0 0 8px 0; color: #0f3d6e; }
+    h2 { font-size: 18px; margin: 24px 0 8px 0; color: #0f3d6e; border-bottom: 1px solid #d1d5db; padding-bottom: 4px; }
+    .meta { color: #4b5563; font-size: 13px; margin-bottom: 14px; }
+    .box { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px 14px; margin: 10px 0; }
+    ul { margin-top: 8px; }
+    li { margin: 4px 0; }
+    code { background: #eef2ff; padding: 1px 5px; border-radius: 4px; font-family: Consolas, monospace; font-size: 12px; }
+    .warn { background: #fffbeb; border-color: #fcd34d; }
+    .ok { background: #ecfeff; border-color: #67e8f9; }
+    .footer { margin-top: 26px; font-size: 12px; color: #6b7280; }
+  </style>
+</head>
+<body>
+  <h1>GETREADYJOB Bank + Ads API Packet (V1.1)</h1>
+  <div class="meta">Prepared: 2026-07-25 | Website: https://getreadyjob.com | API Base: https://api.getreadyjob.com/api/v1</div>
+
+  <h2>1) Payment API Endpoints</h2>
+  <div class="box">
+    <ul>
+      <li>Create Order (POST): <code>https://api.getreadyjob.com/api/v1/payments/create-order</code></li>
+      <li>Verify Payment (POST): <code>https://api.getreadyjob.com/api/v1/payments/verify</code></li>
+      <li>Webhook Receiver (POST): <code>https://api.getreadyjob.com/api/v1/payments/webhook</code></li>
+      <li>Callback URL: <code>https://api.getreadyjob.com/api/v1/payments/callback</code></li>
+      <li>Cancel URL: <code>https://api.getreadyjob.com/api/v1/payments/cancel</code></li>
+    </ul>
+  </div>
+
+  <h2>2) Current Gateway Config Status</h2>
+  <div class="box warn">
+    <ul>
+      <li>Active payment gateway: Not finalized</li>
+      <li>Supported gateways list: Empty in runtime defaults</li>
+      <li>Action required: Finalize one gateway and configure live keys in backend secrets</li>
+    </ul>
+  </div>
+
+  <h2>3) Ads API / Key Status</h2>
+  <div class="box">
+    <ul>
+      <li>AdMob App ID: <code>ca-app-pub-xxxxxxxxxxxxxxxx~yyyyyyyyyy</code> (placeholder)</li>
+      <li>AdMob Banner ID: <code>ca-app-pub-3940256099942544/6300978111</code> (Google test ID)</li>
+      <li>AdMob Interstitial ID: <code>ca-app-pub-3940256099942544/1033173712</code> (Google test ID)</li>
+      <li>AdMob Rewarded ID: <code>ca-app-pub-3940256099942544/5224354917</code> (Google test ID)</li>
+      <li>Facebook Ads IDs: Placeholder values</li>
+      <li>MoPub ID: Placeholder value</li>
+    </ul>
+  </div>
+
+  <h2>4) Security Requirements (Bank + Ads)</h2>
+  <div class="box ok">
+    <ul>
+      <li>Keep all payment secret keys on backend only (never in frontend bundle).</li>
+      <li>Validate webhook signatures for every payment webhook call.</li>
+      <li>Use HTTPS-only callbacks and webhooks.</li>
+      <li>Use idempotency/replay protection for webhook processing.</li>
+      <li>Share keys only through secure credential channels.</li>
+    </ul>
+  </div>
+
+  <h2>5) What To Share with Bank Team</h2>
+  <div class="box">
+    <ul>
+      <li>Website: <code>https://getreadyjob.com</code></li>
+      <li>API Base: <code>https://api.getreadyjob.com/api/v1</code></li>
+      <li>Create Order URL, Verify URL, Webhook URL, Callback URL, Cancel URL</li>
+      <li>Support Email: <code>hello@getreadyjob.com</code></li>
+    </ul>
+  </div>
+
+  <h2>6) Backup Safety Snapshot</h2>
+  <div class="box">
+    <ul>
+      <li>Local backup schedule: JOBREADY_Daily_Backup (daily at 21:00)</li>
+      <li>Local backup folder: <code>C:\JobReadyIndia\jobready_india\backups</code></li>
+      <li>OneDrive backup folder: <code>C:\Users\Avita\OneDrive\JobReadyIndia_Backups</code></li>
+      <li>Latest freeze backup: <code>C:\Users\Avita\OneDrive\JobReadyIndia_Backups\jobready_india_20260725_213128_c2ba746.zip</code></li>
+    </ul>
+  </div>
+
+  <div class="footer">GETREADYJOB V1.1 - Bank/API/Ads Submission Copy</div>
+</body>
+</html>

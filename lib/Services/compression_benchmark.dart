@@ -1,5 +1,8 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:image/image.dart' as img;
+import 'package:pdf/pdf.dart' as pdf;
+import 'package:pdf/widgets.dart' as pw;
 import 'compression_service.dart';
 
 enum BenchmarkExecutionMode {
@@ -354,18 +357,68 @@ class CompressionBenchmark {
     }
   }
 
-  /// Generate dummy PDF content (simplified for testing)
-  static Uint8List _generateDummyPdfContent(int sizeInBytes) {
-    // Create a list with target size
-    // In real scenario, this would be actual PDF content
-    final buffer = Uint8List(sizeInBytes);
+  /// Generate valid image-heavy PDF content for benchmark testing.
+  static Future<Uint8List> _generateDummyPdfContent(int sizeInBytes) async {
+    final doc = pw.Document(compress: true);
+    final targetPageBytes = 220 * 1024;
+    final pageCount = (sizeInBytes / targetPageBytes).ceil().clamp(1, 64);
 
-    // Fill with pseudo-random pattern
-    for (int i = 0; i < sizeInBytes; i++) {
-      buffer[i] = (i * 7) % 256; // Simple deterministic pattern
+    for (var index = 0; index < pageCount; index++) {
+      final jpgBytes = _buildSyntheticScannedPage(index);
+      final provider = pw.MemoryImage(jpgBytes);
+
+      doc.addPage(
+        pw.Page(
+          margin: pw.EdgeInsets.zero,
+          pageFormat: pdf.PdfPageFormat.a4,
+          build: (_) => pw.SizedBox.expand(
+            child: pw.Image(provider, fit: pw.BoxFit.fill),
+          ),
+        ),
+      );
     }
 
-    return buffer;
+    return Uint8List.fromList(await doc.save());
+  }
+
+  static Uint8List _buildSyntheticScannedPage(int seed) {
+    final page = img.Image(width: 1240, height: 1754);
+
+    for (var y = 0; y < page.height; y++) {
+      for (var x = 0; x < page.width; x++) {
+        final paperNoise = 248 - ((x + y + seed) % 7);
+        page.setPixelRgba(x, y, paperNoise, paperNoise, paperNoise - 1, 255);
+      }
+    }
+
+    for (var line = 0; line < 56; line++) {
+      final y = 120 + (line * 26);
+      final thickness = line % 9 == 0 ? 4 : 2;
+      final startX = 90 + ((line + seed) % 5) * 12;
+      final endX = page.width - 100 - ((line + seed) % 7) * 18;
+      for (var dy = 0; dy < thickness; dy++) {
+        for (var x = startX; x < endX; x++) {
+          page.setPixelRgba(x, y + dy, 35, 35, 35, 255);
+        }
+      }
+    }
+
+    for (var box = 0; box < 6; box++) {
+      final top = 180 + box * 240;
+      final left = 92 + (box % 2) * 40;
+      final width = page.width - 184 - (box % 3) * 30;
+      final height = 120 + (box % 3) * 30;
+      for (var y = top; y < top + height; y++) {
+        for (var x = left; x < left + width; x++) {
+          final isBorder = y == top || y == top + height - 1 || x == left || x == left + width - 1;
+          if (isBorder) {
+            page.setPixelRgba(x, y, 70, 70, 70, 255);
+          }
+        }
+      }
+    }
+
+    return Uint8List.fromList(img.encodeJpg(page, quality: 88));
   }
 
   /// Generate test file of specific size
@@ -381,7 +434,7 @@ class CompressionBenchmark {
     final file = File('${dir.path}/$filename');
 
     // Generate dummy PDF content
-    final content = _generateDummyPdfContent(targetSize);
+    final content = await _generateDummyPdfContent(targetSize);
     await file.writeAsBytes(content);
 
     return file;

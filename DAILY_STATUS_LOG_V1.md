@@ -918,6 +918,26 @@ Owner:
 - In progress:
   - Awaiting infrastructure team deployment to production
   - Awaiting email credentials for hello@getreadyjob.com (to be provided tomorrow)
+
+### Day 18 - 2026-07-25 (Production Cache Recovery)
+- Overall status: Green (live browser recovered, cache-fix deploy completed)
+- Completed today:
+  - Diagnosed persistent old-page issue on https://getreadyjob.com as a client-side stale service worker problem rather than a failed deploy.
+  - Verified the shared browser page was controlled by legacy `https://getreadyjob.com/sw.js` with stale Workbox caches still present.
+  - Cleared the active legacy service worker and browser caches on the affected client; shared page reloaded without an active service worker controller.
+  - Added a one-time bootstrap cleanup to `web/index.html` so clients unregister old service workers, clear stale caches, and then load Flutter with a versioned bootstrap URL.
+  - Built and pushed the fix as commit `0b54215` with message `fix(web): clear legacy service worker caches on bootstrap`.
+  - Confirmed GitHub Pages workflow run `30163495790` completed successfully for commit `0b54215`.
+  - Confirmed live `build-info.json` updated to commit `0b54215` and build timestamp `2026-07-25T15:25:12Z`.
+- In progress:
+  - Edge verification of live `index.html` propagation after successful Pages deploy.
+- Blockers:
+  - No code blocker; live verification briefly showed `build-info.json` on the new commit while `index.html` still appeared to be the previous cached variant during the first post-deploy check.
+- Decisions needed:
+  - None.
+- Tomorrow plan:
+  - Recheck live `index.html` once edge cache fully settles and confirm the bootstrap cleanup script is publicly visible.
+- Owner: Founder + Copilot
 - Blockers:
   - None technical (all code ready)
   - Deployment requires your infrastructure team/hosting access (we don't have server access)

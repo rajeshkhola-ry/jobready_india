@@ -9,6 +9,7 @@ import 'package:pdf_render/pdf_render.dart' as pdf_render;
 import 'package:syncfusion_flutter_pdf/pdf.dart' as sfpdf;
 
 import 'compression_service.dart';
+import 'pdf_ocr_service.dart';
 import 'word_generator_service.dart';
 
 class ConversionResult {
@@ -42,74 +43,105 @@ class ConversionService {
         case 'word (.docx)':
           final lowerName = inputFileName.toLowerCase();
           if (lowerName.endsWith('.pdf')) {
+            final ocrService = const PdfOcrService();
             if (kIsWeb) {
-              final extractedText = await _extractTextFromPdf(inputBytes, inputFileName);
+              final ocrResult = await ocrService.extractText(
+                pdfBytes: inputBytes,
+                fileName: inputFileName,
+                mode: PdfExtractionMode.tableAware,
+              );
               final fallbackWordBytes = await const WordGeneratorService().createWordDocument(
                 pdfFileName: inputFileName,
-                extractedText: extractedText,
+                extractedText: ocrResult.text,
               );
 
               return ConversionResult(
                 success: true,
-                message: 'Word document created in web compatibility mode.',
+                message: ocrResult.usedBackendOcr
+                    ? 'Word document created in web mode with OCR-assisted text reconstruction.'
+                    : 'Word document created in web compatibility mode with structured text reconstruction.',
                 outputBytes: fallbackWordBytes,
                 outputFileName: _changeExtension(inputFileName, 'docx'),
               );
             }
 
             try {
+              final pageTexts = await ocrService.extractPageTexts(
+                pdfBytes: inputBytes,
+                fileName: inputFileName,
+              );
               final wordLayoutBytes = await const WordGeneratorService().createWordDocumentFromPdfLayout(
                 pdfBytes: inputBytes,
                 pdfFileName: inputFileName,
+                pageTexts: pageTexts,
               );
 
               return ConversionResult(
                 success: true,
-                message: 'Word document created with PDF pages embedded as images.',
+                message: pageTexts.isNotEmpty
+                    ? 'Word document created with layout-preserved pages and hidden editable text layer.'
+                    : 'Word document created with layout-preserved pages.',
                 outputBytes: wordLayoutBytes,
                 outputFileName: _changeExtension(inputFileName, 'docx'),
               );
             } catch (_) {
               try {
+                final pageTexts = await ocrService.extractPageTexts(
+                  pdfBytes: inputBytes,
+                  fileName: inputFileName,
+                );
                 final lowMemoryLayoutBytes = await const WordGeneratorService().createWordDocumentFromPdfLayout(
                   pdfBytes: inputBytes,
                   pdfFileName: inputFileName,
+                  pageTexts: pageTexts,
                   preferredTargetWidth: 900,
                   maxScale: 1.4,
                 );
 
                 return ConversionResult(
                   success: true,
-                  message: 'Word document created with PDF pages embedded (optimized for memory).',
+                  message: 'Word document created with layout-preserved pages (optimized for memory).',
                   outputBytes: lowMemoryLayoutBytes,
                   outputFileName: _changeExtension(inputFileName, 'docx'),
                 );
               } catch (_) {
                 try {
+                  final pageTexts = await ocrService.extractPageTexts(
+                    pdfBytes: inputBytes,
+                    fileName: inputFileName,
+                  );
                   final minimalMemoryLayoutBytes = await const WordGeneratorService().createWordDocumentFromPdfLayout(
                     pdfBytes: inputBytes,
                     pdfFileName: inputFileName,
+                    pageTexts: pageTexts,
                     preferredTargetWidth: 800,
                     maxScale: 1.0,
                   );
 
                   return ConversionResult(
                     success: true,
-                    message: 'Word document created with PDF pages embedded (minimal memory mode).',
+                    message: 'Word document created with layout-preserved pages (minimal memory mode).',
                     outputBytes: minimalMemoryLayoutBytes,
                     outputFileName: _changeExtension(inputFileName, 'docx'),
                   );
                 } catch (_) {
                   try {
-                    final extractedText = await _extractTextFromPdf(inputBytes, inputFileName);
+                    final ocrResult = await ocrService.extractText(
+                      pdfBytes: inputBytes,
+                      fileName: inputFileName,
+                      forceOcr: true,
+                      mode: PdfExtractionMode.tableAware,
+                    );
                     final fallbackWordBytes = await const WordGeneratorService().createWordDocument(
                       pdfFileName: inputFileName,
-                      extractedText: extractedText,
+                      extractedText: ocrResult.text,
                     );
 
                     return ConversionResult(
                       success: true,
-                      message: 'Word document created in fallback text mode.',
+                      message: ocrResult.usedBackendOcr
+                          ? 'Word document created in OCR text mode because full layout export was not possible.'
+                          : 'Word document created in fallback text mode.',
                       outputBytes: fallbackWordBytes,
                       outputFileName: _changeExtension(inputFileName, 'docx'),
                     );
