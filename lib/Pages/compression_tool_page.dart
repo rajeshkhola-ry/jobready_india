@@ -753,7 +753,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
     });
 
             // Allow the loading state to render before compression starts.
-            await Future.delayed(const Duration(milliseconds: 60));
+            await _yieldToUi(60);
 
     try {
       if (_selectedFiles.length == 1) {
@@ -834,8 +834,17 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
       final qualityNotes = <String>[];
       final compressedByName = <String, Uint8List>{};
       final originalByName = <String, PickedFileData>{};
+      var currentIndex = 0;
 
       for (final file in _selectedFiles) {
+        currentIndex += 1;
+        if (mounted) {
+          setState(() {
+            _statusMessage = 'Compressing file $currentIndex/${_selectedFiles.length}: ${file.name}';
+          });
+        }
+        await _yieldToUi();
+
         final outcome = await _compressSingleFile(file);
         final compressed = outcome.bytes;
         compressedByName[file.name] = compressed;
@@ -860,8 +869,18 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
           qualityNotes.clear();
           totalOriginal = 0;
           totalCompressed = 0;
+          currentIndex = 0;
 
           for (final file in _selectedFiles) {
+            currentIndex += 1;
+            if (mounted) {
+              setState(() {
+                _statusMessage =
+                    'Force pass $currentIndex/${_selectedFiles.length}: ${file.name}';
+              });
+            }
+            await _yieldToUi();
+
             final current = compressedByName[file.name] ?? file.bytes;
             final forced = await _forceCompressSingleFile(file, current);
             final best = forced.length < current.length ? forced : current;
@@ -945,6 +964,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
     final lowerName = file.name.toLowerCase();
     if (lowerName.endsWith('.pdf')) {
       if (kIsWeb) {
+        await _yieldToUi();
         final remote = await _remoteCompressionService.compressPdf(
           bytes: file.bytes,
           fileName: file.name,
@@ -999,6 +1019,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
     }
 
     if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg') || lowerName.endsWith('.png')) {
+      await _yieldToUi();
       final primary = _compressionService.compressImage(file.bytes, _targetSizeBytes!, file.name);
       if (primary.length <= _targetSizeBytes!) {
         return _CompressionOutcome(
@@ -1011,6 +1032,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
       }
 
       final aggressiveTarget = (_targetSizeBytes! / 2).round().clamp(1, _targetSizeBytes!);
+      await _yieldToUi();
       final aggressive = _compressionService.compressImage(primary, aggressiveTarget, file.name);
       final best = aggressive.length < primary.length ? aggressive : primary;
       return _CompressionOutcome(
@@ -1025,6 +1047,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
     }
 
     if (lowerName.endsWith('.webp') || lowerName.endsWith('.bmp')) {
+      await _yieldToUi();
       final primary = _compressionService.compressImage(file.bytes, _targetSizeBytes!, file.name);
       if (primary.length <= _targetSizeBytes!) {
         return _CompressionOutcome(
@@ -1037,6 +1060,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
       }
 
       final aggressiveTarget = (_targetSizeBytes! / 2).round().clamp(1, _targetSizeBytes!);
+      await _yieldToUi();
       final aggressive = _compressionService.compressImage(primary, aggressiveTarget, file.name);
       final best = aggressive.length < primary.length ? aggressive : primary;
       return _CompressionOutcome(
@@ -1081,12 +1105,18 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
     if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg') || lowerName.endsWith('.png') ||
         lowerName.endsWith('.webp') || lowerName.endsWith('.bmp')) {
       final tighterTarget = (_targetSizeBytes! * 0.35).round().clamp(1, _targetSizeBytes!);
+      await _yieldToUi();
       final pass1 = _compressionService.compressImage(currentBytes, tighterTarget, file.name);
+      await _yieldToUi();
       final pass2 = _compressionService.compressImage(pass1, tighterTarget, file.name);
       return pass2.length < pass1.length ? pass2 : pass1;
     }
 
     return currentBytes;
+  }
+
+  Future<void> _yieldToUi([int ms = 16]) async {
+    await Future<void>.delayed(Duration(milliseconds: ms));
   }
 
   Future<bool> _confirmForceQualityReduction({

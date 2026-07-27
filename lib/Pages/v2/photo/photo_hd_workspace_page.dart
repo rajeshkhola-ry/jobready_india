@@ -80,8 +80,11 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
       _statusMessage = 'Preparing ${_hdMode ? 'HD ' : ''}photo for ${_selectedPreset.label}...';
     });
 
+    // Let the progress indicator render before heavy image work starts.
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+
     try {
-      final result = _photoResizeService.upscalePhoto(
+      final result = await _photoResizeService.upscalePhoto(
         bytes: selectedImage.bytes,
         fileName: selectedImage.name,
         preset: _selectedPreset,

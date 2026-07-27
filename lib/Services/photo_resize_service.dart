@@ -42,22 +42,26 @@ class PhotoResizeService {
     PhotoSizePreset(id: 'a4', label: 'A4 Portrait - 2480 x 3508', width: 2480, height: 3508),
   ];
 
-  PhotoResizeResult upscalePhoto({
+  Future<PhotoResizeResult> upscalePhoto({
     required Uint8List bytes,
     required String fileName,
     required PhotoSizePreset preset,
     required bool enableHdMode,
-  }) {
+  }) async {
+    await _yieldToUi();
     final source = img.decodeImage(bytes);
     if (source == null) {
       throw StateError('Unsupported image format. Please use JPG, PNG, WEBP, or BMP.');
     }
 
+    await _yieldToUi();
     final prepared = _prepareSource(source, enableHdMode: enableHdMode);
+    await _yieldToUi();
     final canvas = img.Image(width: preset.width, height: preset.height);
     img.fill(canvas, color: img.ColorRgb8(255, 255, 255));
 
     final fitted = _resizeToFit(prepared, preset.width, preset.height);
+    await _yieldToUi();
     final offsetX = ((preset.width - fitted.width) / 2).round();
     final offsetY = ((preset.height - fitted.height) / 2).round();
     img.compositeImage(canvas, fitted, dstX: offsetX, dstY: offsetY);
@@ -67,6 +71,7 @@ class PhotoResizeService {
         : fileName;
     final outputName = '${baseName}_${preset.id}${enableHdMode ? '_hd' : ''}.jpg';
 
+    await _yieldToUi();
     final encoded = Uint8List.fromList(
       img.encodeJpg(canvas, quality: enableHdMode ? 98 : 94),
     );
@@ -77,6 +82,10 @@ class PhotoResizeService {
       width: preset.width,
       height: preset.height,
     );
+  }
+
+  Future<void> _yieldToUi() async {
+    await Future<void>.delayed(const Duration(milliseconds: 16));
   }
 
   img.Image _prepareSource(img.Image source, {required bool enableHdMode}) {
