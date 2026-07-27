@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../Services/public_brand_config.dart';
+import '../Widgets/glowing_logo_badge.dart';
 import '../Widgets/production_footer.dart';
 
 class HomePageV3 extends StatelessWidget {
@@ -26,12 +27,19 @@ class HomePageV3 extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: const Color(0xFF0F172A),
-        title: const Text(
-          'Get Job Ready',
-          style: TextStyle(
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.8,
-          ),
+        title: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            GlowingLogoBadge(size: 30, circular: true),
+            SizedBox(width: 8),
+            Text(
+              'GET READY JOB',
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.8,
+              ),
+            ),
+          ],
         ),
       ),
       body: Container(

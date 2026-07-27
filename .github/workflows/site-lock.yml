@@ -1,0 +1,21 @@
+name: Enforce Current Site Lock
+
+on:
+  push:
+    branches:
+      - '**'
+
+jobs:
+  site-lock-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check branch naming policy
+        run: |
+          BRANCH_NAME="${GITHUB_REF##*/}"
+          echo "Branch: $BRANCH_NAME"
+          if [[ "$BRANCH_NAME" =~ (new[_-]?site|alt[_-]?prod|test[_-]?domain) ]]; then
+            echo "❌ Branch name violates CURRENT_SITE_LOCK policy"
+            exit 1
+          else
+            echo "✅ Branch name complies with lock policy"
+          fi

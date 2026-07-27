@@ -22,6 +22,12 @@ class GlowingLogoBadge extends StatelessWidget {
         borderRadius: circular ? null : BorderRadius.circular(size * 0.22),
         boxShadow: const [
           BoxShadow(
+            color: Color(0x55F6BE00),
+            blurRadius: 22,
+            spreadRadius: 1,
+            offset: Offset(0, 0),
+          ),
+          BoxShadow(
             color: Color(0x14000000),
             blurRadius: 10,
             offset: Offset(0, 4),
