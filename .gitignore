@@ -59,6 +59,7 @@ phase1_brand_diff.txt
 live_*.js
 live_*.html
 live_*.json
+logs/security_reports/
 
 # Backup archives
 backups/**/*.zip
