@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:js_util' as js_util;
+import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -12,7 +13,7 @@ class UniversalShareActions extends StatelessWidget {
   final String fileName;
   final String downloadUrl;
   final String mimeType;
-  final List<int> outputBytes;
+  final Uint8List outputBytes;
   final String? publicHttpsUrl;
 
   const UniversalShareActions({
