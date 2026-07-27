@@ -27,6 +27,7 @@ import 'launch_readiness_page.dart';
 import 'launch_runbook_page.dart';
 import 'post_launch_control_page.dart';
 import 'plan_features_page.dart';
+import 'system_check_page.dart';
 import 'terms_conditions_page.dart';
 
 const Map<String, String> _paymentCurrencyLabels = {
@@ -697,14 +698,6 @@ class _HomePageV2State extends State<HomePageV2> {
               ),
             ),
             const SizedBox(height: 12),
-            _CouponControlPanel(
-              onDiscountChanged: (discountPercent) {
-                setState(() {
-                  _pricingDiscountPercent = discountPercent;
-                });
-              },
-            ),
-            const SizedBox(height: 12),
             _PlanCardsSection(
               selectedCurrency: _selectedPaymentCurrency,
               sevenDayPriceLine: sevenDayPriceLine,
@@ -768,6 +761,8 @@ class _HomePageV2State extends State<HomePageV2> {
             if (_showAdminControls) ...[
               const _AdminCredentialsPanel(),
               const SizedBox(height: 10),
+              const _AdminSystemCheckPanel(),
+              const SizedBox(height: 10),
               _PlanCatalogManagerPanel(
                 initialConfig: _planCatalog,
                 onConfigSaved: (updatedConfig) {
@@ -777,23 +772,7 @@ class _HomePageV2State extends State<HomePageV2> {
                 },
               ),
               const SizedBox(height: 10),
-              _OwnerOfferManagerPanel(
-                onOfferUpdated: (enabled, text, promoCode, validity) {
-                  setState(() {
-                    _showLiveOfferBanner = enabled;
-                    _liveOfferText = text.trim();
-                  });
-
-                  if (promoCode.trim().isNotEmpty) {
-                    CouponService.upsertCoupon(
-                      code: promoCode.trim(),
-                      discountPercent: 100,
-                      validFor: validity,
-                      maxUses: 999999,
-                    );
-                  }
-                },
-              ),
+              const _AdminBankAdsStatusPanel(),
               const SizedBox(height: 10),
             ],
             const _AboutUsSection(),
@@ -893,6 +872,13 @@ class _HomePageV2State extends State<HomePageV2> {
               ),
             ),
             const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                GlowingLogoBadge(size: 32, circular: true),
+              ],
+            ),
+            const SizedBox(height: 8),
             _FooterInfoRow(
               icon: Icons.language_rounded,
               label: 'Website',
@@ -1219,7 +1205,7 @@ class _PlanCardsSection extends StatelessWidget {
             subtitle: 'Core tools, quick checks, and starter workflow access',
             priceLine: '₹0 / \$0',
             enabledTools: enabledToolsByPlan['Free'] ?? const <String>[],
-            buttonLabel: 'Get Started',
+            buttonLabel: 'Select Plan',
             selected: selectedPlan == 'Free',
             onSelected: () => onPlanSelected('Free'),
           ),
@@ -1228,7 +1214,7 @@ class _PlanCardsSection extends StatelessWidget {
             subtitle: 'Test PDF edit, PDF to Word, OCR, and premium workflow controls',
             priceLine: sevenDayPriceLine,
             enabledTools: enabledToolsByPlan['7Days'] ?? const <String>[],
-            buttonLabel: 'Try 7 Days',
+            buttonLabel: 'Select Plan',
             selected: selectedPlan == '7Days',
             onSelected: () => onPlanSelected('7Days'),
           ),
@@ -1237,16 +1223,18 @@ class _PlanCardsSection extends StatelessWidget {
             subtitle: 'Monthly access with document conversion, edit, and support workflows',
             priceLine: monthlyPriceLine,
             enabledTools: enabledToolsByPlan['Monthly'] ?? const <String>[],
-            buttonLabel: 'Get Monthly',
+            buttonLabel: 'Select Plan',
+            badgeLabel: 'Popular',
             selected: selectedPlan == 'Monthly',
             onSelected: () => onPlanSelected('Monthly'),
           ),
           _PlanCardTile(
             title: 'YEARLY',
             subtitle: 'Best value for regular use, higher limits, and full plan coverage',
-            priceLine: '$yearlyPriceLine ⭐ Best Value',
+            priceLine: yearlyPriceLine,
             enabledTools: enabledToolsByPlan['Yearly'] ?? const <String>[],
-            buttonLabel: 'Get Yearly',
+            buttonLabel: 'Select Plan',
+            badgeLabel: 'Best Value',
             recommended: true,
             selected: selectedPlan == 'Yearly',
             onSelected: () => onPlanSelected('Yearly'),
@@ -1256,7 +1244,7 @@ class _PlanCardsSection extends StatelessWidget {
             subtitle: 'One-time access with PDF edit, OCR, and long-term workspace usage',
             priceLine: lifetimePriceLine,
             enabledTools: enabledToolsByPlan['Lifetime'] ?? const <String>[],
-            buttonLabel: 'Get Lifetime',
+            buttonLabel: 'Select Plan',
             selected: selectedPlan == 'Lifetime',
             onSelected: () => onPlanSelected('Lifetime'),
           ),
@@ -1404,12 +1392,13 @@ class _PlanCardsSection extends StatelessWidget {
   }
 }
 
-class _PlanCardTile extends StatelessWidget {
+class _PlanCardTile extends StatefulWidget {
   final String title;
   final String subtitle;
   final String priceLine;
   final List<String> enabledTools;
   final String buttonLabel;
+  final String? badgeLabel;
   final bool recommended;
   final bool selected;
   final VoidCallback onSelected;
@@ -1420,59 +1409,73 @@ class _PlanCardTile extends StatelessWidget {
     required this.priceLine,
     required this.enabledTools,
     required this.buttonLabel,
+    this.badgeLabel,
     this.recommended = false,
     required this.selected,
     required this.onSelected,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final bool isPro = title == 'Pro';
+  State<_PlanCardTile> createState() => _PlanCardTileState();
+}
 
-    final List<Color> backgroundGradient = recommended
+class _PlanCardTileState extends State<_PlanCardTile> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isPro = widget.title == 'Pro';
+
+    final List<Color> backgroundGradient = widget.recommended
         ? const [Color(0xFFEEF6FF), Color(0xFFDDEEFF)]
         : isPro
             ? const [Color(0xFFEFFCF8), Color(0xFFD8F5EC)]
             : const [Color(0xFFF8FAFC), Color(0xFFF1F5F9)];
 
-    final Color outlineColor = selected
+    final Color outlineColor = widget.selected
         ? const Color(0xFF0F766E)
-        : (recommended
+        : (widget.recommended
             ? const Color(0xFF1D74D8)
             : (isPro ? const Color(0xFF0F766E) : const Color(0xFFD1D5DB)));
 
-    final Color accentColor = recommended
+    final Color accentColor = widget.recommended
         ? const Color(0xFF1D74D8)
         : (isPro ? const Color(0xFF0F766E) : const Color(0xFF1F2937));
 
-    final IconData planIcon = recommended
+    final IconData planIcon = widget.recommended
         ? Icons.auto_awesome_rounded
         : (isPro ? Icons.bolt_rounded : Icons.shield_outlined);
 
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: backgroundGradient,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: outlineColor,
-          width: selected ? 2 : (recommended ? 2 : 1),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: accentColor.withOpacity(selected ? 0.22 : 0.12),
-            blurRadius: selected ? 22 : 14,
-            offset: const Offset(0, 8),
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        transform: Matrix4.translationValues(0, _hovered ? -4 : 0, 0),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: backgroundGradient,
           ),
-        ],
-      ),
-      child: Column(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: outlineColor,
+            width: widget.selected ? 2 : (widget.recommended ? 2 : 1),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: accentColor.withOpacity(widget.selected || _hovered ? 0.24 : 0.12),
+              blurRadius: widget.selected || _hovered ? 24 : 14,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (recommended)
+          if (widget.recommended)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 6),
@@ -1511,7 +1514,7 @@ class _PlanCardTile extends StatelessWidget {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        title,
+                          widget.title,
                         style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.w800,
@@ -1519,7 +1522,7 @@ class _PlanCardTile extends StatelessWidget {
                         ),
                       ),
                     ),
-                    if (selected)
+                      if (widget.selected)
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
@@ -1539,7 +1542,7 @@ class _PlanCardTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  subtitle,
+                  widget.subtitle,
                   style: const TextStyle(
                     fontSize: 12,
                     color: Color(0xFF4B5563),
@@ -1547,10 +1550,29 @@ class _PlanCardTile extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                if (enabledTools.isNotEmpty) ...[
+                if (widget.badgeLabel != null) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF7CC),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: const Color(0xFFFCD34D)),
+                    ),
+                    child: Text(
+                      widget.badgeLabel!,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF92400E),
+                      ),
+                    ),
+                  ),
+                ],
+                if (widget.enabledTools.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(
-                    'Enabled tools: ${enabledTools.join(', ')}',
+                    'Enabled tools: ${widget.enabledTools.join(', ')}',
                     style: const TextStyle(
                       fontSize: 11,
                       color: Color(0xFF475569),
@@ -1569,7 +1591,7 @@ class _PlanCardTile extends StatelessWidget {
                     border: Border.all(color: Colors.black.withOpacity(0.06)),
                   ),
                   child: Text(
-                    priceLine,
+                    widget.priceLine,
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
@@ -1581,16 +1603,16 @@ class _PlanCardTile extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: onSelected,
+                    onPressed: widget.onSelected,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: selected ? accentColor : const Color(0xFF1F2937),
+                      backgroundColor: widget.selected ? accentColor : const Color(0xFF1F2937),
                       foregroundColor: Colors.white,
-                      elevation: selected ? 2.5 : 1,
+                      elevation: widget.selected ? 2.5 : 1,
                       padding: const EdgeInsets.symmetric(vertical: 13),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                     child: Text(
-                      buttonLabel,
+                      widget.buttonLabel,
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
@@ -1602,6 +1624,7 @@ class _PlanCardTile extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }
@@ -2233,6 +2256,17 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
   bool _submitting = false;
   Map<String, dynamic>? _lastCheckoutResponse;
 
+  bool _canProceedWithPurchase() {
+    final profile = UserAccountService.getProfile();
+    final hasName = profile.displayName.trim().isNotEmpty;
+    final hasEmail = profile.email.trim().isNotEmpty;
+    final hasCountry = profile.country.trim().isNotEmpty;
+    final hasMobile = profile.mobileNumber.trim().isNotEmpty;
+
+    // V1.1 purchase guard: all four fields required for payment flow.
+    return hasName && hasEmail && hasCountry && hasMobile;
+  }
+
   double _monthlyForPlan(String plan) {
     if (plan == 'Monthly') return widget.monthlyAmount;
     if (plan == 'Yearly') return widget.yearlyAmount / 12;
@@ -2270,6 +2304,15 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
   }
 
   Future<void> _continueToPayment(BuildContext context) async {
+    if (!_canProceedWithPurchase()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please update your account details before purchase/payment.'),
+        ),
+      );
+      return;
+    }
+
     final readiness = _readiness();
     final readinessStatus = readiness['status']?.toString() ?? 'configuration_required';
     if (readinessStatus == 'configuration_required') {
@@ -2672,7 +2715,7 @@ class _AdminLoginPanel extends StatefulWidget {
 class _AdminLoginPanelState extends State<_AdminLoginPanel> {
   late final TextEditingController _adminIdController;
   final TextEditingController _passwordController = TextEditingController();
-  String _status = 'Admin login required to edit rate cards and promo codes.';
+  String _status = 'Admin login required to open dashboard controls.';
 
   @override
   void initState() {
@@ -2693,7 +2736,7 @@ class _AdminLoginPanelState extends State<_AdminLoginPanel> {
       _passwordController.text,
     );
     setState(() {
-      _status = ok ? 'Admin unlocked. You can now update plans and promo.' : 'Invalid admin ID or password.';
+      _status = ok ? 'Admin dashboard unlocked.' : 'Invalid admin ID or password.';
     });
     if (ok) {
       widget.onUnlocked();
@@ -2882,6 +2925,141 @@ class _AdminCredentialsPanelState extends State<_AdminCredentialsPanel> {
               fontSize: 11,
               color: Color(0xFF334155),
               fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AdminSystemCheckPanel extends StatelessWidget {
+  const _AdminSystemCheckPanel();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBEB),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFFCD34D)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'System Check Box',
+            style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF92400E)),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'API: Ready | Payment: Config-only | Gateway: Owner control active | QA: Validation route available',
+            style: TextStyle(fontSize: 12, color: Color(0xFF78350F), fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SystemCheckPage()),
+              );
+            },
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFFDE68A)),
+              ),
+              child: const Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Open full validation checks',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1F2937),
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: Color(0xFFF59E0B),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AdminBankAdsStatusPanel extends StatelessWidget {
+  const _AdminBankAdsStatusPanel();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBEB),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFFCD34D)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Bank & Ads Status Panel',
+            style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF92400E)),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Live status: legacy Bank/Ads file links are blocked from public access. Keep monitoring alerts active for urgent events.',
+            style: TextStyle(fontSize: 12, color: Color(0xFF78350F), fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          InkWell(
+            onTap: () {
+              html.window.open('https://getreadyjob.com/downloads/bank_api_packet_v1_1.md', '_blank');
+            },
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFFDE68A)),
+              ),
+              child: const Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Verify blocked legacy links now',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1F2937),
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: Color(0xFFF59E0B),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -4903,6 +5081,7 @@ class _UserAccountPrivacySection extends StatefulWidget {
 class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> {
   late final TextEditingController _nameController;
   late final TextEditingController _emailController;
+  late final TextEditingController _mobileController;
   static const List<String> _countryOptions = <String>[
     'India',
     'United States',
@@ -4915,17 +5094,55 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
     'UAE',
     'Other',
   ];
+  static const Map<String, String> _countryDialCodeMap = <String, String>{
+    'India': '+91',
+    'United States': '+1',
+    'United Kingdom': '+44',
+    'Canada': '+1',
+    'Australia': '+61',
+    'Germany': '+49',
+    'France': '+33',
+    'Singapore': '+65',
+    'UAE': '+971',
+    'Other': '+00',
+  };
+  static const Map<String, String> _localeCountryMap = <String, String>{
+    'IN': 'India',
+    'US': 'United States',
+    'GB': 'United Kingdom',
+    'CA': 'Canada',
+    'AU': 'Australia',
+    'DE': 'Germany',
+    'FR': 'France',
+    'SG': 'Singapore',
+    'AE': 'UAE',
+  };
 
   String _selectedCountry = 'India';
+  String _selectedCountryCode = '+91';
   bool _googleLoginPreferred = false;
+
+  String _detectCountryByLocale() {
+    final language = html.window.navigator.language?.toUpperCase() ?? '';
+    if (!language.contains('-')) {
+      return 'India';
+    }
+    final region = language.split('-').last;
+    return _localeCountryMap[region] ?? 'India';
+  }
 
   @override
   void initState() {
     super.initState();
     final profile = UserAccountService.getProfile();
+    final localeCountry = _detectCountryByLocale();
     _nameController = TextEditingController(text: profile.displayName);
     _emailController = TextEditingController(text: profile.email);
-    _selectedCountry = profile.country.isNotEmpty ? profile.country : 'India';
+    _mobileController = TextEditingController(text: profile.mobileNumber);
+    _selectedCountry = profile.country.isNotEmpty ? profile.country : localeCountry;
+    _selectedCountryCode = profile.countryCode.isNotEmpty
+      ? profile.countryCode
+      : (_countryDialCodeMap[_selectedCountry] ?? '+91');
     _googleLoginPreferred = profile.googleLoginPreferred;
   }
 
@@ -4933,23 +5150,32 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
+    _mobileController.dispose();
     super.dispose();
   }
 
   Future<void> _saveProfile() async {
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
+    final mobile = _mobileController.text.trim();
 
-    if (name.isEmpty) {
+    if (email.isEmpty || _selectedCountry.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your name.')),
+        const SnackBar(content: Text('Country and Email are required.')),
       );
       return;
     }
 
-    if (email.isNotEmpty && !RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) {
+    if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a valid email address.')),
+      );
+      return;
+    }
+
+    if (mobile.isNotEmpty && !RegExp(r'^[0-9]{6,15}$').hasMatch(mobile)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid mobile number.')),
       );
       return;
     }
@@ -4958,6 +5184,8 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
       displayName: name,
       email: email,
       country: _selectedCountry,
+      countryCode: _selectedCountryCode,
+      mobileNumber: mobile,
       historyEnabled: true,
       googleLoginPreferred: _googleLoginPreferred,
     );
@@ -5013,6 +5241,15 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
               ),
             ),
             const SizedBox(height: 8),
+            const Text(
+              'Update details to continue.',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF64748B),
+              ),
+            ),
+            const SizedBox(height: 8),
           ],
           TextField(
             controller: _nameController,
@@ -5051,6 +5288,7 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
               }
               setState(() {
                 _selectedCountry = value;
+                _selectedCountryCode = _countryDialCodeMap[value] ?? _selectedCountryCode;
               });
             },
             decoration: InputDecoration(
@@ -5058,6 +5296,51 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
               isDense: true,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
             ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              SizedBox(
+                width: 122,
+                child: DropdownButtonFormField<String>(
+                  initialValue: _selectedCountryCode,
+                  items: _countryDialCodeMap.entries
+                      .map(
+                        (entry) => DropdownMenuItem<String>(
+                          value: entry.value,
+                          child: Text(entry.value),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    if (value == null) {
+                      return;
+                    }
+                    setState(() {
+                      _selectedCountryCode = value;
+                    });
+                  },
+                  decoration: InputDecoration(
+                    labelText: 'Code',
+                    isDense: true,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: _mobileController,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    labelText: 'Mobile Number (optional for login)',
+                    hintText: '9876543210',
+                    isDense: true,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 10),
           SizedBox(

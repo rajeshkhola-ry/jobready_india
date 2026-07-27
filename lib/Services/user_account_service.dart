@@ -6,6 +6,8 @@ class UserAccountProfile {
   final String displayName;
   final String email;
   final String country;
+  final String countryCode;
+  final String mobileNumber;
   final bool historyEnabled;
   final bool googleLoginPreferred;
 
@@ -13,6 +15,8 @@ class UserAccountProfile {
     required this.displayName,
     required this.email,
     required this.country,
+    required this.countryCode,
+    required this.mobileNumber,
     required this.historyEnabled,
     required this.googleLoginPreferred,
   });
@@ -22,6 +26,8 @@ class UserAccountProfile {
       displayName: '',
       email: '',
       country: 'India',
+      countryCode: '+91',
+      mobileNumber: '',
       historyEnabled: true,
       googleLoginPreferred: false,
     );
@@ -31,6 +37,8 @@ class UserAccountProfile {
     String? displayName,
     String? email,
     String? country,
+    String? countryCode,
+    String? mobileNumber,
     bool? historyEnabled,
     bool? googleLoginPreferred,
   }) {
@@ -38,6 +46,8 @@ class UserAccountProfile {
       displayName: displayName ?? this.displayName,
       email: email ?? this.email,
       country: country ?? this.country,
+      countryCode: countryCode ?? this.countryCode,
+      mobileNumber: mobileNumber ?? this.mobileNumber,
       historyEnabled: historyEnabled ?? this.historyEnabled,
       googleLoginPreferred: googleLoginPreferred ?? this.googleLoginPreferred,
     );
@@ -48,6 +58,8 @@ class UserAccountProfile {
       'display_name': displayName,
       'email': email,
       'country': country,
+      'country_code': countryCode,
+      'mobile_number': mobileNumber,
       'history_enabled': historyEnabled,
       'google_login_preferred': googleLoginPreferred,
     };
@@ -60,6 +72,10 @@ class UserAccountProfile {
       country: map['country']?.toString().trim().isNotEmpty == true
           ? map['country'].toString()
           : 'India',
+      countryCode: map['country_code']?.toString().trim().isNotEmpty == true
+          ? map['country_code'].toString()
+          : '+91',
+      mobileNumber: map['mobile_number']?.toString() ?? '',
       historyEnabled: map['history_enabled'] == true,
       googleLoginPreferred: map['google_login_preferred'] == true,
     );
