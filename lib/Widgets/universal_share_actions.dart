@@ -1,46 +1,56 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:cross_file/cross_file.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:universal_html/html.dart' as html;
 
 class UniversalShareActions extends StatelessWidget {
   final String fileName;
   final String downloadUrl;
-  final String shareText;
+  final String mimeType;
+  final List<int> outputBytes;
 
   const UniversalShareActions({
     super.key,
     required this.fileName,
     required this.downloadUrl,
-    required this.shareText,
+    required this.mimeType,
+    required this.outputBytes,
   });
 
-  Future<void> _copyShareText(BuildContext context) async {
-    await Clipboard.setData(ClipboardData(text: shareText));
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Share text copied.'),
-        backgroundColor: Colors.green,
-      ),
-    );
-  }
+  Future<void> _shareFile(BuildContext context) async {
+    try {
+      final xFile = XFile.fromData(
+        outputBytes,
+        name: fileName,
+        mimeType: mimeType,
+      );
 
-  void _openWhatsApp() {
-    final encoded = Uri.encodeComponent(shareText);
-    html.window.open('https://wa.me/?text=$encoded', '_blank');
-  }
-
-  void _openEmail() {
-    final subject = Uri.encodeComponent('GETREADYJOB file ready: $fileName');
-    final body = Uri.encodeComponent(shareText);
-    html.window.open('mailto:?subject=$subject&body=$body', '_self');
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [xFile],
+          text: 'File from GETREADYJOB: $fileName',
+          subject: 'GETREADYJOB file: $fileName',
+        ),
+      );
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Native share unavailable on this browser. Use Download and then attach manually. ($error)',
+          ),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
   }
 
   String _googleDriveSavePageDataUri() {
-    final source = jsonEncode(downloadUrl);
-    final file = jsonEncode(fileName);
+    final source = downloadUrl;
+    final file = fileName;
     final htmlPage = '''<!doctype html>
 <html>
 <head>
@@ -55,12 +65,8 @@ class UniversalShareActions extends StatelessWidget {
 </head>
 <body>
   <h3>Save To Google Drive</h3>
-  <g:savetodrive src="'''+downloadUrl+'''" filename="'''+fileName+'''" sitename="GETREADYJOB"></g:savetodrive>
+  <g:savetodrive src="$source" filename="$file" sitename="GETREADYJOB"></g:savetodrive>
   <p class="hint">If the button does not appear, refresh this tab once and try again.</p>
-  <script>
-    window.__grjDriveSource = $source;
-    window.__grjDriveFile = $file;
-  </script>
 </body>
 </html>''';
     return Uri.dataFromString(
@@ -71,8 +77,8 @@ class UniversalShareActions extends StatelessWidget {
   }
 
   String _oneDriveSavePageDataUri() {
-    final source = jsonEncode(downloadUrl);
-    final file = jsonEncode(fileName);
+    final source = downloadUrl;
+    final file = fileName;
     final htmlPage = '''<!doctype html>
 <html>
 <head>
@@ -99,8 +105,8 @@ class UniversalShareActions extends StatelessWidget {
   <button class="btn" onclick="saveNow()">Save File</button>
   <p class="hint">Uses free OneDrive Saver SDK. If popup is blocked, allow popups and try again.</p>
   <script>
-    const sourceUrl = $source;
-    const sourceFile = $file;
+    const sourceUrl = "$source";
+    const sourceFile = "$file";
     function saveNow() {
       try {
         OneDrive.save({
@@ -130,12 +136,26 @@ class UniversalShareActions extends StatelessWidget {
     ).toString();
   }
 
-  void _openGoogleDriveSaver() {
+  Future<void> _openGoogleDriveSaver(BuildContext context) async {
     html.window.open(_googleDriveSavePageDataUri(), '_blank');
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Google Drive saver opened with current file payload.'),
+        backgroundColor: Color(0xFF0F766E),
+      ),
+    );
   }
 
-  void _openOneDriveSaver() {
+  Future<void> _openOneDriveSaver(BuildContext context) async {
     html.window.open(_oneDriveSavePageDataUri(), '_blank');
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('OneDrive saver opened with current file payload.'),
+        backgroundColor: Color(0xFF1D4ED8),
+      ),
+    );
   }
 
   @override
@@ -157,30 +177,15 @@ class UniversalShareActions extends StatelessWidget {
           runSpacing: 8,
           children: [
             ElevatedButton(
-              onPressed: () {
-                _openWhatsApp();
-              },
+              onPressed: () => unawaited(_shareFile(context)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF128C7E),
                 foregroundColor: Colors.white,
               ),
-              child: const Text('WhatsApp'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                _openEmail();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1F4E79),
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Email'),
+              child: const Text('Share File (Email/WhatsApp)'),
             ),
             OutlinedButton(
-              onPressed: () async {
-                _openGoogleDriveSaver();
-                await _copyShareText(context);
-              },
+              onPressed: () => unawaited(_openGoogleDriveSaver(context)),
               style: OutlinedButton.styleFrom(
                 foregroundColor: const Color(0xFF0F766E),
                 side: const BorderSide(color: Color(0xFF0F766E)),
@@ -188,10 +193,7 @@ class UniversalShareActions extends StatelessWidget {
               child: const Text('Google Drive'),
             ),
             OutlinedButton(
-              onPressed: () async {
-                _openOneDriveSaver();
-                await _copyShareText(context);
-              },
+              onPressed: () => unawaited(_openOneDriveSaver(context)),
               style: OutlinedButton.styleFrom(
                 foregroundColor: const Color(0xFF1D4ED8),
                 side: const BorderSide(color: Color(0xFF1D4ED8)),

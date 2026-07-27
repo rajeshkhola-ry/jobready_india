@@ -193,7 +193,6 @@ class DownloadResultDialog extends StatelessWidget {
     final outputSizeLabel = isCompressionResult ? 'Compressed Size' : 'Output Size';
     final outputSizeText = _formatBytes(outputBytes.length);
     final shareUrl = _createTemporaryFileUrl();
-    final shareText = _shareMessage(shareUrl);
 
     String? reductionText;
     if (originalFileSizeBytes != null && originalFileSizeBytes! > 0) {
@@ -327,7 +326,8 @@ class DownloadResultDialog extends StatelessWidget {
             UniversalShareActions(
               fileName: fileName,
               downloadUrl: shareUrl,
-              shareText: shareText,
+              mimeType: _mimeTypeFromFileName(),
+              outputBytes: outputBytes,
             ),
           ],
         ),
