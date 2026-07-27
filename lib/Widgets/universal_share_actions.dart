@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:js_util' as js_util;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:share_plus/share_plus.dart';
@@ -11,6 +13,7 @@ class UniversalShareActions extends StatelessWidget {
   final String downloadUrl;
   final String mimeType;
   final List<int> outputBytes;
+  final String? publicHttpsUrl;
 
   const UniversalShareActions({
     super.key,
@@ -18,10 +21,76 @@ class UniversalShareActions extends StatelessWidget {
     required this.downloadUrl,
     required this.mimeType,
     required this.outputBytes,
+    this.publicHttpsUrl,
   });
+
+  bool _isValidPublicHttps(String? value) {
+    if (value == null || value.isEmpty) {
+      return false;
+    }
+    final uri = Uri.tryParse(value);
+    return uri != null && uri.hasScheme && uri.scheme == 'https';
+  }
+
+  bool _canShareFilesOnWeb({
+    required html.File file,
+  }) {
+    try {
+      final nav = html.window.navigator;
+      if (!js_util.hasProperty(nav, 'canShare')) {
+        return false;
+      }
+
+      final payload = js_util.jsify({
+        'files': [file],
+      });
+
+      final result = js_util.callMethod<bool>(nav, 'canShare', [payload]);
+      return result == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  void _showUnsupportedShareNotice(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Direct file attachment is supported on mobile devices/native apps. Please download the file or use Email / Cloud Storage.',
+        ),
+        backgroundColor: Colors.orange,
+      ),
+    );
+  }
 
   Future<void> _shareFile(BuildContext context) async {
     try {
+      if (kIsWeb) {
+        final webFile = html.File(
+          [outputBytes],
+          fileName,
+          {
+            'type': mimeType,
+          },
+        );
+
+        if (!_canShareFilesOnWeb(file: webFile)) {
+          if (_isValidPublicHttps(publicHttpsUrl)) {
+            html.window.open(publicHttpsUrl!, '_blank');
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Browser cannot attach files directly. Opened secure public file link.'),
+                backgroundColor: Color(0xFF1F4E79),
+              ),
+            );
+          } else {
+            _showUnsupportedShareNotice(context);
+          }
+          return;
+        }
+      }
+
       final xFile = XFile.fromData(
         outputBytes,
         name: fileName,
@@ -31,20 +100,23 @@ class UniversalShareActions extends StatelessWidget {
       await SharePlus.instance.share(
         ShareParams(
           files: [xFile],
-          text: 'File from GETREADYJOB: $fileName',
           subject: 'GETREADYJOB file: $fileName',
         ),
       );
     } catch (error) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Native share unavailable on this browser. Use Download and then attach manually. ($error)',
+      if (_isValidPublicHttps(publicHttpsUrl)) {
+        html.window.open(publicHttpsUrl!, '_blank');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Native attachment failed. Opened secure public file link.'),
+            backgroundColor: Color(0xFF1F4E79),
           ),
-          backgroundColor: Colors.orange,
-        ),
-      );
+        );
+        return;
+      }
+
+      _showUnsupportedShareNotice(context);
     }
   }
 
