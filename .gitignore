@@ -63,5 +63,11 @@ live_*.json
 # Backup archives
 backups/**/*.zip
 
+# Local secret material
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.*.example
+
 # Windows
 Thumbs.db

@@ -5,6 +5,15 @@ enum ApiEnvironment { development, staging, production }
 
 class ApiConfig {
   static const ApiEnvironment environment = ApiEnvironment.production;
+  // Secrets must stay server-side. Do not embed provider secrets in client bundles.
+  static const String bankApiKeyRef = String.fromEnvironment(
+    'BANK_API_KEY_REF',
+    defaultValue: 'BANK_API_KEY_SERVER_ONLY',
+  );
+  static const String adsApiKeyRef = String.fromEnvironment(
+    'ADS_API_KEY_REF',
+    defaultValue: 'ADS_API_KEY_SERVER_ONLY',
+  );
 
   // ==================== BASE URLs ====================
   static String get baseUrl {
@@ -179,29 +188,29 @@ class ApiConfig {
     'supported_gateways': [],
     'currency': 'USD',
     'ccavenue': {
-      'merchant_id': 'UPDATE_CCAVENUE_MERCHANT_ID',
-      'access_code': 'UPDATE_CCAVENUE_ACCESS_CODE',
-      'working_key': 'UPDATE_CCAVENUE_WORKING_KEY',
+      'merchant_id': '',
+      'access_code': '',
+      'working_key': '',
       'redirect_url': 'https://api.getreadyjob.com/api/v1/payments/callback',
       'cancel_url': 'https://api.getreadyjob.com/api/v1/payments/cancel',
     },
     'razorpay': {
-      'key_id': 'UPDATE_RAZORPAY_KEY_ID',
-      'key_secret': 'UPDATE_RAZORPAY_KEY_SECRET',
-      'webhook_secret': 'UPDATE_RAZORPAY_WEBHOOK_SECRET',
+      'key_id': '',
+      'key_secret': '',
+      'webhook_secret': '',
       'redirect_url': 'https://api.getreadyjob.com/api/v1/payments/callback',
     },
     'paypal': {
-      'client_id': 'UPDATE_PAYPAL_CLIENT_ID',
-      'client_secret': 'UPDATE_PAYPAL_CLIENT_SECRET',
+      'client_id': '',
+      'client_secret': '',
       'environment': 'live',
       'redirect_url': 'https://api.getreadyjob.com/api/v1/payments/callback',
       'cancel_url': 'https://api.getreadyjob.com/api/v1/payments/cancel',
     },
     'stripe': {
-      'publishable_key': 'UPDATE_STRIPE_PUBLISHABLE_KEY',
-      'secret_key': 'UPDATE_STRIPE_SECRET_KEY',
-      'webhook_secret': 'UPDATE_STRIPE_WEBHOOK_SECRET',
+      'publishable_key': '',
+      'secret_key': '',
+      'webhook_secret': '',
       'redirect_url': 'https://api.getreadyjob.com/api/v1/payments/callback',
     },
   };
@@ -229,6 +238,7 @@ class ApiConfig {
       'ccavenue_affiliate': {
         'enabled': false,
         'banner_url': 'https://example.com/ccavenue-affiliate-banner',
+        'secret_ref': adsApiKeyRef,
       },
     },
   };
@@ -248,8 +258,8 @@ class ApiConfig {
         'auth': {
           'type': 'api_key',
           'header_name': 'X-Api-Key',
-          'secret_ref': 'CCAVENUE_API_KEY',
-          'token': 'UPDATE_CCAVENUE_API_KEY',
+          'secret_ref': bankApiKeyRef,
+          'token': '',
         },
         'actions': [
           {
@@ -292,8 +302,8 @@ class ApiConfig {
         'auth_type': 'bearer',
         'auth': {
           'type': 'bearer',
-          'secret_ref': 'STRIPE_SECRET_KEY',
-          'token': 'UPDATE_STRIPE_SECRET_KEY',
+          'secret_ref': 'STRIPE_SECRET_KEY_SERVER_ONLY',
+          'token': '',
         },
         'actions': [
           {
@@ -312,13 +322,13 @@ class ApiConfig {
         'auth_type': 'oauth2',
         'auth': {
           'type': 'oauth2',
-          'client_id': 'UPDATE_SF_CLIENT_ID',
-          'secret_ref': 'SF_CLIENT_SECRET',
-          'client_secret': 'UPDATE_SF_CLIENT_SECRET',
+          'client_id': '',
+          'secret_ref': 'SF_CLIENT_SECRET_SERVER_ONLY',
+          'client_secret': '',
           'token_url': 'https://login.salesforce.com/services/oauth2/token',
           'scope': 'api refresh_token',
-          'access_token': 'UPDATE_RUNTIME_ACCESS_TOKEN',
-          'refresh_token': 'UPDATE_RUNTIME_REFRESH_TOKEN',
+          'access_token': '',
+          'refresh_token': '',
         },
         'actions': [
           {
