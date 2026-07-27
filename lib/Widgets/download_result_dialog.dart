@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:universal_html/html.dart' as html;
 
-import '../Services/api_config.dart';
 import '../Services/document_history_service.dart';
 import '../Services/usage_quota_service.dart';
+import 'universal_share_actions.dart';
 
 class DownloadResultDialog extends StatelessWidget {
   final String outputFormat;
@@ -67,247 +67,6 @@ class DownloadResultDialog extends StatelessWidget {
 
   String _shareMessage(String fileUrl) {
     return 'File ready from GETREADYJOB.\nFile: $fileName\nDownload: $fileUrl';
-  }
-
-  Future<void> _copyShareText(BuildContext context, String text) async {
-    await Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Share text copied.'),
-        backgroundColor: Colors.green,
-      ),
-    );
-  }
-
-  Future<void> _shareWithSystem(BuildContext context, String fileUrl) async {
-    final message = _shareMessage(fileUrl);
-    // Universal fallback across browser/runtime variants.
-    await _copyShareText(context, message);
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Share text copied. Paste it in your app.'),
-        backgroundColor: Color(0xFF1F4E79),
-      ),
-    );
-  }
-
-  Future<void> _openShareTarget({
-    required BuildContext context,
-    required String target,
-    required String fileUrl,
-  }) async {
-    final encodedMessage = Uri.encodeComponent(_shareMessage(fileUrl));
-    final encodedUrl = Uri.encodeComponent(fileUrl);
-
-    String? shareUrl;
-    String? helperMessage;
-
-    switch (target) {
-      case 'whatsapp':
-        shareUrl = 'https://wa.me/?text=$encodedMessage';
-        break;
-      case 'facebook':
-        shareUrl = 'https://www.facebook.com/sharer/sharer.php?u=$encodedUrl';
-        break;
-      case 'linkedin':
-        shareUrl = 'https://www.linkedin.com/sharing/share-offsite/?url=$encodedUrl';
-        break;
-      case 'google_drive':
-        shareUrl = 'https://drive.google.com/drive/my-drive';
-        helperMessage = 'Google Drive opened. Paste upload/share link there.';
-        break;
-      case 'onedrive':
-        shareUrl = 'https://onedrive.live.com';
-        helperMessage = 'OneDrive opened. Paste upload/share link there.';
-        break;
-      case 'icloud':
-        shareUrl = 'https://www.icloud.com/iclouddrive';
-        helperMessage = 'iCloud Drive opened. Paste upload/share link there.';
-        break;
-      default:
-        break;
-    }
-
-    if (shareUrl == null) {
-      return;
-    }
-
-    html.window.open(shareUrl, '_blank');
-
-    if (helperMessage != null) {
-      await _copyShareText(context, _shareMessage(fileUrl));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(helperMessage),
-          backgroundColor: const Color(0xFF1F4E79),
-        ),
-      );
-    }
-  }
-
-  Future<void> _showShareOptions(BuildContext context) async {
-    final fileUrl = _createTemporaryFileUrl();
-
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      useSafeArea: true,
-      builder: (sheetContext) {
-        return SizedBox(
-          height: MediaQuery.of(sheetContext).size.height * 0.72,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 14),
-            child: Column(
-              children: [
-                const ListTile(
-                  title: Text(
-                    'Share File To',
-                    style: TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                  subtitle: Text('Choose app or cloud destination'),
-                ),
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(12, 0, 12, 8),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'This feature is available: Manual Copy-Paste and API integration.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF0F766E),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Expanded(
-                  child: ListView(
-                    children: [
-                      _ShareOptionTile(
-                        icon: Icons.copy_rounded,
-                        title: 'Manual Copy-Paste',
-                        subtitle: 'Copy file link and paste in any app',
-                        onTap: () async {
-                          Navigator.of(sheetContext).pop();
-                          await _copyShareText(context, _shareMessage(fileUrl));
-                        },
-                      ),
-                      _ShareOptionTile(
-                        icon: Icons.api_rounded,
-                        title: 'API Integration',
-                        subtitle: 'Use integration endpoint for automated sharing',
-                        onTap: () async {
-                          Navigator.of(sheetContext).pop();
-                          final apiGuide =
-                              'API share endpoint: ${ApiConfig.baseUrl}${ApiConfig.integrationExecuteEndpoint}\nPayload includes app_id, action_id, and file link.';
-                          await _copyShareText(context, apiGuide);
-                          if (!context.mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('API integration guide copied.'),
-                              backgroundColor: Color(0xFF1F4E79),
-                            ),
-                          );
-                        },
-                      ),
-                      _ShareOptionTile(
-                        icon: Icons.share,
-                        title: 'System Share',
-                        subtitle: 'Use device/browser share sheet',
-                        onTap: () async {
-                          Navigator.of(sheetContext).pop();
-                          await _shareWithSystem(context, fileUrl);
-                        },
-                      ),
-                      _ShareOptionTile(
-                        icon: Icons.chat,
-                        title: 'WhatsApp',
-                        subtitle: 'Send file link in chat',
-                        onTap: () async {
-                          Navigator.of(sheetContext).pop();
-                          await _openShareTarget(
-                            context: context,
-                            target: 'whatsapp',
-                            fileUrl: fileUrl,
-                          );
-                        },
-                      ),
-                      _ShareOptionTile(
-                        icon: Icons.business,
-                        title: 'LinkedIn',
-                        subtitle: 'Share file link to LinkedIn',
-                        onTap: () async {
-                          Navigator.of(sheetContext).pop();
-                          await _openShareTarget(
-                            context: context,
-                            target: 'linkedin',
-                            fileUrl: fileUrl,
-                          );
-                        },
-                      ),
-                      _ShareOptionTile(
-                        icon: Icons.thumb_up_alt,
-                        title: 'Facebook',
-                        subtitle: 'Share file link to Facebook',
-                        onTap: () async {
-                          Navigator.of(sheetContext).pop();
-                          await _openShareTarget(
-                            context: context,
-                            target: 'facebook',
-                            fileUrl: fileUrl,
-                          );
-                        },
-                      ),
-                      _ShareOptionTile(
-                        icon: Icons.cloud_upload,
-                        title: 'Google Drive',
-                        subtitle: 'Open Drive and copy share text',
-                        onTap: () async {
-                          Navigator.of(sheetContext).pop();
-                          await _openShareTarget(
-                            context: context,
-                            target: 'google_drive',
-                            fileUrl: fileUrl,
-                          );
-                        },
-                      ),
-                      _ShareOptionTile(
-                        icon: Icons.cloud_done,
-                        title: 'OneDrive',
-                        subtitle: 'Open OneDrive and copy share text',
-                        onTap: () async {
-                          Navigator.of(sheetContext).pop();
-                          await _openShareTarget(
-                            context: context,
-                            target: 'onedrive',
-                            fileUrl: fileUrl,
-                          );
-                        },
-                      ),
-                      _ShareOptionTile(
-                        icon: Icons.cloud_circle,
-                        title: 'iCloud Drive',
-                        subtitle: 'Open iCloud and copy share text',
-                        onTap: () async {
-                          Navigator.of(sheetContext).pop();
-                          await _openShareTarget(
-                            context: context,
-                            target: 'icloud',
-                            fileUrl: fileUrl,
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
   }
 
   void _downloadFile(BuildContext context) {
@@ -433,6 +192,8 @@ class DownloadResultDialog extends StatelessWidget {
     final isCompressionResult = outputFormat.toLowerCase().contains('compress');
     final outputSizeLabel = isCompressionResult ? 'Compressed Size' : 'Output Size';
     final outputSizeText = _formatBytes(outputBytes.length);
+    final shareUrl = _createTemporaryFileUrl();
+    final shareText = _shareMessage(shareUrl);
 
     String? reductionText;
     if (originalFileSizeBytes != null && originalFileSizeBytes! > 0) {
@@ -562,61 +323,16 @@ class DownloadResultDialog extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 6),
-            SizedBox(
-              width: double.infinity,
-              height: 36,
-              child: ElevatedButton.icon(
-                onPressed: () => _showShareOptions(context),
-                icon: const Icon(Icons.share, size: 17),
-                label: const Text(
-                  'Share',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0F766E),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
+            const SizedBox(height: 8),
+            UniversalShareActions(
+              fileName: fileName,
+              downloadUrl: shareUrl,
+              shareText: shareText,
             ),
           ],
         ),
         ),
       ),
-    );
-  }
-}
-
-class _ShareOptionTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  const _ShareOptionTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(icon, color: const Color(0xFF1F4E79)),
-      title: Text(
-        title,
-        style: const TextStyle(fontWeight: FontWeight.w700),
-      ),
-      subtitle: Text(subtitle),
-      onTap: onTap,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
     );
   }
 }
