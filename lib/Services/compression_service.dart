@@ -14,6 +14,11 @@ enum PdfCompressionMode {
   targetSize,
 }
 
+enum CompressionPipelineMode {
+  standard,
+  highCompressionImageOnly,
+}
+
 class PdfCompressionResult {
   final Uint8List bytes;
   final bool targetMet;
@@ -81,12 +86,16 @@ class CompressionService {
     Uint8List bytes,
     int targetBytes,
     String fileName,
+    {
+    CompressionPipelineMode pipelineMode = CompressionPipelineMode.standard,
+    }
   ) async {
     final result = await compressPdfSmart(
       bytes,
       targetBytes,
       fileName,
       mode: PdfCompressionMode.recommended,
+      pipelineMode: pipelineMode,
     );
     return result.bytes;
   }
@@ -96,6 +105,7 @@ class CompressionService {
     int targetBytes,
     String fileName, {
     PdfCompressionMode mode = PdfCompressionMode.recommended,
+    CompressionPipelineMode pipelineMode = CompressionPipelineMode.standard,
   }) async {
     if (bytes.isEmpty || targetBytes <= 0) {
       return PdfCompressionResult(
@@ -115,7 +125,24 @@ class CompressionService {
 
     Uint8List best = bytes;
     final sourcePageCount = _tryGetPdfPageCount(bytes);
-  final contentProfile = _profilePdfContent(bytes, sourcePageCount);
+    final contentProfile = _profilePdfContent(bytes, sourcePageCount);
+
+    if (pipelineMode == CompressionPipelineMode.highCompressionImageOnly) {
+      final imageOnly = await _compressPdfImageOnlyHigh(
+        bytes,
+        targetBytes,
+        sourcePageCount: sourcePageCount,
+        contentProfile: contentProfile,
+      );
+
+      return PdfCompressionResult(
+        bytes: imageOnly,
+        targetMet: imageOnly.length <= targetBytes,
+        message: imageOnly.length <= targetBytes
+            ? 'High Compression (image-only) target achieved.'
+            : 'High Compression (image-only) applied with metadata/object optimization. Best possible output returned.',
+      );
+    }
 
     final syncfusionPass = _compressPdfWithSyncfusion(best);
     if (_isBetterPdfCandidate(
@@ -133,54 +160,72 @@ class CompressionService {
       );
     }
 
-    if (!kIsWeb) {
-      final plans = _buildRenderPlans(
-        sourceBytes: bytes.length,
-        targetBytes: targetBytes,
-        mode: mode,
-        imageHeavy: contentProfile.likelyImageHeavy,
-      );
+    final plans = _buildRenderPlans(
+      sourceBytes: bytes.length,
+      targetBytes: targetBytes,
+      mode: mode,
+      imageHeavy: contentProfile.likelyImageHeavy,
+    );
 
-      for (final plan in plans) {
-        try {
-          final rendered = await _compressPdfByRendering(
-            bytes,
-            targetBytes,
-            maxRenderDimension: plan.maxRenderDimension,
-            minQuality: plan.minQuality,
-            qualityStep: plan.qualityStep,
-            pageTargetTolerance: plan.pageTargetTolerance,
-            startQuality: plan.startQuality,
-            contentProfile: contentProfile,
-          );
+    for (final plan in plans) {
+      try {
+        final rendered = await _compressPdfByRendering(
+          bytes,
+          targetBytes,
+          maxRenderDimension: plan.maxRenderDimension,
+          minQuality: plan.minQuality,
+          qualityStep: plan.qualityStep,
+          pageTargetTolerance: plan.pageTargetTolerance,
+          startQuality: plan.startQuality,
+          contentProfile: contentProfile,
+        );
 
-          if (_isBetterPdfCandidate(
-            candidate: rendered,
-            currentBest: best,
-            expectedPageCount: sourcePageCount,
-          )) {
-            best = rendered;
-          }
-
-          final refined = _compressPdfWithSyncfusion(best);
-          if (_isBetterPdfCandidate(
-            candidate: refined,
-            currentBest: best,
-            expectedPageCount: sourcePageCount,
-          )) {
-            best = refined;
-          }
-
-          if (best.length <= targetBytes) {
-            return PdfCompressionResult(
-              bytes: best,
-              targetMet: true,
-              message: 'Target achieved with adaptive image and object optimization.',
-            );
-          }
-        } catch (_) {
-          // Continue with remaining render plans.
+        if (_isBetterPdfCandidate(
+          candidate: rendered,
+          currentBest: best,
+          expectedPageCount: sourcePageCount,
+        )) {
+          best = rendered;
         }
+
+        final refined = _compressPdfWithSyncfusion(best);
+        if (_isBetterPdfCandidate(
+          candidate: refined,
+          currentBest: best,
+          expectedPageCount: sourcePageCount,
+        )) {
+          best = refined;
+        }
+
+        if (best.length <= targetBytes) {
+          return PdfCompressionResult(
+            bytes: best,
+            targetMet: true,
+            message: 'Target achieved with adaptive image and object optimization.',
+          );
+        }
+      } catch (_) {
+        // Continue with remaining render plans.
+      }
+    }
+
+    if (best.length >= bytes.length) {
+      try {
+        final imageOnlyFallback = await _compressPdfImageOnlyHigh(
+          bytes,
+          targetBytes,
+          sourcePageCount: sourcePageCount,
+          contentProfile: contentProfile,
+        );
+        if (_isBetterPdfCandidate(
+          candidate: imageOnlyFallback,
+          currentBest: best,
+          expectedPageCount: sourcePageCount,
+        )) {
+          best = imageOnlyFallback;
+        }
+      } catch (_) {
+        // If image-only fallback fails, return best effort candidate.
       }
     }
 
@@ -189,9 +234,7 @@ class CompressionService {
       targetMet: best.length <= targetBytes,
       message: best.length <= targetBytes
           ? 'Target achieved with best-effort optimization.'
-          : kIsWeb && contentProfile.likelyImageHeavy
-              ? 'Scanned/image-heavy PDF needs page-render compression, which is limited in this Flutter Web runtime. Best object-compressed output returned. Recommended production architecture: server-side worker or native compression runtime for rendered-page optimization.'
-              : 'Requested target could not be reached without severe quality loss. Returning best possible optimized output.',
+          : 'Requested target could not be reached without severe quality loss. Returning best possible optimized output.',
     );
   }
 
@@ -199,13 +242,26 @@ class CompressionService {
     Uint8List bytes,
     int targetBytes,
     String fileName,
+    {
+    CompressionPipelineMode pipelineMode = CompressionPipelineMode.standard,
+    }
   ) async {
+    if (pipelineMode == CompressionPipelineMode.highCompressionImageOnly) {
+      return _compressPdfImageOnlyHigh(
+        bytes,
+        targetBytes,
+        sourcePageCount: _tryGetPdfPageCount(bytes),
+        contentProfile: _profilePdfContent(bytes, _tryGetPdfPageCount(bytes)),
+      );
+    }
+
     final sourcePageCount = _tryGetPdfPageCount(bytes);
     Uint8List best = (await compressPdfSmart(
       bytes,
       targetBytes,
       fileName,
       mode: PdfCompressionMode.smallSize,
+      pipelineMode: pipelineMode,
     ))
         .bytes;
     if (best.length <= targetBytes) {
@@ -254,6 +310,7 @@ class CompressionService {
     int targetBytes,
     {
     int maxRenderDimension = 1200,
+    int? renderDpi,
     int startQuality = 80,
     int minQuality = 30,
     int qualityStep = 10,
@@ -280,8 +337,13 @@ class CompressionService {
           maxRenderDimension / max(originalWidth, originalHeight),
         );
 
-        final int renderWidth = max(1, (originalWidth * renderScale).round());
-        final int renderHeight = max(1, (originalHeight * renderScale).round());
+        int renderWidth = max(1, (originalWidth * renderScale).round());
+        int renderHeight = max(1, (originalHeight * renderScale).round());
+        if (renderDpi != null && renderDpi > 0) {
+          final dpiScale = renderDpi / 72.0;
+          renderWidth = max(1, (page.width * dpiScale).round());
+          renderHeight = max(1, (page.height * dpiScale).round());
+        }
 
         final pageImage = await page.render(
           width: renderWidth,
@@ -579,6 +641,61 @@ class CompressionService {
     } catch (_) {
       return bytes;
     }
+  }
+
+  Future<Uint8List> _compressPdfImageOnlyHigh(
+    Uint8List bytes,
+    int targetBytes, {
+    required int sourcePageCount,
+    required _PdfContentProfile contentProfile,
+  }) async {
+    Uint8List best = bytes;
+
+    final passes = <({int dpi, int quality, int minQuality, int step})>[
+      (dpi: 150, quality: 55, minQuality: 40, step: 5),
+      (dpi: 140, quality: 50, minQuality: 32, step: 6),
+      (dpi: 130, quality: 44, minQuality: 28, step: 6),
+    ];
+
+    for (final pass in passes) {
+      try {
+        final rendered = await _compressPdfByRendering(
+          best,
+          targetBytes,
+          renderDpi: pass.dpi,
+          startQuality: pass.quality,
+          minQuality: pass.minQuality,
+          qualityStep: pass.step,
+          pageTargetTolerance: 1.02,
+          contentProfile: contentProfile,
+        );
+
+        if (_isBetterPdfCandidate(
+          candidate: rendered,
+          currentBest: best,
+          expectedPageCount: sourcePageCount,
+        )) {
+          best = rendered;
+        }
+
+        final optimized = _compressPdfWithSyncfusion(best);
+        if (_isBetterPdfCandidate(
+          candidate: optimized,
+          currentBest: best,
+          expectedPageCount: sourcePageCount,
+        )) {
+          best = optimized;
+        }
+
+        if (best.length <= targetBytes) {
+          return best;
+        }
+      } catch (_) {
+        // Continue next high-compression pass.
+      }
+    }
+
+    return best;
   }
 
   Uint8List _compressJpeg(Uint8List bytes, int targetBytes) {
