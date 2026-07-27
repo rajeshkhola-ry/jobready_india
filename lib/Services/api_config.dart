@@ -7,7 +7,7 @@ class ApiConfig {
   static const ApiEnvironment environment = ApiEnvironment.production;
   static const String renderCompressionApiUrl = String.fromEnvironment(
     'RENDER_COMPRESSION_API_URL',
-    defaultValue: 'https://getreadyjob.onrender.com',
+    defaultValue: 'https://jobready-india.onrender.com',
   );
   // Secrets must stay server-side. Do not embed provider secrets in client bundles.
   static const String bankApiKeyRef = String.fromEnvironment(
