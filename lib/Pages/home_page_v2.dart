@@ -750,31 +750,6 @@ class _HomePageV2State extends State<HomePageV2> {
             ),
 
             const SizedBox(height: 10),
-            if (!_showAdminControls) ...[
-              _AdminLoginPanel(
-                onUnlocked: () {
-                  setState(() {});
-                },
-              ),
-              const SizedBox(height: 10),
-            ],
-            if (_showAdminControls) ...[
-              const _AdminCredentialsPanel(),
-              const SizedBox(height: 10),
-              const _AdminSystemCheckPanel(),
-              const SizedBox(height: 10),
-              _PlanCatalogManagerPanel(
-                initialConfig: _planCatalog,
-                onConfigSaved: (updatedConfig) {
-                  setState(() {
-                    _planCatalog = updatedConfig;
-                  });
-                },
-              ),
-              const SizedBox(height: 10),
-              const _AdminBankAdsStatusPanel(),
-              const SizedBox(height: 10),
-            ],
             const _AboutUsSection(),
             const SizedBox(height: 10),
             const _FuturePlanSection(),

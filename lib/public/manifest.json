@@ -10,7 +10,7 @@
   "prefer_related_applications": false,
   "icons": [
     {
-      "src": "/assets/logo-gold.svg?v=grj-20260726-gold",
+      "src": "/assets/logo-gold.svg?v=grj-20260727-hotfix1",
       "sizes": "any",
       "type": "image/svg+xml"
     }

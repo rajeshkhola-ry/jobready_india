@@ -1,0 +1,21 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="JOBREADY G logo">
+  <defs>
+    <linearGradient id="bg" x1="64" y1="64" x2="448" y2="448" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0A1F44"/>
+      <stop offset="1" stop-color="#07162F"/>
+    </linearGradient>
+    <linearGradient id="ring" x1="96" y1="96" x2="416" y2="416" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFD24A"/>
+      <stop offset="1" stop-color="#F0B400"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="32" y="32" width="448" height="448" rx="112" fill="url(#bg)"/>
+
+  <circle cx="256" cy="256" r="146" stroke="url(#ring)" stroke-width="52"/>
+
+  <path d="M347 256H254" stroke="#FFD24A" stroke-width="52" stroke-linecap="round"/>
+  <path d="M306 256V314" stroke="#FFD24A" stroke-width="52" stroke-linecap="round"/>
+
+  <circle cx="384" cy="128" r="12" fill="#FFD24A" opacity="0.95"/>
+</svg>
