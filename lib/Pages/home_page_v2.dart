@@ -228,10 +228,6 @@ class _HomePageV2State extends State<HomePageV2> {
     html.window.open(mailto, '_blank');
   }
 
-  void _openDownloadFile(String path) {
-    html.window.open(path, '_blank');
-  }
-
   void _showSuggestionDialog() {
     final suggestionController = TextEditingController();
     String selectedType = 'Suggestion';
@@ -800,10 +796,6 @@ class _HomePageV2State extends State<HomePageV2> {
               ),
               const SizedBox(height: 10),
             ],
-            _ApiDownloadsPanel(
-              onDownloadRequested: _openDownloadFile,
-            ),
-            const SizedBox(height: 10),
             const _AboutUsSection(),
             const SizedBox(height: 10),
             const _FuturePlanSection(),
@@ -2777,76 +2769,6 @@ class _AdminLoginPanelState extends State<_AdminLoginPanel> {
                   ? const Color(0xFFB91C1C)
                   : const Color(0xFF475569),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ApiDownloadsPanel extends StatelessWidget {
-  final ValueChanged<String> onDownloadRequested;
-
-  const _ApiDownloadsPanel({
-    required this.onDownloadRequested,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFEEF6FF),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFBFDBFE)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Bank & Ads API Files',
-            style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF1E3A8A)),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Click to open and download the latest API documents.',
-            style: TextStyle(fontSize: 12, color: Color(0xFF334155), fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              OutlinedButton.icon(
-                onPressed: () => onDownloadRequested('/downloads/bank_api_packet_v1_1.md'),
-                icon: const Icon(Icons.account_balance_rounded),
-                label: const Text('Download Bank API File'),
-              ),
-              OutlinedButton.icon(
-                onPressed: () => onDownloadRequested('/downloads/ads_api_packet_v1_1.md'),
-                icon: const Icon(Icons.campaign_rounded),
-                label: const Text('Download Ads API File'),
-              ),
-              ElevatedButton.icon(
-                onPressed: () => onDownloadRequested('/downloads/bank_ads_api_packet_v1_1.html'),
-                icon: const Icon(Icons.picture_as_pdf_rounded),
-                label: const Text('Open Combined HTML Packet'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1F4E79),
-                  foregroundColor: Colors.white,
-                ),
-              ),
-              ElevatedButton.icon(
-                onPressed: () => onDownloadRequested('/downloads/bank_ads_api_packet_v1_1.pdf'),
-                icon: const Icon(Icons.download_rounded),
-                label: const Text('Download Combined PDF Packet'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0F766E),
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ],
           ),
         ],
       ),
