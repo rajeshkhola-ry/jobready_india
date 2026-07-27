@@ -1,5 +1,11 @@
 # 🎉 GETREADYJOB DEPLOYMENT - COMPLETE SUMMARY
 
+## Site Lock Notice (2026-07-27)
+
+- This project is locked to the current live site only.
+- No new site creation or parallel site publishing is allowed.
+- Follow [CURRENT_SITE_LOCK.md](CURRENT_SITE_LOCK.md) as the governing rule for all future updates.
+
 **Date:** 2026-07-26
 **Time:** Ready for Launch NOW
 **Status:** 🟢 **100% PRODUCTION READY**

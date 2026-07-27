@@ -9,20 +9,24 @@ class RoadmapPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return const SiteContentPage(
       title: 'Roadmap',
-      intro: 'GETREADYJOB is actively evolving. The roadmap helps users understand current priorities and future product direction.',
-      highlights: ['Current RC', 'Phase 1', 'V2.1', 'Future AI'],
+      intro: 'GET READY JOB is moving through a structured V2 technical roadmap focused on stronger compression, bilingual OCR, and next-generation photo workflows.',
+      highlights: ['V1.1 SEO', 'V2 Compression', 'Bilingual OCR', 'HD Photo Studio'],
       sections: [
         SiteContentSection(
-          title: 'Current Focus',
-          body: 'The current focus is product polish, trust, legal readiness, user guidance, and commercial maturity across the public website.',
+          title: 'V1.1 SEO System Status',
+          body: 'Baseline SEO setup has been applied for web deployment: meta coverage, structured data schema, robots.txt, and sitemap. Ongoing work is periodic validation in live search tools.',
         ),
         SiteContentSection(
-          title: 'Next Steps',
-          body: 'Immediate roadmap goals include stronger public trust sections, legal/business pages, better tool guidance, SEO improvements, and support workflows.',
+          title: 'V2 Compression Upgrade',
+          body: 'Compression roadmap focuses on quality and efficiency upgrades using Ghostscript-assisted PDF compression and modern WebP pipelines for image-heavy workflows.',
         ),
         SiteContentSection(
-          title: 'Future Direction',
-          body: 'Future roadmap items include AI-assisted workflows, advanced writing tools, business workspaces, and richer document intelligence.',
+          title: 'OCR Roadmap (Hindi + English)',
+          body: 'OCR roadmap is centered on reliable bilingual extraction for Hindi and English documents, including better handling of mixed-language scans and low-quality source files.',
+        ),
+        SiteContentSection(
+          title: 'HD Photo Studio Roadmap',
+          body: 'Photo roadmap includes restore, upscale, face enhancement, and colorization capabilities with a controlled rollout after stability and performance validation.',
         ),
       ],
     );

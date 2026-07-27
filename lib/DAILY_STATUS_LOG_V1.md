@@ -18,6 +18,19 @@ Owner:
 
 ## Daily Entries
 
+## Current Site Final Lock Directive (2026-07-27)
+
+- Overall status: Green (active and enforced)
+- Final decision:
+  - All new jobs, updates, and execution checkpoints must happen in the current site only.
+  - Do not create, publish, or prepare any new site variant.
+  - Treat the current site as the permanent final site baseline for ongoing work.
+- Operating rule:
+  - All changes are in-place updates to existing current-site code and deployment flow.
+  - Any request that implies a separate/new site requires explicit owner override before execution.
+- Owner:
+  - Founder + Copilot
+
 ## Current Phase Tracker (Locked 2026-07-19)
 
 - Planning: ✅ Complete

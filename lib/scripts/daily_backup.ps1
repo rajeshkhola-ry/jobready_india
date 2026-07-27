@@ -1,10 +1,12 @@
 $ErrorActionPreference = "Stop"
 
 $projectRoot = Split-Path -Parent $PSScriptRoot
-$backupRoot = Join-Path (Split-Path -Parent $projectRoot) "backups"
+$siteRoot = Split-Path -Parent $projectRoot
+$backupRoot = Join-Path $siteRoot "backups"
+$oneDriveBackupRoot = Join-Path $env:USERPROFILE "OneDrive\JobReadyIndia_Backups"
 $statusFile = Join-Path $projectRoot "BACKUP_STATUS.md"
 $timestamp = Get-Date -Format "yyyy-MM-dd_HHmmss"
-$backupFile = Join-Path $backupRoot "jobready_lib_backup_$timestamp.zip"
+$backupFile = Join-Path $backupRoot "jobready_site_backup_$timestamp.zip"
 
 if (-not (Test-Path $backupRoot)) {
     New-Item -Path $backupRoot -ItemType Directory | Out-Null
@@ -15,10 +17,11 @@ New-Item -Path $tempStaging -ItemType Directory | Out-Null
 
 $excludeDirs = @(".git", ".dart_tool", "build", "node_modules", "backups")
 $excludeFiles = @("*.tmp", "*.log")
+$skippedFiles = New-Object System.Collections.Generic.List[string]
 
-$allItems = Get-ChildItem -Path $projectRoot -Recurse -Force
+$allItems = Get-ChildItem -Path $siteRoot -Recurse -Force
 foreach ($item in $allItems) {
-    $relativePath = $item.FullName.Substring($projectRoot.Length).TrimStart('\\')
+    $relativePath = $item.FullName.Substring($siteRoot.Length).TrimStart('\\')
 
     $isExcludedDir = $false
     foreach ($dir in $excludeDirs) {
@@ -58,7 +61,12 @@ foreach ($item in $allItems) {
         New-Item -Path $targetParent -ItemType Directory | Out-Null
     }
 
-    Copy-Item -Path $item.FullName -Destination $targetFile -Force
+    try {
+        Copy-Item -Path $item.FullName -Destination $targetFile -Force
+    }
+    catch {
+        $skippedFiles.Add($relativePath)
+    }
 }
 
 if (Test-Path $backupFile) {
@@ -67,6 +75,13 @@ if (Test-Path $backupFile) {
 
 Compress-Archive -Path (Join-Path $tempStaging "*") -DestinationPath $backupFile -CompressionLevel Optimal
 Remove-Item -Path $tempStaging -Recurse -Force
+
+if (-not (Test-Path $oneDriveBackupRoot)) {
+    New-Item -Path $oneDriveBackupRoot -ItemType Directory | Out-Null
+}
+
+$oneDriveBackupFile = Join-Path $oneDriveBackupRoot (Split-Path -Leaf $backupFile)
+Copy-Item -Path $backupFile -Destination $oneDriveBackupFile -Force
 
 $existingBackups = Get-ChildItem -Path $backupRoot -Filter "jobready_lib_backup_*.zip" | Sort-Object LastWriteTime -Descending
 $keepCount = 14
@@ -80,9 +95,13 @@ $statusLines = @(
     "",
     "Last backup: $lastBackupTime",
     "Last backup file: $backupFile",
+    "OneDrive copy: $oneDriveBackupFile",
+    "Skipped locked files: $($skippedFiles.Count)",
     "Backup task: JOBREADY_Daily_Backup (daily at 21:00)",
     "Backup folder: $backupRoot"
 )
 Set-Content -Path $statusFile -Value $statusLines -Encoding UTF8
 
 Write-Output "Backup created: $backupFile"
+Write-Output "OneDrive copy: $oneDriveBackupFile"
+Write-Output "Skipped files: $($skippedFiles.Count)"
