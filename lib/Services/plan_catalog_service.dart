@@ -32,11 +32,26 @@ class PlanCatalogConfig {
       enabledToolsByPlan: {
         'Free': ['Compress', 'Convert', 'Merge', 'Split', 'Extract'],
         '7Days': ['Compress', 'Convert', 'Merge', 'Split', 'Extract', 'Edit PDF', 'OCR'],
-        'Monthly': ['Compress', 'Convert', 'Merge', 'Split', 'Extract', 'Edit PDF', 'OCR', 'Resume'],
-        'Yearly': ['Compress', 'Convert', 'Merge', 'Split', 'Extract', 'Edit PDF', 'OCR', 'Resume', 'History'],
-        'Lifetime': ['Compress', 'Convert', 'Merge', 'Split', 'Extract', 'Edit PDF', 'OCR', 'Resume', 'History'],
+        'Monthly': ['Compress', 'Convert', 'Merge', 'Split', 'Extract', 'Edit PDF', 'OCR'],
+        'Yearly': ['Compress', 'Convert', 'Merge', 'Split', 'Extract', 'Edit PDF', 'OCR', 'History'],
+        'Lifetime': ['Compress', 'Convert', 'Merge', 'Split', 'Extract', 'Edit PDF', 'OCR', 'History'],
       },
     );
+  }
+
+  static const Set<String> _v11AllowedTools = <String>{
+    'Compress',
+    'Convert',
+    'Merge',
+    'Split',
+    'Extract',
+    'Edit PDF',
+    'OCR',
+    'History',
+  };
+
+  static List<String> _sanitizeTools(List<String> tools) {
+    return tools.where(_v11AllowedTools.contains).toSet().toList();
   }
 
   Map<String, dynamic> toMap() {
@@ -71,14 +86,14 @@ class PlanCatalogConfig {
       }
       final merged = <String, List<String>>{};
       for (final fallbackEntry in fallback.entries) {
-        merged[fallbackEntry.key] = List<String>.from(fallbackEntry.value);
+        merged[fallbackEntry.key] = _sanitizeTools(List<String>.from(fallbackEntry.value));
       }
 
       for (final entry in raw.entries) {
         final key = entry.key.toString();
         final value = entry.value;
         if (value is List) {
-          merged[key] = value.map((item) => item.toString()).toList();
+          merged[key] = _sanitizeTools(value.map((item) => item.toString()).toList());
         }
       }
       return merged;

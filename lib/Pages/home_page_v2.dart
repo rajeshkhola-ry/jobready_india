@@ -3066,7 +3066,6 @@ class _PlanCatalogManagerPanelState extends State<_PlanCatalogManagerPanel> {
     'Extract',
     'Edit PDF',
     'OCR',
-    'Resume',
     'History',
   ];
 
