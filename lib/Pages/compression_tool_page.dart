@@ -926,14 +926,15 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
       );
     } catch (e) {
       if (!mounted) return;
+      final errorMessage = e.toString();
       setState(() {
         _isCompressing = false;
-        _statusMessage = '✗ Compression failed. Please try again with another file or target size.';
+        _statusMessage = '✗ Compression failed: $errorMessage';
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Compression failed. Please retry with a smaller target or another file.'),
+        SnackBar(
+          content: Text('Compression failed: $errorMessage'),
           backgroundColor: Colors.red,
         ),
       );
@@ -952,15 +953,13 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
           pipelineMode: _pipelineMode,
         );
 
-        if (remote.bytes.length < file.size) {
-          return _CompressionOutcome(
-            bytes: remote.bytes,
-            aggressiveUsed: _pipelineMode == CompressionPipelineMode.highCompressionImageOnly,
-            reductionPercent: _reductionPercent(file.size, remote.bytes.length),
-            targetMet: remote.targetMet,
-            note: remote.message,
-          );
-        }
+        return _CompressionOutcome(
+          bytes: remote.bytes,
+          aggressiveUsed: _pipelineMode == CompressionPipelineMode.highCompressionImageOnly,
+          reductionPercent: _reductionPercent(file.size, remote.bytes.length),
+          targetMet: remote.targetMet,
+          note: remote.message,
+        );
       }
 
       final smart = await _compressionService.compressPdfSmart(

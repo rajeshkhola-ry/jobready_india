@@ -6,6 +6,17 @@ import 'package:http/http.dart' as http;
 import 'api_config.dart';
 import 'compression_service.dart';
 
+class RemoteCompressionException implements Exception {
+  final String message;
+  final int? statusCode;
+
+  const RemoteCompressionException(this.message, {this.statusCode});
+
+  @override
+  String toString() =>
+      statusCode == null ? message : '$message (status: $statusCode)';
+}
+
 class RemoteCompressionService {
   const RemoteCompressionService();
 
@@ -16,8 +27,83 @@ class RemoteCompressionService {
     required PdfCompressionMode mode,
     required CompressionPipelineMode pipelineMode,
   }) async {
-    final uri = Uri.parse('${ApiConfig.baseUrl}${ApiConfig.compressionEndpoint}');
-    final request = http.MultipartRequest('POST', uri)
+    try {
+      final endpoints = _buildEndpointCandidates();
+      http.Response? response;
+
+      for (var i = 0; i < endpoints.length; i++) {
+        final request = _buildRequest(
+          uri: endpoints[i],
+          bytes: bytes,
+          fileName: fileName,
+          mode: mode,
+          pipelineMode: pipelineMode,
+        );
+
+        final streamed = await request.send().timeout(ApiConfig.receiveTimeout);
+        response = await http.Response.fromStream(streamed);
+
+        // Retry once on legacy endpoint if the preferred endpoint is not found.
+        if (response.statusCode == 404 && i < endpoints.length - 1) {
+          continue;
+        }
+        break;
+      }
+
+      if (response == null) {
+        throw const RemoteCompressionException('Remote compression did not return a response.');
+      }
+
+      if (response.statusCode != 200) {
+        throw RemoteCompressionException(
+          'Remote compression failed. ${response.body}',
+          statusCode: response.statusCode,
+        );
+      }
+
+      final output = response.bodyBytes;
+      if (output.isEmpty) {
+        throw const RemoteCompressionException('Remote compression returned an empty file.');
+      }
+
+      return PdfCompressionResult(
+        bytes: output,
+        targetMet: output.length <= targetBytes,
+        message: output.length <= targetBytes
+            ? 'Compression success via Render API (target achieved).'
+            : 'Compression success via Render API (best API result returned).',
+      );
+    } on TimeoutException {
+      throw const RemoteCompressionException(
+        'Remote compression timed out. Please retry.',
+      );
+    } on RemoteCompressionException {
+      rethrow;
+    } catch (error) {
+      throw RemoteCompressionException(
+        'Remote compression failed: $error',
+      );
+    }
+  }
+
+  List<Uri> _buildEndpointCandidates() {
+    final base = ApiConfig.baseUrl.endsWith('/')
+        ? ApiConfig.baseUrl.substring(0, ApiConfig.baseUrl.length - 1)
+        : ApiConfig.baseUrl;
+    return [
+      Uri.parse('$base/compress-pdf'),
+      Uri.parse('$base${ApiConfig.compressionEndpoint}'),
+    ];
+  }
+
+  http.MultipartRequest _buildRequest({
+    required Uri uri,
+    required Uint8List bytes,
+    required String fileName,
+    required PdfCompressionMode mode,
+    required CompressionPipelineMode pipelineMode,
+  }) {
+    return http.MultipartRequest('POST', uri)
       ..fields['quality'] = _qualityFor(mode, pipelineMode).toString()
       ..fields['format'] = 'jpeg'
       ..fields['compressionMode'] =
@@ -33,48 +119,6 @@ class RemoteCompressionService {
           filename: fileName,
         ),
       );
-
-    try {
-      final streamed = await request.send().timeout(ApiConfig.receiveTimeout);
-      final response = await http.Response.fromStream(streamed);
-
-      if (response.statusCode != 200) {
-        return PdfCompressionResult(
-          bytes: bytes,
-          targetMet: bytes.length <= targetBytes,
-          message: 'Remote compression API unavailable (${response.statusCode}). Using local fallback.',
-        );
-      }
-
-      final output = response.bodyBytes;
-      if (output.isEmpty || output.length >= bytes.length) {
-        return PdfCompressionResult(
-          bytes: bytes,
-          targetMet: bytes.length <= targetBytes,
-          message: 'Remote compression returned no size gain. Using local fallback.',
-        );
-      }
-
-      return PdfCompressionResult(
-        bytes: output,
-        targetMet: output.length <= targetBytes,
-        message: output.length <= targetBytes
-            ? 'Compressed through remote API and target achieved.'
-            : 'Compressed through remote API. Best remote result returned.',
-      );
-    } on TimeoutException {
-      return PdfCompressionResult(
-        bytes: bytes,
-        targetMet: bytes.length <= targetBytes,
-        message: 'Remote compression timed out. Using local fallback.',
-      );
-    } catch (_) {
-      return PdfCompressionResult(
-        bytes: bytes,
-        targetMet: bytes.length <= targetBytes,
-        message: 'Remote compression failed. Using local fallback.',
-      );
-    }
   }
 
   int _qualityFor(
