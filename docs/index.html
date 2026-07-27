@@ -49,6 +49,45 @@
       margin: 0;
     }
 
+    .guide-link-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--spacing-md);
+      background: linear-gradient(135deg, #fff8df 0%, #fff 100%);
+      border: 1px solid rgba(246, 190, 0, 0.28);
+      border-left: 4px solid #f6be00;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      padding: var(--spacing-lg);
+      margin-bottom: var(--spacing-2xl);
+      animation: slideUp 0.6s ease-out 0.15s both;
+    }
+
+    .guide-link-copy {
+      min-width: 0;
+    }
+
+    .guide-link-title {
+      margin: 0 0 var(--spacing-xs) 0;
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-primary-dark);
+    }
+
+    .guide-link-text {
+      margin: 0;
+      color: var(--color-text-medium);
+      font-size: var(--font-size-sm);
+      line-height: var(--line-height-relaxed);
+    }
+
+    .guide-link-action {
+      flex-shrink: 0;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
     /* Main Container */
     .tool-container {
       background: var(--color-bg-white);
@@ -455,6 +494,11 @@
         grid-template-columns: 1fr;
       }
 
+      .guide-link-card {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
       .action-buttons {
         grid-template-columns: 1fr;
       }
@@ -490,6 +534,14 @@
       <div class="header-icon">📦</div>
       <h1>Compression Tool</h1>
       <p>Reduce PDF & image files instantly while maintaining quality</p>
+    </div>
+
+    <div class="guide-link-card">
+      <div class="guide-link-copy">
+        <p class="guide-link-title">Architecture Guide</p>
+        <p class="guide-link-text">Open the PDF Compressor and PDF-to-Word architecture guide for the current project path, including backend options, deployment notes, and conversion strategy.</p>
+      </div>
+      <a class="btn btn-secondary guide-link-action" href="/pdf-compressor-word-converter-architecture-guide.html">Open Guide</a>
     </div>
 
     <!-- Tool Container -->

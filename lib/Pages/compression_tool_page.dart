@@ -1,4 +1,5 @@
 import 'package:archive/archive.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../Widgets/target_size_selector.dart';
 import '../Widgets/download_result_dialog.dart';
@@ -8,6 +9,7 @@ import '../Widgets/quota_gate.dart';
 import '../Widgets/tool_guidance_panel.dart';
 import '../Services/compression_service.dart';
 import '../Services/file_picker_service.dart';
+import '../Services/remote_compression_service.dart';
 import '../Services/upload_context_service.dart';
 import 'dart:typed_data';
 
@@ -38,10 +40,12 @@ class CompressionToolPage extends StatefulWidget {
 
 class _CompressionToolPageState extends State<CompressionToolPage> {
   final _compressionService = const CompressionService();
+  final _remoteCompressionService = const RemoteCompressionService();
 
   int? _targetSizeBytes;
   String? _selectedUnit;
   PdfCompressionMode _selectedCompressionMode = PdfCompressionMode.recommended;
+  CompressionPipelineMode _pipelineMode = CompressionPipelineMode.standard;
   bool _isCompressing = false;
   String _statusMessage = 'Ready to compress';
 
@@ -65,7 +69,9 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
   }
 
   void _applyDefaultTargetSize(int sourceBytes) {
-    final ratio = switch (_selectedCompressionMode) {
+    final ratio = _pipelineMode == CompressionPipelineMode.highCompressionImageOnly
+        ? 0.18
+        : switch (_selectedCompressionMode) {
       PdfCompressionMode.smallSize => 0.35,
       PdfCompressionMode.recommended => 0.55,
       PdfCompressionMode.highQuality => 0.72,
@@ -263,27 +269,89 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
               _buildStepCard(
                 step: 2,
                 title: 'Set Target Size',
-                content: TargetSizeSelector(
-                  onTargetSet: (targetBytes, unit) {
-                    setState(() {
-                      _targetSizeBytes = targetBytes;
-                      _selectedUnit = unit;
-                    });
-                  },
-                  onModeChanged: (mode) {
-                    setState(() {
-                      _selectedCompressionMode = mode;
-                    });
-                  },
-                  sourceBytes: _selectedFiles.isNotEmpty
-                      ? _selectedFiles.first.size
-                      : (_selectedFile?.length ?? 0),
-                  initialValue: _targetSizeBytes != null
-                      ? (_selectedUnit == 'KB'
-                          ? _targetSizeBytes! ~/ 1024
-                          : _targetSizeBytes! ~/ (1024 * 1024))
-                      : null,
-                  initialUnit: _selectedUnit ?? 'MB',
+                content: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Compression Engine',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1F2937),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SegmentedButton<CompressionPipelineMode>(
+                      segments: const [
+                        ButtonSegment<CompressionPipelineMode>(
+                          value: CompressionPipelineMode.standard,
+                          label: Text('Standard'),
+                          icon: Icon(Icons.tune_rounded),
+                        ),
+                        ButtonSegment<CompressionPipelineMode>(
+                          value: CompressionPipelineMode.highCompressionImageOnly,
+                          label: Text('High Compression (Image-Only)'),
+                          icon: Icon(Icons.image_search_rounded),
+                        ),
+                      ],
+                      selected: {_pipelineMode},
+                      onSelectionChanged: (selection) {
+                        final next = selection.first;
+                        setState(() {
+                          _pipelineMode = next;
+                          final sourceBytes = _selectedFiles.isNotEmpty
+                              ? _selectedFiles.first.size
+                              : (_selectedFile?.length ?? 0);
+                          if (sourceBytes > 0) {
+                            _applyDefaultTargetSize(sourceBytes);
+                          }
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFFBEB),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFFCD34D)),
+                      ),
+                      child: Text(
+                        _pipelineMode == CompressionPipelineMode.standard
+                            ? 'Standard mode keeps text clarity and applies resource optimization first.'
+                            : 'High mode uses PDF → Image → PDF at around 150 DPI and quality around 55 for aggressive size reduction on image-heavy files.',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF7C2D12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TargetSizeSelector(
+                      onTargetSet: (targetBytes, unit) {
+                        setState(() {
+                          _targetSizeBytes = targetBytes;
+                          _selectedUnit = unit;
+                        });
+                      },
+                      onModeChanged: (mode) {
+                        setState(() {
+                          _selectedCompressionMode = mode;
+                        });
+                      },
+                      sourceBytes: _selectedFiles.isNotEmpty
+                          ? _selectedFiles.first.size
+                          : (_selectedFile?.length ?? 0),
+                      initialValue: _targetSizeBytes != null
+                          ? (_selectedUnit == 'KB'
+                              ? _targetSizeBytes! ~/ 1024
+                              : _targetSizeBytes! ~/ (1024 * 1024))
+                          : null,
+                      initialUnit: _selectedUnit ?? 'MB',
+                    ),
+                  ],
                 ),
               ),
             const SizedBox(height: 20),
@@ -875,11 +943,32 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
   Future<_CompressionOutcome> _compressSingleFile(PickedFileData file) async {
     final lowerName = file.name.toLowerCase();
     if (lowerName.endsWith('.pdf')) {
+      if (kIsWeb) {
+        final remote = await _remoteCompressionService.compressPdf(
+          bytes: file.bytes,
+          fileName: file.name,
+          targetBytes: _targetSizeBytes!,
+          mode: _selectedCompressionMode,
+          pipelineMode: _pipelineMode,
+        );
+
+        if (remote.bytes.length < file.size) {
+          return _CompressionOutcome(
+            bytes: remote.bytes,
+            aggressiveUsed: _pipelineMode == CompressionPipelineMode.highCompressionImageOnly,
+            reductionPercent: _reductionPercent(file.size, remote.bytes.length),
+            targetMet: remote.targetMet,
+            note: remote.message,
+          );
+        }
+      }
+
       final smart = await _compressionService.compressPdfSmart(
         file.bytes,
         _targetSizeBytes!,
         file.name,
         mode: _selectedCompressionMode,
+        pipelineMode: _pipelineMode,
       );
 
       if (smart.targetMet) {
@@ -896,6 +985,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
         smart.bytes,
         _targetSizeBytes!,
         file.name,
+        pipelineMode: _pipelineMode,
       );
       final best = aggressive.length < smart.bytes.length ? aggressive : smart.bytes;
       return _CompressionOutcome(
@@ -968,7 +1058,25 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
     final lowerName = file.name.toLowerCase();
 
     if (lowerName.endsWith('.pdf')) {
-      return _compressionService.forceCompressPdfToTarget(currentBytes, _targetSizeBytes!, file.name);
+      if (kIsWeb) {
+        final remote = await _remoteCompressionService.compressPdf(
+          bytes: currentBytes,
+          fileName: file.name,
+          targetBytes: _targetSizeBytes!,
+          mode: PdfCompressionMode.targetSize,
+          pipelineMode: CompressionPipelineMode.highCompressionImageOnly,
+        );
+        if (remote.bytes.length < currentBytes.length) {
+          return remote.bytes;
+        }
+      }
+
+      return _compressionService.forceCompressPdfToTarget(
+        currentBytes,
+        _targetSizeBytes!,
+        file.name,
+        pipelineMode: _pipelineMode,
+      );
     }
 
     if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg') || lowerName.endsWith('.png') ||
