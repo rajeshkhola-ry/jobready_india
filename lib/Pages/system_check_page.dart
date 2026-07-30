@@ -306,6 +306,55 @@ class _SystemCheckPageState extends State<SystemCheckPage> {
     );
   }
 
+  Widget _heroCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFD8E5F5)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0E3A66).withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        children: const [
+          Icon(Icons.dashboard_customize_rounded, color: Color(0xFF0E3A66), size: 24),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Admin & Release Control Center',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Review the smoke matrix, readiness states, and launch tools from one V2-style admin surface.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.45,
+                    color: Color(0xFF475569),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _statusChip({required String label, required Color color}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
