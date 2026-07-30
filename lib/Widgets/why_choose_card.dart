@@ -12,9 +12,9 @@ class WhyChooseCard extends StatelessWidget {
       margin: EdgeInsets.only(bottom: _s(10)),
       padding: EdgeInsets.symmetric(horizontal: _s(12), vertical: _s(12)),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.82),
+        color: const Color(0xFFFFFFFF),
         borderRadius: BorderRadius.circular(_s(18)),
-        border: Border.all(color: const Color(0xFFE8EAF2)),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Row(
         children: [
@@ -65,19 +65,12 @@ class WhyChooseCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFF8FAFF),
-            Color(0xFFF3F4F9),
-          ],
-        ),
+        color: const Color(0xFFFFFCF8),
         borderRadius: BorderRadius.circular(_s(24)),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF1F2937).withOpacity(0.06),
+            color: const Color(0xFF183A5B).withOpacity(0.05),
             blurRadius: _s(18),
             offset: Offset(0, _s(8)),
           ),

@@ -3,8 +3,25 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-class PlanFeaturesPage extends StatelessWidget {
+import '../Services/plan_catalog_service.dart';
+
+class PlanFeaturesPage extends StatefulWidget {
   const PlanFeaturesPage({super.key});
+
+  @override
+  State<PlanFeaturesPage> createState() => _PlanFeaturesPageState();
+}
+
+class _PlanFeaturesPageState extends State<PlanFeaturesPage> {
+  late final PlanCatalogConfig _config;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _config = PlanCatalogService.load();
+    _isLoading = false;
+  }
 
   Future<Map<String, dynamic>> _loadComparisonData() async {
     const defaultBaseUrl = 'https://getreadyjob.onrender.com';
@@ -36,6 +53,7 @@ class PlanFeaturesPage extends StatelessWidget {
       const _PlanFeature(name: 'Extract PDF Text & Images - pull readable content from documents', free: true, sevenDay: true, monthly: true, yearly: true, lifetime: true),
       const _PlanFeature(name: 'PDF to PDF Edit Tools - edit, save, and download updated PDF files', free: false, sevenDay: true, monthly: true, yearly: true, lifetime: true),
       const _PlanFeature(name: 'OCR (Optical Character Recognition) - read scanned PDF text where possible', free: false, sevenDay: true, monthly: true, yearly: true, lifetime: true),
+      const _PlanFeature(name: 'HD Photo Studio - photo enhancement and resizing workspace', free: false, sevenDay: false, monthly: false, yearly: true, lifetime: true),
       const _PlanFeature(name: 'Issue / Suggestion / Query Ticket Number Support', free: true, sevenDay: true, monthly: true, yearly: true, lifetime: true),
       const _PlanFeature(name: 'Multi-Currency Payment Display - top 20 currencies with INR rate card support', free: false, sevenDay: true, monthly: true, yearly: true, lifetime: true),
       const _PlanFeature(name: 'Higher Daily Usage Limit', free: false, sevenDay: true, monthly: true, yearly: true, lifetime: true),
@@ -83,6 +101,30 @@ class PlanFeaturesPage extends StatelessWidget {
             lifetimeValue: quotaValues['LIFETIME'] ?? 'Unlimited',
           ),
           ...features,
+        ];
+
+        final toolNames = PlanCatalogConfig.registeredToolNames.toList()..sort();
+        final matrixRows = <_PlanFeature>[
+          ...toolNames.map((toolName) {
+            final free = _config.enabledToolsByPlan['Free']?.contains(toolName) ?? false;
+            final sevenDay = _config.enabledToolsByPlan['7Days']?.contains(toolName) ?? false;
+            final monthly = _config.enabledToolsByPlan['Monthly']?.contains(toolName) ?? false;
+            final yearly = _config.enabledToolsByPlan['Yearly']?.contains(toolName) ?? false;
+            final lifetime = _config.enabledToolsByPlan['Lifetime']?.contains(toolName) ?? false;
+            return _PlanFeature(
+              name: toolName,
+              free: free,
+              sevenDay: sevenDay,
+              monthly: monthly,
+              yearly: yearly,
+              lifetime: lifetime,
+            );
+          }),
+        ];
+
+        final combinedRows = <_PlanFeature>[
+          ...tableRows,
+          ...matrixRows.where((row) => !tableRows.any((existing) => existing.name == row.name)),
         ];
 
         return Scaffold(
@@ -197,7 +239,7 @@ class PlanFeaturesPage extends StatelessWidget {
                             DataColumn(label: Text('YEARLY')),
                             DataColumn(label: Text('LIFETIME')),
                           ],
-                          rows: tableRows
+                          rows: combinedRows
                               .asMap()
                               .entries
                               .map((entry) {

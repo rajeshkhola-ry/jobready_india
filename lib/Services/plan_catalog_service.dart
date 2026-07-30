@@ -3,6 +3,18 @@ import 'dart:convert';
 import 'package:universal_html/html.dart' as html;
 
 class PlanCatalogConfig {
+  static const List<String> registeredToolNames = <String>[
+    'Compress',
+    'Convert',
+    'Merge',
+    'Split',
+    'Extract',
+    'Edit PDF',
+    'OCR',
+    'History',
+    'HD Photo Studio',
+  ];
+
   final Map<String, double> inrPrices;
   final Map<String, double> usdPrices;
   final Map<String, List<String>> enabledToolsByPlan;
@@ -33,22 +45,13 @@ class PlanCatalogConfig {
         'Free': ['Compress', 'Convert', 'Merge', 'Split', 'Extract'],
         '7Days': ['Compress', 'Convert', 'Merge', 'Split', 'Extract', 'Edit PDF', 'OCR'],
         'Monthly': ['Compress', 'Convert', 'Merge', 'Split', 'Extract', 'Edit PDF', 'OCR'],
-        'Yearly': ['Compress', 'Convert', 'Merge', 'Split', 'Extract', 'Edit PDF', 'OCR', 'History'],
-        'Lifetime': ['Compress', 'Convert', 'Merge', 'Split', 'Extract', 'Edit PDF', 'OCR', 'History'],
+        'Yearly': ['Compress', 'Convert', 'Merge', 'Split', 'Extract', 'Edit PDF', 'OCR', 'History', 'HD Photo Studio'],
+        'Lifetime': ['Compress', 'Convert', 'Merge', 'Split', 'Extract', 'Edit PDF', 'OCR', 'History', 'HD Photo Studio'],
       },
     );
   }
 
-  static const Set<String> _v11AllowedTools = <String>{
-    'Compress',
-    'Convert',
-    'Merge',
-    'Split',
-    'Extract',
-    'Edit PDF',
-    'OCR',
-    'History',
-  };
+  static Set<String> get _v11AllowedTools => registeredToolNames.toSet();
 
   static List<String> _sanitizeTools(List<String> tools) {
     return tools.where(_v11AllowedTools.contains).toSet().toList();

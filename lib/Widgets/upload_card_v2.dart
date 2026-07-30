@@ -310,16 +310,12 @@ class _UploadCardV2State extends State<UploadCardV2> {
         child: Container(
           width: double.infinity,
           decoration: BoxDecoration(
+            color: const Color(0xFFFFFCF8),
             borderRadius: BorderRadius.circular(24),
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFFF5F8FC), Color(0xFFEAF1F8)],
-            ),
-            border: Border.all(color: const Color(0xFFC9D9EA), width: 1.5),
+            border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF1F4E79).withValues(alpha: 0.12),
+                color: const Color(0xFF183A5B).withValues(alpha: 0.05),
                 blurRadius: 18,
                 offset: const Offset(0, 8),
               ),
@@ -333,9 +329,9 @@ class _UploadCardV2State extends State<UploadCardV2> {
                   width: 68,
                   height: 68,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFBFDBFE)),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
                   child: const Icon(
                     Icons.cloud_upload_rounded,
@@ -374,11 +370,12 @@ class _UploadCardV2State extends State<UploadCardV2> {
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1F4E79),
+                      backgroundColor: const Color(0xFF183A5B),
                       foregroundColor: Colors.white,
-                      elevation: 2,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(14),
                       ),
                     ),
                   ),
@@ -389,11 +386,11 @@ class _UploadCardV2State extends State<UploadCardV2> {
                     width: double.infinity,
                     height: 96,
                     decoration: BoxDecoration(
-                      color: _dragging ? const Color(0xFFE3ECF7) : Colors.white,
+                      color: _dragging ? const Color(0xFFF2F7FF) : const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: _dragging ? const Color(0xFF1F4E79) : const Color(0xFFBFDBFE),
-                        width: 1.5,
+                        color: _dragging ? const Color(0xFF183A5B) : const Color(0xFFE2E8F0),
+                        width: 1.2,
                       ),
                     ),
                     child: Center(
@@ -418,7 +415,7 @@ class _UploadCardV2State extends State<UploadCardV2> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFDCE6F4),
+                    color: const Color(0xFFEAF2FF),
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: const Text(
@@ -447,11 +444,9 @@ class _UploadCardV2State extends State<UploadCardV2> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFF0FDF4), Color(0xFFECFEFF)],
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFF86EFAC)),
+                      color: const Color(0xFFF8FFF9),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFB7F1C7)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

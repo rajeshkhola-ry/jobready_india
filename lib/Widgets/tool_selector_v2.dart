@@ -22,16 +22,12 @@ class ToolSelectorV2 extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFF5F8FC), Color(0xFFEAF1F8)],
-        ),
-        border: Border.all(color: const Color(0xFFC9D9EA), width: 1.4),
+        color: const Color(0xFFFFFCF8),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0E3A66).withValues(alpha: 0.10),
+            color: const Color(0xFF183A5B).withValues(alpha: 0.05),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -279,22 +275,15 @@ class ToolSelectorV2 extends StatelessWidget {
         height: 92,
 
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFFFFFFF), Color(0xFFF8FAFC)],
-          ),
-
+          color: const Color(0xFFFFFFFF),
           borderRadius: BorderRadius.circular(16),
-
           border: Border.all(
-            color: const Color(0xFFBFD3F7),
-            width: 1.4,
+            color: const Color(0xFFE2E8F0),
+            width: 1.2,
           ),
-
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF1F4E79).withValues(alpha: 0.10),
+              color: const Color(0xFF183A5B).withValues(alpha: 0.04),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),

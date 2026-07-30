@@ -2358,13 +2358,77 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
     );
   }
 
+  Future<void> _showAccountRequiredDialog() async {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+        contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        title: const Row(
+          children: [
+            Icon(Icons.lock_outline_rounded, color: Color(0xFF2563EB), size: 24),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Account required to continue',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Please create your account or log in using User Login or Google Account to proceed with the payment.',
+              style: TextStyle(fontSize: 14, height: 1.45, color: Color(0xFF475569)),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    Navigator.of(context).pushNamed('/admin');
+                  },
+                  icon: const Icon(Icons.login_rounded),
+                  label: const Text('Sign In / Register'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2563EB),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                  },
+                  icon: const Icon(Icons.g_mobiledata_rounded),
+                  label: const Text('Continue with Google'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF0F766E),
+                    side: const BorderSide(color: Color(0xFF0F766E)),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _continueToPayment(BuildContext context) async {
     if (!_canProceedWithPurchase()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please update your account details before purchase/payment.'),
-        ),
-      );
+      await _showAccountRequiredDialog();
       return;
     }
 
@@ -2730,11 +2794,21 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: _submitting ? null : () => _continueToPayment(context),
-              icon: const Icon(Icons.payments_rounded),
-              label: Text(_submitting ? 'Creating Checkout...' : 'Continue to Payment'),
+              icon: const Icon(Icons.payments_rounded, size: 22),
+              label: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Text(
+                  _submitting ? 'Creating Checkout...' : 'Continue to Payment',
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                ),
+              ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1F4E79),
+                backgroundColor: const Color(0xFF2563EB),
                 foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                elevation: 2,
+                shadowColor: const Color(0xFF2563EB).withValues(alpha: 0.35),
               ),
             ),
           ),
@@ -2831,7 +2905,18 @@ class _AdminLoginPanelState extends State<_AdminLoginPanel> {
             decoration: InputDecoration(
               labelText: 'Admin ID',
               isDense: true,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              filled: true,
+              fillColor: const Color(0xFFF8FAFC),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -2841,7 +2926,18 @@ class _AdminLoginPanelState extends State<_AdminLoginPanel> {
             decoration: InputDecoration(
               labelText: 'Password',
               isDense: true,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              filled: true,
+              fillColor: const Color(0xFFF8FAFC),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -2928,11 +3024,17 @@ class _AdminCredentialsPanelState extends State<_AdminCredentialsPanel> {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F9FF),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFBAE6FD)),
+        color: const Color(0xFFFFFCF8),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF183A5B).withOpacity(0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2947,7 +3049,18 @@ class _AdminCredentialsPanelState extends State<_AdminCredentialsPanel> {
             decoration: InputDecoration(
               labelText: 'Admin ID',
               isDense: true,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              filled: true,
+              fillColor: const Color(0xFFF8FAFC),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -2957,7 +3070,18 @@ class _AdminCredentialsPanelState extends State<_AdminCredentialsPanel> {
             decoration: InputDecoration(
               labelText: 'New Password (optional)',
               isDense: true,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              filled: true,
+              fillColor: const Color(0xFFF8FAFC),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -2968,8 +3092,10 @@ class _AdminCredentialsPanelState extends State<_AdminCredentialsPanel> {
               icon: const Icon(Icons.password_rounded),
               label: const Text('Save Admin ID / Password'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0369A1),
+                backgroundColor: const Color(0xFF183A5B),
                 foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
             ),
           ),
@@ -3138,16 +3264,7 @@ class _PlanCatalogManagerPanel extends StatefulWidget {
 
 class _PlanCatalogManagerPanelState extends State<_PlanCatalogManagerPanel> {
   static const List<String> _plans = <String>['Free', '7Days', 'Monthly', 'Yearly', 'Lifetime'];
-  static const List<String> _allTools = <String>[
-    'Compress',
-    'Convert',
-    'Merge',
-    'Split',
-    'Extract',
-    'Edit PDF',
-    'OCR',
-    'History',
-  ];
+  static const List<String> _allTools = PlanCatalogConfig.registeredToolNames;
 
   late Map<String, TextEditingController> _inrControllers;
   late Map<String, TextEditingController> _usdControllers;
@@ -3439,7 +3556,18 @@ class _OwnerOfferManagerPanelState extends State<_OwnerOfferManagerPanel> {
             maxLines: 2,
             decoration: InputDecoration(
               hintText: 'Write offer text here (New Year, Diwali, etc.)',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              filled: true,
+              fillColor: const Color(0xFFF8FAFC),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -3447,7 +3575,18 @@ class _OwnerOfferManagerPanelState extends State<_OwnerOfferManagerPanel> {
             controller: _promoController,
             decoration: InputDecoration(
               hintText: 'Promo code (example: NEWYEAR100)',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              filled: true,
+              fillColor: const Color(0xFFF8FAFC),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -3461,7 +3600,18 @@ class _OwnerOfferManagerPanelState extends State<_OwnerOfferManagerPanel> {
             onChanged: (value) => setState(() => _validity = value),
             decoration: InputDecoration(
               labelText: 'Promo validity',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              filled: true,
+              fillColor: const Color(0xFFF8FAFC),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -3471,7 +3621,12 @@ class _OwnerOfferManagerPanelState extends State<_OwnerOfferManagerPanel> {
               onPressed: _applyOffer,
               icon: const Icon(Icons.publish_rounded),
               label: const Text('Publish Offer & Promo'),
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1F4E79), foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF183A5B),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
             ),
           ),
         ],
@@ -3515,11 +3670,17 @@ class _FuturePlanSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFF),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFDCE5F0)),
+        color: const Color(0xFFFFFCF8),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF183A5B).withOpacity(0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3550,10 +3711,10 @@ class _SuggestionSection extends StatelessWidget {
         icon: const Icon(Icons.feedback_outlined),
         label: const Text('Send Suggestion'),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF111827),
+          backgroundColor: const Color(0xFF183A5B),
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
       ),
     );
@@ -4985,11 +5146,11 @@ class _DailyUsageQuotaSectionState extends State<_DailyUsageQuotaSection> {
     final color = _statusColor(used, limit);
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: color.withOpacity(0.28)),
+          color: color.withOpacity(0.09),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withOpacity(0.25)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -5269,16 +5430,15 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        color: const Color(0xFFFFFCF8),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF1F2937).withOpacity(0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 5),
+            color: const Color(0xFF183A5B).withOpacity(0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -5311,7 +5471,18 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
               labelText: 'Name',
               hintText: 'Enter your name',
               isDense: true,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              filled: true,
+              fillColor: const Color(0xFFF8FAFC),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -5322,7 +5493,18 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
               labelText: 'Email ID',
               hintText: 'name@example.com',
               isDense: true,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              filled: true,
+              fillColor: const Color(0xFFF8FAFC),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -5348,7 +5530,18 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
             decoration: InputDecoration(
               labelText: 'Country',
               isDense: true,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              filled: true,
+              fillColor: const Color(0xFFF8FAFC),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -5377,7 +5570,18 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
                   decoration: InputDecoration(
                     labelText: 'Code',
                     isDense: true,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    filled: true,
+                    fillColor: const Color(0xFFF8FAFC),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+                    ),
                   ),
                 ),
               ),
@@ -5390,7 +5594,18 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
                     labelText: 'Mobile Number (optional for login)',
                     hintText: '9876543210',
                     isDense: true,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    filled: true,
+                    fillColor: const Color(0xFFF8FAFC),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+                    ),
                   ),
                 ),
               ),
@@ -5404,9 +5619,10 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
               icon: const Icon(Icons.g_mobiledata_rounded, size: 20),
               label: const Text('Login with Google'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF1F4E79),
+                foregroundColor: const Color(0xFF183A5B),
                 side: const BorderSide(color: Color(0xFFBFDBFE)),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
             ),
           ),
@@ -5417,9 +5633,10 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
               icon: const Icon(Icons.person_add_alt_1_rounded, size: 16),
               label: const Text('Create Account'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1F4E79),
+                backgroundColor: const Color(0xFF183A5B),
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
             ),
           ),
@@ -5446,8 +5663,8 @@ class _SectionHeader extends StatelessWidget {
         Text(
           title,
           style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
             color: Color(0xFF1F2937),
           ),
         ),
@@ -5455,8 +5672,9 @@ class _SectionHeader extends StatelessWidget {
         Text(
           subtitle,
           style: const TextStyle(
-            fontSize: 12,
-            color: Colors.grey,
+            fontSize: 12.5,
+            color: Color(0xFF64748B),
+            height: 1.45,
           ),
         ),
       ],
