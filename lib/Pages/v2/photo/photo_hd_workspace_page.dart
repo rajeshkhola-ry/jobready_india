@@ -77,7 +77,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
     setState(() {
       _isProcessing = true;
       _statusType = _StatusType.processing;
-      _statusMessage = 'Preparing ${_hdMode ? 'HD ' : ''}photo for ${_selectedPreset.label}...';
+      _statusMessage = 'Preparing ${_hdMode ? 'identity-safe HD ' : ''}photo for ${_selectedPreset.label}...';
     });
 
     // Let the progress indicator render before heavy image work starts.
@@ -184,7 +184,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Photo HD Workspace',
+                                  'Identity-Preserving HD Photo Studio',
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w800,
@@ -193,7 +193,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                                 ),
                                 SizedBox(height: 4),
                                 Text(
-                                  'Upload a photo, choose a target size, and generate a high-quality export.',
+                                  'Upload a photo, choose a target size, and generate a conservative HD export without changing facial identity.',
                                   style: TextStyle(
                                     fontSize: 13,
                                     height: 1.5,
@@ -341,9 +341,9 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                                     });
                                   },
                             contentPadding: EdgeInsets.zero,
-                            title: const Text('HD Photo Mode'),
+                            title: const Text('Identity-Safe HD Mode'),
                             subtitle: const Text(
-                              'Applies higher-quality upscale and export settings for the best result possible.',
+                              'Uses mild upscaling and color correction only. No face replacement, no aggressive AI restoration.',
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -356,7 +356,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                               border: Border.all(color: const Color(0xFFD8E5F5)),
                             ),
                             child: Text(
-                              'Selected output: ${_selectedPreset.width} \u00d7 ${_selectedPreset.height} px  \u00b7  White background fill applied if needed.',
+                              'Selected output: ${_selectedPreset.width} \u00d7 ${_selectedPreset.height} px  \u00b7  Identity-preserving enhancement only, no facial feature changes.',
                               style: const TextStyle(
                                 fontSize: 13,
                                 height: 1.45,
@@ -392,7 +392,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                                     vertical: 14),
                               ),
                               icon: Icon(_isProcessing ? Icons.hourglass_top_rounded : Icons.high_quality_rounded),
-                              label: Text(_isProcessing ? 'Processing...' : 'Generate HD Photo'),
+                              label: Text(_isProcessing ? 'Processing...' : 'Generate Identity-Safe HD Photo'),
                             ),
                           ),
                           if (_isProcessing) ...[

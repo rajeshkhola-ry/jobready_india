@@ -57,10 +57,11 @@ class PhotoResizeService {
     await _yieldToUi();
     final prepared = _prepareSource(source, enableHdMode: enableHdMode);
     await _yieldToUi();
+
+    final fitted = _resizeToFit(prepared, preset.width, preset.height);
     final canvas = img.Image(width: preset.width, height: preset.height);
     img.fill(canvas, color: img.ColorRgb8(255, 255, 255));
 
-    final fitted = _resizeToFit(prepared, preset.width, preset.height);
     await _yieldToUi();
     final offsetX = ((preset.width - fitted.width) / 2).round();
     final offsetY = ((preset.height - fitted.height) / 2).round();
@@ -72,8 +73,9 @@ class PhotoResizeService {
     final outputName = '${baseName}_${preset.id}${enableHdMode ? '_hd' : ''}.jpg';
 
     await _yieldToUi();
+    final safeCanvas = _sanitizeCanvas(canvas);
     final encoded = Uint8List.fromList(
-      img.encodeJpg(canvas, quality: enableHdMode ? 98 : 94),
+      img.encodeJpg(safeCanvas, quality: enableHdMode ? 98 : 94),
     );
 
     return PhotoResizeResult(
@@ -93,17 +95,15 @@ class PhotoResizeService {
       return source;
     }
 
-    final boosted = img.adjustColor(
-      source,
-      contrast: 1.08,
-      saturation: 1.03,
-      gamma: 0.98,
-    );
-
+    // Keep the processing conservative and identity-safe: only mild color correction,
+    // gentle upscaling, and clarity cleanup. No face reconstruction, no aggressive
+    // synthesis, and no facial feature replacement.
+    final boosted = _applyGentleColorBalance(source);
+    final safeScale = 1.03;
     return img.copyResize(
       boosted,
-      width: (boosted.width * 1.15).round(),
-      height: (boosted.height * 1.15).round(),
+      width: (boosted.width * safeScale).round(),
+      height: (boosted.height * safeScale).round(),
       interpolation: img.Interpolation.cubic,
     );
   }
@@ -129,5 +129,47 @@ class PhotoResizeService {
       height: outputHeight,
       interpolation: img.Interpolation.cubic,
     );
+  }
+
+  img.Image _applyGentleColorBalance(img.Image source) {
+    final result = img.copyResize(
+      source,
+      width: source.width,
+      height: source.height,
+      interpolation: img.Interpolation.nearest,
+    );
+
+    for (var y = 0; y < result.height; y++) {
+      for (var x = 0; x < result.width; x++) {
+        final pixel = result.getPixel(x, y);
+        final r = (pixel.r * 1.01).round().clamp(0, 255);
+        final g = (pixel.g * 1.005).round().clamp(0, 255);
+        final b = (pixel.b * 1.005).round().clamp(0, 255);
+        result.setPixelRgb(x, y, r, g, b);
+      }
+    }
+
+    return result;
+  }
+
+  img.Image _sanitizeCanvas(img.Image canvas) {
+    final result = img.copyResize(
+      canvas,
+      width: canvas.width,
+      height: canvas.height,
+      interpolation: img.Interpolation.nearest,
+    );
+
+    for (var y = 0; y < result.height; y++) {
+      for (var x = 0; x < result.width; x++) {
+        final pixel = result.getPixel(x, y);
+        final r = pixel.r.clamp(0, 255);
+        final g = pixel.g.clamp(0, 255);
+        final b = pixel.b.clamp(0, 255);
+        result.setPixelRgb(x, y, r, g, b);
+      }
+    }
+
+    return result;
   }
 }
