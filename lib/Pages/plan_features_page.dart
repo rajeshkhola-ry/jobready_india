@@ -1,7 +1,28 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 class PlanFeaturesPage extends StatelessWidget {
   const PlanFeaturesPage({super.key});
+
+  Future<Map<String, dynamic>> _loadComparisonData() async {
+    const defaultBaseUrl = 'https://getreadyjob.onrender.com';
+    const configuredBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: defaultBaseUrl);
+    final uri = Uri.parse('$configuredBaseUrl/api/public/plan-matrix');
+    final response = await http.get(uri);
+
+    if (response.statusCode != 200) {
+      throw Exception('Unable to load plan comparison data.');
+    }
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map<String, dynamic>) {
+      throw Exception('Invalid comparison payload.');
+    }
+
+    return decoded;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,152 +46,219 @@ class PlanFeaturesPage extends StatelessWidget {
       const _PlanFeature(name: 'Priority Support', free: false, sevenDay: true, monthly: true, yearly: true, lifetime: true),
     ];
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1F2937),
-        iconTheme: const IconThemeData(
-          color: Color(0xFFFFC72C),
-          size: 30,
-        ),
-        title: const Text(
-          'Plan Function List',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _loadComparisonData(),
+      builder: (context, snapshot) {
+        final quotaValues = <String, String>{};
+        if (snapshot.hasData && snapshot.data != null) {
+          final comparison = snapshot.data!['comparison'];
+          if (comparison is Map<String, dynamic>) {
+            final values = comparison['values'];
+            if (values is List) {
+              for (final entry in values) {
+                if (entry is Map<String, dynamic>) {
+                  final label = entry['label']?.toString() ?? '';
+                  final value = entry['value']?.toString() ?? '';
+                  if (label.isNotEmpty) {
+                    quotaValues[label] = value;
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        final tableRows = <_PlanFeature>[
+          _PlanFeature(
+            name: 'User Quota',
+            free: true,
+            sevenDay: true,
+            monthly: true,
+            yearly: true,
+            lifetime: true,
+            freeValue: quotaValues['FREE'] ?? '2',
+            sevenDayValue: quotaValues['7 DAYS'] ?? '50',
+            monthlyValue: quotaValues['MONTHLY'] ?? '200',
+            yearlyValue: quotaValues['YEARLY'] ?? '1000',
+            lifetimeValue: quotaValues['LIFETIME'] ?? 'Unlimited',
           ),
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFFEEF6FF), Color(0xFFDCEBFF)],
+          ...features,
+        ];
+
+        return Scaffold(
+          appBar: AppBar(
+            backgroundColor: const Color(0xFF1F2937),
+            iconTheme: const IconThemeData(
+              color: Color(0xFFFFC72C),
+              size: 30,
+            ),
+            title: const Text(
+              'Plan Function List',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 22,
+              ),
+            ),
+          ),
+          body: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFFEEF6FF), Color(0xFFDCEBFF)],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFBFDBFE), width: 1.4),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        'Plan Comparison Matrix',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF1E3A8A),
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Tick means feature included in that plan. Cross means not included. OCR means Optical Character Recognition.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1E3A8A),
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'User Quota values are loaded live from the admin quota rules.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF0F766E),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFBFDBFE), width: 1.4),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    'Plan Comparison Matrix',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF1E3A8A),
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Tick means feature included in that plan. Cross means not included. OCR means Optical Character Recognition.',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1E3A8A),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: const [
-                _LegendChip(label: 'FREE', color: Color(0xFF6B7280)),
-                _LegendChip(label: '7 DAYS', color: Color(0xFFC97A3C)),
-                _LegendChip(label: 'MONTHLY', color: Color(0xFF0F766E)),
-                _LegendChip(label: 'YEARLY', color: Color(0xFF1D4ED8)),
-                _LegendChip(label: 'LIFETIME', color: Color(0xFF7C3AED)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFFE5E7EB)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF1D4ED8).withValues(alpha: 0.07),
-                      blurRadius: 14,
-                      offset: const Offset(0, 6),
-                    ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: const [
+                    _LegendChip(label: 'FREE', color: Color(0xFF6B7280)),
+                    _LegendChip(label: '7 DAYS', color: Color(0xFFC97A3C)),
+                    _LegendChip(label: 'MONTHLY', color: Color(0xFF0F766E)),
+                    _LegendChip(label: 'YEARLY', color: Color(0xFF1D4ED8)),
+                    _LegendChip(label: 'LIFETIME', color: Color(0xFF7C3AED)),
                   ],
                 ),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: SingleChildScrollView(
-                    child: DataTable(
-                      headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFF)),
-                      dataRowMinHeight: 44,
-                      dataRowMaxHeight: 58,
-                      headingTextStyle: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF111827),
-                      ),
-                      columns: const [
-                        DataColumn(label: Text('Function Name')),
-                        DataColumn(label: Text('FREE')),
-                        DataColumn(label: Text('7 DAYS')),
-                        DataColumn(label: Text('MONTHLY')),
-                        DataColumn(label: Text('YEARLY')),
-                        DataColumn(label: Text('LIFETIME')),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFE5E7EB)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF1D4ED8).withValues(alpha: 0.07),
+                          blurRadius: 14,
+                          offset: const Offset(0, 6),
+                        ),
                       ],
-                      rows: features
-                          .asMap()
-                          .entries
-                          .map((entry) {
-                        final index = entry.key;
-                        final feature = entry.value;
-
-                        return DataRow(
-                          color: WidgetStateProperty.all(
-                            index.isEven ? const Color(0xFFFFFFFF) : const Color(0xFFFAFCFF),
+                    ),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: SingleChildScrollView(
+                        child: DataTable(
+                          headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFF)),
+                          dataRowMinHeight: 44,
+                          dataRowMaxHeight: 58,
+                          headingTextStyle: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF111827),
                           ),
-                          cells: [
-                            DataCell(
-                              SizedBox(
-                                width: 320,
-                                child: Text(
-                                  feature.name,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF374151),
+                          columns: const [
+                            DataColumn(label: Text('Function Name')),
+                            DataColumn(label: Text('FREE')),
+                            DataColumn(label: Text('7 DAYS')),
+                            DataColumn(label: Text('MONTHLY')),
+                            DataColumn(label: Text('YEARLY')),
+                            DataColumn(label: Text('LIFETIME')),
+                          ],
+                          rows: tableRows
+                              .asMap()
+                              .entries
+                              .map((entry) {
+                            final index = entry.key;
+                            final feature = entry.value;
+
+                            return DataRow(
+                              color: WidgetStateProperty.all(
+                                index.isEven ? const Color(0xFFFFFFFF) : const Color(0xFFFAFCFF),
+                              ),
+                              cells: [
+                                DataCell(
+                                  SizedBox(
+                                    width: 320,
+                                    child: Text(
+                                      feature.name,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF374151),
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ),
-                            DataCell(_buildAvailabilityIcon(feature.free)),
-                            DataCell(_buildAvailabilityIcon(feature.sevenDay)),
-                            DataCell(_buildAvailabilityIcon(feature.monthly)),
-                            DataCell(_buildAvailabilityIcon(feature.yearly)),
-                            DataCell(_buildAvailabilityIcon(feature.lifetime)),
-                          ],
-                        );
-                      })
-                          .toList(),
+                                DataCell(_buildAvailabilityCell(feature.free, feature.freeValue)),
+                                DataCell(_buildAvailabilityCell(feature.sevenDay, feature.sevenDayValue)),
+                                DataCell(_buildAvailabilityCell(feature.monthly, feature.monthlyValue)),
+                                DataCell(_buildAvailabilityCell(feature.yearly, feature.yearlyValue)),
+                                DataCell(_buildAvailabilityCell(feature.lifetime, feature.lifetimeValue)),
+                              ],
+                            );
+                          })
+                              .toList(),
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
+  }
+
+  static Widget _buildAvailabilityCell(bool enabled, String? displayValue) {
+    if (displayValue != null) {
+      return Center(
+        child: Text(
+          displayValue,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF111827),
+          ),
+        ),
+      );
+    }
+
+    return _buildAvailabilityIcon(enabled);
   }
 
   static Widget _buildAvailabilityIcon(bool enabled) {
@@ -226,6 +314,11 @@ class _PlanFeature {
   final bool monthly;
   final bool yearly;
   final bool lifetime;
+  final String? freeValue;
+  final String? sevenDayValue;
+  final String? monthlyValue;
+  final String? yearlyValue;
+  final String? lifetimeValue;
 
   const _PlanFeature({
     required this.name,
@@ -234,5 +327,10 @@ class _PlanFeature {
     required this.monthly,
     required this.yearly,
     required this.lifetime,
+    this.freeValue,
+    this.sevenDayValue,
+    this.monthlyValue,
+    this.yearlyValue,
+    this.lifetimeValue,
   });
 }

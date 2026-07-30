@@ -128,6 +128,7 @@ class _HomePageV2State extends State<HomePageV2> {
   String? _selectedUsageType;
   bool _showLiveOfferBanner = false;
   String _liveOfferText = '';
+  bool _showCookieConsentBanner = false;
   late PlanCatalogConfig _planCatalog;
   bool get _showAdminControls => OwnerAdminAccessService.isUnlocked;
 
@@ -150,6 +151,19 @@ class _HomePageV2State extends State<HomePageV2> {
   void initState() {
     super.initState();
     _planCatalog = PlanCatalogService.load();
+    _showCookieConsentBanner = !_hasAcceptedCookieConsent();
+  }
+
+  bool _hasAcceptedCookieConsent() {
+    final storedValue = html.window.localStorage['jobready_cookie_consent'];
+    return storedValue == 'accepted';
+  }
+
+  void _acceptCookieConsent() {
+    html.window.localStorage['jobready_cookie_consent'] = 'accepted';
+    setState(() {
+      _showCookieConsentBanner = false;
+    });
   }
 
   double _priceForUsage(double personalMonthlyPrice) {
@@ -538,11 +552,13 @@ class _HomePageV2State extends State<HomePageV2> {
         ),
       ),
 
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(14, 10, 14, 18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 96),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -868,6 +884,73 @@ class _HomePageV2State extends State<HomePageV2> {
             const SizedBox(height: 6),
           ],
         ),
+        if (_showCookieConsentBanner)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF111827),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.18),
+                        blurRadius: 16,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'We use essential local browser cache & cookies to keep tools fast and your sessions smooth. We do not store your uploaded files or images on our servers.',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          height: 1.45,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextButton(
+                              onPressed: () {
+                                Navigator.of(context).pushNamed('/terms');
+                              },
+                              style: TextButton.styleFrom(
+                                foregroundColor: const Color(0xFFFFC72C),
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                              ),
+                              child: const Text('Read Terms & Conditions'),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: _acceptCookieConsent,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFFFC72C),
+                              foregroundColor: const Color(0xFF111827),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            ),
+                            child: const Text('Accept & Continue'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
       ),
     );
   }

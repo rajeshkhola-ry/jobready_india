@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:universal_html/html.dart' as html;
 
+import '../Pages/convert_tool_page.dart';
+import '../Pages/v2/photo/photo_hd_workspace_page.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/file_storage_service.dart';
 import '../Services/upload_context_service.dart';
@@ -169,6 +171,16 @@ class _UploadCardV2State extends State<UploadCardV2> {
     return _allowedExtensions.contains(extension);
   }
 
+  bool _isImageFile(String name) {
+    final dotIndex = name.lastIndexOf('.');
+    if (dotIndex == -1 || dotIndex == name.length - 1) {
+      return false;
+    }
+
+    final extension = name.substring(dotIndex + 1).toLowerCase();
+    return ['jpg', 'jpeg', 'png', 'webp', 'bmp'].contains(extension);
+  }
+
   String _getMimeType(String fileName) {
     final lowerName = fileName.toLowerCase();
     if (lowerName.endsWith('.pdf')) return 'application/pdf';
@@ -256,6 +268,19 @@ class _UploadCardV2State extends State<UploadCardV2> {
           ),
         );
       }
+
+      if (!mounted) {
+        return;
+      }
+
+      final isImageSelection = files.any((file) => _isImageFile(file.name));
+      await Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => isImageSelection
+              ? const PhotoHdWorkspacePage()
+              : const ConvertToolPage(),
+        ),
+      );
     } catch (_) {
       if (!mounted) {
         return;
@@ -277,28 +302,33 @@ class _UploadCardV2State extends State<UploadCardV2> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _pickFile,
         borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFF5F8FC), Color(0xFFEAF1F8)],
-        ),
-        border: Border.all(color: const Color(0xFFC9D9EA), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF1F4E79).withValues(alpha: 0.12),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+        child: Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFFF5F8FC), Color(0xFFEAF1F8)],
+            ),
+            border: Border.all(color: const Color(0xFFC9D9EA), width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF1F4E79).withValues(alpha: 0.12),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
             Container(
               width: 68,
               height: 68,
@@ -332,7 +362,28 @@ class _UploadCardV2State extends State<UploadCardV2> {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: 220,
+              height: 46,
+              child: ElevatedButton.icon(
+                onPressed: _pickFile,
+                icon: const Icon(Icons.folder_open_rounded, size: 18),
+                label: const Text(
+                  'Browse Files',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1F4E79),
+                  foregroundColor: Colors.white,
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
             if (kIsWeb) ...[
               Container(
                 width: double.infinity,
@@ -379,26 +430,11 @@ class _UploadCardV2State extends State<UploadCardV2> {
                 ),
               ),
             ),
-            const SizedBox(height: 18),
-            SizedBox(
-              width: 230,
-              height: 48,
-              child: ElevatedButton.icon(
-                onPressed: _pickFile,
-                icon: const Icon(Icons.upload_file_rounded),
-                label: const Text(
-                  'Browse Files',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1F4E79),
-                  foregroundColor: Colors.white,
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
+            const SizedBox(height: 16),
+            const Text(
+              'Tap the card or use the button above to browse your files instantly.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
             ),
             const SizedBox(height: 14),
             const Text(
@@ -531,7 +567,8 @@ class _UploadCardV2State extends State<UploadCardV2> {
                   ],
                 ),
               ),
-          ],
+            ],
+          ),
         ),
       ),
     );

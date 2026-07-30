@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Console | GetReadyJob</title>
+  <style>
+    :root { color-scheme: dark; --bg:#07111f; --panel:#0f172a; --border:#22304d; --text:#e2e8f0; --muted:#94a3b8; --accent:#38bdf8; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:Arial,sans-serif; background:var(--bg); color:var(--text); }
+    .app { display:flex; min-height:100vh; }
+    .sidebar { width:260px; background:var(--panel); border-right:1px solid var(--border); padding:20px; }
+    .brand { font-size:1.2rem; font-weight:bold; margin-bottom:24px; }
+    .nav { display:flex; flex-direction:column; gap:8px; }
+    .nav a { color:var(--text); text-decoration:none; padding:10px 12px; border-radius:8px; background:#111c2e; border:1px solid transparent; }
+    .nav a.active, .nav a:hover { border-color:var(--accent); color:var(--accent); }
+    .content { flex:1; padding:24px; }
+    .panel { display:none; }
+    .panel.active { display:block; }
+    .card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:16px; }
+    .login { max-width:460px; margin:80px auto; background:var(--panel); border:1px solid var(--border); border-radius:16px; padding:28px; }
+    .field { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px; }
+    .checkbox-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+    input, button, select { padding:10px 12px; border-radius:8px; border:1px solid var(--border); font-size:1rem; }
+    button { background:var(--accent); color:#07111f; cursor:pointer; font-weight:bold; }
+    .secondary-btn { background:#1e293b; color:var(--text); }
+    .muted { color:var(--muted); font-size:0.95rem; }
+    .status { margin-top:12px; min-height:22px; color:var(--accent); }
+    .status.error { color:#fda4af; }
+    .status.success { color:#86efac; }
+    .hidden { display:none; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; }
+    th, td { text-align:left; padding:10px 8px; border-bottom:1px solid var(--border); vertical-align:top; }
+    .chip { display:inline-block; padding:4px 8px; border-radius:999px; background:#1e293b; color:var(--text); font-size:0.85rem; margin:2px; }
+    @media (max-width:800px){ .app{flex-direction:column;} .sidebar{width:100%;border-right:0;border-bottom:1px solid var(--border);} }
+  </style>
+</head>
+<body>
+  <div id="loginView" class="login">
+    <h2>Admin Login</h2>
+    <p class="muted">Secure access to the JobReady admin console.</p>
+    <div class="field">
+      <label for="email">Email</label>
+      <input id="email" type="email" value="admin@getreadyjob.com" />
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input id="password" type="password" value="Admin@2026!" />
+    </div>
+    <button id="loginBtn">Sign In</button>
+    <div id="loginStatus" class="status"></div>
+  </div>
+
+  <div id="dashboardView" class="app hidden">
+    <aside class="sidebar">
+      <div class="brand">JOBREADY ADMIN</div>
+      <nav class="nav">
+        <a href="#" class="active" data-target="overviewPanel">Overview</a>
+        <a href="#" data-target="rateCardsPanel">Rate Cards & Plans</a>
+        <a href="#" data-target="functionMatrixPanel">Function Access Matrix</a>
+        <a href="#" data-target="quotaPanel">Quota & Usage Caps</a>
+        <a href="#" data-target="promoPanel">Promo Codes</a>
+        <a href="#" data-target="analyticsPanel">Analytics & Leaderboard</a>
+        <a href="#" data-target="supportPanel">Support & Logs</a>
+        <a href="#" data-target="settingsPanel">System Settings</a>
+        <a href="#" data-target="invoicingPanel">Invoicing & Geo-Tax</a>
+      </nav>
+      <div style="margin-top:24px;">
+        <button id="logoutBtn" style="width:100%;">Logout</button>
+      </div>
+    </aside>
+    <main class="content">
+      <section id="overviewPanel" class="panel active">
+        <div class="card">
+          <h2>Admin Dashboard Shell</h2>
+          <p class="muted">This is the protected admin shell for the next module stages.</p>
+        </div>
+        <div class="card">
+          <h3>Quick Access</h3>
+          <p class="muted">Rate Cards & Plans • Function Matrix • Quotas • Promo Codes • Analytics • Invoicing</p>
+        </div>
+        <div class="card">
+          <h3>Session</h3>
+          <p id="sessionInfo" class="muted"></p>
+        </div>
+      </section>
+
+      <section id="rateCardsPanel" class="panel">
+        <div class="card">
+          <h2>Rate Cards & Plans</h2>
+          <p class="muted">Create and manage custom plans, pricing, and tool access for users.</p>
+        </div>
+        <div class="card">
+          <h3>Create New Plan</h3>
+          <form id="planForm">
+            <div class="grid">
+              <div class="field">
+                <label for="planName">Plan Name</label>
+                <input id="planName" name="name" required />
+              </div>
+              <div class="field">
+                <label for="validFrom">Valid From</label>
+                <input id="validFrom" name="validFrom" type="date" required />
+              </div>
+              <div class="field">
+                <label for="validTo">Valid To</label>
+                <input id="validTo" name="validTo" type="date" required />
+              </div>
+              <div class="field">
+                <label for="basePriceUsd">Base USD Price</label>
+                <input id="basePriceUsd" name="basePriceUsd" type="number" min="0" step="0.01" required />
+              </div>
+              <div class="field">
+                <label for="basePriceInr">Base INR Price</label>
+                <input id="basePriceInr" name="basePriceInr" type="number" min="0" step="0.01" required />
+              </div>
+              <div class="field">
+                <label for="multiplier">Multiplier</label>
+                <input id="multiplier" name="multiplier" type="number" min="0.1" step="0.1" value="1" required />
+              </div>
+            </div>
+            <div class="field">
+              <label>Tool Access</label>
+              <div class="grid">
+                <label class="checkbox-row"><input class="tool-access" type="checkbox" name="compression" checked /> Compression</label>
+                <label class="checkbox-row"><input class="tool-access" type="checkbox" name="convert" checked /> Convert</label>
+                <label class="checkbox-row"><input class="tool-access" type="checkbox" name="merge" checked /> Merge</label>
+                <label class="checkbox-row"><input class="tool-access" type="checkbox" name="split" checked /> Split</label>
+                <label class="checkbox-row"><input class="tool-access" type="checkbox" name="extract" checked /> Extract</label>
+                <label class="checkbox-row"><input class="tool-access" type="checkbox" name="edit" checked /> Edit</label>
+              </div>
+            </div>
+            <div class="field">
+              <label>Duration Preview</label>
+              <div id="durationPreview" class="muted">Select valid dates to calculate duration.</div>
+            </div>
+            <div class="field">
+              <label>Multiplier Preview</label>
+              <div id="multiplierPreview" class="muted">Preview: Base $0.00 × 1.0 = $0.00</div>
+            </div>
+            <button type="submit">Create Plan</button>
+            <div id="planStatus" class="status"></div>
+          </form>
+        </div>
+        <div class="card">
+          <h3>Existing Plans</h3>
+          <table>
+            <thead>
+              <tr><th>Name</th><th>Validity</th><th>Duration</th><th>Base USD</th><th>Base INR</th><th>Multiplier</th><th>Access</th><th></th></tr>
+            </thead>
+            <tbody id="planTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="functionMatrixPanel" class="panel">
+        <div class="card">
+          <h2>Function Access Matrix</h2>
+          <p class="muted">Toggle tool access for each plan and sync the public matrix endpoint.</p>
+        </div>
+        <div class="card">
+          <div id="matrixStatus" class="status"></div>
+          <div id="matrixContainer"></div>
+        </div>
+      </section>
+
+      <section id="quotaPanel" class="panel">
+        <div class="card">
+          <h2>Quota & Usage Caps</h2>
+          <p class="muted">Set per-tool usage limits for each plan.</p>
+        </div>
+        <div class="card">
+          <div id="quotaStatus" class="status"></div>
+          <div id="quotaContainer"></div>
+        </div>
+      </section>
+
+      <section id="promoPanel" class="panel">
+        <div class="card">
+          <h2>Promo Codes</h2>
+          <p class="muted">Launch discounts and campaign offers.</p>
+        </div>
+        <div class="card">
+          <h3>Create Promo</h3>
+          <div class="grid">
+            <div class="field"><label for="promoCode">Code</label><input id="promoCode" /></div>
+            <div class="field"><label for="promoPercent">Percent</label><input id="promoPercent" type="number" min="0" step="1" /></div>
+            <div class="field"><label for="promoFlat">Flat</label><input id="promoFlat" type="number" min="0" step="1" /></div>
+            <div class="field"><label for="promoValidUntil">Valid Until</label><input id="promoValidUntil" type="date" /></div>
+            <div class="field"><label for="promoUsageLimit">Usage Limit</label><input id="promoUsageLimit" type="number" min="0" step="1" /></div>
+          </div>
+          <button id="promoSaveBtn" type="button">Save Promo</button>
+          <div id="promoStatus" class="status"></div>
+          <table><thead><tr><th>Code</th><th>Percent</th><th>Flat</th><th>Valid Until</th><th>Used</th><th></th></tr></thead><tbody id="promoTableBody"></tbody></table>
+        </div>
+      </section>
+
+      <section id="analyticsPanel" class="panel">
+        <div class="card">
+          <h2>Analytics & Leaderboard</h2>
+          <p class="muted">Track subscription revenue, tool usage, and account lifecycle actions.</p>
+        </div>
+        <div class="card">
+          <h3>Sales Analytics</h3>
+          <div class="grid">
+            <div class="field">
+              <label for="analyticsRange">Range</label>
+              <select id="analyticsRange">
+                <option value="this-week">This Week</option>
+                <option value="this-month" selected>This Month</option>
+                <option value="this-year">This Year</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="analyticsFrom">From</label>
+              <input id="analyticsFrom" type="date" />
+            </div>
+            <div class="field">
+              <label for="analyticsTo">To</label>
+              <input id="analyticsTo" type="date" />
+            </div>
+          </div>
+          <button id="analyticsLoadBtn" type="button">Load Analytics</button>
+          <div id="analyticsStatus" class="status"></div>
+          <div id="analyticsSalesOutput" class="muted"></div>
+          <div id="analyticsToolsOutput" class="muted" style="margin-top:8px;"></div>
+        </div>
+        <div class="card">
+          <h3>User Management</h3>
+          <div class="grid">
+            <div class="field">
+              <label for="userSearchInput">Search</label>
+              <input id="userSearchInput" placeholder="Email, User ID, Mobile, Plan" />
+            </div>
+            <div class="field">
+              <label for="userStatusFilter">Plan Status</label>
+              <select id="userStatusFilter">
+                <option value="">All</option>
+                <option value="active">Active</option>
+                <option value="expired">Expired</option>
+                <option value="revoked">Revoked</option>
+              </select>
+            </div>
+          </div>
+          <button id="loadUsersBtn" type="button">Load Users</button>
+          <div id="userStatus" class="status"></div>
+          <table>
+            <thead>
+              <tr><th>User</th><th>Plan</th><th>Status</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="userTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="supportPanel" class="panel">
+        <div class="card">
+          <h2>Support & Logs</h2>
+          <p class="muted">Review audit activity and issue manual credits or extensions.</p>
+        </div>
+        <div class="card">
+          <div class="grid">
+            <div class="field"><label for="supportActorFilter">Actor</label><input id="supportActorFilter" placeholder="Email or actor" /></div>
+            <div class="field"><label for="supportUserId">User ID</label><input id="supportUserId" placeholder="user-id" /></div>
+            <div class="field"><label for="supportDays">Extra Days</label><input id="supportDays" type="number" min="0" /></div>
+            <div class="field"><label for="supportCredits">Credits</label><input id="supportCredits" type="number" min="0" /></div>
+          </div>
+          <button id="supportLoadBtn" type="button">Load Logs</button>
+          <button id="supportCreditBtn" type="button" class="secondary-btn">Apply Credit/Extension</button>
+          <div id="supportStatus" class="status"></div>
+          <table><thead><tr><th>Actor</th><th>Action</th><th>Details</th><th>Time</th></tr></thead><tbody id="supportTableBody"></tbody></table>
+        </div>
+      </section>
+
+      <section id="settingsPanel" class="panel">
+        <div class="card">
+          <h2>System Settings</h2>
+          <p class="muted">Toggle maintenance mode, publish announcements, and manage gateway keys.</p>
+        </div>
+        <div class="card">
+          <div class="field"><label><input id="maintenanceModeToggle" type="checkbox" /> Maintenance Mode</label></div>
+          <div class="field"><label for="announcementInput">Announcement</label><input id="announcementInput" /></div>
+          <div class="field"><label for="stripeApiKeyInput">Stripe API Key</label><input id="stripeApiKeyInput" /></div>
+          <div class="field"><label for="razorpayKeyIdInput">Razorpay Key ID</label><input id="razorpayKeyIdInput" /></div>
+          <button id="settingsSaveBtn" type="button">Save Settings</button>
+          <button id="backupBtn" type="button" class="secondary-btn">Run Backup</button>
+          <button id="dispatchEmailBtn" type="button" class="secondary-btn">Dispatch Test Email</button>
+          <div id="settingsStatus" class="status"></div>
+        </div>
+      </section>
+
+      <section id="invoicingPanel" class="panel">
+        <div class="card">
+          <h2>Invoicing & Geo-Tax</h2>
+          <p class="muted">Preview GST logic for domestic and foreign purchases.</p>
+        </div>
+        <div class="card">
+          <div class="grid">
+            <div class="field">
+              <label for="domesticGstRate">Domestic GST Rate</label>
+              <input id="domesticGstRate" type="number" step="0.01" value="0.18" />
+            </div>
+            <div class="field">
+              <label for="foreignGstRate">Foreign GST Rate</label>
+              <input id="foreignGstRate" type="number" step="0.01" value="0" />
+            </div>
+            <div class="field">
+              <label for="taxBaseAmount">Base Amount</label>
+              <input id="taxBaseAmount" type="number" step="0.01" value="1000" />
+            </div>
+            <div class="field">
+              <label for="taxCountry">Country</label>
+              <input id="taxCountry" value="India" />
+            </div>
+          </div>
+          <button id="taxPreviewBtn" type="button">Preview GST</button>
+          <div id="taxStatus" class="status"></div>
+          <div id="taxPreviewResult" class="muted"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const loginView = document.getElementById('loginView');
+    const dashboardView = document.getElementById('dashboardView');
+    const loginBtn = document.getElementById('loginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const loginStatus = document.getElementById('loginStatus');
+    const sessionInfo = document.getElementById('sessionInfo');
+    const navLinks = Array.from(document.querySelectorAll('.nav a'));
+    const panels = Array.from(document.querySelectorAll('.panel'));
+    const planForm = document.getElementById('planForm');
+    const planStatus = document.getElementById('planStatus');
+    const planTableBody = document.getElementById('planTableBody');
+    const matrixContainer = document.getElementById('matrixContainer');
+    const quotaContainer = document.getElementById('quotaContainer');
+    const matrixStatus = document.getElementById('matrixStatus');
+    const quotaStatus = document.getElementById('quotaStatus');
+    const taxPreviewBtn = document.getElementById('taxPreviewBtn');
+    const taxStatus = document.getElementById('taxStatus');
+    const taxPreviewResult = document.getElementById('taxPreviewResult');
+    const analyticsLoadBtn = document.getElementById('analyticsLoadBtn');
+    const analyticsStatus = document.getElementById('analyticsStatus');
+    const promoSaveBtn = document.getElementById('promoSaveBtn');
+    const promoStatus = document.getElementById('promoStatus');
+    const promoTableBody = document.getElementById('promoTableBody');
+    const supportLoadBtn = document.getElementById('supportLoadBtn');
+    const supportCreditBtn = document.getElementById('supportCreditBtn');
+    const supportStatus = document.getElementById('supportStatus');
+    const supportTableBody = document.getElementById('supportTableBody');
+    const settingsSaveBtn = document.getElementById('settingsSaveBtn');
+    const backupBtn = document.getElementById('backupBtn');
+    const dispatchEmailBtn = document.getElementById('dispatchEmailBtn');
+    const maintenanceModeToggle = document.getElementById('maintenanceModeToggle');
+    const announcementInput = document.getElementById('announcementInput');
+    const stripeApiKeyInput = document.getElementById('stripeApiKeyInput');
+    const razorpayKeyIdInput = document.getElementById('razorpayKeyIdInput');
+    const supportActorFilter = document.getElementById('supportActorFilter');
+    const supportUserId = document.getElementById('supportUserId');
+    const supportDays = document.getElementById('supportDays');
+    const supportCredits = document.getElementById('supportCredits');
+    const analyticsSalesOutput = document.getElementById('analyticsSalesOutput');
+    const analyticsToolsOutput = document.getElementById('analyticsToolsOutput');
+    const loadUsersBtn = document.getElementById('loadUsersBtn');
+    const userStatus = document.getElementById('userStatus');
+    const userTableBody = document.getElementById('userTableBody');
+    const userSearchInput = document.getElementById('userSearchInput');
+    const userStatusFilter = document.getElementById('userStatusFilter');
+    const analyticsRange = document.getElementById('analyticsRange');
+    const analyticsFrom = document.getElementById('analyticsFrom');
+    const analyticsTo = document.getElementById('analyticsTo');
+    const multiplierInput = document.getElementById('multiplier');
+    const basePriceUsdInput = document.getElementById('basePriceUsd');
+    const basePriceInrInput = document.getElementById('basePriceInr');
+    const validFromInput = document.getElementById('validFrom');
+    const validToInput = document.getElementById('validTo');
+    const durationPreview = document.getElementById('durationPreview');
+    const multiplierPreview = document.getElementById('multiplierPreview');
+
+    function setAuthState(token, payload) {
+      localStorage.setItem('adminToken', token);
+      localStorage.setItem('adminPayload', JSON.stringify(payload));
+      loginView.classList.add('hidden');
+      dashboardView.classList.remove('hidden');
+      sessionInfo.textContent = 'Signed in as ' + (payload && payload.email ? payload.email : 'admin');
+    }
+
+    function clearAuthState() {
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('adminPayload');
+      dashboardView.classList.add('hidden');
+      loginView.classList.remove('hidden');
+      loginStatus.textContent = '';
+      sessionInfo.textContent = '';
+    }
+
+    function setActivePanel(targetId) {
+      navLinks.forEach(function (link) {
+        link.classList.toggle('active', link.getAttribute('data-target') === targetId);
+      });
+      panels.forEach(function (panel) {
+        panel.classList.toggle('active', panel.id === targetId);
+      });
+    }
+
+    function setPlanStatus(message, isError) {
+      planStatus.textContent = message || '';
+      planStatus.className = 'status' + (isError ? ' error' : ' success');
+    }
+
+    function getAuthToken() {
+      return localStorage.getItem('adminToken') || '';
+    }
+
+    async function apiRequest(url, options) {
+      const token = getAuthToken();
+      const headers = {};
+      if (token) {
+        headers.Authorization = 'Bearer ' + token;
+      }
+      if (options && options.body && !(options.body instanceof FormData)) {
+        headers['Content-Type'] = 'application/json';
+      }
+      const response = await fetch(url, Object.assign({ headers: headers }, options));
+      const data = await response.json().catch(function () { return {}; });
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Request failed');
+      }
+      return data;
+    }
+
+    function getAccessMap() {
+      const access = {};
+      document.querySelectorAll('.tool-access').forEach(function (checkbox) {
+        access[checkbox.name] = checkbox.checked;
+      });
+      return access;
+    }
+
+    function renderPlans(plans) {
+      if (!planTableBody) return;
+      if (!plans.length) {
+        planTableBody.innerHTML = '<tr><td colspan="7" class="muted">No plans created yet.</td></tr>';
+        return;
+      }
+
+      planTableBody.innerHTML = plans.map(function (plan) {
+        const access = Object.keys(plan.access || {}).filter(function (key) { return plan.access[key]; }).join(', ') || 'None';
+        return '<tr>' +
+          '<td>' + (plan.name || 'Untitled') + '</td>' +
+          '<td>' + (plan.validFrom || '-') + ' to ' + (plan.validTo || '-') + '</td>' +
+          '<td>' + (plan.durationDays || 0) + ' days</td>' +
+          '<td>$' + Number(plan.basePriceUsd || 0).toFixed(2) + '</td>' +
+          '<td>₹' + Number(plan.basePriceInr || 0).toFixed(2) + '</td>' +
+          '<td>' + Number(plan.multiplier || 1).toFixed(1) + 'x</td>' +
+          '<td>' + access + '</td>' +
+          '<td><button class="secondary-btn" type="button" data-delete-id="' + plan.id + '">Delete</button></td>' +
+          '</tr>';
+      }).join('');
+    }
+
+    function buildToolList() {
+      return ['compression', 'convert', 'merge', 'split', 'extract', 'edit'];
+    }
+
+    function renderMatrix(plans, matrixData) {
+      if (!plans.length) {
+        matrixContainer.innerHTML = '<div class="muted">Create plans first to configure the access matrix.</div>';
+        return;
+      }
+      const toolList = buildToolList();
+      const rows = plans.map(function (plan) {
+        const access = matrixData[plan.id] && matrixData[plan.id].tools ? matrixData[plan.id].tools : {};
+        return '<div class="card" style="padding:12px;">' +
+          '<strong>' + plan.name + '</strong><div class="grid" style="margin-top:8px;">' +
+          toolList.map(function (tool) {
+            const checked = access[tool] === true;
+            return '<label class="checkbox-row"><input type="checkbox" class="matrix-toggle" data-plan-id="' + plan.id + '" data-tool="' + tool + '" ' + (checked ? 'checked' : '') + ' /> ' + tool + '</label>';
+          }).join('') +
+          '</div></div>';
+      }).join('');
+      matrixContainer.innerHTML = rows;
+    }
+
+    function renderQuotaRules(plans, rules) {
+      if (!plans.length) {
+        quotaContainer.innerHTML = '<div class="muted">Create plans first to configure quotas.</div>';
+        return;
+      }
+      const toolList = buildToolList();
+      const rows = plans.map(function (plan) {
+        const planRules = rules[plan.id] || [];
+        const quotaState = (window.__quotaState && window.__quotaState[plan.id]) || null;
+        return '<div class="card" style="padding:12px;">' +
+          '<strong>' + plan.name + '</strong>' +
+          '<div class="muted" style="margin-top:6px;">Shared quota pool across all tools. One successful run deducts from the total balance.</div>' +
+          '<div class="muted" style="margin-top:4px;">' + (quotaState ? ('Used: ' + quotaState.used + ' • Remaining: ' + (quotaState.remainingQuota === null ? 'Unlimited' : quotaState.remainingQuota) + ' / ' + (quotaState.limit === null ? 'Unlimited' : quotaState.limit)) : 'Live balance pending') + '</div>' +
+          '<div class="field" style="margin-top:8px;"><label>Shared Pool</label><input class="quota-input" data-plan-id="' + plan.id + '" data-tool="global" value="' + ((planRules.find(function (item) { return item.tool === 'global'; }) || {}).limit || '') + '" placeholder="unlimited" /></div>' +
+          '<button class="secondary-btn" type="button" data-save-quota-plan="' + plan.id + '" style="margin-top:8px;">Save Quotas</button></div>';
+      }).join('');
+      quotaContainer.innerHTML = rows;
+    }
+
+    async function loadPlans() {
+      try {
+        const data = await apiRequest('/api/admin/plans', { method: 'GET' });
+        renderPlans(data.plans || []);
+        const matrixData = await apiRequest('/api/admin/plan-matrix', { method: 'GET' });
+        renderMatrix(data.plans || [], matrixData.matrix || {});
+        const quotaData = await apiRequest('/api/admin/quota-rules', { method: 'GET' });
+        window.__quotaState = quotaData.quotaStatus || {};
+        renderQuotaRules(data.plans || [], quotaData.rules || {});
+      } catch (err) {
+        setPlanStatus(err.message, true);
+      }
+    }
+
+    function renderUsers(users) {
+      if (!users.length) {
+        userTableBody.innerHTML = '<tr><td colspan="4" class="muted">No users found.</td></tr>';
+        return;
+      }
+      userTableBody.innerHTML = users.map(function (user) {
+        return '<tr>' +
+          '<td>' + (user.email || user.id || 'Unknown') + '<br/><span class="muted">' + (user.id || '') + '</span></td>' +
+          '<td>' + (user.planName || user.planId || '—') + '</td>' +
+          '<td>' + (user.planStatus || 'active') + '</td>' +
+          '<td><button class="secondary-btn" type="button" data-user-action="extend" data-user-id="' + user.id + '">Extend</button> ' +
+          '<button class="secondary-btn" type="button" data-user-action="upgrade" data-user-id="' + user.id + '">Upgrade</button> ' +
+          '<button class="secondary-btn" type="button" data-user-action="revoke" data-user-id="' + user.id + '">Revoke</button></td>' +
+          '</tr>';
+      }).join('');
+    }
+
+    async function loadAnalytics() {
+      try {
+        analyticsStatus.textContent = 'Loading analytics...';
+        const salesData = await apiRequest('/api/admin/analytics/sales?range=' + encodeURIComponent(analyticsRange.value || 'this-month') + '&fromDate=' + encodeURIComponent(analyticsFrom.value || '') + '&toDate=' + encodeURIComponent(analyticsTo.value || ''), { method: 'GET' });
+        const toolsData = await apiRequest('/api/admin/analytics/tools?range=' + encodeURIComponent(analyticsRange.value || 'this-month') + '&fromDate=' + encodeURIComponent(analyticsFrom.value || '') + '&toDate=' + encodeURIComponent(analyticsTo.value || ''), { method: 'GET' });
+        const salesSummary = salesData.analytics && salesData.analytics.summary ? salesData.analytics.summary : { transactions: 0, revenue: 0 };
+        const toolRows = (toolsData.analytics && toolsData.analytics.leaderboard ? toolsData.analytics.leaderboard : []).map(function (item) {
+          return '<div class="chip">' + item.tool + ' • Free ' + item.free + ' • Paid ' + item.paid + '</div>';
+        }).join('');
+        analyticsSalesOutput.innerHTML = '<strong>Transactions:</strong> ' + salesSummary.transactions + '<br/><strong>Revenue:</strong> ₹' + Number(salesSummary.revenue || 0).toFixed(2) + '<br/><strong>Plans:</strong> ' + Object.keys(salesSummary.plans || {}).join(', ') || 'None';
+        analyticsToolsOutput.innerHTML = '<strong>Tool Leaderboard</strong><br/>' + (toolRows || '<span class="muted">No usage data yet.</span>');
+        analyticsStatus.textContent = 'Analytics loaded.';
+      } catch (err) {
+        analyticsStatus.textContent = err.message;
+      }
+    }
+
+    async function loadUsers() {
+      try {
+        userStatus.textContent = 'Loading users...';
+        const query = '?q=' + encodeURIComponent(userSearchInput.value || '') + '&planStatus=' + encodeURIComponent(userStatusFilter.value || '');
+        const data = await apiRequest('/api/admin/users' + query, { method: 'GET' });
+        renderUsers(data.users || []);
+        userStatus.textContent = 'Users loaded.';
+      } catch (err) {
+        userStatus.textContent = err.message;
+      }
+    }
+
+    function renderPromos(promos) {
+      if (!promoTableBody) return;
+      promoTableBody.innerHTML = (promos || []).map(function (promo) {
+        return '<tr><td>' + (promo.code || '') + '</td><td>' + (promo.discountPercent || 0) + '%</td><td>' + (promo.discountFlat || 0) + '</td><td>' + (promo.validUntil || '-') + '</td><td>' + (promo.usedCount || 0) + '</td><td><button class="secondary-btn" type="button" data-delete-promo="' + (promo.code || '') + '">Delete</button></td></tr>';
+      }).join('');
+    }
+
+    async function loadPromos() {
+      try {
+        const data = await apiRequest('/api/admin/promos', { method: 'GET' });
+        renderPromos(data.promos || []);
+      } catch (err) {
+        promoStatus.textContent = err.message;
+      }
+    }
+
+    async function loadSupportLogs() {
+      try {
+        supportStatus.textContent = 'Loading support logs...';
+        const data = await apiRequest('/api/admin/support/logs?actor=' + encodeURIComponent(supportActorFilter.value || ''), { method: 'GET' });
+        supportTableBody.innerHTML = (data.logs || []).map(function (entry) {
+          return '<tr><td>' + (entry.actor || '') + '</td><td>' + (entry.action || '') + '</td><td>' + JSON.stringify(entry.details || {}) + '</td><td>' + (entry.createdAt || '') + '</td></tr>';
+        }).join('');
+        supportStatus.textContent = 'Support logs loaded.';
+      } catch (err) {
+        supportStatus.textContent = err.message;
+      }
+    }
+
+    async function loadSettings() {
+      try {
+        const data = await apiRequest('/api/admin/settings', { method: 'GET' });
+        maintenanceModeToggle.checked = Boolean(data.settings && data.settings.maintenanceMode);
+        announcementInput.value = data.settings && data.settings.announcement ? data.settings.announcement : '';
+        stripeApiKeyInput.value = data.settings && data.settings.gatewayKeys && data.settings.gatewayKeys.stripeApiKey ? data.settings.gatewayKeys.stripeApiKey : '';
+        razorpayKeyIdInput.value = data.settings && data.settings.gatewayKeys && data.settings.gatewayKeys.razorpayKeyId ? data.settings.gatewayKeys.razorpayKeyId : '';
+      } catch (err) {
+        settingsStatus.textContent = err.message;
+      }
+    }
+
+    async function login() {
+      loginStatus.textContent = 'Signing in...';
+      const response = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: document.getElementById('email').value,
+          password: document.getElementById('password').value
+        })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        loginStatus.textContent = data.error || 'Login failed.';
+        return;
+      }
+      const payload = JSON.parse(atob(data.token.split('.')[1]));
+      setAuthState(data.token, payload);
+      loginStatus.textContent = 'Signed in successfully.';
+      loadPlans();
+    }
+
+    navLinks.forEach(function (link) {
+      link.addEventListener('click', function (event) {
+        event.preventDefault();
+        const targetId = link.getAttribute('data-target');
+        setActivePanel(targetId);
+        if (targetId === 'rateCardsPanel') {
+          loadPlans();
+        }
+        if (targetId === 'analyticsPanel') {
+          loadAnalytics();
+          loadUsers();
+        }
+      });
+    });
+
+    analyticsLoadBtn.addEventListener('click', loadAnalytics);
+    loadUsersBtn.addEventListener('click', loadUsers);
+    promoSaveBtn.addEventListener('click', async function () {
+      try {
+        await apiRequest('/api/admin/promos', { method: 'POST', body: JSON.stringify({ code: document.getElementById('promoCode').value, discountPercent: Number(document.getElementById('promoPercent').value || 0), discountFlat: Number(document.getElementById('promoFlat').value || 0), validUntil: document.getElementById('promoValidUntil').value, usageLimit: Number(document.getElementById('promoUsageLimit').value || 0) }) });
+        promoStatus.textContent = 'Promo saved.';
+        loadPromos();
+      } catch (err) {
+        promoStatus.textContent = err.message;
+      }
+    });
+    promoTableBody.addEventListener('click', async function (event) {
+      const button = event.target.closest('[data-delete-promo]');
+      if (!button) return;
+      const code = button.getAttribute('data-delete-promo');
+      try {
+        await apiRequest('/api/admin/promos/' + encodeURIComponent(code), { method: 'DELETE' });
+        promoStatus.textContent = 'Promo removed.';
+        loadPromos();
+      } catch (err) {
+        promoStatus.textContent = err.message;
+      }
+    });
+    supportLoadBtn.addEventListener('click', loadSupportLogs);
+    supportCreditBtn.addEventListener('click', async function () {
+      try {
+        await apiRequest('/api/admin/support/credits', { method: 'POST', body: JSON.stringify({ userId: supportUserId.value, days: Number(supportDays.value || 0), credits: Number(supportCredits.value || 0), note: 'Manual support action' }) });
+        supportStatus.textContent = 'Support action applied.';
+        loadSupportLogs();
+      } catch (err) {
+        supportStatus.textContent = err.message;
+      }
+    });
+    settingsSaveBtn.addEventListener('click', async function () {
+      try {
+        await apiRequest('/api/admin/settings', { method: 'POST', body: JSON.stringify({ maintenanceMode: maintenanceModeToggle.checked, announcement: announcementInput.value, gatewayKeys: { stripeApiKey: stripeApiKeyInput.value, razorpayKeyId: razorpayKeyIdInput.value } }) });
+        settingsStatus.textContent = 'Settings updated.';
+      } catch (err) {
+        settingsStatus.textContent = err.message;
+      }
+    });
+    backupBtn.addEventListener('click', async function () {
+      try {
+        const data = await apiRequest('/api/admin/backup/run', { method: 'POST' });
+        settingsStatus.textContent = 'Backup created: ' + data.backupPath;
+      } catch (err) {
+        settingsStatus.textContent = err.message;
+      }
+    });
+    dispatchEmailBtn.addEventListener('click', async function () {
+      try {
+        await apiRequest('/api/admin/email/dispatch', { method: 'POST', body: JSON.stringify({ to: 'hello@getreadyjob.com', subject: 'Admin Dispatch Test', text: 'System mail dispatcher is working.' }) });
+        settingsStatus.textContent = 'Dispatch request sent.';
+      } catch (err) {
+        settingsStatus.textContent = err.message;
+      }
+    });
+
+    [userSearchInput, userStatusFilter].forEach(function (field) {
+      field.addEventListener('change', loadUsers);
+      field.addEventListener('input', function () {
+        if (field === userSearchInput && field.value.trim().length > 2) {
+          loadUsers();
+        }
+      });
+    });
+
+    userTableBody.addEventListener('click', async function (event) {
+      const button = event.target.closest('[data-user-action]');
+      if (!button) return;
+      const action = button.getAttribute('data-user-action');
+      const userId = button.getAttribute('data-user-id');
+      try {
+        await apiRequest('/api/admin/users', { method: 'POST', body: JSON.stringify({ userId: userId, action: action, days: 30, planId: 'lifetime-pro', planName: 'Lifetime Pro' }) });
+        userStatus.textContent = 'User action completed.';
+        loadUsers();
+      } catch (err) {
+        userStatus.textContent = err.message;
+      }
+    });
+
+    planForm.addEventListener('submit', async function (event) {
+      event.preventDefault();
+      setPlanStatus('Creating plan...', false);
+      const validFrom = validFromInput.value;
+      const validTo = validToInput.value;
+      const durationDays = validFrom && validTo ? Math.max(1, Math.round((new Date(validTo) - new Date(validFrom)) / (1000 * 60 * 60 * 24) + 1)) : 0;
+      const payload = {
+        name: document.getElementById('planName').value.trim(),
+        durationDays: durationDays,
+        validFrom: validFrom,
+        validTo: validTo,
+        basePriceUsd: Number(basePriceUsdInput.value),
+        basePriceInr: Number(basePriceInrInput.value),
+        multiplier: Number(multiplierInput.value),
+        access: getAccessMap()
+      };
+
+      if (!payload.name || !payload.validFrom || !payload.validTo || !payload.basePriceUsd || !payload.basePriceInr) {
+        setPlanStatus('Please complete the plan fields.', true);
+        return;
+      }
+
+      try {
+        const data = await apiRequest('/api/admin/plans', { method: 'POST', body: JSON.stringify(payload) });
+        renderPlans(data.plans || []);
+        setPlanStatus('Plan created successfully.', false);
+        planForm.reset();
+        multiplierInput.value = '1';
+        basePriceUsdInput.value = '';
+        basePriceInrInput.value = '';
+        validFromInput.value = '';
+        validToInput.value = '';
+        document.getElementById('planName').value = '';
+        document.querySelectorAll('.tool-access').forEach(function (box) {
+          box.checked = true;
+        });
+      } catch (err) {
+        setPlanStatus(err.message, true);
+      }
+    });
+
+    planTableBody.addEventListener('click', async function (event) {
+      const button = event.target.closest('[data-delete-id]');
+      if (!button) return;
+      const planId = button.getAttribute('data-delete-id');
+      try {
+        const data = await apiRequest('/api/admin/plans/' + planId, { method: 'DELETE' });
+        renderPlans(data.plans || []);
+        matrixStatus.textContent = 'Plan deleted.';
+        quotaStatus.textContent = 'Plan deleted.';
+        loadPlans();
+      } catch (err) {
+        setPlanStatus(err.message, true);
+      }
+    });
+
+    matrixContainer.addEventListener('change', async function (event) {
+      const toggle = event.target.closest('.matrix-toggle');
+      if (!toggle) return;
+      const planId = toggle.getAttribute('data-plan-id');
+      const tool = toggle.getAttribute('data-tool');
+      const matrixData = await apiRequest('/api/admin/plan-matrix', { method: 'GET' });
+      const current = matrixData.matrix[planId] || { planId: planId, tools: {} };
+      current.tools[tool] = toggle.checked;
+      await apiRequest('/api/admin/plan-matrix', { method: 'POST', body: JSON.stringify({ planId: planId, tools: current.tools }) });
+      matrixStatus.textContent = 'Matrix updated.';
+      loadPlans();
+    });
+
+    quotaContainer.addEventListener('click', async function (event) {
+      const button = event.target.closest('[data-save-quota-plan]');
+      if (!button) return;
+      const planId = button.getAttribute('data-save-quota-plan');
+      const inputs = Array.from(quotaContainer.querySelectorAll('.quota-input[data-plan-id="' + planId + '"]'));
+      const rules = inputs.map(function (input) {
+        return { tool: input.getAttribute('data-tool'), limit: input.value.trim() || 'unlimited' };
+      });
+      const data = await apiRequest('/api/admin/quota-rules', { method: 'POST', body: JSON.stringify({ planId: planId, rules: rules }) });
+      window.__quotaState = data.quotaStatus || {};
+      quotaStatus.textContent = 'Quota rules saved.';
+      renderQuotaRules((await apiRequest('/api/admin/plans', { method: 'GET' })).plans || [], data.rules || {});
+    });
+
+    taxPreviewBtn.addEventListener('click', async function () {
+      try {
+        const data = await apiRequest('/api/admin/tax-config', { method: 'POST', body: JSON.stringify({ domesticGstRate: Number(document.getElementById('domesticGstRate').value), foreignGstRate: Number(document.getElementById('foreignGstRate').value) }) });
+        const preview = await apiRequest('/api/admin/invoice-preview', { method: 'POST', body: JSON.stringify({ baseAmount: Number(document.getElementById('taxBaseAmount').value), country: document.getElementById('taxCountry').value }) });
+        taxStatus.textContent = 'Tax preview generated.';
+        taxPreviewResult.innerHTML = 'Country: ' + preview.country + '<br/>GST Rate: ' + (preview.gstRate * 100).toFixed(2) + '%<br/>GST Amount: ₹' + preview.gstAmount.toFixed(2) + '<br/>Total: ₹' + preview.totalAmount.toFixed(2);
+      } catch (err) {
+        taxStatus.textContent = err.message;
+      }
+    });
+
+    function updateDurationPreview() {
+      const validFrom = validFromInput.value;
+      const validTo = validToInput.value;
+      if (!validFrom || !validTo) {
+        durationPreview.textContent = 'Select valid dates to calculate duration.';
+        return;
+      }
+      const durationDays = Math.max(1, Math.round((new Date(validTo) - new Date(validFrom)) / (1000 * 60 * 60 * 24) + 1));
+      durationPreview.textContent = 'Duration: ' + durationDays + ' days (' + validFrom + ' to ' + validTo + ')';
+    }
+
+    function updateMultiplierPreview() {
+      const basePriceUsd = parseFloat(basePriceUsdInput.value || '0');
+      const basePriceInr = parseFloat(basePriceInrInput.value || '0');
+      const multiplier = parseFloat(multiplierInput.value || '1');
+      const previewUsd = basePriceUsd * multiplier;
+      const previewInr = basePriceInr * multiplier;
+      multiplierPreview.textContent = 'Preview: Base $' + basePriceUsd.toFixed(2) + ' × ' + multiplier.toFixed(1) + ' = $' + previewUsd.toFixed(2) + ' | ₹' + previewInr.toFixed(2);
+    }
+
+    [basePriceUsdInput, basePriceInrInput, multiplierInput, validFromInput, validToInput].forEach(function (field) {
+      field.addEventListener('input', function () {
+        updateDurationPreview();
+        updateMultiplierPreview();
+      });
+    });
+
+    loginBtn.addEventListener('click', login);
+    logoutBtn.addEventListener('click', clearAuthState);
+
+    const storedToken = localStorage.getItem('adminToken');
+    if (storedToken) {
+      try {
+        const payload = JSON.parse(localStorage.getItem('adminPayload') || '{}');
+        setAuthState(storedToken, payload);
+        loadPlans();
+        loadPromos();
+        loadSettings();
+      } catch (err) {
+        clearAuthState();
+      }
+    }
+  </script>
+</body>
+</html>

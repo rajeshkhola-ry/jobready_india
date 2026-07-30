@@ -6,6 +6,7 @@ import '../Widgets/apple_button.dart';
 import '../Widgets/production_footer.dart';
 import '../Widgets/quota_gate.dart';
 import '../Widgets/tool_guidance_panel.dart';
+import '../Widgets/tool_workspace_shell.dart';
 import '../Services/conversion_service.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/file_storage_service.dart';
@@ -186,21 +187,15 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF007AFF).withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFF007AFF).withOpacity(0.25)),
-                      ),
-                      child: const Text(
-                        '1. Choose input format. 2. Choose output format. 3. Choose file and start convert. All steps stay on this page.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1F2937),
-                        ),
-                      ),
+                    ToolWorkspaceShell(
+                      title: 'Convert File',
+                      subtitle: 'Convert PDFs, Word documents, spreadsheets, and images into the output format you need.',
+                      icon: Icons.swap_horiz_rounded,
+                      accentColor: const Color(0xFF1F4E79),
+                      statusText: _statusMessage,
+                      showProgress: _isConverting,
+                      progress: 0.7,
+                      child: const SizedBox.shrink(),
                     ),
                     const SizedBox(height: 14),
                     if (isWide)
@@ -1022,7 +1017,7 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
         builder: (_) => DownloadResultDialog(
           outputFormat: _selectedOutputFormat!,
           fileName: result.outputFileName!,
-          outputBytes: result.outputBytes!,
+          outputBytes: Uint8List.fromList(result.outputBytes!.toList()),
         ),
       );
     } catch (e) {

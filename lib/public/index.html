@@ -2,10 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Professional PDF and Image Compression Tool - Reduce file sizes instantly while maintaining quality">
+  <meta name="description" content="GetReadyJob offers fast PDF compression, image optimization, OCR, resume tools, and file workflow automation for professionals and businesses.">
+  <meta name="keywords" content="PDF compression, image compression, OCR, resume builder, document tools, getreadyjob">
+  <meta name="author" content="GetReadyJob">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
   <meta name="theme-color" content="#2563eb">
-  <title>Compression Tool | GetReadyJob</title>
+  <meta property="og:title" content="GetReadyJob | Smart Document & Career Tools">
+  <meta property="og:description" content="Compress PDFs, optimize images, create resumes, and streamline document workflows with GetReadyJob.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://getreadyjob.com/">
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:title" content="GetReadyJob | Smart Document & Career Tools">
+  <meta property="twitter:description" content="Compress PDFs, optimize images, create resumes, and streamline document workflows with GetReadyJob.">
+  <title>GetReadyJob | Smart Document & Career Tools</title>
 
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="/assets/logo-gold.svg?v=grj-20260727-moon-g-v1">
@@ -163,6 +174,84 @@
     .controls.active {
       display: block;
       animation: slideDown 0.3s ease-out;
+    }
+
+    .quota-status-banner {
+      display: none;
+      margin: 0 0 var(--spacing-lg) 0;
+      padding: var(--spacing-md) var(--spacing-lg);
+      border-radius: var(--radius-md);
+      background: rgba(37, 99, 235, 0.08);
+      color: var(--color-primary-dark);
+      font-weight: var(--font-weight-semibold);
+      border: 1px solid rgba(37, 99, 235, 0.16);
+    }
+
+    .quota-status-banner.warning {
+      background: rgba(220, 38, 38, 0.1);
+      color: #991b1b;
+      border-color: rgba(220, 38, 38, 0.2);
+    }
+
+    .quota-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.72);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--spacing-xl);
+      z-index: var(--z-modal);
+    }
+
+    .quota-modal-overlay[hidden] {
+      display: none;
+    }
+
+    .quota-modal-card {
+      width: min(100%, 480px);
+      background: var(--color-bg-white);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-2xl);
+      padding: var(--spacing-2xl);
+      text-align: center;
+    }
+
+    .quota-modal-title {
+      margin: 0 0 var(--spacing-md) 0;
+      color: var(--color-primary-dark);
+      font-size: 1.25rem;
+    }
+
+    .quota-modal-message {
+      margin: 0 0 var(--spacing-xl) 0;
+      color: var(--color-text-medium);
+      line-height: 1.6;
+    }
+
+    .quota-modal-actions {
+      display: flex;
+      gap: var(--spacing-md);
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .quota-modal-btn {
+      border: 0;
+      border-radius: var(--radius-md);
+      padding: var(--spacing-md) var(--spacing-lg);
+      font-weight: var(--font-weight-semibold);
+      cursor: pointer;
+    }
+
+    .quota-modal-btn-primary {
+      background: var(--color-primary);
+      color: white;
+    }
+
+    .quota-modal-btn-secondary {
+      background: var(--color-bg-lighter);
+      color: var(--color-text-dark);
     }
 
     .control-group {
@@ -592,6 +681,38 @@
     <!-- Tool Container -->
     <div class="tool-container">
       <div class="tool-content">
+        <div class="info-section" style="margin-bottom: var(--spacing-xl);">
+          <div class="info-title">💳 Lifetime Pass Checkout</div>
+          <p style="margin: 0 0 var(--spacing-md) 0; color: var(--color-text-light);">Unlock premium access with a secure Razorpay-powered payment.</p>
+          <div id="platformAnnouncement" style="margin-bottom: var(--spacing-md); color: var(--color-primary);"></div>
+          <div class="control-group" style="margin-bottom: var(--spacing-md);">
+            <label class="control-label" for="billingName">Name</label>
+            <input id="billingName" type="text" placeholder="Full name" style="width:100%;" />
+          </div>
+          <div class="control-group" style="margin-bottom: var(--spacing-md);">
+            <label class="control-label" for="billingCompany">Company</label>
+            <input id="billingCompany" type="text" placeholder="Optional company name" style="width:100%;" />
+          </div>
+          <div class="control-group" style="margin-bottom: var(--spacing-md);">
+            <label class="control-label" for="billingAddress">Address</label>
+            <textarea id="billingAddress" rows="3" style="width:100%;"></textarea>
+          </div>
+          <div class="control-group" style="margin-bottom: var(--spacing-md);">
+            <label class="control-label" for="billingCountry">Country</label>
+            <input id="billingCountry" type="text" value="India" style="width:100%;" />
+          </div>
+          <div class="control-group" style="margin-bottom: var(--spacing-md);">
+            <label class="control-label" for="billingGstin">GSTIN (optional)</label>
+            <input id="billingGstin" type="text" placeholder="Optional for Indian invoices" style="width:100%;" />
+          </div>
+          <div class="control-group" style="margin-bottom: var(--spacing-md);">
+            <label class="control-label" for="promoCodeInput">Promo Code</label>
+            <input id="promoCodeInput" type="text" placeholder="Optional coupon" style="width:100%;" />
+          </div>
+          <button type="button" class="btn btn-primary" id="payBtn">Pay ₹249.00</button>
+          <div id="paymentStatus" style="margin-top: var(--spacing-sm); color: var(--color-primary); display: none;"></div>
+        </div>
+
         <form id="compressionForm">
           <!-- Upload Section -->
           <div class="upload-section">
@@ -650,6 +771,8 @@
             </div>
           </div>
 
+          <div class="quota-status-banner" id="quotaStatusBanner" role="status" aria-live="polite"></div>
+
           <!-- Progress -->
           <div class="progress-section" id="progressSection">
             <div class="progress-bar">
@@ -691,6 +814,18 @@
     </div>
   </div>
 
+  <div class="quota-modal-overlay" id="quotaModalOverlay" hidden>
+    <div class="quota-modal-card" role="dialog" aria-modal="true" aria-labelledby="quotaModalTitle">
+      <h3 class="quota-modal-title" id="quotaModalTitle"></h3>
+      <p class="quota-modal-message" id="quotaModalMessage"></p>
+      <div class="quota-modal-actions">
+        <button type="button" class="quota-modal-btn quota-modal-btn-primary" id="quotaUpgradeBtn"></button>
+        <button type="button" class="quota-modal-btn quota-modal-btn-secondary" id="quotaContinueBtn"></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <script>
     // DOM Elements
     const form = document.getElementById('compressionForm');
@@ -710,12 +845,101 @@
     const compressBtn = document.getElementById('compressBtn');
     const clearBtn = document.getElementById('clearBtn');
     const downloadBtn = document.getElementById('downloadBtn');
+    const payBtn = document.getElementById('payBtn');
+    const paymentStatus = document.getElementById('paymentStatus');
+    const billingName = document.getElementById('billingName');
+    const billingCompany = document.getElementById('billingCompany');
+    const billingAddress = document.getElementById('billingAddress');
+    const billingCountry = document.getElementById('billingCountry');
+    const billingGstin = document.getElementById('billingGstin');
+    const promoCodeInput = document.getElementById('promoCodeInput');
+    const platformAnnouncement = document.getElementById('platformAnnouncement');
+    const quotaStatusBanner = document.getElementById('quotaStatusBanner');
+    const quotaModalOverlay = document.getElementById('quotaModalOverlay');
+    const quotaModalTitle = document.getElementById('quotaModalTitle');
+    const quotaModalMessage = document.getElementById('quotaModalMessage');
+    const quotaUpgradeBtn = document.getElementById('quotaUpgradeBtn');
+    const quotaContinueBtn = document.getElementById('quotaContinueBtn');
 
     // State
     let selectedFile = null;
     let selectedFormat = 'webp';
     let selectedMode = 'standard';
     let compressedUrl = null;
+    const quotaWarningStorageKey = 'grjQuotaWarningShown';
+
+    function getQuotaSessionState() {
+      try {
+        const saved = sessionStorage.getItem(quotaWarningStorageKey);
+        return saved ? JSON.parse(saved) : { warningShown: false, exhaustedShown: false };
+      } catch (error) {
+        return { warningShown: false, exhaustedShown: false };
+      }
+    }
+
+    function saveQuotaSessionState(nextState) {
+      try {
+        sessionStorage.setItem(quotaWarningStorageKey, JSON.stringify(nextState));
+      } catch (error) {
+        console.warn('Quota session state could not be saved.', error);
+      }
+    }
+
+    let quotaSessionState = getQuotaSessionState();
+
+    function hideQuotaModal() {
+      quotaModalOverlay.hidden = true;
+    }
+
+    function showQuotaModal(mode, quotaInfo) {
+      const isExhausted = mode === 'exhausted';
+      const planName = quotaInfo && quotaInfo.planName ? quotaInfo.planName : 'your current plan';
+      quotaModalTitle.textContent = isExhausted ? 'Quota Exhausted' : 'Low Balance Warning';
+      quotaModalMessage.textContent = isExhausted
+        ? `Quota Exhausted on ${planName}! SPECIAL ONE-TIME OFFER FOR YOU! Upgrade now and get 25% INSTANT DISCOUNT (Valid ONLY ONCE for this upgrade; future renewals will be at full price).`
+        : `Warning: You have only 10 usages remaining on ${planName}.`;
+      quotaUpgradeBtn.textContent = isExhausted ? 'Claim 25% OFF & Upgrade' : 'Upgrade Plan';
+      quotaContinueBtn.textContent = isExhausted ? '' : 'Continue Current Plan';
+      quotaContinueBtn.hidden = isExhausted;
+      quotaModalOverlay.hidden = false;
+      if (quotaInfo && quotaInfo.remainingQuota !== null && quotaInfo.limit !== null) {
+        quotaModalMessage.textContent += `\nRemaining quota: ${quotaInfo.remainingQuota} / ${quotaInfo.limit}`;
+      }
+    }
+
+    function updateQuotaBanner(quotaInfo) {
+      if (!quotaInfo || (quotaInfo.remainingQuota === null && quotaInfo.limit === null)) {
+        quotaStatusBanner.style.display = 'none';
+        quotaStatusBanner.textContent = '';
+        quotaStatusBanner.classList.remove('warning');
+        return;
+      }
+
+      const remainingText = quotaInfo.remainingQuota === null ? 'Unlimited' : quotaInfo.remainingQuota;
+      const limitText = quotaInfo.limit === null ? 'Unlimited' : quotaInfo.limit;
+      const planName = quotaInfo.planName ? ` • ${quotaInfo.planName}` : '';
+      quotaStatusBanner.textContent = `Remaining Quota: ${remainingText} / ${limitText}${planName}`;
+      quotaStatusBanner.style.display = 'block';
+      quotaStatusBanner.classList.toggle('warning', quotaInfo.exhausted === true);
+    }
+
+    function handleQuotaResponse(quotaInfo) {
+      updateQuotaBanner(quotaInfo);
+      if (!quotaInfo || quotaInfo.remainingQuota === null) return;
+      if (quotaInfo.exhausted === true) {
+        if (!quotaSessionState.exhaustedShown) {
+          quotaSessionState = { ...quotaSessionState, exhaustedShown: true };
+          saveQuotaSessionState(quotaSessionState);
+          showQuotaModal('exhausted', quotaInfo);
+        }
+        return;
+      }
+      if (quotaInfo.remainingQuota <= 10 && quotaInfo.remainingQuota > 0 && !quotaSessionState.warningShown) {
+        quotaSessionState = { ...quotaSessionState, warningShown: true };
+        saveQuotaSessionState(quotaSessionState);
+        showQuotaModal('warning', quotaInfo);
+      }
+    }
 
     // ============= EVENT LISTENERS =============
 
@@ -772,6 +996,15 @@
       });
     });
 
+    quotaUpgradeBtn.addEventListener('click', () => {
+      hideQuotaModal();
+      payBtn.click();
+    });
+
+    quotaContinueBtn.addEventListener('click', () => {
+      hideQuotaModal();
+    });
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (selectedFile) await compressFile();
@@ -791,6 +1024,112 @@
         resetForm();
       }
     });
+
+    async function loadPlatformAnnouncement() {
+      try {
+        const response = await fetch('/api/admin/settings');
+        const data = await response.json();
+        if (data && data.success && data.settings && data.settings.announcement) {
+          platformAnnouncement.textContent = data.settings.announcement;
+        }
+      } catch (err) {
+        platformAnnouncement.textContent = '';
+      }
+    }
+
+    payBtn.addEventListener('click', async () => {
+      payBtn.disabled = true;
+      paymentStatus.style.display = 'block';
+      paymentStatus.textContent = 'Creating payment order...';
+
+      try {
+        const configResponse = await fetch('/api/config');
+        const configData = await configResponse.json();
+        const keyId = configData.key_id;
+
+        if (!keyId) {
+          throw new Error('Razorpay public key is not configured on the server.');
+        }
+
+        const response = await fetch('/api/create-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: 24900,
+            currency: 'INR',
+            receipt: 'lifetime-pass',
+            planId: 'lifetime-pro',
+            billing: {
+              name: billingName.value.trim(),
+              company: billingCompany.value.trim(),
+              address: billingAddress.value.trim(),
+              country: billingCountry.value.trim() || 'India',
+              gstin: billingGstin.value.trim(),
+              email: 'guest@example.com',
+              mobile: '9999999999'
+            },
+            promoCode: promoCodeInput.value.trim()
+          })
+        });
+
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || 'Unable to create order.');
+        }
+
+        const order = data;
+        const options = {
+          key: keyId,
+          amount: order.amount,
+          currency: order.currency,
+          name: 'GetReadyJob',
+          description: 'Lifetime Pass',
+          order_id: order.order_id,
+          handler: async function (response) {
+            try {
+              const verifyResponse = await fetch('/api/verify-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  order_id: response.razorpay_order_id,
+                  payment_id: response.razorpay_payment_id,
+                  signature: response.razorpay_signature
+                })
+              });
+              const verifyData = await verifyResponse.json();
+              if (!verifyResponse.ok || !verifyData.success) {
+                throw new Error(verifyData.error || 'Payment verification failed.');
+              }
+              paymentStatus.textContent = 'Payment verified successfully. Invoice ready: ' + (verifyData.invoiceUrl || '/api/user/invoice/unknown');
+            } catch (error) {
+              paymentStatus.textContent = error.message;
+            }
+          },
+          modal: {
+            ondismiss: function () {
+              paymentStatus.textContent = 'Payment cancelled.';
+            }
+          },
+          prefill: {
+            name: 'Guest User',
+            email: 'guest@example.com',
+            contact: '9999999999'
+          },
+          theme: {
+            color: '#2563eb'
+          }
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.open();
+      } catch (error) {
+        paymentStatus.textContent = error.message;
+      } finally {
+        payBtn.disabled = false;
+      }
+    });
+
+    loadPlatformAnnouncement();
 
     // ============= FUNCTIONS =============
 
@@ -863,8 +1202,45 @@
         progressFill.style.width = '100%';
         progressText.textContent = 'Processing... 100%';
 
+        const quotaHeaders = {
+          remainingQuota: response.headers.get('X-Quota-Remaining'),
+          limit: response.headers.get('X-Quota-Limit'),
+          used: response.headers.get('X-Quota-Used'),
+          exhausted: response.headers.get('X-Quota-Exhausted'),
+          planId: response.headers.get('X-Quota-Plan-Id'),
+          planName: response.headers.get('X-Quota-Plan-Name')
+        };
+
+        const normalizedQuotaInfo = {
+          remainingQuota: quotaHeaders.remainingQuota === null || quotaHeaders.remainingQuota === '' ? null : Number(quotaHeaders.remainingQuota),
+          limit: quotaHeaders.limit === null || quotaHeaders.limit === '' ? null : Number(quotaHeaders.limit),
+          used: quotaHeaders.used === null || quotaHeaders.used === '' ? 0 : Number(quotaHeaders.used),
+          exhausted: quotaHeaders.exhausted === 'true',
+          planId: quotaHeaders.planId || '',
+          planName: quotaHeaders.planName || ''
+        };
+
         if (!response.ok) {
-          throw new Error(`Error: ${response.statusText}`);
+          let errorMessage = `Error: ${response.statusText}`;
+          try {
+            const errorBody = await response.json();
+            if (errorBody && errorBody.error) {
+              errorMessage = errorBody.error;
+            }
+            if (errorBody && errorBody.quotaExhausted) {
+              handleQuotaResponse({
+                remainingQuota: errorBody.remainingQuota === undefined ? null : Number(errorBody.remainingQuota),
+                limit: errorBody.limit === undefined ? null : Number(errorBody.limit),
+                used: errorBody.used === undefined ? 0 : Number(errorBody.used),
+                exhausted: true,
+                planId: errorBody.planId || '',
+                planName: errorBody.planName || ''
+              });
+            }
+          } catch (error) {
+            // ignore non-JSON error payloads
+          }
+          throw new Error(errorMessage);
         }
 
         const blob = await response.blob();
@@ -874,6 +1250,7 @@
         const compressedSize = blob.size;
         const ratio = ((1 - compressedSize / originalSize) * 100).toFixed(1);
 
+        handleQuotaResponse(normalizedQuotaInfo);
         showResult(true, originalSize, compressedSize, ratio);
         progressSection.classList.remove('active');
 

@@ -5,6 +5,7 @@ import '../Widgets/download_result_dialog.dart';
 import '../Widgets/production_footer.dart';
 import '../Widgets/quota_gate.dart';
 import '../Widgets/tool_guidance_panel.dart';
+import '../Widgets/tool_workspace_shell.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/pdf_merge_service.dart';
 import '../Services/upload_context_service.dart';
@@ -95,49 +96,13 @@ class _MergeToolPageState extends State<MergeToolPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _panel(
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFEAF2FF),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(
-                              Icons.call_merge,
-                              color: Color(0xFF0E3A66),
-                              size: 26,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Merge PDFs',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
-                                    color: Color(0xFF0F172A),
-                                  ),
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  'Combine multiple PDFs into a single file in your chosen order.',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    height: 1.5,
-                                    color: Color(0xFF475569),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                    ToolWorkspaceShell(
+                      title: 'Merge PDFs',
+                      subtitle: 'Combine multiple PDFs into a single file in your chosen order.',
+                      icon: Icons.call_merge,
+                      accentColor: const Color(0xFF0E3A66),
+                      statusText: _statusMessage,
+                      child: const SizedBox.shrink(),
                     ),
                     const SizedBox(height: 14),
                     // Step 1: Select Files
@@ -716,7 +681,7 @@ class _MergeToolPageState extends State<MergeToolPage> {
         builder: (_) => DownloadResultDialog(
           outputFormat: 'Merged PDF',
           fileName: 'jobready_merged.pdf',
-          outputBytes: mergedPdf,
+          outputBytes: Uint8List.fromList(mergedPdf.toList()),
         ),
       );
     } catch (e) {

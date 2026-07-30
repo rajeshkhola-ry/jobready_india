@@ -6,6 +6,7 @@ import '../Pages/split_tool_page.dart';
 import '../Pages/extract_tool_page.dart';
 import '../Pages/pdf_tools_page.dart';
 import '../Pages/pdf_edit_page.dart';
+import '../Pages/v2/photo/photo_hd_workspace_page.dart';
 
 class ToolSelectorV2 extends StatelessWidget {
   const ToolSelectorV2({super.key});
@@ -212,7 +213,13 @@ class ToolSelectorV2 extends StatelessWidget {
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Container(),
+                        child: _tool(
+                          context,
+                          Icons.camera_alt_rounded,
+                          "HD Photo Studio",
+                          "Enhance, edit, upscale photos and remove backgrounds in HD.",
+                          () => _openTool(context, const PhotoHdWorkspacePage()),
+                        ),
                       ),
                     ],
                   )
@@ -223,6 +230,14 @@ class ToolSelectorV2 extends StatelessWidget {
                     "PDF Tools",
                     "Open complete PDF utility workspace.",
                     () => _openTool(context, const PdfToolsPage()),
+                  ),
+                  const SizedBox(height: 14),
+                  _tool(
+                    context,
+                    Icons.camera_alt_rounded,
+                    "HD Photo Studio",
+                    "Enhance, edit, upscale photos and remove backgrounds in HD.",
+                    () => _openTool(context, const PhotoHdWorkspacePage()),
                   ),
                 ],
 
@@ -250,6 +265,7 @@ class ToolSelectorV2 extends StatelessWidget {
       'Extract': const Color(0xFFBE123C),
       'Edit PDF': const Color(0xFF0E3A66),
       'PDF Tools': const Color(0xFF1F4E79),
+      'HD Photo Studio': const Color(0xFF7C3AED),
     };
 
     final accent = colorMap[title] ?? const Color(0xFF1F4E79);

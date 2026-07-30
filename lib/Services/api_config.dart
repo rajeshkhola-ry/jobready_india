@@ -1,7 +1,27 @@
+library;
+
 /// API Configuration and Service Layer
 /// Future-ready for advertisements, analytics, app links, and third-party integrations
 
 enum ApiEnvironment { development, staging, production }
+
+class RazorpayConfig {
+  const RazorpayConfig({
+    required this.keyId,
+    required this.currency,
+    required this.businessName,
+    required this.description,
+    required this.themeColor,
+    required this.callbackUrl,
+  });
+
+  final String keyId;
+  final String currency;
+  final String businessName;
+  final String description;
+  final String themeColor;
+  final String callbackUrl;
+}
 
 class ApiConfig {
   static const ApiEnvironment environment = ApiEnvironment.production;
@@ -180,6 +200,33 @@ class ApiConfig {
   static const String paymentCreateOrderEndpoint = '/payments/create-order';
   static const String paymentVerifyEndpoint = '/payments/verify';
   static const String paymentWebhookEndpoint = '/payments/webhook';
+
+  static RazorpayConfig get razorpayConfig => RazorpayConfig(
+        keyId: const String.fromEnvironment(
+          'RAZORPAY_KEY_ID',
+          defaultValue: '',
+        ),
+        currency: const String.fromEnvironment(
+          'RAZORPAY_CURRENCY',
+          defaultValue: 'INR',
+        ),
+        businessName: const String.fromEnvironment(
+          'RAZORPAY_BUSINESS_NAME',
+          defaultValue: 'GetReadyJob',
+        ),
+        description: const String.fromEnvironment(
+          'RAZORPAY_DESCRIPTION',
+          defaultValue: 'Lifetime Pass',
+        ),
+        themeColor: const String.fromEnvironment(
+          'RAZORPAY_THEME_COLOR',
+          defaultValue: '0F172A',
+        ),
+        callbackUrl: const String.fromEnvironment(
+          'RAZORPAY_CALLBACK_URL',
+          defaultValue: 'https://api.getreadyjob.com/api/v1/payments/callback',
+        ),
+      );
   static const String adInventoryEndpoint = '/ads/inventory';
   static const String adClickEndpoint = '/ads/click';
   static const String adImpressionEndpoint = '/ads/impression';

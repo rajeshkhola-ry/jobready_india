@@ -7,6 +7,7 @@ import '../Widgets/apple_button.dart';
 import '../Widgets/production_footer.dart';
 import '../Widgets/quota_gate.dart';
 import '../Widgets/tool_guidance_panel.dart';
+import '../Widgets/tool_workspace_shell.dart';
 import '../Services/compression_service.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/remote_compression_service.dart';
@@ -168,6 +169,15 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+            ToolWorkspaceShell(
+              title: 'Compress File',
+              subtitle: 'Reduce file size while keeping your document quality and structure intact.',
+              icon: Icons.compress_rounded,
+              accentColor: const Color(0xFF0E3A66),
+              statusText: _statusMessage,
+              child: const SizedBox.shrink(),
+            ),
+            const SizedBox(height: 14),
             // Step 1: Upload File
             _buildStepCard(
               step: 1,
@@ -820,7 +830,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
           builder: (_) => DownloadResultDialog(
             outputFormat: 'Compressed File Completed',
             fileName: selected.name,
-            outputBytes: compressed,
+            outputBytes: Uint8List.fromList(compressed.toList()),
             originalFileSizeBytes: selected.size,
           ),
         );
@@ -939,7 +949,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
         builder: (_) => DownloadResultDialog(
           outputFormat: 'Compressed ZIP Completed',
           fileName: 'jobready_compressed_files.zip',
-          outputBytes: Uint8List.fromList(zipBytes),
+          outputBytes: Uint8List.fromList(zipBytes.toList()),
           originalFileSizeBytes: totalOriginal,
         ),
       );
@@ -1192,7 +1202,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
       builder: (_) => DownloadResultDialog(
         outputFormat: 'Compressed File',
         fileName: _lastOutputName!,
-        outputBytes: _lastOutputBytes!,
+        outputBytes: Uint8List.fromList(_lastOutputBytes!.toList()),
         originalFileSizeBytes: _originalFileSize,
       ),
     );

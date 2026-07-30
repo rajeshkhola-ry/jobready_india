@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import '../Widgets/download_result_dialog.dart';
 import '../Widgets/production_footer.dart';
 import '../Widgets/tool_guidance_panel.dart';
+import '../Widgets/tool_workspace_shell.dart';
 import '../Services/conversion_service.dart';
 import '../Services/pdf_editor_service.dart';
 import '../Services/pdf_ocr_service.dart';
@@ -120,60 +121,13 @@ class _ExtractToolPageState extends State<ExtractToolPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Production header
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFD8E5F5)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEAF2FF),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Icon(
-                                Icons.file_download_rounded,
-                                color: Color(0xFF0E3A66),
-                                size: 24,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Extract from PDF',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF0F172A),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Extract text, images, or pages',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey.shade600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                  ToolWorkspaceShell(
+                    title: 'Extract from PDF',
+                    subtitle: 'Extract text, images, or pages.',
+                    icon: Icons.file_download_rounded,
+                    accentColor: const Color(0xFF0E3A66),
+                    statusText: _statusMessage,
+                    child: const SizedBox.shrink(),
                   ),
                   const SizedBox(height: 20),
 
@@ -582,7 +536,7 @@ class _ExtractToolPageState extends State<ExtractToolPage> {
             builder: (_) => DownloadResultDialog(
               outputFormat: 'Tables/Forms',
               fileName: single.name,
-              outputBytes: Uint8List.fromList(List<int>.from(single.content as List)),
+              outputBytes: Uint8List.fromList(List<int>.from(single.content as List).toList()),
             ),
           );
         } else {
@@ -634,7 +588,7 @@ class _ExtractToolPageState extends State<ExtractToolPage> {
             builder: (_) => DownloadResultDialog(
               outputFormat: 'Extracted Text',
               fileName: result.outputFileName!,
-              outputBytes: result.outputBytes!,
+              outputBytes: Uint8List.fromList(result.outputBytes!.toList()),
             ),
           );
           return;
@@ -682,7 +636,7 @@ class _ExtractToolPageState extends State<ExtractToolPage> {
           builder: (_) => DownloadResultDialog(
             outputFormat: 'Extracted Text Batch',
             fileName: 'jobready_extracted_text_files.zip',
-            outputBytes: Uint8List.fromList(zipBytes),
+            outputBytes: Uint8List.fromList(zipBytes.toList()),
           ),
         );
         return;
@@ -734,7 +688,7 @@ class _ExtractToolPageState extends State<ExtractToolPage> {
         builder: (_) => DownloadResultDialog(
           outputFormat: 'Extracted Images',
           fileName: 'jobready_extracted_files.zip',
-          outputBytes: Uint8List.fromList(zipBytes),
+          outputBytes: Uint8List.fromList(zipBytes.toList()),
         ),
       );
     } catch (e) {
