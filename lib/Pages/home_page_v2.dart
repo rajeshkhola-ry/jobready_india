@@ -559,398 +559,395 @@ class _HomePageV2State extends State<HomePageV2> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(18),
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF1F4E79), Color(0xFFFFC72C)],
-                ),
-              ),
-              child: const Text(
-                "Upload one document or multiple files together and start working instantly.",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.3,
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 10),
-            const _BrowserSupportNotice(),
-
-            const SizedBox(height: 10),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFEAF2FF),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFBFD4F3)),
-              ),
-              child: const Text(
-                'Welcome to GETREADYJOB!',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Color(0xFF0E3A66),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.2,
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 10),
-            const _V2Column(),
-            const SizedBox(height: 10),
-            if (_showLiveOfferBanner && _liveOfferText.trim().isNotEmpty) ...[
-              _LiveOfferBanner(text: _liveOfferText),
-              const SizedBox(height: 10),
-            ],
-            const SizedBox(height: 12),
-            const SizedBox(height: 4),
-            const SizedBox(height: 16),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    child: Text(
-                      'Ad Space',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF64748B),
-                      ),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF1F4E79), Color(0xFFFFC72C)],
                     ),
                   ),
-                  SizedBox(height: 6),
-                  _FixedAdSpace(adPlacement: 'banner_home'),
+                  child: const Text(
+                    'Upload one document or multiple files together and start working instantly.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const _BrowserSupportNotice(),
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEAF2FF),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFBFD4F3)),
+                  ),
+                  child: const Text(
+                    'Welcome to GETREADYJOB!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Color(0xFF0E3A66),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const _V2Column(),
+                const SizedBox(height: 10),
+                if (_showLiveOfferBanner && _liveOfferText.trim().isNotEmpty) ...[
+                  _LiveOfferBanner(text: _liveOfferText),
+                  const SizedBox(height: 10),
                 ],
-              ),
-            ),
-            const SizedBox(height: 18),
-            const _SectionHeader(
-              title: 'Plans',
-              subtitle: 'Simple access today, premium workspace upgrades coming next.',
-            ),
-            const SizedBox(height: 12),
-            _UsageTypeSelector(
-              selectedType: _selectedUsageType,
-              onChanged: (value) {
-                setState(() {
-                  _selectedUsageType = value;
-                });
-              },
-            ),
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFFFFFBEB), Color(0xFFFDE68A)],
-                ),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFF59E0B), width: 1.1),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 30,
-                    height: 30,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.9),
-                      borderRadius: BorderRadius.circular(9),
-                    ),
-                    child: const Icon(
-                      Icons.verified_rounded,
-                      color: Color(0xFFB45309),
-                      size: 18,
-                    ),
+                const SizedBox(height: 12),
+                const SizedBox(height: 4),
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
-                  const SizedBox(width: 10),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Usage type required before payment',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF7C2D12),
-                          ),
-                        ),
-                        SizedBox(height: 2),
-                        Text(
-                          'Select Personal or Business first, then continue with your plan. Annual access uses 10-month payment for 12 months.',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        child: Text(
+                          'Ad Space',
                           style: TextStyle(
                             fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF92400E),
-                            height: 1.25,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF64748B),
                           ),
+                        ),
+                      ),
+                      SizedBox(height: 6),
+                      _FixedAdSpace(adPlacement: 'banner_home'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+                const _SectionHeader(
+                  title: 'Plans',
+                  subtitle: 'Simple access today, premium workspace upgrades coming next.',
+                ),
+                const SizedBox(height: 12),
+                _UsageTypeSelector(
+                  selectedType: _selectedUsageType,
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedUsageType = value;
+                    });
+                  },
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFFFFFBEB), Color(0xFFFDE68A)],
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFF59E0B), width: 1.1),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 30,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.9),
+                          borderRadius: BorderRadius.circular(9),
+                        ),
+                        child: const Icon(
+                          Icons.verified_rounded,
+                          color: Color(0xFFB45309),
+                          size: 18,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Usage type required before payment',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF7C2D12),
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Select Personal or Business first, then continue with your plan. Annual access uses 10-month payment for 12 months.',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF92400E),
+                                height: 1.25,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _PlanCardsSection(
+                  selectedCurrency: _selectedPaymentCurrency,
+                  sevenDayPriceLine: sevenDayPriceLine,
+                  monthlyPriceLine: monthlyPriceLine,
+                  yearlyPriceLine: yearlyPriceLine,
+                  lifetimePriceLine: lifetimePriceLine,
+                  enabledToolsByPlan: _planCatalog.enabledToolsByPlan,
+                  discountPercent: _pricingDiscountPercent,
+                  selectedPlan: _selectedPlanForPayment,
+                  usageType: _selectedUsageType,
+                  onPlanSelected: (plan) {
+                    if (_selectedUsageType == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please select Personal or Business first.'),
+                        ),
+                      );
+                      return;
+                    }
+                    setState(() {
+                      _selectedPlanForPayment = plan;
+                    });
+                  },
+                ),
+                const SizedBox(height: 12),
+                _UserPaymentPanel(
+                  activeGateway: _activeGateway,
+                  selectedPlan: _selectedPlanForPayment,
+                  selectedCurrency: _selectedPaymentCurrency,
+                  usageType: _selectedUsageType,
+                  sevenDayAmount: _displayAmountForPlan('7Days', _selectedPaymentCurrency),
+                  monthlyAmount: _displayAmountForPlan('Monthly', _selectedPaymentCurrency),
+                  yearlyAmount: _displayAmountForPlan('Yearly', _selectedPaymentCurrency),
+                  lifetimePlanAmount: _displayAmountForPlan('Lifetime', _selectedPaymentCurrency),
+                  onPlanChanged: (plan) {
+                    setState(() {
+                      _selectedPlanForPayment = plan;
+                    });
+                  },
+                  onCurrencyChanged: (currency) {
+                    setState(() {
+                      _selectedPaymentCurrency = currency;
+                    });
+                  },
+                  onUsageTypeChanged: (usageType) {
+                    setState(() {
+                      _selectedUsageType = usageType;
+                    });
+                  },
+                ),
+                const SizedBox(height: 10),
+                const _AboutUsSection(),
+                const SizedBox(height: 10),
+                const _FuturePlanSection(),
+                const SizedBox(height: 10),
+                const _UserRatingSection(),
+                const SizedBox(height: 10),
+                _SuggestionSection(
+                  onTap: () {
+                    _showSuggestionDialog();
+                  },
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF1F2937).withOpacity(0.05),
+                        blurRadius: 12,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: [
+                      PopupMenuButton<String>(
+                        tooltip: 'Daily usage options',
+                        onSelected: _handleUsageMenu,
+                        itemBuilder: (_) => const [
+                          PopupMenuItem<String>(
+                            value: 'view',
+                            child: Text('Open Daily Usage'),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'reset',
+                            child: Text('Reset Today Counters'),
+                          ),
+                        ],
+                        child: _QuickAccessButton(
+                          icon: Icons.tune_rounded,
+                          label: 'Daily Usage',
+                          accent: const Color(0xFF1F4E79),
+                        ),
+                      ),
+                      PopupMenuButton<String>(
+                        tooltip: 'Recent documents options',
+                        onSelected: _handleRecentDocumentsMenu,
+                        itemBuilder: (_) => const [
+                          PopupMenuItem<String>(
+                            value: 'open',
+                            child: Text('Open Recent Documents'),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'clear',
+                            child: Text('Clear Recent Documents'),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'keep:20',
+                            child: Text('Keep 20'),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'keep:50',
+                            child: Text('Keep 50'),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'keep:100',
+                            child: Text('Keep 100'),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'keep:200',
+                            child: Text('Keep 200'),
+                          ),
+                        ],
+                        child: _QuickAccessButton(
+                          icon: Icons.keyboard_arrow_down_rounded,
+                          label: 'Recent Documents',
+                          accent: const Color(0xFF0F766E),
+                        ),
+                      ),
+                      _QuickAccessActionButton(
+                        icon: Icons.admin_panel_settings_outlined,
+                        label: 'Admin Login',
+                        accent: const Color(0xFFB45309),
+                        onTap: () {
+                          Navigator.of(context).pushNamed('/admin');
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    GlowingLogoBadge(size: 32, circular: true),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                _FooterInfoRow(
+                  icon: Icons.language_rounded,
+                  label: 'Website',
+                  value: PublicBrandConfig.websiteDomain,
+                ),
+                const SizedBox(height: 8),
+                _FooterInfoRow(
+                  icon: Icons.email_outlined,
+                  label: 'Support',
+                  value: PublicBrandConfig.supportEmail,
+                ),
+                const SizedBox(height: 6),
+              ],
+            ),
+          ),
+          if (_showCookieConsentBanner)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF111827),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.18),
+                          blurRadius: 16,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'We use essential local browser cache & cookies to keep tools fast and your sessions smooth. We do not store your uploaded files or images on our servers.',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            height: 1.45,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextButton(
+                                onPressed: () {
+                                  Navigator.of(context).pushNamed('/terms');
+                                },
+                                style: TextButton.styleFrom(
+                                  foregroundColor: const Color(0xFFFFC72C),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                ),
+                                child: const Text('Read Terms & Conditions'),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton(
+                              onPressed: _acceptCookieConsent,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFFFC72C),
+                                foregroundColor: const Color(0xFF111827),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              ),
+                              child: const Text('Accept & Continue'),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            _PlanCardsSection(
-              selectedCurrency: _selectedPaymentCurrency,
-              sevenDayPriceLine: sevenDayPriceLine,
-              monthlyPriceLine: monthlyPriceLine,
-              yearlyPriceLine: yearlyPriceLine,
-              lifetimePriceLine: lifetimePriceLine,
-              enabledToolsByPlan: _planCatalog.enabledToolsByPlan,
-              discountPercent: _pricingDiscountPercent,
-              selectedPlan: _selectedPlanForPayment,
-              usageType: _selectedUsageType,
-              onPlanSelected: (plan) {
-                if (_selectedUsageType == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Please select Personal or Business first.'),
-                    ),
-                  );
-                  return;
-                }
-                setState(() {
-                  _selectedPlanForPayment = plan;
-                });
-              },
-            ),
-            const SizedBox(height: 12),
-            _UserPaymentPanel(
-              activeGateway: _activeGateway,
-              selectedPlan: _selectedPlanForPayment,
-              selectedCurrency: _selectedPaymentCurrency,
-              usageType: _selectedUsageType,
-              sevenDayAmount: _displayAmountForPlan('7Days', _selectedPaymentCurrency),
-              monthlyAmount: _displayAmountForPlan('Monthly', _selectedPaymentCurrency),
-              yearlyAmount: _displayAmountForPlan('Yearly', _selectedPaymentCurrency),
-              lifetimePlanAmount: _displayAmountForPlan('Lifetime', _selectedPaymentCurrency),
-              onPlanChanged: (plan) {
-                setState(() {
-                  _selectedPlanForPayment = plan;
-                });
-              },
-              onCurrencyChanged: (currency) {
-                setState(() {
-                  _selectedPaymentCurrency = currency;
-                });
-              },
-              onUsageTypeChanged: (usageType) {
-                setState(() {
-                  _selectedUsageType = usageType;
-                });
-              },
-            ),
-
-            const SizedBox(height: 10),
-            const _AboutUsSection(),
-            const SizedBox(height: 10),
-            const _FuturePlanSection(),
-            const SizedBox(height: 10),
-            const _UserRatingSection(),
-            const SizedBox(height: 10),
-            _SuggestionSection(
-              onTap: () {
-                _showSuggestionDialog();
-              },
-            ),
-            const SizedBox(height: 10),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF1F2937).withOpacity(0.05),
-                    blurRadius: 12,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-              ),
-              child: Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  PopupMenuButton<String>(
-                    tooltip: 'Daily usage options',
-                    onSelected: _handleUsageMenu,
-                    itemBuilder: (_) => const [
-                      PopupMenuItem<String>(
-                        value: 'view',
-                        child: Text('Open Daily Usage'),
-                      ),
-                      PopupMenuItem<String>(
-                        value: 'reset',
-                        child: Text('Reset Today Counters'),
-                      ),
-                    ],
-                    child: _QuickAccessButton(
-                      icon: Icons.tune_rounded,
-                      label: 'Daily Usage',
-                      accent: const Color(0xFF1F4E79),
-                    ),
-                  ),
-                  PopupMenuButton<String>(
-                    tooltip: 'Recent documents options',
-                    onSelected: _handleRecentDocumentsMenu,
-                    itemBuilder: (_) => const [
-                      PopupMenuItem<String>(
-                        value: 'open',
-                        child: Text('Open Recent Documents'),
-                      ),
-                      PopupMenuItem<String>(
-                        value: 'clear',
-                        child: Text('Clear Recent Documents'),
-                      ),
-                      PopupMenuItem<String>(
-                        value: 'keep:20',
-                        child: Text('Keep 20'),
-                      ),
-                      PopupMenuItem<String>(
-                        value: 'keep:50',
-                        child: Text('Keep 50'),
-                      ),
-                      PopupMenuItem<String>(
-                        value: 'keep:100',
-                        child: Text('Keep 100'),
-                      ),
-                      PopupMenuItem<String>(
-                        value: 'keep:200',
-                        child: Text('Keep 200'),
-                      ),
-                    ],
-                    child: _QuickAccessButton(
-                      icon: Icons.keyboard_arrow_down_rounded,
-                      label: 'Recent Documents',
-                      accent: const Color(0xFF0F766E),
-                    ),
-                  ),
-                  _QuickAccessActionButton(
-                    icon: Icons.admin_panel_settings_outlined,
-                    label: 'Admin Login',
-                    accent: const Color(0xFFB45309),
-                    onTap: () {
-                      Navigator.of(context).pushNamed('/admin');
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                GlowingLogoBadge(size: 32, circular: true),
-              ],
-            ),
-            const SizedBox(height: 8),
-            _FooterInfoRow(
-              icon: Icons.language_rounded,
-              label: 'Website',
-              value: PublicBrandConfig.websiteDomain,
-            ),
-            const SizedBox(height: 8),
-            _FooterInfoRow(
-              icon: Icons.email_outlined,
-              label: 'Support',
-              value: PublicBrandConfig.supportEmail,
-            ),
-            const SizedBox(height: 6),
-          ],
-        ),
-        if (_showCookieConsentBanner)
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF111827),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.18),
-                        blurRadius: 16,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'We use essential local browser cache & cookies to keep tools fast and your sessions smooth. We do not store your uploaded files or images on our servers.',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          height: 1.45,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextButton(
-                              onPressed: () {
-                                Navigator.of(context).pushNamed('/terms');
-                              },
-                              style: TextButton.styleFrom(
-                                foregroundColor: const Color(0xFFFFC72C),
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                              ),
-                              child: const Text('Read Terms & Conditions'),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          ElevatedButton(
-                            onPressed: _acceptCookieConsent,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFFC72C),
-                              foregroundColor: const Color(0xFF111827),
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                            ),
-                            child: const Text('Accept & Continue'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
                 ),
               ),
             ),
-          ),
-      ],
+        ],
       ),
     );
   }

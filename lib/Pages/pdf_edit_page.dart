@@ -117,16 +117,17 @@ class _PdfEditPageState extends State<PdfEditPage> {
   }
 
   void _registerPdfPreviewFactory() {
-    if (ui_web.platformViewRegistry.getViewFactory('pdf-preview-view') != null) {
-      return;
+    try {
+      ui_web.platformViewRegistry.registerViewFactory('pdf-preview-view', (int viewId) {
+        final iframe = html.IFrameElement()
+          ..style.border = 'none'
+          ..style.width = '100%'
+          ..style.height = '100%';
+        return iframe;
+      });
+    } catch (_) {
+      // Ignore registration failures on environments that do not support this path.
     }
-    ui_web.platformViewRegistry.registerViewFactory('pdf-preview-view', (int viewId) {
-      final iframe = html.IFrameElement()
-        ..style.border = 'none'
-        ..style.width = '100%'
-        ..style.height = '100%';
-      return iframe;
-    });
   }
 
   void _handleEditorChanged() {
@@ -440,10 +441,10 @@ class _PdfEditPageState extends State<PdfEditPage> {
     archive.addFile(ArchiveFile('[Content_Types].xml', contentTypesXml.length, utf8.encode(contentTypesXml)));
     archive.addFile(ArchiveFile('_rels/.rels', relsXml.length, utf8.encode(relsXml)));
 
-    final output = BytesBuilder();
+    final output = OutputStream();
     final encoder = ZipEncoder();
     encoder.encode(archive, output: output);
-    return output.takeBytes();
+    return Uint8List.fromList(output.getBytes());
   }
 
   String _escapeXml(String value) {
