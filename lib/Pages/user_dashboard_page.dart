@@ -208,6 +208,13 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
         title: const Text('User Dashboard'),
         actions: [
           IconButton(
+            tooltip: 'Go to home',
+            onPressed: () {
+              Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+            },
+            icon: const Icon(Icons.home_rounded),
+          ),
+          IconButton(
             tooltip: 'Sign out',
             onPressed: () async {
               await UserAuthService.signOut();

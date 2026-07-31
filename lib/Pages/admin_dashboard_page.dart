@@ -607,6 +607,7 @@ class _PricingDialogState extends State<_PricingDialog> {
   late String _selectedPlan;
   late Map<String, TextEditingController> _inrControllers;
   late Map<String, TextEditingController> _usdControllers;
+  late Map<String, TextEditingController> _quotaControllers;
   late Map<String, List<String>> _enabledToolsByPlan;
 
   @override
@@ -624,6 +625,9 @@ class _PricingDialogState extends State<_PricingDialog> {
     for (final controller in _usdControllers.values) {
       controller.dispose();
     }
+    for (final controller in _quotaControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -634,12 +638,23 @@ class _PricingDialogState extends State<_PricingDialog> {
     _usdControllers = {
       for (final plan in _plans) plan: TextEditingController(text: (config.usdPrices[plan] ?? 0).toString())
     };
+    _quotaControllers = {
+      for (final plan in _plans)
+        plan: TextEditingController(text: config.userQuotasByPlan[plan] ?? PlanCatalogConfig.defaults().userQuotasByPlan[plan] ?? '2')
+    };
     _enabledToolsByPlan = {
       for (final plan in _plans) plan: List<String>.from(config.enabledToolsByPlan[plan] ?? const <String>[])
     };
   }
 
   void _save() {
+    final defaults = PlanCatalogConfig.defaults();
+    final quotas = <String, String>{};
+    for (final plan in _plans) {
+      final raw = _quotaControllers[plan]!.text.trim();
+      quotas[plan] = raw.isEmpty ? (defaults.userQuotasByPlan[plan] ?? '2') : raw;
+    }
+
     final config = PlanCatalogConfig(
       inrPrices: {
         for (final plan in _plans) plan: double.tryParse(_inrControllers[plan]!.text.trim()) ?? 0,
@@ -650,6 +665,7 @@ class _PricingDialogState extends State<_PricingDialog> {
       enabledToolsByPlan: {
         for (final plan in _plans) plan: List<String>.from(_enabledToolsByPlan[plan] ?? const <String>[])
       },
+      userQuotasByPlan: quotas,
     );
     PlanCatalogService.save(config);
     widget.onSave(config);
@@ -699,6 +715,14 @@ class _PricingDialogState extends State<_PricingDialog> {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _quotaControllers[_selectedPlan],
+                decoration: const InputDecoration(
+                  labelText: 'User Quota',
+                  helperText: 'Examples: 2, 50, 200, 1000, Unlimited',
+                ),
               ),
               const SizedBox(height: 12),
               const Text('Tool access', style: TextStyle(fontWeight: FontWeight.w700)),

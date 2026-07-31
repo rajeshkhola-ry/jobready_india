@@ -248,9 +248,16 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF1F2937),
+        foregroundColor: Colors.white,
         iconTheme: const IconThemeData(
           color: Colors.white,
-          size: 30,
+          size: 28,
+        ),
+        titleTextStyle: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w800,
+          fontSize: 20,
+          letterSpacing: 0.2,
         ),
         actions: [
           IconButton(
@@ -266,14 +273,7 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
             icon: const Icon(Icons.home_rounded, color: Colors.white),
           ),
         ],
-        title: const Text(
-          'Convert File',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
-          ),
-        ),
+        title: const Text('Convert File'),
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {

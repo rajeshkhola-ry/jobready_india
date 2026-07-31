@@ -18,11 +18,13 @@ class PlanCatalogConfig {
   final Map<String, double> inrPrices;
   final Map<String, double> usdPrices;
   final Map<String, List<String>> enabledToolsByPlan;
+  final Map<String, String> userQuotasByPlan;
 
   const PlanCatalogConfig({
     required this.inrPrices,
     required this.usdPrices,
     required this.enabledToolsByPlan,
+    this.userQuotasByPlan = const <String, String>{},
   });
 
   factory PlanCatalogConfig.defaults() {
@@ -48,6 +50,13 @@ class PlanCatalogConfig {
         'Yearly': ['Compress', 'Convert', 'Merge', 'Split', 'Extract', 'Edit PDF', 'OCR', 'History', 'HD Photo Studio'],
         'Lifetime': ['Compress', 'Convert', 'Merge', 'Split', 'Extract', 'Edit PDF', 'OCR', 'History', 'HD Photo Studio'],
       },
+      userQuotasByPlan: {
+        'Free': '2',
+        '7Days': '50',
+        'Monthly': '200',
+        'Yearly': '1000',
+        'Lifetime': 'Unlimited',
+      },
     );
   }
 
@@ -62,6 +71,7 @@ class PlanCatalogConfig {
       'inr_prices': inrPrices,
       'usd_prices': usdPrices,
       'enabled_tools_by_plan': enabledToolsByPlan,
+      'user_quotas_by_plan': userQuotasByPlan,
     };
   }
 
@@ -102,10 +112,26 @@ class PlanCatalogConfig {
       return merged;
     }
 
+    Map<String, String> readQuotaMap(dynamic raw, Map<String, String> fallback) {
+      if (raw is! Map) {
+        return fallback;
+      }
+      final merged = <String, String>{...fallback};
+      for (final entry in raw.entries) {
+        final key = entry.key.toString();
+        final value = entry.value?.toString() ?? '';
+        if (value.trim().isNotEmpty) {
+          merged[key] = value;
+        }
+      }
+      return merged;
+    }
+
     return PlanCatalogConfig(
       inrPrices: readPriceMap(map['inr_prices'], defaults.inrPrices),
       usdPrices: readPriceMap(map['usd_prices'], defaults.usdPrices),
       enabledToolsByPlan: readToolsMap(map['enabled_tools_by_plan'], defaults.enabledToolsByPlan),
+      userQuotasByPlan: readQuotaMap(map['user_quotas_by_plan'], defaults.userQuotasByPlan),
     );
   }
 }

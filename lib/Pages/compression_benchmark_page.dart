@@ -39,21 +39,22 @@ class _CompressionBenchmarkPageState extends State<CompressionBenchmarkPage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF1F2937),
+        foregroundColor: Colors.white,
         iconTheme: const IconThemeData(
-          color: Color(0xFFFFC72C),
-          size: 30,
+          color: Colors.white,
+          size: 28,
         ),
-        title: const Text(
-          'V1-C1 Compression Benchmark',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+        titleTextStyle: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w800,
+          fontSize: 18,
+          letterSpacing: 0.2,
         ),
+        title: const Text('V1-C1 Compression Benchmark'),
         actions: [
           IconButton(
             tooltip: 'History',
-            icon: const Icon(Icons.history, color: Color(0xFFFFC72C)),
+            icon: const Icon(Icons.history),
             onPressed: () {
               Navigator.push(
                 context,

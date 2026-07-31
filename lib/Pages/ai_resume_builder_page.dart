@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:universal_html/html.dart' as html;
 
 import '../Services/ai_cover_letter_service.dart';
 import '../Services/company_insights_service.dart';
@@ -164,6 +165,83 @@ $tailored''';
     });
   }
 
+  void _showJdInputDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Upload or paste JD'),
+          content: SizedBox(
+            width: 420,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Paste a job description or upload a text file to match it against your resume.'),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _jdController,
+                  maxLines: 8,
+                  decoration: const InputDecoration(
+                    labelText: 'Job description / JD',
+                    hintText: 'Paste JD here…',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    final uploadInput = html.FileUploadInputElement();
+                    uploadInput.accept = '.txt,.md,.json';
+                    uploadInput.click();
+                    uploadInput.onChange.listen((_) {
+                      final files = uploadInput.files;
+                      if (files == null || files.isEmpty) {
+                        return;
+                      }
+                      final file = files.first;
+                      final reader = html.FileReader();
+                      reader.readAsText(file);
+                      reader.onLoadEnd.listen((_) {
+                        final text = reader.result?.toString() ?? '';
+                        if (text.trim().isNotEmpty) {
+                          _jdController.text = text;
+                          if (mounted) {
+                            setState(() {});
+                          }
+                        }
+                      });
+                    });
+                  },
+                  icon: const Icon(Icons.upload_file_rounded),
+                  label: const Text('Upload text file'),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () {
+                if (_jdController.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Paste or upload a JD first.')));
+                  return;
+                }
+                Navigator.of(dialogContext).pop();
+                setState(() {
+                  _showTailoredPreview = true;
+                  _resumeOutput = _buildResume();
+                });
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('JD ready for matching.')));
+              },
+              child: const Text('Use JD'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _downloadResume() {
     AiCoverLetterService.downloadTextFile(_resumeOutput, 'resume_export.txt');
   }
@@ -292,7 +370,14 @@ $tailored''';
       appBar: AppBar(
         title: const Text('AI Resume Builder'),
         backgroundColor: const Color(0xFF1F2937),
-        foregroundColor: const Color(0xFFFFC72C),
+        foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white, size: 28),
+        titleTextStyle: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w800,
+          fontSize: 18,
+          letterSpacing: 0.2,
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -421,9 +506,7 @@ $tailored''';
                   _ActionChipButton(
                     icon: Icons.upload_file_rounded,
                     label: 'Upload / Match JD',
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('JD upload and matching flow ready.')));
-                    },
+                    onPressed: _showJdInputDialog,
                   ),
                   _ActionChipButton(
                     icon: Icons.auto_awesome_rounded,

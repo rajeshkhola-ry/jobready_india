@@ -203,19 +203,23 @@ class _LaunchReadinessPageState extends State<LaunchReadinessPage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF1F2937),
+        foregroundColor: Colors.white,
         iconTheme: const IconThemeData(
-          color: Color(0xFFFFC72C),
-          size: 30,
+          color: Colors.white,
+          size: 28,
         ),
-        title: const Text(
-          'Launch Readiness',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        titleTextStyle: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w800,
+          fontSize: 18,
+          letterSpacing: 0.2,
         ),
+        title: const Text('Launch Readiness'),
         actions: [
           IconButton(
             tooltip: 'Refresh',
             onPressed: _loading ? null : _refresh,
-            icon: const Icon(Icons.refresh, color: Color(0xFFFFC72C)),
+            icon: const Icon(Icons.refresh),
           ),
         ],
       ),

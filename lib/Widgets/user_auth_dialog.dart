@@ -7,8 +7,9 @@ enum UserAuthMode { signIn, createAccount }
 
 class UserAuthDialog extends StatefulWidget {
   final String? preselectedPlan;
+  final ValueChanged<String?>? onAuthenticated;
 
-  const UserAuthDialog({super.key, this.preselectedPlan});
+  const UserAuthDialog({super.key, this.preselectedPlan, this.onAuthenticated});
 
   @override
   State<UserAuthDialog> createState() => _UserAuthDialogState();
@@ -93,6 +94,10 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
         }
         await AuthRouterService.markUserAuthenticated(authToken: 'user-session');
         Navigator.of(context).pop();
+        if (widget.onAuthenticated != null) {
+          widget.onAuthenticated!(widget.preselectedPlan);
+          return;
+        }
         if (widget.preselectedPlan != null && widget.preselectedPlan!.trim().isNotEmpty) {
           Navigator.of(context).pushNamed('/dashboard', arguments: {'plan': widget.preselectedPlan});
         } else {
@@ -115,6 +120,10 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
       }
       await AuthRouterService.markUserAuthenticated(authToken: 'user-session');
       Navigator.of(context).pop();
+      if (widget.onAuthenticated != null) {
+        widget.onAuthenticated!(widget.preselectedPlan);
+        return;
+      }
       if (widget.preselectedPlan != null && widget.preselectedPlan!.trim().isNotEmpty) {
         Navigator.of(context).pushNamed('/dashboard', arguments: {'plan': widget.preselectedPlan});
       } else {
@@ -159,6 +168,10 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
       }
       await AuthRouterService.markUserAuthenticated(authToken: 'user-session');
       Navigator.of(context).pop();
+      if (widget.onAuthenticated != null) {
+        widget.onAuthenticated!(widget.preselectedPlan);
+        return;
+      }
       if (widget.preselectedPlan != null && widget.preselectedPlan!.trim().isNotEmpty) {
         Navigator.of(context).pushNamed('/dashboard', arguments: {'plan': widget.preselectedPlan});
       } else {

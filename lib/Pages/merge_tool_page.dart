@@ -52,6 +52,13 @@ class _MergeToolPageState extends State<MergeToolPage> {
         title: const Text('Merge PDFs'),
         backgroundColor: const Color(0xFF1F2937),
         foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white, size: 28),
+        titleTextStyle: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w800,
+          fontSize: 18,
+          letterSpacing: 0.2,
+        ),
         leading: IconButton(
           tooltip: 'Back',
           onPressed: () {

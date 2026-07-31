@@ -19,6 +19,27 @@ void main() {
       expect(registeredTools, contains('OCR'));
       expect(registeredTools, isNotEmpty);
     });
+
+    test('round-trips user quota values per plan through serialization', () {
+      final defaults = PlanCatalogConfig.defaults();
+      expect(defaults.userQuotasByPlan['Free'], '2');
+      expect(defaults.userQuotasByPlan['Lifetime'], 'Unlimited');
+
+      final custom = PlanCatalogConfig(
+        inrPrices: defaults.inrPrices,
+        usdPrices: defaults.usdPrices,
+        enabledToolsByPlan: defaults.enabledToolsByPlan,
+        userQuotasByPlan: {
+          ...defaults.userQuotasByPlan,
+          'Monthly': '500',
+          'Yearly': 'Unlimited',
+        },
+      );
+
+      final roundTrip = PlanCatalogConfig.fromMap(custom.toMap());
+      expect(roundTrip.userQuotasByPlan['Monthly'], '500');
+      expect(roundTrip.userQuotasByPlan['Yearly'], 'Unlimited');
+    });
   });
 
   group('PlanCatalogService display pricing', () {

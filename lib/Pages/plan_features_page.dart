@@ -67,7 +67,13 @@ class _PlanFeaturesPageState extends State<PlanFeaturesPage> {
     return FutureBuilder<Map<String, dynamic>>(
       future: _loadComparisonData(),
       builder: (context, snapshot) {
-        final quotaValues = <String, String>{};
+        final quotaValues = <String, String>{
+          'FREE': _config.userQuotasByPlan['Free'] ?? '',
+          '7 DAYS': _config.userQuotasByPlan['7Days'] ?? '',
+          'MONTHLY': _config.userQuotasByPlan['Monthly'] ?? '',
+          'YEARLY': _config.userQuotasByPlan['Yearly'] ?? '',
+          'LIFETIME': _config.userQuotasByPlan['Lifetime'] ?? '',
+        };
         if (snapshot.hasData && snapshot.data != null) {
           final comparison = snapshot.data!['comparison'];
           if (comparison is Map<String, dynamic>) {
@@ -77,8 +83,9 @@ class _PlanFeaturesPageState extends State<PlanFeaturesPage> {
                 if (entry is Map<String, dynamic>) {
                   final label = entry['label']?.toString() ?? '';
                   final value = entry['value']?.toString() ?? '';
-                  if (label.isNotEmpty) {
-                    quotaValues[label] = value;
+                  final normalizedLabel = label.trim().toUpperCase();
+                  if (normalizedLabel.isNotEmpty && (quotaValues[normalizedLabel] == null || quotaValues[normalizedLabel]!.isEmpty)) {
+                    quotaValues[normalizedLabel] = value;
                   }
                 }
               }
@@ -94,11 +101,11 @@ class _PlanFeaturesPageState extends State<PlanFeaturesPage> {
             monthly: true,
             yearly: true,
             lifetime: true,
-            freeValue: quotaValues['FREE'] ?? '2',
-            sevenDayValue: quotaValues['7 DAYS'] ?? '50',
-            monthlyValue: quotaValues['MONTHLY'] ?? '200',
-            yearlyValue: quotaValues['YEARLY'] ?? '1000',
-            lifetimeValue: quotaValues['LIFETIME'] ?? 'Unlimited',
+            freeValue: quotaValues['FREE']?.isNotEmpty == true ? quotaValues['FREE'] : '2',
+            sevenDayValue: quotaValues['7 DAYS']?.isNotEmpty == true ? quotaValues['7 DAYS'] : '50',
+            monthlyValue: quotaValues['MONTHLY']?.isNotEmpty == true ? quotaValues['MONTHLY'] : '200',
+            yearlyValue: quotaValues['YEARLY']?.isNotEmpty == true ? quotaValues['YEARLY'] : '1000',
+            lifetimeValue: quotaValues['LIFETIME']?.isNotEmpty == true ? quotaValues['LIFETIME'] : 'Unlimited',
           ),
           ...features,
         ];

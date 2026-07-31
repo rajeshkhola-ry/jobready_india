@@ -43,19 +43,19 @@ class _PdfToolsPageState extends State<PdfToolsPage> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF1F2937),
         foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          'PDF Tools',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
+        iconTheme: const IconThemeData(color: Colors.white, size: 28),
+        titleTextStyle: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w800,
+          fontSize: 18,
+          letterSpacing: 0.2,
         ),
+        elevation: 0,
+        title: const Text('PDF Tools'),
         actions: [
           IconButton(
             tooltip: 'History',
-            icon: const Icon(Icons.history_rounded, color: Colors.white),
+            icon: const Icon(Icons.history_rounded),
             onPressed: () {
               Navigator.pushNamed(context, '/history');
             },

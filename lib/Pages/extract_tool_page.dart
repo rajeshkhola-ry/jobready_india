@@ -90,15 +90,15 @@ class _ExtractToolPageState extends State<ExtractToolPage> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF1F2937),
         foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          'Extract from PDF',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
+        iconTheme: const IconThemeData(color: Colors.white, size: 28),
+        titleTextStyle: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w800,
+          fontSize: 18,
+          letterSpacing: 0.2,
         ),
+        elevation: 0,
+        title: const Text('Extract from PDF'),
       ),
       body: Container(
         decoration: const BoxDecoration(

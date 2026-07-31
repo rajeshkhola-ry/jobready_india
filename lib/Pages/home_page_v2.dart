@@ -439,6 +439,93 @@ class _HomePageV2State extends State<HomePageV2> {
     );
   }
 
+  Future<void> _openCheckoutFlow(String plan) async {
+    setState(() {
+      _selectedPlanForPayment = plan;
+    });
+
+    if (!mounted) {
+      return;
+    }
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 720, maxHeight: 760),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: SingleChildScrollView(
+              child: _UserPaymentPanel(
+                activeGateway: _activeGateway,
+                selectedPlan: _selectedPlanForPayment,
+                selectedCurrency: _selectedPaymentCurrency,
+                usageType: _selectedUsageType,
+                sevenDayAmount: _displayAmountForPlan('7Days', _selectedPaymentCurrency),
+                monthlyAmount: _displayAmountForPlan('Monthly', _selectedPaymentCurrency),
+                yearlyAmount: _displayAmountForPlan('Yearly', _selectedPaymentCurrency),
+                lifetimePlanAmount: _displayAmountForPlan('Lifetime', _selectedPaymentCurrency),
+                onPlanChanged: (value) {
+                  setState(() {
+                    _selectedPlanForPayment = value;
+                  });
+                },
+                onCurrencyChanged: (value) {
+                  setState(() {
+                    _selectedPaymentCurrency = value;
+                  });
+                },
+                onUsageTypeChanged: (value) {
+                  setState(() {
+                    _selectedUsageType = value;
+                  });
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handlePlanSelection(String plan) async {
+    if (_selectedUsageType == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select Personal or Business first.'),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _selectedPlanForPayment = plan;
+    });
+
+    if (UserAuthService.isSignedIn) {
+      await _openCheckoutFlow(plan);
+      return;
+    }
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => UserAuthDialog(
+        preselectedPlan: plan,
+        onAuthenticated: (selectedPlan) {
+          if (!mounted) {
+            return;
+          }
+          if (selectedPlan == null || selectedPlan.trim().isEmpty) {
+            return;
+          }
+          Future<void>.microtask(() => _openCheckoutFlow(selectedPlan));
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final sevenDayPriceLine = _planPriceLine('7Days', ' for 7 days');
@@ -748,33 +835,7 @@ class _HomePageV2State extends State<HomePageV2> {
                   discountPercent: _pricingDiscountPercent,
                   selectedPlan: _selectedPlanForPayment,
                   usageType: _selectedUsageType,
-                  onPlanSelected: (plan) async {
-                    if (_selectedUsageType == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Please select Personal or Business first.'),
-                        ),
-                      );
-                      return;
-                    }
-
-                    setState(() {
-                      _selectedPlanForPayment = plan;
-                    });
-
-                    if (UserAuthService.isSignedIn) {
-                      if (!mounted) {
-                        return;
-                      }
-                      Navigator.of(context).pushNamed('/dashboard', arguments: {'plan': plan});
-                      return;
-                    }
-
-                    await showDialog<void>(
-                      context: context,
-                      builder: (dialogContext) => UserAuthDialog(preselectedPlan: plan),
-                    );
-                  },
+                  onPlanSelected: _handlePlanSelection,
                 ),
                 const SizedBox(height: 12),
                 _UserPaymentPanel(
@@ -3301,6 +3362,7 @@ class _PlanCatalogManagerPanelState extends State<_PlanCatalogManagerPanel> {
 
   late Map<String, TextEditingController> _inrControllers;
   late Map<String, TextEditingController> _usdControllers;
+  late Map<String, TextEditingController> _quotaControllers;
   late Map<String, List<String>> _enabledToolsByPlan;
 
   @override
@@ -3333,6 +3395,10 @@ class _PlanCatalogManagerPanelState extends State<_PlanCatalogManagerPanel> {
       for (final plan in _plans)
         plan: TextEditingController(text: (config.usdPrices[plan] ?? 0).toString())
     };
+    _quotaControllers = {
+      for (final plan in _plans)
+        plan: TextEditingController(text: config.userQuotasByPlan[plan] ?? PlanCatalogConfig.defaults().userQuotasByPlan[plan] ?? '2')
+    };
     _enabledToolsByPlan = {
       for (final plan in _plans)
         plan: List<String>.from(config.enabledToolsByPlan[plan] ?? const <String>[])
@@ -3346,6 +3412,9 @@ class _PlanCatalogManagerPanelState extends State<_PlanCatalogManagerPanel> {
     for (final controller in _usdControllers.values) {
       controller.dispose();
     }
+    for (final controller in _quotaControllers.values) {
+      controller.dispose();
+    }
   }
 
   double _readAmount(TextEditingController controller, double fallback) {
@@ -3356,10 +3425,13 @@ class _PlanCatalogManagerPanelState extends State<_PlanCatalogManagerPanel> {
     final defaults = PlanCatalogConfig.defaults();
     final inr = <String, double>{};
     final usd = <String, double>{};
+    final quotas = <String, String>{};
 
     for (final plan in _plans) {
       inr[plan] = _readAmount(_inrControllers[plan]!, defaults.inrPrices[plan] ?? 0);
       usd[plan] = _readAmount(_usdControllers[plan]!, defaults.usdPrices[plan] ?? 0);
+      final rawQuota = _quotaControllers[plan]!.text.trim();
+      quotas[plan] = rawQuota.isEmpty ? (defaults.userQuotasByPlan[plan] ?? '2') : rawQuota;
     }
 
     final config = PlanCatalogConfig(
@@ -3368,6 +3440,7 @@ class _PlanCatalogManagerPanelState extends State<_PlanCatalogManagerPanel> {
       enabledToolsByPlan: {
         for (final plan in _plans) plan: List<String>.from(_enabledToolsByPlan[plan] ?? const <String>[])
       },
+      userQuotasByPlan: quotas,
     );
 
     await PlanCatalogService.save(config);
@@ -3463,6 +3536,16 @@ class _PlanCatalogManagerPanelState extends State<_PlanCatalogManagerPanel> {
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _quotaControllers[plan],
+                    decoration: InputDecoration(
+                      labelText: 'User Quota',
+                      isDense: true,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      helperText: '2, 50, 200, 1000, Unlimited',
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Wrap(
