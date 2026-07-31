@@ -3,6 +3,9 @@ import 'dart:convert';
 import 'package:universal_html/html.dart' as html;
 
 class PlanCatalogConfig {
+  static const String resumeBuilderToolName = 'AI Resume Builder';
+  static const String legacyResumeBuilderToolName = 'Resume Builder';
+
   static const List<String> registeredToolNames = <String>[
     'Compress',
     'Convert',
@@ -13,6 +16,7 @@ class PlanCatalogConfig {
     'OCR',
     'History',
     'HD Photo Studio',
+    resumeBuilderToolName,
   ];
 
   final Map<String, double> inrPrices;
@@ -47,8 +51,8 @@ class PlanCatalogConfig {
         'Free': ['Compress', 'Convert', 'Merge', 'Split', 'Extract'],
         '7Days': ['Compress', 'Convert', 'Merge', 'Split', 'Extract', 'Edit PDF', 'OCR'],
         'Monthly': ['Compress', 'Convert', 'Merge', 'Split', 'Extract', 'Edit PDF', 'OCR'],
-        'Yearly': ['Compress', 'Convert', 'Merge', 'Split', 'Extract', 'Edit PDF', 'OCR', 'History', 'HD Photo Studio'],
-        'Lifetime': ['Compress', 'Convert', 'Merge', 'Split', 'Extract', 'Edit PDF', 'OCR', 'History', 'HD Photo Studio'],
+        'Yearly': ['Compress', 'Convert', 'Merge', 'Split', 'Extract', 'Edit PDF', 'OCR', 'History', 'HD Photo Studio', 'AI Resume Builder'],
+        'Lifetime': ['Compress', 'Convert', 'Merge', 'Split', 'Extract', 'Edit PDF', 'OCR', 'History', 'HD Photo Studio', 'AI Resume Builder'],
       },
       userQuotasByPlan: {
         'Free': '2',
@@ -62,8 +66,23 @@ class PlanCatalogConfig {
 
   static Set<String> get _v11AllowedTools => registeredToolNames.toSet();
 
+  static String _canonicalToolName(String tool) {
+    final trimmed = tool.trim();
+    if (trimmed == legacyResumeBuilderToolName) {
+      return resumeBuilderToolName;
+    }
+    return trimmed;
+  }
+
   static List<String> _sanitizeTools(List<String> tools) {
-    return tools.where(_v11AllowedTools.contains).toSet().toList();
+    final sanitized = <String>{};
+    for (final tool in tools) {
+      final canonical = _canonicalToolName(tool);
+      if (_v11AllowedTools.contains(canonical)) {
+        sanitized.add(canonical);
+      }
+    }
+    return sanitized.toList();
   }
 
   Map<String, dynamic> toMap() {

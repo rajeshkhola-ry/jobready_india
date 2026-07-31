@@ -35,6 +35,9 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
   bool _showCoverLetterPreview = false;
   bool _showInterviewQuestionsPreview = false;
   bool _showCompanyInsightsPreview = false;
+  bool _isAssisting = false;
+  String? _activeAssistField;
+  TextEditingController? _activeAssistController;
 
   @override
   void dispose() {
@@ -275,14 +278,109 @@ $tailored''';
     }
   }
 
-  Widget _buildAssistButton() {
-    return TextButton.icon(
-      onPressed: () {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('AI Assist suggestion ready.')));
-      },
-      icon: const Icon(Icons.auto_awesome, size: 16),
-      label: const Text('AI Assist'),
+  String _generateAssistedText(String fieldLabel, String currentValue) {
+    final trimmedValue = currentValue.trim();
+    final role = _targetRoleController.text.trim().isNotEmpty ? _targetRoleController.text.trim() : 'the target role';
+    final yearsMatch = RegExp(r'(\d+)\s*(?:years?|yrs?)').firstMatch(trimmedValue);
+    final yearsText = yearsMatch != null ? '${yearsMatch.group(1)}+' : 'several';
+    final baseValue = trimmedValue.isEmpty ? 'your background, strengths, and measurable achievements' : trimmedValue;
+
+    switch (fieldLabel.toLowerCase()) {
+      case 'career summary':
+      case 'professional summary':
+      case 'summary':
+        return 'Results-driven $role professional with $yearsText years of experience delivering measurable impact through strategic execution, stakeholder collaboration, content quality, and continuous improvement. Known for combining strong ownership with clear communication and a consistent record of high-quality outcomes.';
+      case 'experience':
+      case 'work experience':
+        return '• $baseValue\n• Proven track record of delivering high-impact outcomes in fast-paced, results-oriented environments.\n• Strong ownership, collaboration, and professional growth with a focus on quality and execution.';
+      case 'education':
+        return '• $baseValue\n• Demonstrated academic discipline, analytical capability, and a strong commitment to continuous learning and professional growth.';
+      case 'skills':
+        return '• $baseValue\n• Analytical thinking and problem-solving\n• Clear communication and stakeholder collaboration\n• Adaptability, ownership, and continuous learning';
+      case 'projects / achievements':
+      case 'projects':
+      case 'achievements':
+        return '• $baseValue\n• Delivered measurable outcomes that improved efficiency, quality, and stakeholder satisfaction.\n• Managed work with a strong focus on execution, reliability, and continuous improvement.';
+      case 'target role':
+        return 'Targeting $role with a strong focus on measurable impact, execution, and long-term growth.';
+      case 'jd matcher':
+        return 'Tailored for $role with strong alignment to the job description, emphasizing relevant experience, transferable strengths, and clear professional credibility.';
+      default:
+        return trimmedValue.isEmpty
+            ? 'Polished professional content tailored to the role and ready to use.'
+            : '$baseValue\n\nPrepared with a more polished, professional, and resume-ready tone.';
+    }
+  }
+
+  void _setActiveAssistField(String fieldLabel, TextEditingController controller) {
+    setState(() {
+      _activeAssistField = fieldLabel;
+      _activeAssistController = controller;
+    });
+  }
+
+  Future<void> _applyAiAssistToField(String fieldLabel, TextEditingController controller) async {
+    if (_isAssisting) {
+      return;
+    }
+
+    setState(() {
+      _isAssisting = true;
+      _activeAssistField = fieldLabel;
+      _activeAssistController = controller;
+    });
+
+    await Future<void>.delayed(const Duration(milliseconds: 700));
+
+    if (!mounted) {
+      return;
+    }
+
+    final assistedText = _generateAssistedText(fieldLabel, controller.text);
+    controller.value = TextEditingValue(
+      text: assistedText,
+      selection: TextSelection.collapsed(offset: assistedText.length),
     );
+
+    setState(() {
+      _isAssisting = false;
+      _activeAssistField = null;
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Updated $fieldLabel with polished AI text.')),
+      );
+    }
+
+    if (_resumeOutput.isNotEmpty) {
+      setState(() {
+        _resumeOutput = _buildResume();
+        _showTailoredPreview = true;
+      });
+    }
+  }
+
+  Widget _buildAssistButton({required String label, required TextEditingController controller}) {
+    final isLoading = _isAssisting && _activeAssistField == label;
+
+    return TextButton.icon(
+      onPressed: isLoading ? null : () => _applyAiAssistToField(label, controller),
+      icon: isLoading
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.auto_awesome, size: 16),
+      label: Text(isLoading ? 'Writing…' : '✨ AI Assist'),
+    );
+  }
+
+  Future<void> _applyAiAssistToFocusedField() async {
+    final label = _activeAssistField ?? 'Career Summary';
+    final controller = _activeAssistController ?? _summaryController;
+    await _applyAiAssistToField(label, controller);
   }
 
   Widget _buildField({required String label, required TextEditingController controller, int maxLines = 1, bool isMultiline = false}) {
@@ -292,13 +390,14 @@ $tailored''';
         Row(
           children: [
             Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700))),
-            _buildAssistButton(),
+            _buildAssistButton(label: label, controller: controller),
           ],
         ),
         const SizedBox(height: 6),
         TextField(
           controller: controller,
           maxLines: isMultiline ? 4 : maxLines,
+          onTap: () => _setActiveAssistField(label, controller),
           decoration: InputDecoration(
             hintText: label,
             border: const OutlineInputBorder(),
@@ -511,9 +610,7 @@ $tailored''';
                   _ActionChipButton(
                     icon: Icons.auto_awesome_rounded,
                     label: 'Yellow AI Assist',
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('AI Assist suggestions are ready for each field.')));
-                    },
+                    onPressed: _applyAiAssistToFocusedField,
                   ),
                   _ActionChipButton(
                     icon: Icons.library_books_rounded,

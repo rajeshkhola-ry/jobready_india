@@ -17,7 +17,24 @@ void main() {
       final registeredTools = PlanCatalogConfig.registeredToolNames;
       expect(registeredTools, contains('HD Photo Studio'));
       expect(registeredTools, contains('OCR'));
+      expect(registeredTools, contains('AI Resume Builder'));
       expect(registeredTools, isNotEmpty);
+    });
+
+    test('preserves AI Resume Builder permissions when tool access is serialized', () {
+      final defaults = PlanCatalogConfig.defaults();
+      final custom = PlanCatalogConfig(
+        inrPrices: defaults.inrPrices,
+        usdPrices: defaults.usdPrices,
+        enabledToolsByPlan: {
+          ...defaults.enabledToolsByPlan,
+          'Monthly': [...defaults.enabledToolsByPlan['Monthly'] ?? const <String>[], 'Resume Builder'],
+        },
+        userQuotasByPlan: defaults.userQuotasByPlan,
+      );
+
+      final roundTrip = PlanCatalogConfig.fromMap(custom.toMap());
+      expect(roundTrip.enabledToolsByPlan['Monthly'], contains('AI Resume Builder'));
     });
 
     test('round-trips user quota values per plan through serialization', () {
