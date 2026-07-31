@@ -38,7 +38,76 @@ class ToolSelectorV2 extends StatelessWidget {
 
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final isWide = constraints.maxWidth >= 520;
+            final width = constraints.maxWidth;
+            final crossAxisCount = width >= 980
+                ? 3
+                : width >= 680
+                    ? 2
+                    : 1;
+            final childAspectRatio = width >= 980
+                ? 1.8
+                : width >= 680
+                    ? 1.9
+                    : 2.1;
+
+            final tools = <Widget>[
+              _tool(
+                context,
+                Icons.picture_as_pdf,
+                "Compress",
+                "Tries to match your target size; some files may stay above target.",
+                () => _openTool(context, const CompressionToolPage()),
+              ),
+              _tool(
+                context,
+                Icons.swap_horiz,
+                "Convert",
+                "Convert PDF, DOCX, images, and office files.",
+                () => _openTool(context, const ConvertToolPage()),
+              ),
+              _tool(
+                context,
+                Icons.merge_type,
+                "Merge",
+                "Combine multiple PDFs into one file.",
+                () => _openTool(context, const MergeToolPage()),
+              ),
+              _tool(
+                context,
+                Icons.content_cut,
+                "Split",
+                "Split one PDF into selected page ranges.",
+                () => _openTool(context, const SplitToolPage()),
+              ),
+              _tool(
+                context,
+                Icons.description,
+                "Extract",
+                "Extract text and content from PDF pages.",
+                () => _openTool(context, const ExtractToolPage()),
+              ),
+              _tool(
+                context,
+                Icons.edit_document,
+                "Edit PDF",
+                "Edit PDF, then save and download.",
+                () => _openTool(context, const PdfEditPage()),
+              ),
+              _tool(
+                context,
+                Icons.dashboard_customize_rounded,
+                "PDF Tools",
+                "Open complete PDF utility workspace.",
+                () => _openTool(context, const PdfToolsPage()),
+              ),
+              _tool(
+                context,
+                Icons.camera_alt_rounded,
+                "HD Photo Studio",
+                "Enhance, edit, upscale photos and remove backgrounds in HD.",
+                () => _openTool(context, const PhotoHdWorkspacePage()),
+              ),
+            ];
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -52,9 +121,7 @@ class ToolSelectorV2 extends StatelessWidget {
                     color: Color(0xFF111827),
                   ),
                 ),
-
                 const SizedBox(height: 6),
-
                 const Text(
                   "Professional AI-powered tools for document optimization",
                   style: TextStyle(
@@ -63,180 +130,16 @@ class ToolSelectorV2 extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-
                 const SizedBox(height: 16),
-
-                if (isWide)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _tool(
-                          context,
-                          Icons.picture_as_pdf,
-                          "Compress",
-                          "Tries to match your target size; some files may stay above target.",
-                          () => _openTool(context, const CompressionToolPage()),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _tool(
-                          context,
-                          Icons.swap_horiz,
-                          "Convert",
-                          "Convert PDF, DOCX, images, and office files.",
-                          () => _openTool(context, const ConvertToolPage()),
-                        ),
-                      ),
-                    ],
-                  )
-                else ...[
-                  _tool(
-                    context,
-                    Icons.picture_as_pdf,
-                    "Compress",
-                    "Tries to match your target size; some files may stay above target.",
-                    () => _openTool(context, const CompressionToolPage()),
-                  ),
-                  const SizedBox(height: 14),
-                  _tool(
-                    context,
-                    Icons.swap_horiz,
-                    "Convert",
-                    "Convert PDF, DOCX, images, and office files.",
-                    () => _openTool(context, const ConvertToolPage()),
-                  ),
-                ],
-
-                const SizedBox(height: 12),
-                if (isWide)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _tool(
-                          context,
-                          Icons.merge_type,
-                          "Merge",
-                          "Combine multiple PDFs into one file.",
-                          () => _openTool(context, const MergeToolPage()),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _tool(
-                          context,
-                          Icons.content_cut,
-                          "Split",
-                          "Split one PDF into selected page ranges.",
-                          () => _openTool(context, const SplitToolPage()),
-                        ),
-                      ),
-                    ],
-                  )
-                else ...[
-                  _tool(
-                    context,
-                    Icons.merge_type,
-                    "Merge",
-                    "Combine multiple PDFs into one file.",
-                    () => _openTool(context, const MergeToolPage()),
-                  ),
-                  const SizedBox(height: 14),
-                  _tool(
-                    context,
-                    Icons.content_cut,
-                    "Split",
-                    "Split one PDF into selected page ranges.",
-                    () => _openTool(context, const SplitToolPage()),
-                  ),
-                ],
-
-                const SizedBox(height: 12),
-                if (isWide)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _tool(
-                          context,
-                          Icons.description,
-                          "Extract",
-                          "Extract text and content from PDF pages.",
-                          () => _openTool(context, const ExtractToolPage()),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _tool(
-                          context,
-                          Icons.edit_document,
-                          "Edit PDF",
-                          "Edit PDF, then save and download.",
-                          () => _openTool(context, const PdfEditPage()),
-                        ),
-                      ),
-                    ],
-                  )
-                else ...[
-                  _tool(
-                    context,
-                    Icons.description,
-                    "Extract",
-                    "Extract text and content from PDF pages.",
-                    () => _openTool(context, const ExtractToolPage()),
-                  ),
-                  const SizedBox(height: 14),
-                  _tool(
-                    context,
-                    Icons.edit_document,
-                    "Edit PDF",
-                    "Edit PDF, then save and download.",
-                    () => _openTool(context, const PdfEditPage()),
-                  ),
-                ],
-
-                const SizedBox(height: 12),
-                if (isWide)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _tool(
-                          context,
-                          Icons.dashboard_customize_rounded,
-                          "PDF Tools",
-                          "Open complete PDF utility workspace.",
-                          () => _openTool(context, const PdfToolsPage()),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _tool(
-                          context,
-                          Icons.camera_alt_rounded,
-                          "HD Photo Studio",
-                          "Enhance, edit, upscale photos and remove backgrounds in HD.",
-                          () => _openTool(context, const PhotoHdWorkspacePage()),
-                        ),
-                      ),
-                    ],
-                  )
-                else ...[
-                  _tool(
-                    context,
-                    Icons.dashboard_customize_rounded,
-                    "PDF Tools",
-                    "Open complete PDF utility workspace.",
-                    () => _openTool(context, const PdfToolsPage()),
-                  ),
-                  const SizedBox(height: 14),
-                  _tool(
-                    context,
-                    Icons.camera_alt_rounded,
-                    "HD Photo Studio",
-                    "Enhance, edit, upscale photos and remove backgrounds in HD.",
-                    () => _openTool(context, const PhotoHdWorkspacePage()),
-                  ),
-                ],
-
+                GridView.count(
+                  crossAxisCount: crossAxisCount,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: childAspectRatio,
+                  children: tools,
+                ),
                 const SizedBox(height: 4),
               ],
             );

@@ -6,8 +6,8 @@ class OwnerAdminAccessService {
   static const String _adminPasswordKey = 'jobready_owner_admin_password_v1';
   static const String _legacyOwnerCode = 'JR-OWNER-2026';
 
-  static const String defaultAdminId = 'rajesh.khola';
-  static const String defaultAdminPassword = 'Rajesh@2026';
+  static const String defaultAdminId = 'Admin';
+  static const String defaultAdminPassword = 'Admin@2026!';
 
   static bool get isUnlocked => html.window.localStorage[_storageKey] == '1';
 

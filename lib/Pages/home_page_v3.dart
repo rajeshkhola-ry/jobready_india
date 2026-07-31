@@ -24,9 +24,14 @@ class HomePageV3 extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        backgroundColor: Colors.transparent,
+        backgroundColor: const Color(0xFFF8FAFC),
         elevation: 0,
+        surfaceTintColor: Colors.transparent,
         foregroundColor: const Color(0xFF0F172A),
+        shape: const RoundedRectangleBorder(
+          side: BorderSide(color: Color(0xFFE2E8F0), width: 1),
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
+        ),
         title: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [

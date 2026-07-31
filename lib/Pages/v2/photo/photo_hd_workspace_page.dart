@@ -1,4 +1,8 @@
+import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:universal_html/html.dart' as html;
 
 import '../../../Services/file_picker_service.dart';
 import '../../../Services/photo_resize_service.dart';
@@ -14,11 +18,20 @@ class PhotoHdWorkspacePage extends StatefulWidget {
 
 class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
   final PhotoResizeService _photoResizeService = const PhotoResizeService();
+  final GlobalKey _dropZoneKey = GlobalKey();
+  bool _isDragOver = false;
 
   PickedFileData? _selectedImage;
   PhotoSizePreset _selectedPreset = PhotoResizeService.presets.first;
+  String _selectedDpi = '300';
+  String _selectedAspectPreset = 'passport';
+  String _selectedBackgroundColor = '#FFFFFF';
+  int _maxTargetKb = 100;
+  bool _enforceFileSizeLimit = true;
   bool _hdMode = true;
   bool _isProcessing = false;
+  double _comparisonPosition = 0.5;
+  Uint8List? _comparisonPreviewBytes;
   _StatusType _statusType = _StatusType.idle;
   String _statusMessage = 'Upload a passport photo or other image to start.';
 
@@ -26,6 +39,101 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
   void initState() {
     super.initState();
     _hydrateFromUploadContext();
+    if (kIsWeb) {
+      html.document.body?.addEventListener('dragover', _handleBodyDragOver);
+      html.document.body?.addEventListener('dragleave', _handleBodyDragLeave);
+      html.document.body?.addEventListener('drop', _handleBodyDrop);
+    }
+  }
+
+  @override
+  void dispose() {
+    if (kIsWeb) {
+      html.document.body?.removeEventListener('dragover', _handleBodyDragOver);
+      html.document.body?.removeEventListener('dragleave', _handleBodyDragLeave);
+      html.document.body?.removeEventListener('drop', _handleBodyDrop);
+    }
+    super.dispose();
+  }
+
+  void _handleBodyDragOver(html.Event event) {
+    event.preventDefault();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isDragOver = true;
+    });
+  }
+
+  void _handleBodyDragLeave(html.Event event) {
+    event.preventDefault();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isDragOver = false;
+    });
+  }
+
+  void _handleBodyDrop(html.Event event) {
+    event.preventDefault();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isDragOver = false;
+    });
+
+    final dataTransfer = (event as dynamic).dataTransfer;
+    final files = dataTransfer?.files;
+    if (files == null || files.isEmpty) {
+      return;
+    }
+
+    final file = files.item(0);
+    if (file == null) {
+      return;
+    }
+
+    final reader = html.FileReader();
+    reader.onLoad.listen((loadEvent) {
+      final result = reader.result;
+      if (result is String) {
+        final dataUri = Uri.parse(result);
+        final bytes = dataUri.data?.contentAsBytes();
+        if (bytes != null) {
+          _consumeDroppedFile(file.name, file.type, bytes);
+        }
+      }
+    });
+    reader.readAsDataUrl(file);
+  }
+
+  Future<void> _consumeDroppedFile(String name, String type, Uint8List bytes) async {
+    final normalizedName = name.isEmpty ? 'dropped-image' : name;
+    final allowed = ['jpg', 'jpeg', 'png', 'webp', 'bmp'];
+    final extension = normalizedName.split('.').last.toLowerCase();
+    if (!allowed.contains(extension)) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please drop a JPG, PNG, WEBP, or BMP image.')),
+      );
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _selectedImage = PickedFileData(name: normalizedName, size: bytes.length, bytes: bytes);
+      _statusType = _StatusType.idle;
+      _statusMessage = 'Image dropped: $normalizedName';
+    });
+
+    Future<void>.microtask(_refreshComparisonPreview);
   }
 
   void _hydrateFromUploadContext() {
@@ -63,6 +171,50 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
       _statusType = _StatusType.idle;
       _statusMessage = 'Image selected: ${picked.name}';
     });
+
+    Future<void>.microtask(_refreshComparisonPreview);
+  }
+
+  Future<void> _refreshComparisonPreview() async {
+    final selectedImage = _selectedImage;
+    if (selectedImage == null) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _comparisonPreviewBytes = null;
+      });
+      return;
+    }
+
+    try {
+      final preview = await _photoResizeService.upscalePhoto(
+        bytes: selectedImage.bytes,
+        fileName: selectedImage.name,
+        preset: _selectedPreset,
+        enableHdMode: _hdMode,
+        dpi: _selectedDpi,
+        backgroundColor: _selectedBackgroundColor,
+        maxTargetKb: _maxTargetKb,
+        aspectPresetId: _selectedAspectPreset,
+        enforceFileSizeLimit: _enforceFileSizeLimit,
+        previewOnly: true,
+      );
+
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _comparisonPreviewBytes = preview.bytes;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _comparisonPreviewBytes = null;
+      });
+    }
   }
 
   Future<void> _generatePhoto() async {
@@ -89,6 +241,12 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
         fileName: selectedImage.name,
         preset: _selectedPreset,
         enableHdMode: _hdMode,
+        dpi: _selectedDpi,
+        backgroundColor: _selectedBackgroundColor,
+        maxTargetKb: _maxTargetKb,
+        aspectPresetId: _selectedAspectPreset,
+        enforceFileSizeLimit: _enforceFileSizeLimit,
+        previewOnly: false,
       );
 
       if (!mounted) {
@@ -99,7 +257,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
         _isProcessing = false;
         _statusType = _StatusType.success;
         _statusMessage =
-            'Ready: ${result.outputFileName} — ${result.width} × ${result.height} px.';
+            'Ready: ${result.outputFileName} — ${result.width} × ${result.height} px. ${result.outputLabel}';
       });
 
       await showDialog<void>(
@@ -143,7 +301,14 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
       appBar: AppBar(
         title: const Text('Photo HD Workspace'),
         backgroundColor: const Color(0xFF0E3A66),
-        foregroundColor: Colors.white,
+        foregroundColor: const Color(0xFFF8FAFC),
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Color(0xFFF8FAFC)),
+        titleTextStyle: const TextStyle(
+          color: Color(0xFFF8FAFC),
+          fontSize: 18,
+          fontWeight: FontWeight.w800,
+        ),
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -221,40 +386,62 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                           ),
                           const SizedBox(height: 10),
                           if (_selectedImage == null)
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 20, horizontal: 16),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF8FBFF),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                    color: const Color(0xFFB8D0ED)),
-                              ),
-                              child: const Column(
-                                children: [
-                                  Icon(
-                                    Icons.add_photo_alternate_outlined,
-                                    size: 32,
-                                    color: Color(0xFF94A3B8),
+                            InkWell(
+                              key: _dropZoneKey,
+                              onTap: _isProcessing ? null : _pickImage,
+                              onHover: (hovering) {
+                                if (!kIsWeb || _isProcessing) {
+                                  return;
+                                }
+                                setState(() {
+                                  _isDragOver = hovering;
+                                });
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 180),
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                                decoration: BoxDecoration(
+                                  color: _isDragOver ? const Color(0xFFEAF2FF) : const Color(0xFFF8FBFF),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: _isDragOver ? const Color(0xFF0E3A66) : const Color(0xFFB8D0ED),
+                                    width: _isDragOver ? 2 : 1,
                                   ),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    'No image selected',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF475569),
+                                ),
+                                child: const Column(
+                                  children: [
+                                    Icon(
+                                      Icons.cloud_upload_outlined,
+                                      size: 34,
+                                      color: Color(0xFF0E3A66),
                                     ),
-                                  ),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    'Supported: JPG, PNG, WEBP, BMP',
-                                    style: TextStyle(
-                                        fontSize: 12,
-                                        color: Color(0xFF94A3B8)),
-                                  ),
-                                ],
+                                    SizedBox(height: 10),
+                                    Text(
+                                      'Drag & drop your image here',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF0F172A),
+                                      ),
+                                    ),
+                                    SizedBox(height: 2),
+                                    Text(
+                                      'or click Upload Photo',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 12.5,
+                                        color: Color(0xFF64748B),
+                                      ),
+                                    ),
+                                    SizedBox(height: 6),
+                                    Text(
+                                      'Supported: JPG, PNG, WEBP, BMP',
+                                      style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                                    ),
+                                  ],
+                                ),
                               ),
                             )
                           else
@@ -331,6 +518,109 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                             ),
                           ),
                           const SizedBox(height: 12),
+                          DropdownButtonFormField<String>(
+                            value: _selectedDpi,
+                            items: PhotoResizeService.dpiOptions
+                                .map((dpi) => DropdownMenuItem(value: dpi, child: Text('$dpi DPI')))
+                                .toList(growable: false),
+                            onChanged: _isProcessing
+                                ? null
+                                : (value) {
+                                    if (value == null) return;
+                                    setState(() {
+                                      _selectedDpi = value;
+                                    });
+                                    Future<void>.microtask(_refreshComparisonPreview);
+                                  },
+                            decoration: const InputDecoration(
+                              labelText: 'Print DPI',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<String>(
+                            value: _selectedAspectPreset,
+                            items: const [
+                              DropdownMenuItem(value: 'passport', child: Text('3.5cm x 4.5cm (Passport)')),
+                              DropdownMenuItem(value: 'visa', child: Text('2 x 2 inch (Visa / Universal)')),
+                              DropdownMenuItem(value: 'square', child: Text('1:1 Square / Stamp')),
+                            ],
+                            onChanged: _isProcessing
+                                ? null
+                                : (value) {
+                                    if (value == null) return;
+                                    setState(() {
+                                      _selectedAspectPreset = value;
+                                    });
+                                    Future<void>.microtask(_refreshComparisonPreview);
+                                  },
+                            decoration: const InputDecoration(
+                              labelText: 'Aspect ratio preset',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<String>(
+                            value: _selectedBackgroundColor,
+                            items: const [
+                              DropdownMenuItem(value: '#FFFFFF', child: Text('Plain White #FFFFFF')),
+                              DropdownMenuItem(value: '#E0F2FE', child: Text('Light Blue #E0F2FE')),
+                            ],
+                            onChanged: _isProcessing
+                                ? null
+                                : (value) {
+                                    if (value == null) return;
+                                    setState(() {
+                                      _selectedBackgroundColor = value;
+                                    });
+                                    Future<void>.microtask(_refreshComparisonPreview);
+                                  },
+                            decoration: const InputDecoration(
+                              labelText: 'Background fill',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          SwitchListTile.adaptive(
+                            value: _enforceFileSizeLimit,
+                            onChanged: _isProcessing
+                                ? null
+                                : (value) {
+                                    setState(() {
+                                      _enforceFileSizeLimit = value;
+                                    });
+                                    Future<void>.microtask(_refreshComparisonPreview);
+                                  },
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('Compress to portal-safe output'),
+                            subtitle: const Text('Keeps the export under the selected file-size target where possible.'),
+                          ),
+                          if (_enforceFileSizeLimit) ...[
+                            const SizedBox(height: 4),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Expanded(child: Text('Target file size')),
+                                    Text('≤ ${_maxTargetKb}KB', style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF0E3A66))),
+                                  ],
+                                ),
+                                Slider(
+                                  value: _maxTargetKb.toDouble(),
+                                  min: 50,
+                                  max: 100,
+                                  divisions: 1,
+                                  label: _maxTargetKb.toString(),
+                                  onChanged: _isProcessing ? null : (value) {
+                                    setState(() { _maxTargetKb = value.round(); });
+                                    Future<void>.microtask(_refreshComparisonPreview);
+                                  },
+                                ),
+                              ],
+                            ),
+                          ],
+                          const SizedBox(height: 8),
                           SwitchListTile.adaptive(
                             value: _hdMode,
                             onChanged: _isProcessing
@@ -339,6 +629,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                                     setState(() {
                                       _hdMode = value;
                                     });
+                                    Future<void>.microtask(_refreshComparisonPreview);
                                   },
                             contentPadding: EdgeInsets.zero,
                             title: const Text('Identity-Safe HD Mode'),
@@ -364,6 +655,97 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                               ),
                             ),
                           ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    _panel(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Before / After Comparison',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          if (_selectedImage != null)
+                            Container(
+                              height: 280,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FBFF),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: const Color(0xFFD8E5F5)),
+                              ),
+                              child: Stack(
+                                children: [
+                                  Positioned.fill(
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(16),
+                                      child: Image.memory(
+                                        _selectedImage!.bytes,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  ),
+                                  if (_comparisonPreviewBytes != null)
+                                    Positioned.fill(
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(16),
+                                        child: FractionallySizedBox(
+                                          widthFactor: _comparisonPosition,
+                                          alignment: Alignment.centerLeft,
+                                          child: Image.memory(
+                                            _comparisonPreviewBytes!,
+                                            fit: BoxFit.cover,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  Positioned.fill(
+                                    child: SliderTheme(
+                                      data: const SliderThemeData(
+                                        thumbShape: RoundSliderThumbShape(enabledThumbRadius: 10),
+                                        overlayShape: RoundSliderOverlayShape(overlayRadius: 14),
+                                      ),
+                                      child: Slider(
+                                        value: _comparisonPosition,
+                                        onChanged: (value) {
+                                          setState(() {
+                                            _comparisonPosition = value;
+                                          });
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    left: 16,
+                                    bottom: 16,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withValues(alpha: 0.6),
+                                        borderRadius: BorderRadius.circular(999),
+                                      ),
+                                      child: const Text('Enhanced view', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FBFF),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: const Color(0xFFD8E5F5)),
+                              ),
+                              child: const Text('Upload an image to preview the before/after comparison slider.', style: TextStyle(fontSize: 13, color: Color(0xFF64748B))),
+                            ),
                         ],
                       ),
                     ),

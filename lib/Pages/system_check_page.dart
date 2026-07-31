@@ -457,15 +457,23 @@ class _SystemCheckPageState extends State<SystemCheckPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0E3A66),
+        backgroundColor: const Color(0xFFF8FAFC),
+        foregroundColor: const Color(0xFF0F172A),
         elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        titleSpacing: 16,
         title: const Text(
           'System Check',
           style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
+            color: Color(0xFF0F172A),
+            fontWeight: FontWeight.w800,
             fontSize: 18,
+            letterSpacing: 0.2,
           ),
+        ),
+        shape: const RoundedRectangleBorder(
+          side: BorderSide(color: Color(0xFFE2E8F0), width: 1),
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
         ),
       ),
       body: Container(

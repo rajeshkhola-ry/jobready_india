@@ -113,6 +113,21 @@ class PlanCatalogConfig {
 class PlanCatalogService {
   static const String _storageKey = 'jobready_plan_catalog_config_v1_1';
 
+  static String formatPlanPriceLine(String plan, {required String currencyCode, String suffix = ''}) {
+    final inrAmount = PlanCatalogConfig.defaults().inrPrices[plan] ?? 0.0;
+    final usdAmount = PlanCatalogConfig.defaults().usdPrices[plan] ?? 0.0;
+
+    if (plan == 'Free') {
+      return '₹0 / \$0$suffix';
+    }
+
+    if (currencyCode == 'INR') {
+      return '₹${inrAmount.toStringAsFixed(inrAmount.truncateToDouble() == inrAmount ? 0 : 2)}$suffix';
+    }
+
+    return '₹${inrAmount.toStringAsFixed(inrAmount.truncateToDouble() == inrAmount ? 0 : 2)} / \$${usdAmount.toStringAsFixed(usdAmount.truncateToDouble() == usdAmount ? 0 : 2)}$suffix';
+  }
+
   static PlanCatalogConfig load() {
     final raw = html.window.localStorage[_storageKey];
     if (raw == null || raw.trim().isEmpty) {

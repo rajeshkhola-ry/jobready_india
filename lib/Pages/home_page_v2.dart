@@ -15,18 +15,19 @@ import '../Services/plan_catalog_service.dart';
 import '../Services/support_ticket_service.dart';
 import '../Services/user_rating_service.dart';
 import '../Services/user_account_service.dart';
+import '../Services/user_auth_service.dart';
 import '../Services/usage_quota_service.dart';
+import '../Widgets/user_auth_dialog.dart';
+import 'compression_benchmark_page.dart';
 import 'compression_tool_page.dart';
 import 'convert_tool_page.dart';
-import 'merge_tool_page.dart';
-import 'split_tool_page.dart';
-import 'pdf_edit_page.dart';
-import 'pdf_tools_page.dart';
-import 'compression_benchmark_page.dart';
 import 'launch_readiness_page.dart';
 import 'launch_runbook_page.dart';
-import 'post_launch_control_page.dart';
+import 'merge_tool_page.dart';
+import 'pdf_edit_page.dart';
 import 'plan_features_page.dart';
+import 'post_launch_control_page.dart';
+import 'split_tool_page.dart';
 import 'system_check_page.dart';
 import 'terms_conditions_page.dart';
 
@@ -422,7 +423,18 @@ class _HomePageV2State extends State<HomePageV2> {
   }
 
   Future<void> _openUserLoginPanel() async {
-    await _showQuickPanel(const _UserAccountPrivacySection());
+    if (UserAuthService.isSignedIn) {
+      if (!mounted) {
+        return;
+      }
+      Navigator.of(context).pushNamed('/dashboard');
+      return;
+    }
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => const UserAuthDialog(),
+    );
   }
 
   @override
@@ -436,16 +448,23 @@ class _HomePageV2State extends State<HomePageV2> {
       backgroundColor: const Color(0xFFF7F8FC),
 
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1F2937),
+        backgroundColor: const Color(0xFFF8FAFC),
+        foregroundColor: const Color(0xFF0F172A),
         centerTitle: true,
-        toolbarHeight: 64,
+        toolbarHeight: 72,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        shape: const RoundedRectangleBorder(
+          side: BorderSide(color: Color(0xFFE2E8F0), width: 1),
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
         actions: [
           TextButton.icon(
             onPressed: _openUserLoginPanel,
             icon: const Icon(Icons.person_outline_rounded, size: 16),
             label: const Text('User Login'),
             style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFFE9D5FF),
+              foregroundColor: const Color(0xFF334155),
               textStyle: const TextStyle(fontWeight: FontWeight.w700),
             ),
           ),
@@ -541,9 +560,9 @@ class _HomePageV2State extends State<HomePageV2> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.4,
+                    color: Color(0xFF0F172A),
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.1,
                   ),
                 ),
               ),
@@ -721,7 +740,7 @@ class _HomePageV2State extends State<HomePageV2> {
                   discountPercent: _pricingDiscountPercent,
                   selectedPlan: _selectedPlanForPayment,
                   usageType: _selectedUsageType,
-                  onPlanSelected: (plan) {
+                  onPlanSelected: (plan) async {
                     if (_selectedUsageType == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -730,9 +749,23 @@ class _HomePageV2State extends State<HomePageV2> {
                       );
                       return;
                     }
+
                     setState(() {
                       _selectedPlanForPayment = plan;
                     });
+
+                    if (UserAuthService.isSignedIn) {
+                      if (!mounted) {
+                        return;
+                      }
+                      Navigator.of(context).pushNamed('/dashboard', arguments: {'plan': plan});
+                      return;
+                    }
+
+                    await showDialog<void>(
+                      context: context,
+                      builder: (dialogContext) => UserAuthDialog(preselectedPlan: plan),
+                    );
                   },
                 ),
                 const SizedBox(height: 12),
@@ -1992,7 +2025,7 @@ class _IntegrationAppTile extends StatelessWidget {
             const Icon(
               Icons.arrow_forward_ios_rounded,
               size: 14,
-              color: Color(0xFF64748B),
+              color: Color(0xFF1D4ED8),
             ),
           ],
         ),
@@ -2394,7 +2427,10 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
                 ElevatedButton.icon(
                   onPressed: () {
                     Navigator.of(dialogContext).pop();
-                    Navigator.of(context).pushNamed('/admin');
+                    showDialog<void>(
+                      context: context,
+                      builder: (authContext) => const UserAuthDialog(),
+                    );
                   },
                   icon: const Icon(Icons.login_rounded),
                   label: const Text('Sign In / Register'),
@@ -2408,6 +2444,10 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
                 OutlinedButton.icon(
                   onPressed: () {
                     Navigator.of(dialogContext).pop();
+                    showDialog<void>(
+                      context: context,
+                      builder: (authContext) => const UserAuthDialog(),
+                    );
                   },
                   icon: const Icon(Icons.g_mobiledata_rounded),
                   label: const Text('Continue with Google'),
@@ -2845,6 +2885,7 @@ class _AdminLoginPanelState extends State<_AdminLoginPanel> {
   late final TextEditingController _adminIdController;
   final TextEditingController _passwordController = TextEditingController();
   String _status = 'Admin login required to open dashboard controls.';
+  bool _isPasswordVisible = false;
 
   @override
   void initState() {
@@ -2891,7 +2932,7 @@ class _AdminLoginPanelState extends State<_AdminLoginPanel> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'First login: ID rajesh.khola and password Rajesh@2026. After login, open Admin Login Settings to set your own password.',
+            'First login: ID Admin and password Admin@2026!. After login, open Admin Login Settings to set your own password.',
             style: TextStyle(
               fontSize: 11,
               color: Color(0xFF475569),
@@ -2922,7 +2963,7 @@ class _AdminLoginPanelState extends State<_AdminLoginPanel> {
           const SizedBox(height: 8),
           TextField(
             controller: _passwordController,
-            obscureText: true,
+            obscureText: !_isPasswordVisible,
             decoration: InputDecoration(
               labelText: 'Password',
               isDense: true,
@@ -2937,6 +2978,17 @@ class _AdminLoginPanelState extends State<_AdminLoginPanel> {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
                 borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+              ),
+              suffixIcon: IconButton(
+                onPressed: () {
+                  setState(() {
+                    _isPasswordVisible = !_isPasswordVisible;
+                  });
+                },
+                icon: Icon(
+                  _isPasswordVisible ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                  color: const Color(0xFF64748B),
+                ),
               ),
             ),
           ),
@@ -2981,6 +3033,7 @@ class _AdminCredentialsPanelState extends State<_AdminCredentialsPanel> {
   late final TextEditingController _adminIdController;
   final TextEditingController _passwordController = TextEditingController();
   String _status = 'Set your admin ID/password here. Leave password blank to keep existing one.';
+  bool _isPasswordVisible = false;
 
   @override
   void initState() {
@@ -3066,7 +3119,7 @@ class _AdminCredentialsPanelState extends State<_AdminCredentialsPanel> {
           const SizedBox(height: 8),
           TextField(
             controller: _passwordController,
-            obscureText: true,
+            obscureText: !_isPasswordVisible,
             decoration: InputDecoration(
               labelText: 'New Password (optional)',
               isDense: true,
@@ -3081,6 +3134,17 @@ class _AdminCredentialsPanelState extends State<_AdminCredentialsPanel> {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
                 borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+              ),
+              suffixIcon: IconButton(
+                onPressed: () {
+                  setState(() {
+                    _isPasswordVisible = !_isPasswordVisible;
+                  });
+                },
+                icon: Icon(
+                  _isPasswordVisible ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                  color: const Color(0xFF64748B),
+                ),
               ),
             ),
           ),
@@ -3171,7 +3235,7 @@ class _AdminSystemCheckPanel extends StatelessWidget {
                   Icon(
                     Icons.arrow_forward_ios_rounded,
                     size: 14,
-                    color: Color(0xFFF59E0B),
+                    color: Color(0xFF1D4ED8),
                   ),
                 ],
               ),
@@ -3237,7 +3301,7 @@ class _AdminBankAdsStatusPanel extends StatelessWidget {
                   Icon(
                     Icons.arrow_forward_ios_rounded,
                     size: 14,
-                    color: Color(0xFFF59E0B),
+                    color: Color(0xFF1D4ED8),
                   ),
                 ],
               ),
@@ -4050,9 +4114,9 @@ class _TopActionIcon extends StatelessWidget {
               width: 34,
               height: 34,
               decoration: BoxDecoration(
-                color: const Color(0xFF142033),
+                color: const Color(0xFFFFFFFF),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.white.withOpacity(0.18)),
+                border: Border.all(color: const Color(0xFFDCE7F5)),
               ),
               child: Icon(
                 icon,
@@ -5395,7 +5459,8 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
       return;
     }
 
-    final profile = UserAccountProfile(
+    final previousProfile = UserAccountService.getProfile();
+    final profile = previousProfile.copyWith(
       displayName: name,
       email: email,
       country: _selectedCountry,

@@ -69,7 +69,7 @@ class PdfToolCard extends StatelessWidget {
               const Icon(
                 Icons.arrow_forward_ios_rounded,
                 size: 16,
-                color: Color(0xFFD8E5F5),
+                color: Color(0xFF0E3A66),
               ),
             ],
           ),

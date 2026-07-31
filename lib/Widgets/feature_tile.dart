@@ -23,7 +23,10 @@ class FeatureTile extends StatelessWidget {
           color: Colors.blue,
         ),
         title: Text(title),
-        trailing: const Icon(Icons.arrow_forward_ios),
+        trailing: const Icon(
+          Icons.arrow_forward_ios,
+          color: Color(0xFF0E3A66),
+        ),
         onTap: onTap,
       ),
     );

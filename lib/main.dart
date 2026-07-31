@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:universal_html/html.dart' as html;
 import 'Widgets/feature_tile.dart';
 import 'Widgets/pricing_card.dart';
 import 'Widgets/pdf_tool_card.dart';
 import 'Services/public_brand_config.dart';
 import 'Pages/coming_soon_page.dart';
-import 'Pages/pdf_tools_page.dart';
 import 'Pages/home_page_v2.dart';
+import 'Pages/admin_dashboard_page.dart';
 import 'Pages/admin_gate_page.dart';
+import 'Pages/pdf_tools_page.dart';
 import 'Pages/system_check_page.dart';
+import 'Pages/user_dashboard_page.dart';
+import 'Widgets/deferred_route_page.dart';
 import 'main_v1_1.dart' as production;
 // ===============================
 // GLOBAL RESUME DATA MODEL
@@ -46,15 +50,30 @@ debugShowCheckedModeBanner: false,
 title: 'GETREADYJOB',
 theme: ThemeData(
 scaffoldBackgroundColor: const Color(0xFFF8F9FA),
+appBarTheme: const AppBarTheme(
+  backgroundColor: Color(0xFFF8FAFC),
+  foregroundColor: Color(0xFF0F172A),
+  elevation: 0,
+  surfaceTintColor: Colors.transparent,
+  titleTextStyle: TextStyle(
+    color: Color(0xFF0F172A),
+    fontSize: 18,
+    fontWeight: FontWeight.w800,
+    letterSpacing: 0.2,
+  ),
+  iconTheme: IconThemeData(color: Color(0xFF334155)),
+),
 useMaterial3: true,
 ),
 initialRoute: '/',
 routes: {
   '/': (_) => const HomePageV2(),
   '/home': (_) => const HomePageV2(),
-  '/admin': (_) => const AdminGatePage(targetRoute: '/system-check'),
+  '/admin': (_) => const AdminGatePage(targetRoute: '/admin-dashboard'),
+  '/admin-dashboard': (_) => const AdminDashboardPage(),
   '/coming-soon': (_) => const ComingSoonPage(),
   '/system-check': (_) => const SystemCheckPage(),
+  '/dashboard': (_) => const UserDashboardPage(),
 },
 );
 }
@@ -75,15 +94,21 @@ content: Text('$title feature coming soon'),
 Widget build(BuildContext context) {
 return Scaffold(
 appBar: AppBar(
-  backgroundColor: const Color(0xFF1F2937),
+  backgroundColor: const Color(0xFFF8FAFC),
+  foregroundColor: const Color(0xFF0F172A),
   centerTitle: true,
-
-    title: const Text(
+  elevation: 0,
+  surfaceTintColor: Colors.transparent,
+  shape: const RoundedRectangleBorder(
+    side: BorderSide(color: Color(0xFFE2E8F0), width: 1),
+    borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
+  ),
+  title: const Text(
     'GETREADYJOB',
     style: TextStyle(
-      color: Colors.white,
-      fontWeight: FontWeight.bold,
-      letterSpacing: 1.5,
+      color: Color(0xFF0F172A),
+      fontWeight: FontWeight.w800,
+      letterSpacing: 1.2,
     ),
   ),
 ),
@@ -191,157 +216,178 @@ children: [
 
               SizedBox(height: 24),
 
-              Container(
-height: 600,
-child: GridView.count(
-crossAxisCount: 2,
-shrinkWrap: true,
-physics: const NeverScrollableScrollPhysics(),
-crossAxisSpacing: 12,
-mainAxisSpacing: 12,
-childAspectRatio: 2.5,
-children: [
-InkWell(
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const PdfToolsPage(),
-      ),
-    );
-  },
-  child: Card(
-    elevation: 10,
-    color: const Color(0xFFFFF0F0),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: Column(
-  mainAxisAlignment: MainAxisAlignment.center,
-  children: const [
-    SizedBox(height: 4),
-Icon(Icons.picture_as_pdf, size: 35, color: Colors.red),
-SizedBox(height: 2),
-Text(
-'PDF Tools',
-style: TextStyle(fontWeight: FontWeight.bold),
-),
-Text('Convert & Edit'),
-],
-),
-),
-),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final width = constraints.maxWidth;
+                  final crossAxisCount = width >= 1100
+                      ? 3
+                      : width >= 700
+                          ? 2
+                          : 1;
+                  final childAspectRatio = width >= 1100
+                      ? 1.25
+                      : width >= 700
+                          ? 1.1
+                          : 1.05;
 
-  InkWell(
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const PhotoToolsPage(),
-      ),
-    );
-  },
-  child: Card(
-    elevation: 10,
-    color: const Color(0xFFF0FFF4),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: const [
-        SizedBox(height: 4),
-        Icon(
-          Icons.photo,
-          size: 35,
-          color: Colors.green,
-        ),
-        SizedBox(height: 2),
-        Text(
-          'Photo Tools',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        Text('Resize & Repair'),
-      ],
-    ),
-  ),
-),
-
-  InkWell(
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const DocumentsPage(),
-      ),
-    );
-  },
-  child: Card(
-    elevation: 10,
-    color: const Color(0xFFF0F8FF),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: const [
-        SizedBox(height: 4),
-        Icon(Icons.folder,
-            size: 35,
-            color: Colors.blue),
-        SizedBox(height: 2),
-        Text(
-          'Documents',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        Text('Organize Files'),
-      ],
-    ),
-  ),
-),
-
-  InkWell(
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const CareerToolsPage(),
-      ),
-    );
-  },
-  child: Card(
-    elevation: 10,
-    color: const Color(0xFFFFF8E8),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: const [
-        SizedBox(height: 4),
-        Icon(Icons.work,
-            size: 35,
-            color: Colors.orange),
-        SizedBox(height: 2),
-        Text(
-          'Career Tools',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        Text('Resume & Jobs'),
-      ],
-    ),
-  ),
-),
-],
-
-),
-),
+                  return GridView.count(
+                    crossAxisCount: crossAxisCount,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: childAspectRatio,
+                    children: [
+                      InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PdfToolsPage(),
+                            ),
+                          );
+                        },
+                        child: Card(
+                          elevation: 10,
+                          color: const Color(0xFFFFF0F0),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                SizedBox(height: 4),
+                                Icon(Icons.picture_as_pdf, size: 34, color: Colors.red),
+                                SizedBox(height: 8),
+                                Text(
+                                  'PDF Tools',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                SizedBox(height: 4),
+                                Text('Convert & Edit'),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const PhotoToolsPage(),
+                            ),
+                          );
+                        },
+                        child: Card(
+                          elevation: 10,
+                          color: const Color(0xFFF0FFF4),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                SizedBox(height: 4),
+                                Icon(
+                                  Icons.photo,
+                                  size: 34,
+                                  color: Colors.green,
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  'Photo Tools',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text('Resize & Repair'),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const DocumentsPage(),
+                            ),
+                          );
+                        },
+                        child: Card(
+                          elevation: 10,
+                          color: const Color(0xFFF0F8FF),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                SizedBox(height: 4),
+                                Icon(Icons.folder, size: 34, color: Colors.blue),
+                                SizedBox(height: 8),
+                                Text(
+                                  'Documents',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text('Organize Files'),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const CareerToolsPage(),
+                            ),
+                          );
+                        },
+                        child: Card(
+                          elevation: 10,
+                          color: const Color(0xFFFFF8E8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                SizedBox(height: 4),
+                                Icon(Icons.work, size: 34, color: Colors.orange),
+                                SizedBox(height: 8),
+                                Text(
+                                  'Career Tools',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text('Resume & Jobs'),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
 
             ],
           ),
@@ -515,9 +561,45 @@ const SizedBox(height: 25),
                     ),
                   ),
                   const SizedBox(height: 10),
-                  Text('Website: ${PublicBrandConfig.websiteDomain}'),
-                  const Text('WhatsApp: +91 98991 15572'),
-                  Text('Email: ${PublicBrandConfig.supportEmail}'),
+                  GestureDetector(
+                    onTap: () => html.window.open('https://${PublicBrandConfig.websiteDomain}', '_blank'),
+                    child: Text(
+                      'Website: ${PublicBrandConfig.websiteDomain}',
+                      style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  GestureDetector(
+                    onTap: () => html.window.open('https://wa.me/919899115572', '_blank'),
+                    child: const Text(
+                      'WhatsApp: +91 98991 15572',
+                      style: TextStyle(color: Colors.green, decoration: TextDecoration.underline),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  GestureDetector(
+                    onTap: () => html.window.open(PublicBrandConfig.supportEmailMailto, '_blank'),
+                    child: Text(
+                      'Email: ${PublicBrandConfig.supportEmail}',
+                      style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  GestureDetector(
+                    onTap: () => html.window.open('https://drive.google.com/drive/folders/1c2V1gT-WaZR4Rjjs7I6thY6rBfVg6x0i?usp=sharing', '_blank'),
+                    child: const Text(
+                      'Google Drive: Open shared folder',
+                      style: TextStyle(color: Colors.deepPurple, decoration: TextDecoration.underline),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  GestureDetector(
+                    onTap: () => html.window.open('https://1drv.ms/f/s!AmL6MhJlUrGJg_n5Qx5NQk6kH8Rr6A?e=0kCR8v', '_blank'),
+                    child: const Text(
+                      'OneDrive: Open shared folder',
+                      style: TextStyle(color: Colors.indigo, decoration: TextDecoration.underline),
+                    ),
+                  ),
                 ],
               ),
             ),

@@ -1,0 +1,332 @@
+import 'dart:convert';
+
+import 'package:universal_html/html.dart' as html;
+
+import 'user_account_service.dart';
+
+class UserAuthSession {
+  final String uid;
+  final String displayName;
+  final String email;
+  final String country;
+  final String countryCode;
+  final String mobileNumber;
+  final String authMethod;
+  final bool isEmailVerified;
+  final DateTime createdAt;
+  final DateTime lastLoginAt;
+
+  const UserAuthSession({
+    required this.uid,
+    required this.displayName,
+    required this.email,
+    required this.country,
+    required this.countryCode,
+    required this.mobileNumber,
+    required this.authMethod,
+    required this.isEmailVerified,
+    required this.createdAt,
+    required this.lastLoginAt,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'uid': uid,
+      'display_name': displayName,
+      'email': email,
+      'country': country,
+      'country_code': countryCode,
+      'mobile_number': mobileNumber,
+      'auth_method': authMethod,
+      'is_email_verified': isEmailVerified,
+      'created_at': createdAt.toIso8601String(),
+      'last_login_at': lastLoginAt.toIso8601String(),
+    };
+  }
+
+  factory UserAuthSession.fromMap(Map<String, dynamic> map) {
+    return UserAuthSession(
+      uid: map['uid']?.toString() ?? '',
+      displayName: map['display_name']?.toString() ?? '',
+      email: map['email']?.toString() ?? '',
+      country: map['country']?.toString() ?? 'India',
+      countryCode: map['country_code']?.toString() ?? '+91',
+      mobileNumber: map['mobile_number']?.toString() ?? '',
+      authMethod: map['auth_method']?.toString() ?? 'email',
+      isEmailVerified: map['is_email_verified'] == true,
+      createdAt: DateTime.tryParse(map['created_at']?.toString() ?? '') ?? DateTime.now(),
+      lastLoginAt: DateTime.tryParse(map['last_login_at']?.toString() ?? '') ?? DateTime.now(),
+    );
+  }
+}
+
+class UserAuthService {
+  static const String _sessionStorageKey = 'jobready_auth_session_v2';
+  static const String _accountsStorageKey = 'jobready_auth_accounts_v2';
+  static const String _passwordResetStorageKey = 'jobready_auth_password_resets_v2';
+
+  static bool get isSignedIn => getSession() != null;
+
+  static UserAuthSession? getSession() {
+    final raw = html.window.localStorage[_sessionStorageKey];
+    if (raw == null || raw.trim().isEmpty) {
+      return null;
+    }
+
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) {
+        return null;
+      }
+      return UserAuthSession.fromMap(Map<String, dynamic>.from(decoded));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<UserAuthSession?> signInWithEmailPassword(String email, String password) async {
+    final normalizedEmail = _normalizeEmail(email);
+    if (normalizedEmail.isEmpty || password.trim().isEmpty) {
+      return null;
+    }
+
+    final accounts = _readAccounts();
+    final rawAccount = accounts[normalizedEmail];
+    if (rawAccount is! Map) {
+      return null;
+    }
+
+    final storedHash = rawAccount['password_hash']?.toString();
+    if (!_passwordMatches(password, storedHash)) {
+      return null;
+    }
+
+    final session = UserAuthSession(
+      uid: rawAccount['uid']?.toString() ?? 'local-${DateTime.now().microsecondsSinceEpoch}',
+      displayName: rawAccount['display_name']?.toString() ?? 'User',
+      email: normalizedEmail,
+      country: rawAccount['country']?.toString() ?? 'India',
+      countryCode: rawAccount['country_code']?.toString() ?? '+91',
+      mobileNumber: rawAccount['mobile_number']?.toString() ?? '',
+      authMethod: rawAccount['auth_method']?.toString() ?? 'email',
+      isEmailVerified: true,
+      createdAt: DateTime.tryParse(rawAccount['created_at']?.toString() ?? '') ?? DateTime.now(),
+      lastLoginAt: DateTime.now(),
+    );
+
+    await _persistSession(session);
+    await _updateProfileFromSession(session);
+    return session;
+  }
+
+  static Future<UserAuthSession?> signUpWithEmailPassword({
+    required String displayName,
+    required String email,
+    required String password,
+    required String country,
+    required String countryCode,
+    required String mobileNumber,
+  }) async {
+    final normalizedEmail = _normalizeEmail(email);
+    if (normalizedEmail.isEmpty || displayName.trim().isEmpty || password.trim().isEmpty) {
+      return null;
+    }
+
+    final accounts = _readAccounts();
+    if (accounts.containsKey(normalizedEmail)) {
+      return signInWithEmailPassword(normalizedEmail, password);
+    }
+
+    final session = UserAuthSession(
+      uid: 'local-${DateTime.now().microsecondsSinceEpoch}',
+      displayName: displayName.trim(),
+      email: normalizedEmail,
+      country: country.trim().isNotEmpty ? country : 'India',
+      countryCode: countryCode.trim().isNotEmpty ? countryCode : '+91',
+      mobileNumber: mobileNumber.trim(),
+      authMethod: 'email',
+      isEmailVerified: true,
+      createdAt: DateTime.now(),
+      lastLoginAt: DateTime.now(),
+    );
+
+    final accountEntry = {
+      'uid': session.uid,
+      'display_name': session.displayName,
+      'email': normalizedEmail,
+      'country': session.country,
+      'country_code': session.countryCode,
+      'mobile_number': session.mobileNumber,
+      'auth_method': 'email',
+      'password_hash': _hashPassword(password),
+      'created_at': session.createdAt.toIso8601String(),
+      'last_login_at': session.lastLoginAt.toIso8601String(),
+    };
+
+    accounts[normalizedEmail] = accountEntry;
+    await _saveAccounts(accounts);
+    await _persistSession(session);
+    await _updateProfileFromSession(session);
+    return session;
+  }
+
+  static Future<UserAuthSession?> signInWithGoogle({
+    required String email,
+    String? displayName,
+    String? country,
+    String? countryCode,
+    String? mobileNumber,
+  }) async {
+    final normalizedEmail = _normalizeEmail(email);
+    if (normalizedEmail.isEmpty) {
+      return null;
+    }
+
+    final accounts = _readAccounts();
+    final existing = accounts[normalizedEmail];
+    final session = UserAuthSession(
+      uid: existing is Map ? existing['uid']?.toString() ?? 'local-${DateTime.now().microsecondsSinceEpoch}' : 'local-${DateTime.now().microsecondsSinceEpoch}',
+      displayName: displayName?.trim().isNotEmpty == true ? displayName!.trim() : 'Google User',
+      email: normalizedEmail,
+      country: country?.trim().isNotEmpty == true ? country! : 'India',
+      countryCode: countryCode?.trim().isNotEmpty == true ? countryCode! : '+91',
+      mobileNumber: mobileNumber?.trim() ?? '',
+      authMethod: 'google',
+      isEmailVerified: true,
+      createdAt: existing is Map ? DateTime.tryParse(existing['created_at']?.toString() ?? '') ?? DateTime.now() : DateTime.now(),
+      lastLoginAt: DateTime.now(),
+    );
+
+    final accountEntry = {
+      'uid': session.uid,
+      'display_name': session.displayName,
+      'email': normalizedEmail,
+      'country': session.country,
+      'country_code': session.countryCode,
+      'mobile_number': session.mobileNumber,
+      'auth_method': 'google',
+      'password_hash': null,
+      'created_at': session.createdAt.toIso8601String(),
+      'last_login_at': session.lastLoginAt.toIso8601String(),
+    };
+
+    accounts[normalizedEmail] = accountEntry;
+    await _saveAccounts(accounts);
+    await _persistSession(session);
+    await _updateProfileFromSession(session);
+    return session;
+  }
+
+  static Future<bool> requestPasswordReset(String email) async {
+    final normalizedEmail = _normalizeEmail(email);
+    if (normalizedEmail.isEmpty) {
+      return false;
+    }
+
+    final accounts = _readAccounts();
+    if (!accounts.containsKey(normalizedEmail)) {
+      return false;
+    }
+
+    html.window.localStorage[_passwordResetStorageKey] = jsonEncode({
+      'email': normalizedEmail,
+      'requested_at': DateTime.now().toIso8601String(),
+    });
+    return true;
+  }
+
+  static Future<bool> updatePassword(String currentPassword, String newPassword) async {
+    final session = getSession();
+    if (session == null) {
+      return false;
+    }
+
+    final normalizedEmail = _normalizeEmail(session.email);
+    if (normalizedEmail.isEmpty || newPassword.trim().isEmpty) {
+      return false;
+    }
+
+    final accounts = _readAccounts();
+    final rawAccount = accounts[normalizedEmail];
+    if (rawAccount is! Map) {
+      return false;
+    }
+
+    if (rawAccount['auth_method']?.toString() == 'google') {
+      return false;
+    }
+
+    if (!_passwordMatches(currentPassword, rawAccount['password_hash']?.toString())) {
+      return false;
+    }
+
+    rawAccount['password_hash'] = _hashPassword(newPassword);
+    accounts[normalizedEmail] = rawAccount;
+    await _saveAccounts(accounts);
+    return true;
+  }
+
+  static Future<void> signOut() async {
+    html.window.localStorage.remove(_sessionStorageKey);
+  }
+
+  static Future<void> reset() async {
+    html.window.localStorage.remove(_sessionStorageKey);
+    html.window.localStorage.remove(_accountsStorageKey);
+    html.window.localStorage.remove(_passwordResetStorageKey);
+  }
+
+  static Future<void> _persistSession(UserAuthSession session) async {
+    html.window.localStorage[_sessionStorageKey] = jsonEncode(session.toMap());
+  }
+
+  static Future<void> _saveAccounts(Map<String, dynamic> accounts) async {
+    html.window.localStorage[_accountsStorageKey] = jsonEncode(accounts);
+  }
+
+  static Map<String, dynamic> _readAccounts() {
+    final raw = html.window.localStorage[_accountsStorageKey];
+    if (raw == null || raw.trim().isEmpty) {
+      return <String, dynamic>{};
+    }
+
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) {
+        return <String, dynamic>{};
+      }
+      return Map<String, dynamic>.from(decoded);
+    } catch (_) {
+      return <String, dynamic>{};
+    }
+  }
+
+  static Future<void> _updateProfileFromSession(UserAuthSession session) async {
+    final profile = UserAccountService.getProfile();
+    await UserAccountService.saveProfile(
+      profile.copyWith(
+        displayName: session.displayName,
+        email: session.email,
+        country: session.country,
+        countryCode: session.countryCode,
+        mobileNumber: session.mobileNumber,
+        googleLoginPreferred: session.authMethod == 'google',
+      ),
+    );
+  }
+
+  static String _normalizeEmail(String email) {
+    return email.trim().toLowerCase();
+  }
+
+  static String _hashPassword(String password) {
+    return base64Encode(utf8.encode(password));
+  }
+
+  static bool _passwordMatches(String password, String? storedHash) {
+    if (storedHash == null || storedHash.trim().isEmpty) {
+      return false;
+    }
+    return _hashPassword(password) == storedHash;
+  }
+}

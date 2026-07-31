@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../Services/auth_router_service.dart';
 import '../Services/owner_admin_access_service.dart';
 
 class AdminGatePage extends StatefulWidget {
@@ -20,6 +21,7 @@ class _AdminGatePageState extends State<AdminGatePage> {
   );
   final TextEditingController _passwordController = TextEditingController();
   String? _errorText;
+  bool _isPasswordVisible = false;
 
   @override
   void initState() {
@@ -53,7 +55,9 @@ class _AdminGatePageState extends State<AdminGatePage> {
       _passwordController.text,
     );
     if (ok) {
-      Navigator.of(context).pushReplacementNamed(widget.targetRoute);
+      AuthRouterService.markAdminAuthenticated(authToken: 'admin-session');
+      final targetRoute = widget.targetRoute.isNotEmpty ? widget.targetRoute : '/admin-dashboard';
+      Navigator.of(context).pushNamedAndRemoveUntil(targetRoute, (route) => false);
       return;
     }
 
@@ -67,11 +71,22 @@ class _AdminGatePageState extends State<AdminGatePage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F4EE),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF183A5B),
-        foregroundColor: Colors.white,
+        backgroundColor: const Color(0xFFF8FAFC),
+        foregroundColor: const Color(0xFF0F172A),
         elevation: 0,
-        title: const Text('Owner Admin Access'),
+        surfaceTintColor: Colors.transparent,
+        titleSpacing: 16,
+        title: const Text(
+          'Owner Admin Access',
+          style: TextStyle(
+            color: Color(0xFF0F172A),
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.2,
+          ),
+        ),
         shape: const RoundedRectangleBorder(
+          side: BorderSide(color: Color(0xFFE2E8F0), width: 1),
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
         ),
       ),
@@ -122,7 +137,7 @@ class _AdminGatePageState extends State<AdminGatePage> {
                     ),
                     const SizedBox(height: 10),
                     const Text(
-                      'Enter your admin credentials to continue into the system check and release tools.',
+                      'Enter your admin credentials to continue into the system check and release tools. Use Admin / Admin@2026! by default.',
                       style: TextStyle(
                         fontSize: 13,
                         height: 1.5,
@@ -160,7 +175,7 @@ class _AdminGatePageState extends State<AdminGatePage> {
                     const SizedBox(height: 12),
                     TextField(
                       controller: _passwordController,
-                      obscureText: true,
+                      obscureText: !_isPasswordVisible,
                       onChanged: (_) {
                         if (_errorText != null) {
                           setState(() {
@@ -184,6 +199,17 @@ class _AdminGatePageState extends State<AdminGatePage> {
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
                           borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+                        ),
+                        suffixIcon: IconButton(
+                          onPressed: () {
+                            setState(() {
+                              _isPasswordVisible = !_isPasswordVisible;
+                            });
+                          },
+                          icon: Icon(
+                            _isPasswordVisible ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                            color: const Color(0xFF64748B),
+                          ),
                         ),
                       ),
                     ),

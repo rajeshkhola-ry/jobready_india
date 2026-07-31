@@ -10,6 +10,13 @@ class UserAccountProfile {
   final String mobileNumber;
   final bool historyEnabled;
   final bool googleLoginPreferred;
+  final String activePlan;
+  final String planStatus;
+  final int remainingCredits;
+  final int convertedFilesCount;
+  final String planCurrency;
+  final double planPrice;
+  final String planSummary;
 
   const UserAccountProfile({
     required this.displayName,
@@ -19,6 +26,13 @@ class UserAccountProfile {
     required this.mobileNumber,
     required this.historyEnabled,
     required this.googleLoginPreferred,
+    required this.activePlan,
+    required this.planStatus,
+    required this.remainingCredits,
+    required this.convertedFilesCount,
+    required this.planCurrency,
+    required this.planPrice,
+    required this.planSummary,
   });
 
   factory UserAccountProfile.initial() {
@@ -30,6 +44,13 @@ class UserAccountProfile {
       mobileNumber: '',
       historyEnabled: true,
       googleLoginPreferred: false,
+      activePlan: 'Free',
+      planStatus: 'Active',
+      remainingCredits: 3,
+      convertedFilesCount: 0,
+      planCurrency: 'USD',
+      planPrice: 0.0,
+      planSummary: 'Free access to core tools',
     );
   }
 
@@ -41,6 +62,13 @@ class UserAccountProfile {
     String? mobileNumber,
     bool? historyEnabled,
     bool? googleLoginPreferred,
+    String? activePlan,
+    String? planStatus,
+    int? remainingCredits,
+    int? convertedFilesCount,
+    String? planCurrency,
+    double? planPrice,
+    String? planSummary,
   }) {
     return UserAccountProfile(
       displayName: displayName ?? this.displayName,
@@ -50,6 +78,13 @@ class UserAccountProfile {
       mobileNumber: mobileNumber ?? this.mobileNumber,
       historyEnabled: historyEnabled ?? this.historyEnabled,
       googleLoginPreferred: googleLoginPreferred ?? this.googleLoginPreferred,
+      activePlan: activePlan ?? this.activePlan,
+      planStatus: planStatus ?? this.planStatus,
+      remainingCredits: remainingCredits ?? this.remainingCredits,
+      convertedFilesCount: convertedFilesCount ?? this.convertedFilesCount,
+      planCurrency: planCurrency ?? this.planCurrency,
+      planPrice: planPrice ?? this.planPrice,
+      planSummary: planSummary ?? this.planSummary,
     );
   }
 
@@ -62,6 +97,13 @@ class UserAccountProfile {
       'mobile_number': mobileNumber,
       'history_enabled': historyEnabled,
       'google_login_preferred': googleLoginPreferred,
+      'active_plan': activePlan,
+      'plan_status': planStatus,
+      'remaining_credits': remainingCredits,
+      'converted_files_count': convertedFilesCount,
+      'plan_currency': planCurrency,
+      'plan_price': planPrice,
+      'plan_summary': planSummary,
     };
   }
 
@@ -78,6 +120,13 @@ class UserAccountProfile {
       mobileNumber: map['mobile_number']?.toString() ?? '',
       historyEnabled: map['history_enabled'] == true,
       googleLoginPreferred: map['google_login_preferred'] == true,
+      activePlan: map['active_plan']?.toString() ?? 'Free',
+      planStatus: map['plan_status']?.toString() ?? 'Active',
+      remainingCredits: int.tryParse(map['remaining_credits']?.toString() ?? '') ?? 3,
+      convertedFilesCount: int.tryParse(map['converted_files_count']?.toString() ?? '') ?? 0,
+      planCurrency: map['plan_currency']?.toString() ?? 'USD',
+      planPrice: double.tryParse(map['plan_price']?.toString() ?? '') ?? 0.0,
+      planSummary: map['plan_summary']?.toString() ?? 'Free access to core tools',
     );
   }
 }
