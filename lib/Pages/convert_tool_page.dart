@@ -1,8 +1,11 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:archive/archive.dart';
 import 'package:flutter/material.dart';
-import 'dart:typed_data';
+import 'package:universal_html/html.dart' as html;
 import '../Widgets/download_result_dialog.dart';
 import '../Widgets/apple_button.dart';
+import '../Widgets/advanced_conversion_result_dialog.dart';
 import '../Widgets/production_footer.dart';
 import '../Widgets/quota_gate.dart';
 import '../Widgets/tool_guidance_panel.dart';
@@ -27,7 +30,9 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
   String? _selectedOutputFormat;
   bool _isConverting = false;
   String _statusMessage = 'Select input, output, and file to convert';
-
+  bool _showIntentPopup = false;
+  String? _pendingIntentFormat;
+  Set<String> _selectedIntentActions = <String>{};
   List<PickedFileData> _selectedFiles = [];
   Uint8List? _selectedFile;
   String? _selectedFileName;
@@ -60,6 +65,7 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
   void initState() {
     super.initState();
     _hydrateFromHomeUpload();
+    _applyConverterSeoMetadata();
   }
 
   void _hydrateFromHomeUpload() {
@@ -129,6 +135,108 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
     }
 
     return true;
+  }
+
+  void _applyConverterSeoMetadata() {
+    final document = html.document;
+    final head = document.head;
+    if (head == null) {
+      return;
+    }
+
+    const title = 'Free AI Resume Converter & ATS Formatter India | PDF to Word & ATS Scan';
+    const description = 'Convert resume PDF to Word, extract ATS text, and format bio-data instantly. 100% Free & Secure Online Resume Converter for Indian Job Seekers.';
+    const keywords = 'resume converter India, PDF to Word India, ATS formatter, ATS scan, bio-data converter, free online resume converter';
+    const url = 'https://getreadyjob.com/convert';
+
+    document.title = title;
+    _upsertMetaTag(name: 'description', content: description);
+    _upsertMetaTag(name: 'keywords', content: keywords);
+    _upsertMetaTag(property: 'og:title', content: title);
+    _upsertMetaTag(property: 'og:description', content: description);
+    _upsertMetaTag(property: 'og:url', content: url);
+    _upsertMetaTag(name: 'twitter:title', content: title);
+    _upsertMetaTag(name: 'twitter:description', content: description);
+
+    _upsertLinkTag(rel: 'canonical', href: url);
+    _upsertLinkTag(rel: 'alternate', href: url, hreflang: 'x-default');
+    _upsertLinkTag(rel: 'alternate', href: 'https://getreadyjob.com/en-in/convert', hreflang: 'en-in');
+
+    _upsertJsonLdScript(
+      json: {
+        '@context': 'https://schema.org',
+        '@type': 'WebApplication',
+        'name': 'Free AI Resume Converter & ATS Formatter India',
+        'url': url,
+        'applicationCategory': 'BusinessApplication',
+        'operatingSystem': 'Web',
+        'description': description,
+        'areaServed': {
+          '@type': 'Country',
+          'name': 'India',
+        },
+        'audience': {
+          '@type': 'Audience',
+          'audienceType': 'Indian job seekers and professionals',
+        },
+        'offers': {
+          '@type': 'Offer',
+          'price': '0',
+          'priceCurrency': 'USD',
+        },
+      },
+    );
+  }
+
+  void _upsertMetaTag({String? name, String? property, required String content}) {
+    final selector = name != null
+        ? 'meta[name="$name"]'
+        : 'meta[property="$property"]';
+    final existing = html.document.querySelector(selector);
+    if (existing != null) {
+      existing.setAttribute('content', content);
+      return;
+    }
+
+    final meta = html.MetaElement();
+    if (name != null) {
+      meta.setAttribute('name', name);
+    }
+    if (property != null) {
+      meta.setAttribute('property', property);
+    }
+    meta.setAttribute('content', content);
+    html.document.head!.append(meta);
+  }
+
+  void _upsertLinkTag({required String rel, required String href, String? hreflang}) {
+    final selector = hreflang != null
+        ? 'link[rel="$rel"][hreflang="$hreflang"]'
+        : 'link[rel="$rel"]';
+    final existing = html.document.querySelector(selector);
+    if (existing != null) {
+      existing.setAttribute('href', href);
+      return;
+    }
+
+    final link = html.LinkElement()
+      ..setAttribute('rel', rel)
+      ..setAttribute('href', href);
+    if (hreflang != null) {
+      link.setAttribute('hreflang', hreflang);
+    }
+    html.document.head!.append(link);
+  }
+
+  void _upsertJsonLdScript({required Map<String, dynamic> json}) {
+    final existing = html.document.querySelector('script[data-seo-converter="true"]');
+    existing?.remove();
+
+    final script = html.ScriptElement();
+    script.type = 'application/ld+json';
+    script.setAttribute('data-seo-converter', 'true');
+    script.text = jsonEncode(json);
+    html.document.head!.append(script);
   }
 
   @override
@@ -343,6 +451,10 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
                         ),
                       ),
                     ],
+                    if (_showIntentPopup) ...[
+                      const SizedBox(height: 16),
+                      _buildIntentPopup(),
+                    ],
                     const SizedBox(height: 16),
                     const ToolGuidancePanel(
                       title: 'About Convert File',
@@ -451,6 +563,290 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
         ],
       ),
     );
+  }
+
+  Widget _buildIntentPopup() {
+    if (_selectedFiles.isEmpty || _pendingIntentFormat == null) {
+      return const SizedBox.shrink();
+    }
+
+    final supportedActions = _getActionsForFormat(_pendingIntentFormat!);
+    final selectionLabel = _selectedFiles.length == 1
+        ? '1 file queued'
+        : '${_selectedFiles.length} files queued';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFD5E4F3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.fact_check_rounded, color: Color(0xFF1F4E79)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Advanced Intent & Processing',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '$selectionLabel • Choose the best action for each file type.',
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+          ),
+          const SizedBox(height: 12),
+          ..._selectedFiles.map((file) => _buildIntentFileCard(file)).toList(),
+          const SizedBox(height: 12),
+          Text(
+            'Available actions for ${_pendingIntentFormat!}',
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF1F4E79)),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: supportedActions.map((action) {
+              final selected = _selectedIntentActions.contains(action);
+              return FilterChip(
+                label: Text(action),
+                selected: selected,
+                selectedColor: const Color(0xFFFFC72C).withOpacity(0.24),
+                checkmarkColor: const Color(0xFF1F4E79),
+                onSelected: (value) {
+                  setState(() {
+                    if (value) {
+                      _selectedIntentActions.add(action);
+                    } else {
+                      _selectedIntentActions.remove(action);
+                    }
+                  });
+                },
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _selectedIntentActions.isEmpty ? null : () async {
+                    await _executeIntentConversion();
+                  },
+                  icon: const Icon(Icons.play_arrow_rounded),
+                  label: const Text('Convert Selected Files'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1F4E79),
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton(
+                onPressed: () {
+                  setState(() {
+                    _showIntentPopup = false;
+                    _selectedIntentActions = <String>{};
+                  });
+                },
+                child: const Text('Continue'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'If you want to do manually, select Continue.',
+            style: TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIntentFileCard(PickedFileData file) {
+    final formatLabel = _getDisplayFormat(file.name);
+    final sizeLabel = _formatBytes(file.size);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.insert_drive_file_rounded, color: Color(0xFF1F4E79)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  file.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '$formatLabel • $sizeLabel',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<String> _getActionsForFormat(String format) {
+    switch (format) {
+      case 'PDF':
+        return [
+          'PDF to Word',
+          'Edit PDF',
+          'Compress PDF',
+          'Split PDF',
+          'Merge PDF',
+          'Extract Text',
+          'OCR PDF',
+        ];
+      case 'Excel':
+        return [
+          'Excel to PDF',
+          'Excel to CSV',
+          'Excel to JSON',
+          'Clean Data',
+        ];
+      case 'Word':
+        return [
+          'Word to PDF',
+          'Word to Text',
+          'Word to PowerPoint',
+        ];
+      case 'Image':
+        return [
+          'Image to PDF',
+          'Image to JPG',
+          'Image to PNG',
+          'Image to WebP',
+        ];
+      case 'PowerPoint':
+        return [
+          'PPT to PDF',
+          'PPT to Word',
+        ];
+      default:
+        return [
+          'Convert to PDF',
+          'Convert to Text',
+        ];
+    }
+  }
+
+  String _getDisplayFormat(String fileName) {
+    final extension = fileName.split('.').last.toLowerCase();
+    switch (extension) {
+      case 'pdf':
+        return 'PDF';
+      case 'doc':
+      case 'docx':
+        return 'Word';
+      case 'xls':
+      case 'xlsx':
+      case 'csv':
+        return 'Excel';
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'webp':
+      case 'bmp':
+        return 'Image';
+      case 'ppt':
+      case 'pptx':
+        return 'PowerPoint';
+      default:
+        return 'File';
+    }
+  }
+
+  Future<void> _executeIntentConversion() async {
+    if (_selectedIntentActions.isEmpty || _selectedFiles.isEmpty) {
+      return;
+    }
+
+    final chosenAction = _selectedIntentActions.first;
+    String outputFormat = _selectedOutputFormat ?? 'PDF (.pdf)';
+    if (chosenAction.contains('Word')) {
+      outputFormat = 'Word (.docx)';
+    } else if (chosenAction.contains('Text')) {
+      outputFormat = 'Text (.txt)';
+    } else if (chosenAction.contains('CSV')) {
+      outputFormat = 'CSV (.csv)';
+    } else if (chosenAction.contains('JSON')) {
+      outputFormat = 'Text (.txt)';
+    } else if (chosenAction.contains('PDF')) {
+      outputFormat = 'PDF (.pdf)';
+    }
+
+    setState(() {
+      _showIntentPopup = false;
+      _isConverting = true;
+      _selectedOutputFormat = outputFormat;
+      _statusMessage = 'Preparing selected files for conversion...';
+    });
+
+    final artifacts = <ConversionArtifact>[];
+    try {
+      for (final file in _selectedFiles) {
+        final result = await _conversionService.convert(
+          inputBytes: file.bytes,
+          inputFileName: file.name,
+          outputFormat: outputFormat,
+        );
+        if (!result.success || result.outputBytes == null || result.outputFileName == null) {
+          continue;
+        }
+        artifacts.add(
+          ConversionArtifact(
+            sourceFileName: file.name,
+            outputFormat: outputFormat,
+            fileName: result.outputFileName!,
+            outputBytes: Uint8List.fromList(result.outputBytes!.toList()),
+            message: result.message,
+          ),
+        );
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _isConverting = false;
+        _statusMessage = artifacts.isEmpty ? 'No files were converted successfully.' : 'Conversion completed.';
+      });
+
+      if (artifacts.isNotEmpty) {
+        await showDialog(
+          context: context,
+          builder: (_) => AdvancedConversionResultDialog(artifacts: artifacts),
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isConverting = false;
+        _statusMessage = 'Conversion could not be completed.';
+      });
+    }
   }
 
   Widget _buildUploadPanel() {
@@ -831,14 +1227,29 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
         }
         return;
       }
-      setState(() {
-        _selectedFiles = files;
-        _selectedFile = files.first.bytes;
-        _selectedFileName = files.first.name;
-        _statusMessage = files.length == 1
-        ? 'File selected. Tap Start Convert to continue.'
-        : '${files.length} files selected. Tap Start Convert to continue.';
-      });
+      final effectiveInput = _selectedInputFormat;
+      if (effectiveInput != null && files.isNotEmpty) {
+        setState(() {
+          _selectedFiles = files;
+          _selectedFile = files.first.bytes;
+          _selectedFileName = files.first.name;
+          _statusMessage = files.length == 1
+              ? 'File selected. Review the next steps below.'
+              : '${files.length} files selected. Review the next steps below.';
+          _showIntentPopup = true;
+          _pendingIntentFormat = effectiveInput;
+          _selectedIntentActions = <String>{};
+        });
+      } else {
+        setState(() {
+          _selectedFiles = files;
+          _selectedFile = files.first.bytes;
+          _selectedFileName = files.first.name;
+          _statusMessage = files.length == 1
+              ? 'File selected. Tap Start Convert to continue.'
+              : '${files.length} files selected. Tap Start Convert to continue.';
+        });
+      }
       if (report.hasFilteredFiles && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

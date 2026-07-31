@@ -417,6 +417,104 @@
 				"lib/Pages/home_page_v2.dart",
 				"lib/Services/user_account_service.dart"
 			]
+		},
+		{
+			"label": "Build and Publish Local Web Bundle",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"${workspaceFolder}\\scripts\\build_and_publish_local_web.ps1"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Deploy Soft Canvas UI Web",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"${workspaceFolder}\\deploy_web_root.ps1"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Flutter test pricing regression",
+			"type": "shell",
+			"command": "flutter test test/plan_catalog_service_test.dart",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "Serve latest build/web preview",
+			"type": "shell",
+			"command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$proc = Get-NetTCPConnection -LocalPort 8080 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique; if ($proc) { Stop-Process -Id $proc -Force }; python -m http.server 8080 --directory 'C:\\JobReadyIndia\\jobready_india\\build\\web'\"",
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Serve latest build/web preview",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"$ErrorActionPreference='SilentlyContinue'; $port=8080; $conns = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue; if ($conns) { $pids = $conns | Select-Object -ExpandProperty OwningProcess -Unique; foreach ($pid in $pids) { Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue } }; Set-Location 'C:\\JobReadyIndia\\jobready_india'; python -m http.server 8080 --directory 'build/web'"
+			],
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Run V1.1 web preview",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; flutter run -d web-server --web-port 8080 --web-hostname 127.0.0.1 -t lib/main_v1_1.dart"
+			],
+			"isBackground": true,
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Temp: Deploy latest app changes",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Set-Location 'C:\\JobReadyIndia\\jobready_india'; git status --short; git add lib; git commit -m 'deploy: publish auth routing and web updates'; git push origin HEAD:main"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Verify AI Resume Builder",
+			"type": "shell",
+			"command": "flutter test test/ai_resume_builder_page_test.dart",
+			"isBackground": false,
+			"problemMatcher": []
 		}
 	]
 }

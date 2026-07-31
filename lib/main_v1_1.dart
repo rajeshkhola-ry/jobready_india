@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'Pages/about_page.dart';
 import 'Pages/admin_dashboard_page.dart';
 import 'Pages/admin_gate_page.dart';
+import 'Pages/blog_page.dart';
+import 'Pages/blog_detail_page.dart';
 import 'Pages/coming_soon_page.dart';
 import 'Pages/contact_page.dart';
 import 'Pages/cookie_policy_page.dart';
@@ -63,6 +65,8 @@ class JobReadyV11App extends StatelessWidget {
         '/': (_) => const HomePageV2(),
         '/home': (_) => const HomePageV2(),
         '/about': (_) => const AboutPage(),
+        '/blog': (_) => const BlogPage(),
+        '/blog-detail': (_) => const BlogDetailPage(),
         '/contact': (_) => const ContactPage(),
         '/pricing': (_) => const PricingPage(),
         '/faq': (_) => const FaqPage(),

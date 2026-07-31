@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../Services/auth_router_service.dart';
 import '../Services/owner_admin_access_service.dart';
+import '../Widgets/brand_logo_button.dart';
 
 class AdminGatePage extends StatefulWidget {
   final String targetRoute;
@@ -75,15 +76,32 @@ class _AdminGatePageState extends State<AdminGatePage> {
         foregroundColor: const Color(0xFF0F172A),
         elevation: 0,
         surfaceTintColor: Colors.transparent,
-        titleSpacing: 16,
-        title: const Text(
-          'Owner Admin Access',
-          style: TextStyle(
-            color: Color(0xFF0F172A),
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.2,
-          ),
+        titleSpacing: 12,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            BrandLogoButton(
+              size: 30,
+              padding: const EdgeInsets.all(2),
+              tooltip: 'Go to home',
+              onTap: () {
+                Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+              },
+            ),
+            const SizedBox(width: 8),
+            const Flexible(
+              child: Text(
+                'Owner Admin Access',
+                style: TextStyle(
+                  color: Color(0xFF0F172A),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.2,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
         shape: const RoundedRectangleBorder(
           side: BorderSide(color: Color(0xFFE2E8F0), width: 1),

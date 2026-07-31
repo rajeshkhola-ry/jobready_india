@@ -1,0 +1,18 @@
+{
+  "generatedAt": "2026-07-31T14:22:09.610Z",
+  "reason": "scheduled",
+  "plans": [],
+  "quotaRules": {},
+  "quotaUsage": {},
+  "transactions": [],
+  "users": [],
+  "promos": [],
+  "settings": {
+    "maintenanceMode": false,
+    "announcement": "",
+    "gatewayKeys": {
+      "stripeApiKey": "",
+      "razorpayKeyId": ""
+    }
+  }
+}

@@ -18,6 +18,8 @@ import '../Services/user_account_service.dart';
 import '../Services/user_auth_service.dart';
 import '../Services/usage_quota_service.dart';
 import '../Widgets/user_auth_dialog.dart';
+import '../Widgets/ai_resume_feature_banner.dart';
+import '../Widgets/brand_logo_button.dart';
 import 'compression_benchmark_page.dart';
 import 'compression_tool_page.dart';
 import 'convert_tool_page.dart';
@@ -548,10 +550,16 @@ class _HomePageV2State extends State<HomePageV2> {
         ],
         title: Row(
           mainAxisSize: MainAxisSize.min,
-          children: const [
-            GlowingLogoBadge(size: 34, circular: true),
-            SizedBox(width: 8),
-            Flexible(
+          children: [
+            BrandLogoButton(
+              size: 34,
+              tooltip: 'Go to home',
+              onTap: () {
+                Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+              },
+            ),
+            const SizedBox(width: 8),
+            const Flexible(
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
@@ -599,7 +607,7 @@ class _HomePageV2State extends State<HomePageV2> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                const _BrowserSupportNotice(),
+                AiResumeFeatureBanner(activePlan: _selectedPlanForPayment),
                 const SizedBox(height: 10),
                 Container(
                   width: double.infinity,
@@ -1915,45 +1923,6 @@ class _IntegrationHubPanelState extends State<_IntegrationHubPanel> {
               .toList(),
         );
       },
-    );
-  }
-}
-
-class _BrowserSupportNotice extends StatelessWidget {
-  const _BrowserSupportNotice();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFF),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFD8E6FF)),
-      ),
-      child: const Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            Icons.info_outline_rounded,
-            color: Color(0xFF1F4E79),
-            size: 18,
-          ),
-          SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              'GETREADYJOB is now live. Full access is free for the next 30 days. If you notice any issue, please share it in Suggestion and we will fix it quickly.',
-              style: TextStyle(
-                fontSize: 12,
-                height: 1.35,
-                color: Color(0xFF1F2937),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

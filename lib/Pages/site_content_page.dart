@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../Services/public_brand_config.dart';
+import '../Widgets/brand_logo_button.dart';
 import '../Widgets/production_footer.dart';
 
 class SiteContentSection {
@@ -33,9 +34,27 @@ class SiteContentPage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: const Color(0xFF1F2937),
         foregroundColor: Colors.white,
-        title: Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.w800),
+        titleSpacing: 12,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            BrandLogoButton(
+              size: 30,
+              padding: const EdgeInsets.all(2),
+              tooltip: 'Go to home',
+              onTap: () {
+                Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+              },
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                title,
+                style: const TextStyle(fontWeight: FontWeight.w800),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
       ),
       body: Container(

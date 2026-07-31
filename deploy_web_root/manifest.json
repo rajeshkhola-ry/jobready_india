@@ -1,0 +1,9 @@
+{
+  "name": "GETREADYJOB",
+  "short_name": "GETREADYJOB",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1F4E79",
+  "icons": []
+}

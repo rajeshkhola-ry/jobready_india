@@ -11,6 +11,7 @@ import 'Pages/admin_gate_page.dart';
 import 'Pages/pdf_tools_page.dart';
 import 'Pages/system_check_page.dart';
 import 'Pages/user_dashboard_page.dart';
+import 'Pages/ai_resume_builder_page.dart';
 import 'Widgets/deferred_route_page.dart';
 import 'main_v1_1.dart' as production;
 // ===============================
@@ -863,7 +864,7 @@ class DocumentsPage extends StatelessWidget {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const ResumeBuilderPage(),
+        builder: (context) => const AiResumeBuilderPage(),
       ),
     );
   },

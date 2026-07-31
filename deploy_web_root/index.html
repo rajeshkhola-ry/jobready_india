@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <base href="/">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GETREADYJOB</title>
+</head>
+<body>
+  <script>
+    (function () {
+      var bootstrapVersion = 'grj-20260725-sw-reset-1';
+      var cleanupKey = 'grj-bootstrap-cleanup-' + bootstrapVersion;
+      function loadFlutter() {
+        var script = document.createElement('script');
+        script.src = 'flutter_bootstrap.js?v=' + bootstrapVersion;
+        script.async = true;
+        document.body.appendChild(script);
+      }
+      async function cleanupLegacyClientState() {
+        if ('serviceWorker' in navigator) {
+          var registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map(function (registration) { return registration.unregister().catch(function () { return false; }); }));
+        }
+        if ('caches' in window) {
+          var cacheKeys = await caches.keys();
+          await Promise.all(cacheKeys.map(function (cacheKey) { return caches.delete(cacheKey).catch(function () { return false; }); }));
+        }
+      }
+      async function start() {
+        try {
+          if (window.localStorage && localStorage.getItem(cleanupKey) === 'done') {
+            loadFlutter();
+            return;
+          }
+          await cleanupLegacyClientState();
+          if (window.localStorage) { localStorage.setItem(cleanupKey, 'done'); }
+        } catch (error) {
+          console.warn('Bootstrap cleanup failed.', error);
+        }
+        loadFlutter();
+      }
+      start();
+    })();
+  </script>
+</body>
+</html>

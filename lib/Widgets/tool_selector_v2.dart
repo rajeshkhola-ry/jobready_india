@@ -6,6 +6,7 @@ import '../Pages/split_tool_page.dart';
 import '../Pages/extract_tool_page.dart';
 import '../Pages/pdf_tools_page.dart';
 import '../Pages/pdf_edit_page.dart';
+import '../Pages/ai_resume_builder_page.dart';
 import '../Pages/v2/photo/photo_hd_workspace_page.dart';
 
 class ToolSelectorV2 extends StatelessWidget {
@@ -99,6 +100,13 @@ class ToolSelectorV2 extends StatelessWidget {
                 "PDF Tools",
                 "Open complete PDF utility workspace.",
                 () => _openTool(context, const PdfToolsPage()),
+              ),
+              _tool(
+                context,
+                Icons.smart_toy_rounded,
+                "AI Resume Builder",
+                "Create and tailor professional resumes directly from the main tools list.",
+                () => _openTool(context, const AiResumeBuilderPage()),
               ),
               _tool(
                 context,

@@ -11,6 +11,7 @@ import 'package:universal_html/html.dart' as html;
 
 import '../Services/file_picker_service.dart';
 import '../Services/file_storage_service.dart';
+import '../Services/pdf_export_formatter.dart';
 import '../Services/pdf_ocr_service.dart';
 import '../Widgets/production_footer.dart';
 import '../Widgets/tool_guidance_panel.dart';
@@ -280,116 +281,51 @@ class _PdfEditPageState extends State<PdfEditPage> {
   Uint8List _buildEditedPdfBytes(String editedText) {
     final outputDocument = sfpdf.PdfDocument();
     try {
-      final textLines = editedText.split('\n');
-      var lineIndex = 0;
+      final paragraphs = PdfExportFormatter.prepareParagraphs(editedText);
+      final firstPage = outputDocument.pages.add();
+      final pageWidth = firstPage.size.width;
+      final pageHeight = firstPage.size.height;
+      const marginLeft = 20.0;
+      const marginTop = 20.0;
+      const marginRight = 20.0;
+      const marginBottom = 18.0;
+      const lineHeight = 14.0;
+      const paragraphGap = 10.0;
+      const maxCharsPerLine = 92;
 
-      while (lineIndex < textLines.length) {
-        final page = outputDocument.pages.add();
-        final pageWidth = page.size.width;
-        final pageHeight = page.size.height;
-        const marginLeft = 20.0;
-        const marginTop = 20.0;
-        const marginRight = 20.0;
-        const marginBottom = 20.0;
+      final headerFont = sfpdf.PdfStandardFont(
+        sfpdf.PdfFontFamily.timesRoman,
+        14,
+        style: sfpdf.PdfFontStyle.bold,
+      );
+      final subtitleFont = sfpdf.PdfStandardFont(sfpdf.PdfFontFamily.timesRoman, 10);
+      final headingFont = sfpdf.PdfStandardFont(
+        sfpdf.PdfFontFamily.timesRoman,
+        12,
+        style: sfpdf.PdfFontStyle.bold,
+      );
+      final bodyFont = sfpdf.PdfStandardFont(sfpdf.PdfFontFamily.timesRoman, 11);
+      final footerFont = sfpdf.PdfStandardFont(sfpdf.PdfFontFamily.timesRoman, 9);
 
-        var yPosition = marginTop;
-        const lineHeight = 16.0;
-        const maxLinesPerPage = 42;
-        var linesOnPage = 0;
+      var currentPage = firstPage;
+      var yPosition = marginTop + 42;
 
-        final headerFont = sfpdf.PdfStandardFont(
-          sfpdf.PdfFontFamily.timesRoman,
-          11,
-          style: sfpdf.PdfFontStyle.bold,
-        );
-        final bodyFont = sfpdf.PdfStandardFont(sfpdf.PdfFontFamily.timesRoman, 10);
-
+      void drawPageHeader(sfpdf.PdfPage page) {
         page.graphics.drawString(
           'Edited PDF from: $_selectedName',
           headerFont,
           pen: sfpdf.PdfPen(sfpdf.PdfColor(31, 41, 55)),
-          bounds: Rect.fromLTWH(marginLeft, yPosition, pageWidth - marginLeft - marginRight, 18),
+          bounds: Rect.fromLTWH(marginLeft, marginTop, pageWidth - marginLeft - marginRight, 18),
         );
-
-        yPosition += 22;
-
-        while (lineIndex < textLines.length && linesOnPage < maxLinesPerPage) {
-          final rawLine = textLines[lineIndex].replaceAll(RegExp(r'\s+'), ' ').trim();
-
-          if (rawLine.isEmpty) {
-            yPosition += lineHeight * 0.5;
-            linesOnPage++;
-            lineIndex++;
-            continue;
-          }
-
-          final maxCharsPerLine = 95;
-          if (rawLine.length > maxCharsPerLine) {
-            final words = rawLine.split(' ');
-            var currentLine = '';
-
-            for (final word in words) {
-              if ((currentLine + word).length > maxCharsPerLine) {
-                if (currentLine.isNotEmpty) {
-                  page.graphics.drawString(
-                    currentLine.trim(),
-                    bodyFont,
-                    pen: sfpdf.PdfPen(sfpdf.PdfColor(50, 50, 50)),
-                    bounds: Rect.fromLTWH(
-                      marginLeft,
-                      yPosition,
-                      pageWidth - marginLeft - marginRight,
-                      lineHeight,
-                    ),
-                  );
-                  yPosition += lineHeight;
-                  linesOnPage++;
-
-                  if (linesOnPage >= maxLinesPerPage) break;
-                }
-                currentLine = '';
-              }
-              currentLine += '$word ';
-            }
-
-            if (currentLine.isNotEmpty && linesOnPage < maxLinesPerPage) {
-              page.graphics.drawString(
-                currentLine.trim(),
-                bodyFont,
-                pen: sfpdf.PdfPen(sfpdf.PdfColor(50, 50, 50)),
-                bounds: Rect.fromLTWH(
-                  marginLeft,
-                  yPosition,
-                  pageWidth - marginLeft - marginRight,
-                  lineHeight,
-                ),
-              );
-              yPosition += lineHeight;
-              linesOnPage++;
-            }
-          } else {
-            page.graphics.drawString(
-              rawLine,
-              bodyFont,
-              pen: sfpdf.PdfPen(sfpdf.PdfColor(50, 50, 50)),
-              bounds: Rect.fromLTWH(
-                marginLeft,
-                yPosition,
-                pageWidth - marginLeft - marginRight,
-                lineHeight,
-              ),
-            );
-            yPosition += lineHeight;
-            linesOnPage++;
-          }
-
-          lineIndex++;
-        }
-
-        final footerFont = sfpdf.PdfStandardFont(
-          sfpdf.PdfFontFamily.timesRoman,
-          9,
+        page.graphics.drawString(
+          'Exported by GET READY JOB',
+          subtitleFont,
+          pen: sfpdf.PdfPen(sfpdf.PdfColor(107, 114, 128)),
+          bounds: Rect.fromLTWH(marginLeft, marginTop + 20, pageWidth - marginLeft - marginRight, 14),
         );
+      }
+
+      void drawFooter(sfpdf.PdfPage page) {
         page.graphics.drawString(
           'Edited by GETREADYJOB PDF Editor',
           footerFont,
@@ -402,6 +338,47 @@ class _PdfEditPageState extends State<PdfEditPage> {
           ),
         );
       }
+
+      drawPageHeader(currentPage);
+
+      for (final paragraph in paragraphs) {
+        final wrappedLines = PdfExportFormatter.wrapParagraph(paragraph, maxCharsPerLine: maxCharsPerLine);
+        if (wrappedLines.isEmpty) {
+          continue;
+        }
+
+        final paragraphHeight = wrappedLines.length * lineHeight + paragraphGap;
+        while (yPosition + paragraphHeight > pageHeight - marginBottom - 18) {
+          drawFooter(currentPage);
+          currentPage = outputDocument.pages.add();
+          yPosition = marginTop + 42;
+          drawPageHeader(currentPage);
+        }
+
+        final isHeading = paragraph.length <= 80 && !paragraph.contains('|') && paragraph.split(' ').length <= 8;
+        final textFont = isHeading ? headingFont : bodyFont;
+
+        for (final line in wrappedLines) {
+          while (yPosition + lineHeight > pageHeight - marginBottom - 12) {
+            drawFooter(currentPage);
+            currentPage = outputDocument.pages.add();
+            yPosition = marginTop + 42;
+            drawPageHeader(currentPage);
+          }
+
+          currentPage.graphics.drawString(
+            line,
+            textFont,
+            pen: sfpdf.PdfPen(sfpdf.PdfColor(50, 50, 50)),
+            bounds: Rect.fromLTWH(marginLeft, yPosition, pageWidth - marginLeft - marginRight, lineHeight),
+          );
+          yPosition += lineHeight;
+        }
+
+        yPosition += paragraphGap;
+      }
+
+      drawFooter(currentPage);
 
       return Uint8List.fromList(outputDocument.saveSync());
     } finally {

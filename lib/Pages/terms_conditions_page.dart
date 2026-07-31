@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../Services/public_brand_config.dart';
+import '../Widgets/brand_logo_button.dart';
 import '../Widgets/production_footer.dart';
 
 class TermsConditionsPage extends StatelessWidget {
@@ -14,9 +15,27 @@ class TermsConditionsPage extends StatelessWidget {
         backgroundColor: const Color(0xFF111827),
         foregroundColor: const Color(0xFFFFC72C),
         elevation: 0,
-        title: const Text(
-          'Terms & Conditions',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+        titleSpacing: 12,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            BrandLogoButton(
+              size: 28,
+              padding: const EdgeInsets.all(2),
+              tooltip: 'Go to home',
+              onTap: () {
+                Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+              },
+            ),
+            const SizedBox(width: 8),
+            const Flexible(
+              child: Text(
+                'Terms & Conditions',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
       ),
       body: SafeArea(
