@@ -470,8 +470,8 @@
 				"-NoProfile",
 				"-ExecutionPolicy",
 				"Bypass",
-				"-Command",
-				"$ErrorActionPreference='SilentlyContinue'; $port=8080; $conns = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue; if ($conns) { $pids = $conns | Select-Object -ExpandProperty OwningProcess -Unique; foreach ($pid in $pids) { Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue } }; Set-Location 'C:\\JobReadyIndia\\jobready_india'; python -m http.server 8080 --directory 'build/web'"
+				"-File",
+				"${workspaceFolder}\\scripts\\serve_build_web.ps1"
 			],
 			"isBackground": true,
 			"problemMatcher": [],
@@ -515,6 +515,16 @@
 			"command": "flutter test test/ai_resume_builder_page_test.dart",
 			"isBackground": false,
 			"problemMatcher": []
+		},
+		{
+			"label": "Build V1.1 Web Auto Renderer",
+			"type": "shell",
+			"command": "flutter build web --release --web-renderer auto --target=lib/main_v1_1.dart",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [
+				"$tsc"
+			]
 		}
 	]
 }

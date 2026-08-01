@@ -133,14 +133,99 @@
   -->
   <script>
     (function () {
-      var bootstrapVersion = 'grj-20260725-sw-reset-1';
+      var bootstrapVersion = 'grj-20260801-' + Date.now();
+      var fallbackVersion = 'grj-render-fallback-20260801';
       var cleanupKey = 'grj-bootstrap-cleanup-' + bootstrapVersion;
 
+      function cacheBustedUrl(path) {
+        if (!path) {
+          return path;
+        }
+
+        if (path.indexOf('http://') === 0 || path.indexOf('https://') === 0) {
+          if (path.indexOf(window.location.origin) !== 0) {
+            return path;
+          }
+        }
+
+        var separator = path.indexOf('?') === -1 ? '?' : '&';
+        return path + separator + 'v=' + (window.__GRJ_BUILD_TS__ || bootstrapVersion || fallbackVersion);
+      }
+
+      function decorateLocalScripts() {
+        try {
+          if (!document || !document.scripts) {
+            return;
+          }
+
+          Array.prototype.forEach.call(document.scripts, function (script) {
+            if (!script || !script.src) {
+              return;
+            }
+
+            var lowerSrc = script.src.toLowerCase();
+            if (lowerSrc.indexOf('flutter_bootstrap.js') !== -1 || lowerSrc.indexOf('flutter.js') !== -1 || lowerSrc.indexOf('main.dart.js') !== -1) {
+              script.src = cacheBustedUrl(script.src);
+            }
+          });
+        } catch (error) {
+          console.warn('Local script cache busting failed.', error);
+        }
+      }
+
       function loadFlutter() {
+        decorateLocalScripts();
+
         var script = document.createElement('script');
-        script.src = 'flutter_bootstrap.js?v=' + bootstrapVersion;
+        script.src = cacheBustedUrl('flutter_bootstrap.js');
         script.async = true;
         document.body.appendChild(script);
+      }
+
+      function setupAutoFallbackRenderer() {
+        window.__GRJ_FALLBACK_RENDERER__ = 'html';
+        window.__GRJ_AUTO_FALLBACK__ = true;
+        window.__GRJ_FALLBACK_TRIGGERED__ = false;
+
+        if (window.flutterConfiguration) {
+          window.flutterConfiguration = Object.assign({}, window.flutterConfiguration, {
+            renderer: window.flutterConfiguration.renderer || 'auto'
+          });
+        }
+
+        window.addEventListener('flutter-first-frame', function () {
+          window.__GRJ_RENDERER_READY__ = true;
+        });
+
+        window.addEventListener('flutter-initialization-error', function (event) {
+          try {
+            if (window.__GRJ_AUTO_FALLBACK__ && !window.__GRJ_FALLBACK_TRIGGERED__ && event && event.detail && event.detail.error) {
+              window.__GRJ_FALLBACK_TRIGGERED__ = true;
+              window.__GRJ_FALLBACK_RENDERER__ = 'html';
+              if (window.flutterConfiguration) {
+                window.flutterConfiguration.renderer = 'html';
+              }
+              console.warn('Flutter initialization failed, falling back to HTML renderer.', event.detail.error);
+            }
+          } catch (error) {
+            console.warn('Fallback renderer setup failed.', error);
+          }
+        });
+
+        window.setTimeout(function () {
+          try {
+            if (!window.__GRJ_RENDERER_READY__ && window.__GRJ_AUTO_FALLBACK__ && !window.__GRJ_FALLBACK_TRIGGERED__) {
+              window.__GRJ_FALLBACK_TRIGGERED__ = true;
+              window.__GRJ_FALLBACK_RENDERER__ = 'html';
+              if (window.flutterConfiguration) {
+                window.flutterConfiguration.renderer = 'html';
+              }
+              console.warn('Flutter did not start in time, switching to the HTML renderer fallback.');
+            }
+          } catch (error) {
+            console.warn('Fallback timer failed.', error);
+          }
+        }, 8000);
       }
 
       async function cleanupLegacyClientState() {
@@ -165,6 +250,8 @@
 
       async function start() {
         try {
+          setupAutoFallbackRenderer();
+
           if (window.localStorage && localStorage.getItem(cleanupKey) === 'done') {
             loadFlutter();
             return;
