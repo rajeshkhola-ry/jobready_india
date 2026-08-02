@@ -20,6 +20,7 @@ import '../Services/usage_quota_service.dart';
 import '../Widgets/user_auth_dialog.dart';
 import '../Widgets/ai_resume_feature_banner.dart';
 import '../Widgets/brand_logo_button.dart';
+import '../Utils/plan_display_utils.dart';
 import 'ai_resume_builder_page.dart';
 import 'compression_benchmark_page.dart';
 import 'compression_tool_page.dart';
@@ -82,40 +83,27 @@ const Map<String, double> _paymentCurrencyRates = {
   'OTHER': 1.0,
 };
 
-const Map<String, String> _paymentCurrencySymbols = {
-  'USD': '\$',
-  'INR': '₹',
-  'EUR': '€',
-  'GBP': '£',
-  'AED': 'AED ',
-  'SAR': 'SAR ',
-  'CAD': 'CA\$',
-  'AUD': 'A\$',
-  'SGD': 'S\$',
-  'JPY': '¥',
-  'CNY': '¥',
-  'HKD': 'HK\$',
-  'NZD': 'NZ\$',
-  'CHF': 'CHF ',
-  'ZAR': 'R ',
-  'SEK': 'SEK ',
-  'NOK': 'NOK ',
-  'DKK': 'DKK ',
-  'MYR': 'RM ',
-  'THB': '฿',
-    'OTHER': '\$',
-};
 
 String _formatCurrencyAmount(double amount, String currencyCode) {
-  final symbol = _paymentCurrencySymbols[currencyCode] ?? '$currencyCode ';
-  final showWholeOnly = currencyCode == 'JPY';
-  final rounded = amount.roundToDouble();
-  final formatted = showWholeOnly
-      ? amount.round().toString()
-      : amount == rounded
-          ? amount.toStringAsFixed(0)
-          : amount.toStringAsFixed(2);
-  return '$symbol$formatted';
+  return formatCurrencyAmount(amount, currencyCode);
+}
+
+String buildPlanDisplayLabel({
+  required String plan,
+  required double amount,
+  required String currencyCode,
+  required double monthlyAmount,
+  required double yearlyAmount,
+  required double lifetimePlanAmount,
+}) {
+  return planDisplayLabel(
+    plan: plan,
+    amount: amount,
+    currencyCode: currencyCode,
+    monthlyAmount: monthlyAmount,
+    yearlyAmount: yearlyAmount,
+    lifetimePlanAmount: lifetimePlanAmount,
+  );
 }
 
 String resolvePreferredPaymentCurrency({
@@ -2885,13 +2873,21 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
           ),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
-            initialValue: widget.selectedPlan,
+            key: ValueKey('${widget.selectedPlan}_${widget.usageType}_${_localCurrency}'),
+            value: widget.selectedPlan,
             isExpanded: true,
             items: [
-              const DropdownMenuItem(
+              DropdownMenuItem(
                 value: 'Free',
                 child: Text(
-                  'FREE - ₹0 / \$0',
+                  buildPlanDisplayLabel(
+                    plan: 'Free',
+                    amount: 0,
+                    currencyCode: _localCurrency,
+                    monthlyAmount: widget.monthlyAmount,
+                    yearlyAmount: widget.yearlyAmount,
+                    lifetimePlanAmount: widget.lifetimePlanAmount,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -2899,7 +2895,14 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
               DropdownMenuItem(
                 value: '7Days',
                 child: Text(
-                  '7 DAYS - ${_formatCurrencyAmount(widget.sevenDayAmount, _localCurrency)}',
+                  buildPlanDisplayLabel(
+                    plan: '7Days',
+                    amount: widget.sevenDayAmount,
+                    currencyCode: _localCurrency,
+                    monthlyAmount: widget.monthlyAmount,
+                    yearlyAmount: widget.yearlyAmount,
+                    lifetimePlanAmount: widget.lifetimePlanAmount,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -2907,7 +2910,14 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
               DropdownMenuItem(
                 value: 'Monthly',
                 child: Text(
-                  'MONTHLY - ${_formatCurrencyAmount(widget.monthlyAmount, _localCurrency)}/month',
+                  buildPlanDisplayLabel(
+                    plan: 'Monthly',
+                    amount: widget.monthlyAmount,
+                    currencyCode: _localCurrency,
+                    monthlyAmount: widget.monthlyAmount,
+                    yearlyAmount: widget.yearlyAmount,
+                    lifetimePlanAmount: widget.lifetimePlanAmount,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -2915,7 +2925,14 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
               DropdownMenuItem(
                 value: 'Yearly',
                 child: Text(
-                  'YEARLY - ${_formatCurrencyAmount(widget.yearlyAmount, _localCurrency)}/year ⭐',
+                  buildPlanDisplayLabel(
+                    plan: 'Yearly',
+                    amount: widget.yearlyAmount,
+                    currencyCode: _localCurrency,
+                    monthlyAmount: widget.monthlyAmount,
+                    yearlyAmount: widget.yearlyAmount,
+                    lifetimePlanAmount: widget.lifetimePlanAmount,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -2923,7 +2940,14 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
               DropdownMenuItem(
                 value: 'Lifetime',
                 child: Text(
-                  'LIFETIME - ${_formatCurrencyAmount(widget.lifetimePlanAmount, _localCurrency)} one-time',
+                  buildPlanDisplayLabel(
+                    plan: 'Lifetime',
+                    amount: widget.lifetimePlanAmount,
+                    currencyCode: _localCurrency,
+                    monthlyAmount: widget.monthlyAmount,
+                    yearlyAmount: widget.yearlyAmount,
+                    lifetimePlanAmount: widget.lifetimePlanAmount,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
