@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:universal_html/html.dart' as html;
 
 import '../Widgets/why_choose_card.dart';
 import '../Widgets/glowing_logo_badge.dart';
@@ -20,7 +19,9 @@ import '../Services/usage_quota_service.dart';
 import '../Widgets/user_auth_dialog.dart';
 import '../Widgets/ai_resume_feature_banner.dart';
 import '../Widgets/brand_logo_button.dart';
+import '../Utils/checkout_flow_utils.dart';
 import '../Utils/plan_display_utils.dart';
+import '../Utils/web_safe_browser.dart';
 import 'ai_resume_builder_page.dart';
 import 'compression_benchmark_page.dart';
 import 'compression_tool_page.dart';
@@ -83,7 +84,6 @@ const Map<String, double> _paymentCurrencyRates = {
   'OTHER': 1.0,
 };
 
-
 String _formatCurrencyAmount(double amount, String currencyCode) {
   return formatCurrencyAmount(amount, currencyCode);
 }
@@ -112,15 +112,19 @@ String resolvePreferredPaymentCurrency({
   String? browserLanguage,
 }) {
   final normalizedStoredCurrency = (storedCurrency ?? '').trim().toUpperCase();
-  if (normalizedStoredCurrency.isNotEmpty && _paymentCurrencyLabels.containsKey(normalizedStoredCurrency)) {
+  if (normalizedStoredCurrency.isNotEmpty &&
+      _paymentCurrencyLabels.containsKey(normalizedStoredCurrency)) {
     return normalizedStoredCurrency;
   }
 
   final normalizedCountry = (profileCountry ?? '').trim().toLowerCase();
   final normalizedCountryCode = (profileCountry ?? '').trim().toUpperCase();
-  final normalizedBrowserLanguage = (browserLanguage ?? '').trim().toLowerCase();
+  final normalizedBrowserLanguage = (browserLanguage ?? '')
+      .trim()
+      .toLowerCase();
 
-  final isIndia = normalizedCountry.contains('india') ||
+  final isIndia =
+      normalizedCountry.contains('india') ||
       normalizedCountryCode == 'IN' ||
       normalizedBrowserLanguage == 'hi' ||
       normalizedBrowserLanguage.startsWith('hi-') ||
@@ -132,7 +136,9 @@ String resolvePreferredPaymentCurrency({
 }
 
 class HomePageV2 extends StatefulWidget {
-  const HomePageV2({super.key});
+  const HomePageV2({super.key, this.useMinimalBootstrap = false});
+
+  final bool useMinimalBootstrap;
 
   @override
   State<HomePageV2> createState() => _HomePageV2State();
@@ -168,6 +174,9 @@ class _HomePageV2State extends State<HomePageV2> {
   @override
   void initState() {
     super.initState();
+    if (widget.useMinimalBootstrap) {
+      return;
+    }
     _planCatalog = PlanCatalogService.load();
     _showCookieConsentBanner = !_hasAcceptedCookieConsent();
     _selectedPaymentCurrency = _resolveInitialPaymentCurrency();
@@ -175,7 +184,7 @@ class _HomePageV2State extends State<HomePageV2> {
 
   String _resolveInitialPaymentCurrency() {
     final profile = UserAccountService.getProfile();
-    final browserLanguage = html.window.navigator.language;
+    final browserLanguage = WebSafeBrowser.navigatorLanguage;
     final storedCurrency = _getStoredPaymentCurrency();
     return resolvePreferredPaymentCurrency(
       storedCurrency: storedCurrency,
@@ -185,22 +194,22 @@ class _HomePageV2State extends State<HomePageV2> {
   }
 
   bool _hasAcceptedCookieConsent() {
-    final storedValue = html.window.localStorage['jobready_cookie_consent'];
+    final storedValue = WebSafeBrowser.readLocalStorage('jobready_cookie_consent');
     return storedValue == 'accepted';
   }
 
   String _getStoredPaymentCurrency() {
-    final storedValue = html.window.localStorage['jobready_payment_currency'];
+    final storedValue = WebSafeBrowser.readLocalStorage('jobready_payment_currency');
     final normalizedValue = (storedValue ?? '').trim().toUpperCase();
     return normalizedValue;
   }
 
   void _persistPaymentCurrency(String currency) {
-    html.window.localStorage['jobready_payment_currency'] = currency;
+    WebSafeBrowser.writeLocalStorage('jobready_payment_currency', currency);
   }
 
   void _acceptCookieConsent() {
-    html.window.localStorage['jobready_cookie_consent'] = 'accepted';
+    WebSafeBrowser.writeLocalStorage('jobready_cookie_consent', 'accepted');
     setState(() {
       _showCookieConsentBanner = false;
     });
@@ -280,7 +289,7 @@ class _HomePageV2State extends State<HomePageV2> {
   void _openMailComposer({required String subject, required String body}) {
     final mailto =
         '${PublicBrandConfig.supportEmailMailto}?subject=${Uri.encodeComponent(subject)}&body=${Uri.encodeComponent(body)}';
-    html.window.open(mailto, '_blank');
+    WebSafeBrowser.openWindow(mailto, target: '_blank');
   }
 
   void _showSuggestionDialog() {
@@ -301,7 +310,10 @@ class _HomePageV2State extends State<HomePageV2> {
                   initialValue: selectedType,
                   items: const [
                     DropdownMenuItem(value: 'Issue', child: Text('Issue')),
-                    DropdownMenuItem(value: 'Suggestion', child: Text('Suggestion')),
+                    DropdownMenuItem(
+                      value: 'Suggestion',
+                      child: Text('Suggestion'),
+                    ),
                     DropdownMenuItem(value: 'Query', child: Text('Query')),
                   ],
                   onChanged: (value) {
@@ -351,7 +363,9 @@ class _HomePageV2State extends State<HomePageV2> {
                 final message = suggestionController.text.trim();
                 if (message.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please write your message first.')),
+                    const SnackBar(
+                      content: Text('Please write your message first.'),
+                    ),
                   );
                   return;
                 }
@@ -456,7 +470,9 @@ class _HomePageV2State extends State<HomePageV2> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('History retention updated to last $limit entries.')),
+        SnackBar(
+          content: Text('History retention updated to last $limit entries.'),
+        ),
       );
     }
   }
@@ -476,8 +492,14 @@ class _HomePageV2State extends State<HomePageV2> {
     );
   }
 
-  Future<void> _openCheckoutFlow(String plan) async {
-    final resolvedCurrency = _resolveInitialPaymentCurrency();
+  Future<void> _openCheckoutFlow(
+    String plan, {
+    String? explicitCurrency,
+  }) async {
+    final resolvedCurrency = CheckoutFlowUtils.resolveSelectedCurrency(
+      explicitCurrency ?? _getStoredPaymentCurrency(),
+      _resolveInitialPaymentCurrency(),
+    );
     setState(() {
       _selectedPlanForPayment = plan;
       _selectedPaymentCurrency = resolvedCurrency;
@@ -530,10 +552,22 @@ class _HomePageV2State extends State<HomePageV2> {
                       selectedPlan: _selectedPlanForPayment,
                       selectedCurrency: _selectedPaymentCurrency,
                       usageType: _selectedUsageType,
-                      sevenDayAmount: _displayAmountForPlan('7Days', _selectedPaymentCurrency),
-                      monthlyAmount: _displayAmountForPlan('Monthly', _selectedPaymentCurrency),
-                      yearlyAmount: _displayAmountForPlan('Yearly', _selectedPaymentCurrency),
-                      lifetimePlanAmount: _displayAmountForPlan('Lifetime', _selectedPaymentCurrency),
+                      sevenDayAmount: _displayAmountForPlan(
+                        '7Days',
+                        _selectedPaymentCurrency,
+                      ),
+                      monthlyAmount: _displayAmountForPlan(
+                        'Monthly',
+                        _selectedPaymentCurrency,
+                      ),
+                      yearlyAmount: _displayAmountForPlan(
+                        'Yearly',
+                        _selectedPaymentCurrency,
+                      ),
+                      lifetimePlanAmount: _displayAmountForPlan(
+                        'Lifetime',
+                        _selectedPaymentCurrency,
+                      ),
                       onPlanChanged: (value) {
                         setState(() {
                           _selectedPlanForPayment = value;
@@ -576,7 +610,7 @@ class _HomePageV2State extends State<HomePageV2> {
     });
 
     if (UserAuthService.isSignedIn) {
-      await _openCheckoutFlow(plan);
+      await _openCheckoutFlow(plan, explicitCurrency: _selectedPaymentCurrency);
       return;
     }
 
@@ -584,14 +618,34 @@ class _HomePageV2State extends State<HomePageV2> {
       context: context,
       builder: (dialogContext) => UserAuthDialog(
         preselectedPlan: plan,
-        onAuthenticated: (selectedPlan) {
+        selectedCurrency: _selectedPaymentCurrency,
+        onAuthenticated: (selectedPlan, selectedCurrency) {
           if (!mounted) {
             return;
           }
-          if (selectedPlan == null || selectedPlan.trim().isEmpty) {
+          final effectivePlan = selectedPlan ?? plan;
+          if (effectivePlan.trim().isEmpty) {
             return;
           }
-          Future<void>.microtask(() => _openCheckoutFlow(selectedPlan));
+          final effectiveCurrency = CheckoutFlowUtils.resolveSelectedCurrency(
+            selectedCurrency,
+            _selectedPaymentCurrency,
+          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  CheckoutFlowUtils.buildSuccessMessage(effectivePlan),
+                ),
+              ),
+            );
+          }
+          Future<void>.microtask(
+            () => _openCheckoutFlow(
+              effectivePlan,
+              explicitCurrency: effectiveCurrency,
+            ),
+          );
         },
       ),
     );
@@ -619,92 +673,154 @@ class _HomePageV2State extends State<HomePageV2> {
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
         ),
         actions: [
-          TextButton.icon(
-            onPressed: _openUserLoginPanel,
-            icon: const Icon(Icons.person_outline_rounded, size: 16),
-            label: const Text('User Login'),
-            style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF334155),
-              textStyle: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-          ),
-          _TopActionIcon(
-            tooltip: 'Benchmark',
-            icon: Icons.bar_chart_rounded,
-            iconColor: const Color(0xFF9BD7FF),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const CompressionBenchmarkPage(),
-                ),
+          Builder(
+            builder: (context) {
+              final compact = MediaQuery.sizeOf(context).width < 640;
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextButton.icon(
+                    onPressed: _openUserLoginPanel,
+                    icon: const Icon(Icons.person_outline_rounded, size: 16),
+                    label: compact ? const SizedBox.shrink() : const Text('User Login'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF334155),
+                      textStyle: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  if (!compact) ...[
+                    _TopActionIcon(
+                      tooltip: 'Benchmark',
+                      icon: Icons.bar_chart_rounded,
+                      iconColor: const Color(0xFF9BD7FF),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const CompressionBenchmarkPage(),
+                          ),
+                        );
+                      },
+                    ),
+                    _TopActionIcon(
+                      tooltip: 'Readiness',
+                      icon: Icons.rocket_launch_rounded,
+                      iconColor: const Color(0xFFB7F59E),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const LaunchReadinessPage()),
+                        );
+                      },
+                    ),
+                    _TopActionIcon(
+                      tooltip: 'Runbook',
+                      icon: Icons.task_alt_rounded,
+                      iconColor: const Color(0xFFC6D2FF),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const LaunchRunbookPage()),
+                        );
+                      },
+                    ),
+                    _TopActionIcon(
+                      tooltip: 'Post-Launch',
+                      icon: Icons.monitor_heart_rounded,
+                      iconColor: const Color(0xFFFFD6A5),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const PostLaunchControlPage(),
+                          ),
+                        );
+                      },
+                    ),
+                    _TopActionIcon(
+                      tooltip: 'Support Email',
+                      icon: Icons.email_outlined,
+                      iconColor: const Color(0xFFFFC72C),
+                      onTap: () {
+                        _openMailComposer(
+                          subject: 'GETREADYJOB Support Request',
+                          body: 'Hi GETREADYJOB Team,%0A%0APlease help me with:%0A',
+                        );
+                      },
+                    ),
+                    _TopActionIcon(
+                      tooltip: 'Terms & Conditions',
+                      icon: Icons.gavel_rounded,
+                      iconColor: const Color(0xFFFFC72C),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const TermsConditionsPage()),
+                        );
+                      },
+                    ),
+                  ] else
+                    PopupMenuButton<String>(
+                      tooltip: 'More actions',
+                      icon: const Icon(Icons.more_vert_rounded),
+                      onSelected: (value) {
+                        switch (value) {
+                          case 'benchmark':
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const CompressionBenchmarkPage(),
+                              ),
+                            );
+                            break;
+                          case 'readiness':
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const LaunchReadinessPage()),
+                            );
+                            break;
+                          case 'runbook':
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const LaunchRunbookPage()),
+                            );
+                            break;
+                          case 'post-launch':
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const PostLaunchControlPage(),
+                              ),
+                            );
+                            break;
+                          case 'support':
+                            _openMailComposer(
+                              subject: 'GETREADYJOB Support Request',
+                              body: 'Hi GETREADYJOB Team,%0A%0APlease help me with:%0A',
+                            );
+                            break;
+                          case 'terms':
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const TermsConditionsPage()),
+                            );
+                            break;
+                        }
+                      },
+                      itemBuilder: (context) => const [
+                        PopupMenuItem(value: 'benchmark', child: Text('Benchmark')),
+                        PopupMenuItem(value: 'readiness', child: Text('Readiness')),
+                        PopupMenuItem(value: 'runbook', child: Text('Runbook')),
+                        PopupMenuItem(value: 'post-launch', child: Text('Post-Launch')),
+                        PopupMenuItem(value: 'support', child: Text('Support Email')),
+                        PopupMenuItem(value: 'terms', child: Text('Terms & Conditions')),
+                      ],
+                    ),
+                  const SizedBox(width: 8),
+                ],
               );
             },
           ),
-          _TopActionIcon(
-            tooltip: 'Readiness',
-            icon: Icons.rocket_launch_rounded,
-            iconColor: const Color(0xFFB7F59E),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const LaunchReadinessPage(),
-                ),
-              );
-            },
-          ),
-          _TopActionIcon(
-            tooltip: 'Runbook',
-            icon: Icons.task_alt_rounded,
-            iconColor: const Color(0xFFC6D2FF),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const LaunchRunbookPage(),
-                ),
-              );
-            },
-          ),
-          _TopActionIcon(
-            tooltip: 'Post-Launch',
-            icon: Icons.monitor_heart_rounded,
-            iconColor: const Color(0xFFFFD6A5),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const PostLaunchControlPage(),
-                ),
-              );
-            },
-          ),
-          _TopActionIcon(
-            tooltip: 'Support Email',
-            icon: Icons.email_outlined,
-            iconColor: const Color(0xFFFFC72C),
-            onTap: () {
-              _openMailComposer(
-                subject: 'GETREADYJOB Support Request',
-                body: 'Hi GETREADYJOB Team,%0A%0APlease help me with:%0A',
-              );
-            },
-          ),
-          _TopActionIcon(
-            tooltip: 'Terms & Conditions',
-            icon: Icons.gavel_rounded,
-            iconColor: const Color(0xFFFFC72C),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const TermsConditionsPage(),
-                ),
-              );
-            },
-          ),
-          const SizedBox(width: 8),
         ],
         title: Row(
           mainAxisSize: MainAxisSize.min,
@@ -713,7 +829,9 @@ class _HomePageV2State extends State<HomePageV2> {
               size: 34,
               tooltip: 'Go to home',
               onTap: () {
-                Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+                Navigator.of(
+                  context,
+                ).pushNamedAndRemoveUntil('/home', (route) => false);
               },
             ),
             const SizedBox(width: 8),
@@ -746,7 +864,10 @@ class _HomePageV2State extends State<HomePageV2> {
               children: [
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(18),
                     gradient: const LinearGradient(
@@ -769,7 +890,10 @@ class _HomePageV2State extends State<HomePageV2> {
                 const SizedBox(height: 10),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFEAF2FF),
                     borderRadius: BorderRadius.circular(12),
@@ -789,7 +913,8 @@ class _HomePageV2State extends State<HomePageV2> {
                 const SizedBox(height: 10),
                 const _V2Column(),
                 const SizedBox(height: 10),
-                if (_showLiveOfferBanner && _liveOfferText.trim().isNotEmpty) ...[
+                if (_showLiveOfferBanner &&
+                    _liveOfferText.trim().isNotEmpty) ...[
                   _LiveOfferBanner(text: _liveOfferText),
                   const SizedBox(height: 10),
                 ],
@@ -808,7 +933,10 @@ class _HomePageV2State extends State<HomePageV2> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         child: Text(
                           'Ad Space',
                           style: TextStyle(
@@ -826,7 +954,8 @@ class _HomePageV2State extends State<HomePageV2> {
                 const SizedBox(height: 18),
                 const _SectionHeader(
                   title: 'Plans',
-                  subtitle: 'Simple access today, premium workspace upgrades coming next.',
+                  subtitle:
+                      'Simple access today, premium workspace upgrades coming next.',
                 ),
                 const SizedBox(height: 12),
                 _UsageTypeSelector(
@@ -840,7 +969,10 @@ class _HomePageV2State extends State<HomePageV2> {
                 const SizedBox(height: 12),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       begin: Alignment.topLeft,
@@ -848,7 +980,10 @@ class _HomePageV2State extends State<HomePageV2> {
                       colors: [Color(0xFFFFFBEB), Color(0xFFFDE68A)],
                     ),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFF59E0B), width: 1.1),
+                    border: Border.all(
+                      color: const Color(0xFFF59E0B),
+                      width: 1.1,
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -914,10 +1049,22 @@ class _HomePageV2State extends State<HomePageV2> {
                   selectedPlan: _selectedPlanForPayment,
                   selectedCurrency: _selectedPaymentCurrency,
                   usageType: _selectedUsageType,
-                  sevenDayAmount: _displayAmountForPlan('7Days', _selectedPaymentCurrency),
-                  monthlyAmount: _displayAmountForPlan('Monthly', _selectedPaymentCurrency),
-                  yearlyAmount: _displayAmountForPlan('Yearly', _selectedPaymentCurrency),
-                  lifetimePlanAmount: _displayAmountForPlan('Lifetime', _selectedPaymentCurrency),
+                  sevenDayAmount: _displayAmountForPlan(
+                    '7Days',
+                    _selectedPaymentCurrency,
+                  ),
+                  monthlyAmount: _displayAmountForPlan(
+                    'Monthly',
+                    _selectedPaymentCurrency,
+                  ),
+                  yearlyAmount: _displayAmountForPlan(
+                    'Yearly',
+                    _selectedPaymentCurrency,
+                  ),
+                  lifetimePlanAmount: _displayAmountForPlan(
+                    'Lifetime',
+                    _selectedPaymentCurrency,
+                  ),
                   onPlanChanged: (plan) {
                     setState(() {
                       _selectedPlanForPayment = plan;
@@ -1034,9 +1181,7 @@ class _HomePageV2State extends State<HomePageV2> {
                 const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    GlowingLogoBadge(size: 32, circular: true),
-                  ],
+                  children: const [GlowingLogoBadge(size: 32, circular: true)],
                 ),
                 const SizedBox(height: 8),
                 _FooterInfoRow(
@@ -1097,7 +1242,10 @@ class _HomePageV2State extends State<HomePageV2> {
                                 },
                                 style: TextButton.styleFrom(
                                   foregroundColor: const Color(0xFFFFC72C),
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 8,
+                                  ),
                                 ),
                                 child: const Text('Read Terms & Conditions'),
                               ),
@@ -1108,7 +1256,10 @@ class _HomePageV2State extends State<HomePageV2> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFFFFC72C),
                                 foregroundColor: const Color(0xFF111827),
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 10,
+                                ),
                               ),
                               child: const Text('Accept & Continue'),
                             ),
@@ -1236,7 +1387,11 @@ class _LiveOfferBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.local_offer_rounded, color: Color(0xFFB45309), size: 18),
+          const Icon(
+            Icons.local_offer_rounded,
+            color: Color(0xFFB45309),
+            size: 18,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -1277,10 +1432,7 @@ class _WhyChooseAdSection extends StatelessWidget {
         return const Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              flex: 6,
-              child: WhyChooseCard(scale: 0.6),
-            ),
+            Expanded(flex: 6, child: WhyChooseCard(scale: 0.6)),
             SizedBox(width: 12),
             Expanded(
               flex: 6,
@@ -1322,15 +1474,21 @@ class _UsageTypeSelector extends StatelessWidget {
               color: selected ? const Color(0xFFE0F2FE) : Colors.white,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: selected ? const Color(0xFF0284C7) : const Color(0xFFD1D5DB),
+                color: selected
+                    ? const Color(0xFF0284C7)
+                    : const Color(0xFFD1D5DB),
                 width: selected ? 1.6 : 1,
               ),
             ),
             child: Row(
               children: [
                 Icon(
-                  selected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                  color: selected ? const Color(0xFF0284C7) : const Color(0xFF6B7280),
+                  selected
+                      ? Icons.check_circle_rounded
+                      : Icons.radio_button_unchecked_rounded,
+                  color: selected
+                      ? const Color(0xFF0284C7)
+                      : const Color(0xFF6B7280),
                   size: 18,
                 ),
                 const SizedBox(width: 8),
@@ -1391,12 +1549,14 @@ class _UsageTypeSelector extends StatelessWidget {
             children: [
               buildTypeChip(
                 label: 'Personal',
-                subtitle: 'Standard pricing — For personal, individual documents only (not for official or commercial use).',
+                subtitle:
+                    'Standard pricing — For personal, individual documents only (not for official or commercial use).',
               ),
               const SizedBox(width: 8),
               buildTypeChip(
                 label: 'Business',
-                subtitle: 'Business pricing — For official, corporate, or commercial document processing to ensure regulatory compliance.',
+                subtitle:
+                    'Business pricing — For official, corporate, or commercial document processing to ensure regulatory compliance.',
               ),
             ],
           ),
@@ -1448,7 +1608,8 @@ class _PlanCardsSection extends StatelessWidget {
           ),
           _PlanCardTile(
             title: '7 DAYS',
-            subtitle: 'Test PDF edit, PDF to Word, OCR, and premium workflow controls',
+            subtitle:
+                'Test PDF edit, PDF to Word, OCR, and premium workflow controls',
             priceLine: sevenDayPriceLine,
             enabledTools: enabledToolsByPlan['7Days'] ?? const <String>[],
             buttonLabel: 'Select Plan',
@@ -1457,7 +1618,8 @@ class _PlanCardsSection extends StatelessWidget {
           ),
           _PlanCardTile(
             title: 'MONTHLY',
-            subtitle: 'Monthly access with document conversion, edit, and support workflows',
+            subtitle:
+                'Monthly access with document conversion, edit, and support workflows',
             priceLine: monthlyPriceLine,
             enabledTools: enabledToolsByPlan['Monthly'] ?? const <String>[],
             buttonLabel: 'Select Plan',
@@ -1467,7 +1629,8 @@ class _PlanCardsSection extends StatelessWidget {
           ),
           _PlanCardTile(
             title: 'YEARLY',
-            subtitle: 'Best value for regular use, higher limits, and full plan coverage',
+            subtitle:
+                'Best value for regular use, higher limits, and full plan coverage',
             priceLine: yearlyPriceLine,
             enabledTools: enabledToolsByPlan['Yearly'] ?? const <String>[],
             buttonLabel: 'Select Plan',
@@ -1478,7 +1641,8 @@ class _PlanCardsSection extends StatelessWidget {
           ),
           _PlanCardTile(
             title: 'LIFETIME LAUNCH OFFER',
-            subtitle: 'One-time access for 1 desktop/laptop and 1 mobile device',
+            subtitle:
+                'One-time access for 1 desktop/laptop and 1 mobile device',
             priceLine: lifetimePriceLine,
             enabledTools: enabledToolsByPlan['Lifetime'] ?? const <String>[],
             buttonLabel: 'Select Plan',
@@ -1551,9 +1715,7 @@ class _PlanCardsSection extends StatelessWidget {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (_) => const PlanFeaturesPage(),
-          ),
+          MaterialPageRoute(builder: (_) => const PlanFeaturesPage()),
         );
       },
       child: Container(
@@ -1666,14 +1828,14 @@ class _PlanCardTileState extends State<_PlanCardTile> {
     final List<Color> backgroundGradient = widget.recommended
         ? const [Color(0xFFEEF6FF), Color(0xFFDDEEFF)]
         : isPro
-            ? const [Color(0xFFEFFCF8), Color(0xFFD8F5EC)]
-            : const [Color(0xFFF8FAFC), Color(0xFFF1F5F9)];
+        ? const [Color(0xFFEFFCF8), Color(0xFFD8F5EC)]
+        : const [Color(0xFFF8FAFC), Color(0xFFF1F5F9)];
 
     final Color outlineColor = widget.selected
         ? const Color(0xFF0F766E)
         : (widget.recommended
-            ? const Color(0xFF1D74D8)
-            : (isPro ? const Color(0xFF0F766E) : const Color(0xFFD1D5DB)));
+              ? const Color(0xFF1D74D8)
+              : (isPro ? const Color(0xFF0F766E) : const Color(0xFFD1D5DB)));
 
     final Color accentColor = widget.recommended
         ? const Color(0xFF1D74D8)
@@ -1703,165 +1865,182 @@ class _PlanCardTileState extends State<_PlanCardTile> {
           ),
           boxShadow: [
             BoxShadow(
-              color: accentColor.withOpacity(widget.selected || _hovered ? 0.24 : 0.12),
+              color: accentColor.withOpacity(
+                widget.selected || _hovered ? 0.24 : 0.12,
+              ),
               blurRadius: widget.selected || _hovered ? 24 : 14,
               offset: const Offset(0, 8),
             ),
           ],
         ),
         child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (widget.recommended)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              decoration: const BoxDecoration(
-                color: Color(0xFF1D74D8),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
-              ),
-              child: const Text(
-                'RECOMMENDED',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 11,
-                  letterSpacing: 0.4,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (widget.recommended)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF1D74D8),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+                ),
+                child: const Text(
+                  'RECOMMENDED',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 11,
+                    letterSpacing: 0.4,
+                  ),
                 ),
               ),
-            ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 13),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: accentColor.withOpacity(0.25)),
-                      ),
-                      child: Icon(planIcon, color: accentColor, size: 20),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                          widget.title,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF111827),
-                        ),
-                      ),
-                    ),
-                      if (widget.selected)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 13),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        width: 34,
+                        height: 34,
                         decoration: BoxDecoration(
-                          color: accentColor,
-                          borderRadius: BorderRadius.circular(999),
+                          color: Colors.white.withOpacity(0.9),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: accentColor.withOpacity(0.25),
+                          ),
                         ),
-                        child: const Text(
-                          'Selected',
-                          style: TextStyle(
-                            fontSize: 10,
+                        child: Icon(planIcon, color: accentColor, size: 20),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          widget.title,
+                          style: const TextStyle(
+                            fontSize: 24,
                             fontWeight: FontWeight.w800,
-                            color: Colors.white,
+                            color: Color(0xFF111827),
                           ),
                         ),
                       ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  widget.subtitle,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF4B5563),
-                    height: 1.35,
-                    fontWeight: FontWeight.w600,
+                      if (widget.selected)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: accentColor,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: const Text(
+                            'Selected',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-                ),
-                if (widget.badgeLabel != null) ...[
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF7CC),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: const Color(0xFFFCD34D)),
-                    ),
-                    child: Text(
-                      widget.badgeLabel!,
-                      style: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF92400E),
-                      ),
-                    ),
-                  ),
-                ],
-                if (widget.enabledTools.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(
-                    'Enabled tools: ${widget.enabledTools.join(', ')}',
+                    widget.subtitle,
                     style: const TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFF475569),
-                      height: 1.3,
+                      fontSize: 12,
+                      color: Color(0xFF4B5563),
+                      height: 1.35,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                ],
-                const SizedBox(height: 11),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.88),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.black.withOpacity(0.06)),
-                  ),
-                  child: Text(
-                    widget.priceLine,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF111827),
+                  if (widget.badgeLabel != null) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF7CC),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: const Color(0xFFFCD34D)),
+                      ),
+                      child: Text(
+                        widget.badgeLabel!,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF92400E),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 11),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: widget.onSelected,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: widget.selected ? accentColor : const Color(0xFF1F2937),
-                      foregroundColor: Colors.white,
-                      elevation: widget.selected ? 2.5 : 1,
-                      padding: const EdgeInsets.symmetric(vertical: 13),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ],
+                  if (widget.enabledTools.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Enabled tools: ${widget.enabledTools.join(', ')}',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF475569),
+                        height: 1.3,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 11),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 9,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.88),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.black.withOpacity(0.06)),
                     ),
                     child: Text(
-                      widget.buttonLabel,
+                      widget.priceLine,
                       style: const TextStyle(
-                        fontSize: 15,
+                        fontSize: 14,
                         fontWeight: FontWeight.w800,
+                        color: Color(0xFF111827),
                       ),
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 11),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: widget.onSelected,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: widget.selected
+                            ? accentColor
+                            : const Color(0xFF1F2937),
+                        foregroundColor: Colors.white,
+                        elevation: widget.selected ? 2.5 : 1,
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: Text(
+                        widget.buttonLabel,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }
@@ -1891,7 +2070,9 @@ class _FixedAdSpaceState extends State<_FixedAdSpace> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Ad click tracked for $_provider (${widget.adPlacement}).'),
+        content: Text(
+          'Ad click tracked for $_provider (${widget.adPlacement}).',
+        ),
       ),
     );
   }
@@ -1998,10 +2179,7 @@ class _IntegrationHubPanelState extends State<_IntegrationHubPanel> {
     final result = await IntegrationHubService.runAction(
       app: app,
       action: action,
-      payload: {
-        'source': 'jobready_v2',
-        'trigger': 'manual_test',
-      },
+      payload: {'source': 'jobready_v2', 'trigger': 'manual_test'},
     );
 
     if (!mounted) {
@@ -2072,10 +2250,7 @@ class _IntegrationAppTile extends StatelessWidget {
   final IntegrationApp app;
   final VoidCallback onTap;
 
-  const _IntegrationAppTile({
-    required this.app,
-    required this.onTap,
-  });
+  const _IntegrationAppTile({required this.app, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -2210,9 +2385,9 @@ class _GatewayControlPanelState extends State<_GatewayControlPanel> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -2312,7 +2487,8 @@ class _OwnerIntegrationHubPanel extends StatefulWidget {
   const _OwnerIntegrationHubPanel();
 
   @override
-  State<_OwnerIntegrationHubPanel> createState() => _OwnerIntegrationHubPanelState();
+  State<_OwnerIntegrationHubPanel> createState() =>
+      _OwnerIntegrationHubPanelState();
 }
 
 class _OwnerIntegrationHubPanelState extends State<_OwnerIntegrationHubPanel> {
@@ -2408,7 +2584,8 @@ class _OwnerIntegrationHubPanelState extends State<_OwnerIntegrationHubPanel> {
           ] else ...[
             const _SectionHeader(
               title: 'Integration Hub',
-              subtitle: 'Connect external apps via API manifest, without future UI code changes.',
+              subtitle:
+                  'Connect external apps via API manifest, without future UI code changes.',
             ),
             const SizedBox(height: 8),
             const _IntegrationHubPanel(),
@@ -2526,12 +2703,20 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
         contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
         title: const Row(
           children: [
-            Icon(Icons.lock_outline_rounded, color: Color(0xFF2563EB), size: 24),
+            Icon(
+              Icons.lock_outline_rounded,
+              color: Color(0xFF2563EB),
+              size: 24,
+            ),
             SizedBox(width: 8),
             Expanded(
               child: Text(
                 'Account required to continue',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF0F172A),
+                ),
               ),
             ),
           ],
@@ -2542,7 +2727,11 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
           children: [
             const Text(
               'Please create your account or log in using User Login or Google Account to proceed with the payment.',
-              style: TextStyle(fontSize: 14, height: 1.45, color: Color(0xFF475569)),
+              style: TextStyle(
+                fontSize: 14,
+                height: 1.45,
+                color: Color(0xFF475569),
+              ),
             ),
             const SizedBox(height: 16),
             Wrap(
@@ -2562,8 +2751,13 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2563EB),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 ),
                 OutlinedButton.icon(
@@ -2579,8 +2773,13 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF0F766E),
                     side: const BorderSide(color: Color(0xFF0F766E)),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 ),
               ],
@@ -2598,7 +2797,8 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
     }
 
     final readiness = _readiness();
-    final readinessStatus = readiness['status']?.toString() ?? 'configuration_required';
+    final readinessStatus =
+        readiness['status']?.toString() ?? 'configuration_required';
     if (readinessStatus == 'configuration_required') {
       setState(() {
         _lastCheckoutResponse = {
@@ -2608,7 +2808,12 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
         };
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(readiness['message']?.toString() ?? 'Configuration is still required.')),
+        SnackBar(
+          content: Text(
+            readiness['message']?.toString() ??
+                'Configuration is still required.',
+          ),
+        ),
       );
       return;
     }
@@ -2622,7 +2827,12 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
         };
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(readiness['message']?.toString() ?? 'Checkout is unavailable for this selection.')),
+        SnackBar(
+          content: Text(
+            readiness['message']?.toString() ??
+                'Checkout is unavailable for this selection.',
+          ),
+        ),
       );
       return;
     }
@@ -2643,16 +2853,18 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
           'checkout_state': 'ready_for_integration',
           'status': 'ready_for_integration',
           'label': 'Ready for Integration',
-          'message': 'Checkout readiness confirmed in local UI state only. No live gateway call was made.',
+          'message':
+              'Checkout readiness confirmed in local UI state only. No live gateway call was made.',
           'order_id': 'UI-ONLY-CHECKPOINT',
           'checkout_url': 'Not generated in UI-only checkpoint',
         };
       });
 
-      const message = 'Local readiness saved. No live checkout action was performed.';
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(message)),
-      );
+      const message =
+          'Local readiness saved. No live checkout action was performed.';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text(message)));
     } finally {
       if (mounted) {
         setState(() {
@@ -2710,7 +2922,8 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  readiness['message']?.toString() ?? 'Payment readiness unavailable.',
+                  readiness['message']?.toString() ??
+                      'Payment readiness unavailable.',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -2723,17 +2936,29 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
           const SizedBox(height: 8),
           Text(
             'Plan: ${widget.selectedPlan} | Amount: ${_formatCurrencyAmount(amount, _localCurrency)} | Usage: ${widget.usageType ?? 'NOT SELECTED'}',
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF334155),
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             'Gateway display: ${widget.activeGateway.trim().isEmpty ? 'NOT FINALIZED' : widget.activeGateway.toUpperCase()} | Currency mode: ${readiness['currency_mode']?.toString() ?? 'n/a'}',
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF334155),
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             readiness['fallback']?.toString() ?? 'No fallback note available.',
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF475569),
+            ),
           ),
         ],
       ),
@@ -2749,7 +2974,9 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
     final status = response['status']?.toString() ?? 'unknown';
     final statusColor = _statusColor(status);
     final reference = response['order_id']?.toString() ?? 'N/A';
-    final summary = response['message']?.toString() ?? 'No local checkout summary available.';
+    final summary =
+        response['message']?.toString() ??
+        'No local checkout summary available.';
 
     return Container(
       width: double.infinity,
@@ -2764,22 +2991,38 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
         children: [
           Text(
             'Latest checkout state',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: statusColor),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: statusColor,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
             response['label']?.toString() ?? status.toUpperCase(),
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF1E293B)),
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1E293B),
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             summary,
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF475569),
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             'Reference: $reference',
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF1E293B)),
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1E293B),
+            ),
           ),
         ],
       ),
@@ -2833,11 +3076,14 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
             },
             decoration: InputDecoration(
               labelText: 'Payment currency',
-              helperText: 'USD-based conversion is used for global currencies. Choose "Other countries" when your currency is not listed. INR stays on the India rate card.',
+              helperText:
+                  'USD-based conversion is used for global currencies. Choose "Other countries" when your currency is not listed. INR stays on the India rate card.',
               isDense: true,
               filled: true,
               fillColor: Colors.white,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -2873,7 +3119,9 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
           ),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
-            key: ValueKey('${widget.selectedPlan}_${widget.usageType}_${_localCurrency}'),
+            key: ValueKey(
+              '${widget.selectedPlan}_${widget.usageType}_${_localCurrency}',
+            ),
             value: widget.selectedPlan,
             isExpanded: true,
             items: [
@@ -2963,7 +3211,9 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
               isDense: true,
               filled: true,
               fillColor: Colors.white,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
           ),
           const SizedBox(height: 10),
@@ -2980,8 +3230,8 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
                 widget.selectedPlan == '7Days'
                     ? 'Short access plan selected: ${_formatCurrencyAmount(widget.sevenDayAmount, _localCurrency)} for 7-day use.'
                     : _isSubscriptionPlan(widget.selectedPlan)
-                        ? 'Offer active: Pay for 10 months (${_formatCurrencyAmount(_monthlyForPlan(widget.selectedPlan) * 10, _localCurrency)}) and get 12 months access.'
-                        : 'One-time Lifetime plan payment: ${_formatCurrencyAmount(widget.lifetimePlanAmount, _localCurrency)}.',
+                    ? 'Offer active: Pay for 10 months (${_formatCurrencyAmount(_monthlyForPlan(widget.selectedPlan) * 10, _localCurrency)}) and get 12 months access.'
+                    : 'One-time Lifetime plan payment: ${_formatCurrencyAmount(widget.lifetimePlanAmount, _localCurrency)}.',
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -3003,14 +3253,22 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 child: Text(
                   _submitting ? 'Creating Checkout...' : 'Continue to Payment',
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF2563EB),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 16,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
                 elevation: 2,
                 shadowColor: const Color(0xFF2563EB).withValues(alpha: 0.35),
               ),
@@ -3023,23 +3281,25 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
 }
 
 class _OwnerOfferManagerPanel extends StatefulWidget {
-  final void Function(bool enabled, String offerText, String promoCode, Duration? validity)
-      onOfferUpdated;
+  final void Function(
+    bool enabled,
+    String offerText,
+    String promoCode,
+    Duration? validity,
+  )
+  onOfferUpdated;
 
-  const _OwnerOfferManagerPanel({
-    required this.onOfferUpdated,
-  });
+  const _OwnerOfferManagerPanel({required this.onOfferUpdated});
 
   @override
-  State<_OwnerOfferManagerPanel> createState() => _OwnerOfferManagerPanelState();
+  State<_OwnerOfferManagerPanel> createState() =>
+      _OwnerOfferManagerPanelState();
 }
 
 class _AdminLoginPanel extends StatefulWidget {
   final VoidCallback onUnlocked;
 
-  const _AdminLoginPanel({
-    required this.onUnlocked,
-  });
+  const _AdminLoginPanel({required this.onUnlocked});
 
   @override
   State<_AdminLoginPanel> createState() => _AdminLoginPanelState();
@@ -3054,7 +3314,9 @@ class _AdminLoginPanelState extends State<_AdminLoginPanel> {
   @override
   void initState() {
     super.initState();
-    _adminIdController = TextEditingController(text: OwnerAdminAccessService.adminId);
+    _adminIdController = TextEditingController(
+      text: OwnerAdminAccessService.adminId,
+    );
   }
 
   @override
@@ -3070,7 +3332,9 @@ class _AdminLoginPanelState extends State<_AdminLoginPanel> {
       _passwordController.text,
     );
     setState(() {
-      _status = ok ? 'Admin dashboard unlocked.' : 'Invalid admin ID or password.';
+      _status = ok
+          ? 'Admin dashboard unlocked.'
+          : 'Invalid admin ID or password.';
     });
     if (ok) {
       widget.onUnlocked();
@@ -3092,7 +3356,10 @@ class _AdminLoginPanelState extends State<_AdminLoginPanel> {
         children: [
           const Text(
             'Admin Login',
-            style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF0F172A),
+            ),
           ),
           const SizedBox(height: 8),
           const Text(
@@ -3112,15 +3379,23 @@ class _AdminLoginPanelState extends State<_AdminLoginPanel> {
               isDense: true,
               filled: true,
               fillColor: const Color(0xFFF8FAFC),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 14,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
                 borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+                borderSide: const BorderSide(
+                  color: Color(0xFF183A5B),
+                  width: 1.4,
+                ),
               ),
             ),
           ),
@@ -3133,15 +3408,23 @@ class _AdminLoginPanelState extends State<_AdminLoginPanel> {
               isDense: true,
               filled: true,
               fillColor: const Color(0xFFF8FAFC),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 14,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
                 borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+                borderSide: const BorderSide(
+                  color: Color(0xFF183A5B),
+                  width: 1.4,
+                ),
               ),
               suffixIcon: IconButton(
                 onPressed: () {
@@ -3150,7 +3433,9 @@ class _AdminLoginPanelState extends State<_AdminLoginPanel> {
                   });
                 },
                 icon: Icon(
-                  _isPasswordVisible ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                  _isPasswordVisible
+                      ? Icons.visibility_off_rounded
+                      : Icons.visibility_rounded,
                   color: const Color(0xFF64748B),
                 ),
               ),
@@ -3196,13 +3481,16 @@ class _AdminCredentialsPanel extends StatefulWidget {
 class _AdminCredentialsPanelState extends State<_AdminCredentialsPanel> {
   late final TextEditingController _adminIdController;
   final TextEditingController _passwordController = TextEditingController();
-  String _status = 'Set your admin ID/password here. Leave password blank to keep existing one.';
+  String _status =
+      'Set your admin ID/password here. Leave password blank to keep existing one.';
   bool _isPasswordVisible = false;
 
   @override
   void initState() {
     super.initState();
-    _adminIdController = TextEditingController(text: OwnerAdminAccessService.adminId);
+    _adminIdController = TextEditingController(
+      text: OwnerAdminAccessService.adminId,
+    );
   }
 
   @override
@@ -3258,7 +3546,10 @@ class _AdminCredentialsPanelState extends State<_AdminCredentialsPanel> {
         children: [
           const Text(
             'Admin Login Settings',
-            style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF0C4A6E)),
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF0C4A6E),
+            ),
           ),
           const SizedBox(height: 8),
           TextField(
@@ -3268,15 +3559,23 @@ class _AdminCredentialsPanelState extends State<_AdminCredentialsPanel> {
               isDense: true,
               filled: true,
               fillColor: const Color(0xFFF8FAFC),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 14,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
                 borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+                borderSide: const BorderSide(
+                  color: Color(0xFF183A5B),
+                  width: 1.4,
+                ),
               ),
             ),
           ),
@@ -3289,15 +3588,23 @@ class _AdminCredentialsPanelState extends State<_AdminCredentialsPanel> {
               isDense: true,
               filled: true,
               fillColor: const Color(0xFFF8FAFC),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 14,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
                 borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+                borderSide: const BorderSide(
+                  color: Color(0xFF183A5B),
+                  width: 1.4,
+                ),
               ),
               suffixIcon: IconButton(
                 onPressed: () {
@@ -3306,7 +3613,9 @@ class _AdminCredentialsPanelState extends State<_AdminCredentialsPanel> {
                   });
                 },
                 icon: Icon(
-                  _isPasswordVisible ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                  _isPasswordVisible
+                      ? Icons.visibility_off_rounded
+                      : Icons.visibility_rounded,
                   color: const Color(0xFF64748B),
                 ),
               ),
@@ -3323,7 +3632,9 @@ class _AdminCredentialsPanelState extends State<_AdminCredentialsPanel> {
                 backgroundColor: const Color(0xFF183A5B),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
             ),
           ),
@@ -3360,12 +3671,19 @@ class _AdminSystemCheckPanel extends StatelessWidget {
         children: [
           const Text(
             'System Check Box',
-            style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF92400E)),
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF92400E),
+            ),
           ),
           const SizedBox(height: 6),
           const Text(
             'API: Ready | Payment: Config-only | Gateway: Owner control active | QA: Validation route available',
-            style: TextStyle(fontSize: 12, color: Color(0xFF78350F), fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: 12,
+              color: Color(0xFF78350F),
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 8),
           InkWell(
@@ -3429,17 +3747,27 @@ class _AdminBankAdsStatusPanel extends StatelessWidget {
         children: [
           const Text(
             'Bank & Ads Status Panel',
-            style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF92400E)),
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF92400E),
+            ),
           ),
           const SizedBox(height: 6),
           const Text(
             'Live status: legacy Bank/Ads file links are blocked from public access. Keep monitoring alerts active for urgent events.',
-            style: TextStyle(fontSize: 12, color: Color(0xFF78350F), fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: 12,
+              color: Color(0xFF78350F),
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 8),
           InkWell(
             onTap: () {
-              html.window.open('https://getreadyjob.com/downloads/bank_api_packet_v1_1.md', '_blank');
+              WebSafeBrowser.openWindow(
+                'https://getreadyjob.com/downloads/bank_api_packet_v1_1.md',
+                target: '_blank',
+              );
             },
             borderRadius: BorderRadius.circular(10),
             child: Container(
@@ -3487,11 +3815,18 @@ class _PlanCatalogManagerPanel extends StatefulWidget {
   });
 
   @override
-  State<_PlanCatalogManagerPanel> createState() => _PlanCatalogManagerPanelState();
+  State<_PlanCatalogManagerPanel> createState() =>
+      _PlanCatalogManagerPanelState();
 }
 
 class _PlanCatalogManagerPanelState extends State<_PlanCatalogManagerPanel> {
-  static const List<String> _plans = <String>['Free', '7Days', 'Monthly', 'Yearly', 'Lifetime'];
+  static const List<String> _plans = <String>[
+    'Free',
+    '7Days',
+    'Monthly',
+    'Yearly',
+    'Lifetime',
+  ];
   static const List<String> _allTools = PlanCatalogConfig.registeredToolNames;
 
   late Map<String, TextEditingController> _inrControllers;
@@ -3523,19 +3858,30 @@ class _PlanCatalogManagerPanelState extends State<_PlanCatalogManagerPanel> {
   void _hydrateFromConfig(PlanCatalogConfig config) {
     _inrControllers = {
       for (final plan in _plans)
-        plan: TextEditingController(text: (config.inrPrices[plan] ?? 0).toString())
+        plan: TextEditingController(
+          text: (config.inrPrices[plan] ?? 0).toString(),
+        ),
     };
     _usdControllers = {
       for (final plan in _plans)
-        plan: TextEditingController(text: (config.usdPrices[plan] ?? 0).toString())
+        plan: TextEditingController(
+          text: (config.usdPrices[plan] ?? 0).toString(),
+        ),
     };
     _quotaControllers = {
       for (final plan in _plans)
-        plan: TextEditingController(text: config.userQuotasByPlan[plan] ?? PlanCatalogConfig.defaults().userQuotasByPlan[plan] ?? '2')
+        plan: TextEditingController(
+          text:
+              config.userQuotasByPlan[plan] ??
+              PlanCatalogConfig.defaults().userQuotasByPlan[plan] ??
+              '2',
+        ),
     };
     _enabledToolsByPlan = {
       for (final plan in _plans)
-        plan: List<String>.from(config.enabledToolsByPlan[plan] ?? const <String>[])
+        plan: List<String>.from(
+          config.enabledToolsByPlan[plan] ?? const <String>[],
+        ),
     };
   }
 
@@ -3562,17 +3908,28 @@ class _PlanCatalogManagerPanelState extends State<_PlanCatalogManagerPanel> {
     final quotas = <String, String>{};
 
     for (final plan in _plans) {
-      inr[plan] = _readAmount(_inrControllers[plan]!, defaults.inrPrices[plan] ?? 0);
-      usd[plan] = _readAmount(_usdControllers[plan]!, defaults.usdPrices[plan] ?? 0);
+      inr[plan] = _readAmount(
+        _inrControllers[plan]!,
+        defaults.inrPrices[plan] ?? 0,
+      );
+      usd[plan] = _readAmount(
+        _usdControllers[plan]!,
+        defaults.usdPrices[plan] ?? 0,
+      );
       final rawQuota = _quotaControllers[plan]!.text.trim();
-      quotas[plan] = rawQuota.isEmpty ? (defaults.userQuotasByPlan[plan] ?? '2') : rawQuota;
+      quotas[plan] = rawQuota.isEmpty
+          ? (defaults.userQuotasByPlan[plan] ?? '2')
+          : rawQuota;
     }
 
     final config = PlanCatalogConfig(
       inrPrices: inr,
       usdPrices: usd,
       enabledToolsByPlan: {
-        for (final plan in _plans) plan: List<String>.from(_enabledToolsByPlan[plan] ?? const <String>[])
+        for (final plan in _plans)
+          plan: List<String>.from(
+            _enabledToolsByPlan[plan] ?? const <String>[],
+          ),
       },
       userQuotasByPlan: quotas,
     );
@@ -3618,12 +3975,19 @@ class _PlanCatalogManagerPanelState extends State<_PlanCatalogManagerPanel> {
         children: [
           const Text(
             'Plan Card Manager',
-            style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF0F172A),
+            ),
           ),
           const SizedBox(height: 6),
           const Text(
             'Update plan amounts and tick tools per plan. Saved settings apply instantly on cards.',
-            style: TextStyle(fontSize: 12, color: Color(0xFF475569), fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: 12,
+              color: Color(0xFF475569),
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 10),
           for (final plan in _plans) ...[
@@ -3641,7 +4005,10 @@ class _PlanCatalogManagerPanelState extends State<_PlanCatalogManagerPanel> {
                 children: [
                   Text(
                     plan,
-                    style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF111827)),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF111827),
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -3649,11 +4016,15 @@ class _PlanCatalogManagerPanelState extends State<_PlanCatalogManagerPanel> {
                       Expanded(
                         child: TextField(
                           controller: _inrControllers[plan],
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
                           decoration: InputDecoration(
                             labelText: 'INR',
                             isDense: true,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
                         ),
                       ),
@@ -3661,11 +4032,15 @@ class _PlanCatalogManagerPanelState extends State<_PlanCatalogManagerPanel> {
                       Expanded(
                         child: TextField(
                           controller: _usdControllers[plan],
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
                           decoration: InputDecoration(
                             labelText: 'USD',
                             isDense: true,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
                         ),
                       ),
@@ -3677,7 +4052,9 @@ class _PlanCatalogManagerPanelState extends State<_PlanCatalogManagerPanel> {
                     decoration: InputDecoration(
                       labelText: 'User Quota',
                       isDense: true,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                       helperText: '2, 50, 200, 1000, Unlimited',
                     ),
                   ),
@@ -3689,10 +4066,13 @@ class _PlanCatalogManagerPanelState extends State<_PlanCatalogManagerPanel> {
                       for (final tool in _allTools)
                         FilterChip(
                           label: Text(tool),
-                          selected: (_enabledToolsByPlan[plan] ?? const <String>[]).contains(tool),
+                          selected:
+                              (_enabledToolsByPlan[plan] ?? const <String>[])
+                                  .contains(tool),
                           onSelected: (selected) {
                             setState(() {
-                              final selectedTools = _enabledToolsByPlan[plan] ?? <String>[];
+                              final selectedTools =
+                                  _enabledToolsByPlan[plan] ?? <String>[];
                               if (selected) {
                                 if (!selectedTools.contains(tool)) {
                                   selectedTools.add(tool);
@@ -3741,7 +4121,9 @@ class _PlanCatalogManagerPanelState extends State<_PlanCatalogManagerPanel> {
 
 class _OwnerOfferManagerPanelState extends State<_OwnerOfferManagerPanel> {
   final TextEditingController _offerController = TextEditingController();
-  final TextEditingController _promoController = TextEditingController(text: 'JRFREE1001Y');
+  final TextEditingController _promoController = TextEditingController(
+    text: 'JRFREE1001Y',
+  );
   bool _showOffer = false;
   Duration? _validity = const Duration(days: 365);
 
@@ -3762,7 +4144,9 @@ class _OwnerOfferManagerPanelState extends State<_OwnerOfferManagerPanel> {
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Offer and promo settings updated on home page.')),
+      const SnackBar(
+        content: Text('Offer and promo settings updated on home page.'),
+      ),
     );
   }
 
@@ -3781,7 +4165,10 @@ class _OwnerOfferManagerPanelState extends State<_OwnerOfferManagerPanel> {
         children: [
           const Text(
             'Owner Offer & Promo Box',
-            style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF0F172A),
+            ),
           ),
           const SizedBox(height: 8),
           Padding(
@@ -3791,7 +4178,10 @@ class _OwnerOfferManagerPanelState extends State<_OwnerOfferManagerPanel> {
                 const Expanded(
                   child: Text(
                     'Show offer on home page',
-                    style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF334155),
+                    ),
                   ),
                 ),
                 Switch(
@@ -3808,15 +4198,23 @@ class _OwnerOfferManagerPanelState extends State<_OwnerOfferManagerPanel> {
               hintText: 'Write offer text here (New Year, Diwali, etc.)',
               filled: true,
               fillColor: const Color(0xFFF8FAFC),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 14,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
                 borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+                borderSide: const BorderSide(
+                  color: Color(0xFF183A5B),
+                  width: 1.4,
+                ),
               ),
             ),
           ),
@@ -3827,15 +4225,23 @@ class _OwnerOfferManagerPanelState extends State<_OwnerOfferManagerPanel> {
               hintText: 'Promo code (example: NEWYEAR100)',
               filled: true,
               fillColor: const Color(0xFFF8FAFC),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 14,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
                 borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+                borderSide: const BorderSide(
+                  color: Color(0xFF183A5B),
+                  width: 1.4,
+                ),
               ),
             ),
           ),
@@ -3843,24 +4249,41 @@ class _OwnerOfferManagerPanelState extends State<_OwnerOfferManagerPanel> {
           DropdownButtonFormField<Duration?>(
             initialValue: _validity,
             items: const [
-              DropdownMenuItem<Duration?>(value: Duration(days: 365), child: Text('1 Year')),
-              DropdownMenuItem<Duration?>(value: Duration(days: 30), child: Text('1 Month')),
-              DropdownMenuItem<Duration?>(value: Duration(days: 7), child: Text('1 Week')),
+              DropdownMenuItem<Duration?>(
+                value: Duration(days: 365),
+                child: Text('1 Year'),
+              ),
+              DropdownMenuItem<Duration?>(
+                value: Duration(days: 30),
+                child: Text('1 Month'),
+              ),
+              DropdownMenuItem<Duration?>(
+                value: Duration(days: 7),
+                child: Text('1 Week'),
+              ),
             ],
             onChanged: (value) => setState(() => _validity = value),
             decoration: InputDecoration(
               labelText: 'Promo validity',
               filled: true,
               fillColor: const Color(0xFFF8FAFC),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 14,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
                 borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+                borderSide: const BorderSide(
+                  color: Color(0xFF183A5B),
+                  width: 1.4,
+                ),
               ),
             ),
           ),
@@ -3875,7 +4298,9 @@ class _OwnerOfferManagerPanelState extends State<_OwnerOfferManagerPanel> {
                 backgroundColor: const Color(0xFF183A5B),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
             ),
           ),
@@ -3901,11 +4326,22 @@ class _AboutUsSection extends StatelessWidget {
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('About Us', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1F2937))),
+          Text(
+            'About Us',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF1F2937),
+            ),
+          ),
           SizedBox(height: 6),
           Text(
             'GETREADYJOB helps users process documents faster with reliable tools for conversion, compression, and premium workflow automation. We focus on simple steps, stable output quality, and practical productivity for individuals and teams.',
-            style: TextStyle(fontSize: 13, height: 1.4, color: Color(0xFF4B5563)),
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.4,
+              color: Color(0xFF4B5563),
+            ),
           ),
         ],
       ),
@@ -3935,11 +4371,22 @@ class _FuturePlanSection extends StatelessWidget {
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Future Plan', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1F2937))),
+          Text(
+            'Future Plan',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF1F2937),
+            ),
+          ),
           SizedBox(height: 6),
           Text(
             'Our new Version 2 will deliver a cleaner workspace, stronger payment and plan controls, deeper API integrations, and better performance across browsers. It will include smarter sharing options, offer automation, and owner-level controls for promotions and gateway switching. We are also expanding enterprise-ready features with better operational controls and launch runbooks. The goal is a faster, simpler, and more scalable experience for all users.',
-            style: TextStyle(fontSize: 13, height: 1.45, color: Color(0xFF4B5563)),
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.45,
+              color: Color(0xFF4B5563),
+            ),
           ),
         ],
       ),
@@ -3964,7 +4411,9 @@ class _SuggestionSection extends StatelessWidget {
           backgroundColor: const Color(0xFF183A5B),
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
         ),
       ),
     );
@@ -4036,7 +4485,9 @@ class _UserRatingSectionState extends State<_UserRatingSection> {
                   });
                 },
                 icon: Icon(
-                  star <= _selectedStars ? Icons.star_rounded : Icons.star_border_rounded,
+                  star <= _selectedStars
+                      ? Icons.star_rounded
+                      : Icons.star_border_rounded,
                   color: const Color(0xFFF59E0B),
                 ),
               );
@@ -4058,8 +4509,8 @@ class _UserRatingSectionState extends State<_UserRatingSection> {
           Text(
             _summary.publicVisible
                 ? (_summary.totalCount == 0
-                    ? 'Overall rating: no ratings yet.'
-                    : 'Overall rating: ${_summary.average.toStringAsFixed(2)} / 5 from ${_summary.totalCount} users.')
+                      ? 'Overall rating: no ratings yet.'
+                      : 'Overall rating: ${_summary.average.toStringAsFixed(2)} / 5 from ${_summary.totalCount} users.')
                 : 'Overall rating is currently hidden by admin.',
             style: const TextStyle(
               fontSize: 12,
@@ -4077,7 +4528,8 @@ class _AdminRatingControlPanel extends StatefulWidget {
   const _AdminRatingControlPanel();
 
   @override
-  State<_AdminRatingControlPanel> createState() => _AdminRatingControlPanelState();
+  State<_AdminRatingControlPanel> createState() =>
+      _AdminRatingControlPanelState();
 }
 
 class _AdminRatingControlPanelState extends State<_AdminRatingControlPanel> {
@@ -4304,11 +4756,7 @@ class _TopActionIcon extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: const Color(0xFFDCE7F5)),
               ),
-              child: Icon(
-                icon,
-                size: 19,
-                color: iconColor,
-              ),
+              child: Icon(icon, size: 19, color: iconColor),
             ),
           ),
         ),
@@ -4328,8 +4776,12 @@ class _CouponControlPanel extends StatefulWidget {
 
 class _CouponControlPanelState extends State<_CouponControlPanel> {
   final TextEditingController _couponInputController = TextEditingController();
-  final TextEditingController _discountInputController = TextEditingController(text: '20');
-  static const String _ownerAccessCode = String.fromEnvironment('OWNER_ACCESS_CODE');
+  final TextEditingController _discountInputController = TextEditingController(
+    text: '20',
+  );
+  static const String _ownerAccessCode = String.fromEnvironment(
+    'OWNER_ACCESS_CODE',
+  );
 
   int _selectedDiscount = 20;
   Duration? _selectedValidity;
@@ -4388,7 +4840,9 @@ class _CouponControlPanelState extends State<_CouponControlPanel> {
                   });
                 },
                 icon: Icon(
-                  _isPanelExpanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                  _isPanelExpanded
+                      ? Icons.expand_less_rounded
+                      : Icons.expand_more_rounded,
                   size: 16,
                 ),
                 label: Text(_isPanelExpanded ? 'Hide' : 'Show'),
@@ -4414,16 +4868,18 @@ class _CouponControlPanelState extends State<_CouponControlPanel> {
                 const Expanded(
                   child: Text(
                     'Users can redeem promo code here. Owner controls are protected.',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF6B7280),
-                    ),
+                    style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
                   ),
                 ),
                 const SizedBox(width: 10),
                 OutlinedButton.icon(
                   onPressed: _toggleOwnerAccess,
-                  icon: Icon(_isAdminUnlocked ? Icons.lock_open_rounded : Icons.lock_rounded, size: 16),
+                  icon: Icon(
+                    _isAdminUnlocked
+                        ? Icons.lock_open_rounded
+                        : Icons.lock_rounded,
+                    size: 16,
+                  ),
                   label: Text(_isAdminUnlocked ? 'Owner On' : 'Owner'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF1F4E79),
@@ -4434,192 +4890,244 @@ class _CouponControlPanelState extends State<_CouponControlPanel> {
               ],
             ),
             if (_isAdminUnlocked) ...[
-            const SizedBox(height: 8),
-            Theme(
-              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-              child: ExpansionTile(
-                tilePadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
-                childrenPadding: const EdgeInsets.only(bottom: 8),
-                title: const Text(
-                  'Owner Tools',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF1F4E79)),
-                ),
-                subtitle: const Text(
-                  'Expand only when needed',
-                  style: TextStyle(fontSize: 10, color: Color(0xFF64748B)),
-                ),
-                children: [
-                  TextField(
-                    controller: _discountInputController,
-                    keyboardType: TextInputType.number,
-                    onChanged: (_) {
-                      setState(() {
-                        _isSettingsSaved = false;
-                      });
-                    },
-                    decoration: InputDecoration(
-                      labelText: 'Discount Percentage',
-                      hintText: 'Enter value between 1 and 100',
-                      suffixText: '%',
-                      isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF007AFF), width: 1.4),
-                      ),
+              const SizedBox(height: 8),
+              Theme(
+                data: Theme.of(
+                  context,
+                ).copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  tilePadding: const EdgeInsets.symmetric(
+                    horizontal: 0,
+                    vertical: 0,
+                  ),
+                  childrenPadding: const EdgeInsets.only(bottom: 8),
+                  title: const Text(
+                    'Owner Tools',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF1F4E79),
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Validity Window',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF374151)),
-                    ),
+                  subtitle: const Text(
+                    'Expand only when needed',
+                    style: TextStyle(fontSize: 10, color: Color(0xFF64748B)),
                   ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _validityChip('24 Hours', const Duration(hours: 24)),
-                      _validityChip('1 Week', const Duration(days: 7)),
-                      _validityChip('1 Month', const Duration(days: 30)),
-                      _validityChip('No Expiry', null),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF1F4E79),
-                        side: const BorderSide(color: Color(0xFF1F4E79)),
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      onPressed: _savePromoSettings,
-                      icon: const Icon(Icons.save_outlined, size: 16),
-                      label: const Text(
-                        'Save Promo Settings',
-                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF007AFF),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      onPressed: _generateCoupon,
-                      icon: const Icon(Icons.local_offer_rounded, size: 16),
-                      label: const Text(
-                        'Create Promo Code',
-                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
-                      ),
-                    ),
-                  ),
-                  if (_lastGenerated != null) ...[
-                    const SizedBox(height: 8),
-                    Builder(
-                      builder: (context) {
-                        final latest = _lastGenerated;
-                        if (latest == null) {
-                          return const SizedBox.shrink();
-                        }
-                        return Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEFF7FF),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFCCE7FF)),
-                          ),
-                          child: SelectableText(
-                            'Latest: ${latest.code}  (${latest.discountPercent}% OFF)  ${_formatExpiryText(latest)}',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF1F4E79),
-                            ),
-                          ),
-                        );
+                  children: [
+                    TextField(
+                      controller: _discountInputController,
+                      keyboardType: TextInputType.number,
+                      onChanged: (_) {
+                        setState(() {
+                          _isSettingsSaved = false;
+                        });
                       },
+                      decoration: InputDecoration(
+                        labelText: 'Discount Percentage',
+                        hintText: 'Enter value between 1 and 100',
+                        suffixText: '%',
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF007AFF),
+                            width: 1.4,
+                          ),
+                        ),
+                      ),
                     ),
-                  ],
-                  if (coupons.isNotEmpty) ...[
                     const SizedBox(height: 10),
                     const Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        'Generated Coupons',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                        'Validity Window',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF374151),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 8),
-                    ...coupons.take(5).map(_couponRow),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _validityChip('24 Hours', const Duration(hours: 24)),
+                        _validityChip('1 Week', const Duration(days: 7)),
+                        _validityChip('1 Month', const Duration(days: 30)),
+                        _validityChip('No Expiry', null),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF1F4E79),
+                          side: const BorderSide(color: Color(0xFF1F4E79)),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: _savePromoSettings,
+                        icon: const Icon(Icons.save_outlined, size: 16),
+                        label: const Text(
+                          'Save Promo Settings',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF007AFF),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: _generateCoupon,
+                        icon: const Icon(Icons.local_offer_rounded, size: 16),
+                        label: const Text(
+                          'Create Promo Code',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (_lastGenerated != null) ...[
+                      const SizedBox(height: 8),
+                      Builder(
+                        builder: (context) {
+                          final latest = _lastGenerated;
+                          if (latest == null) {
+                            return const SizedBox.shrink();
+                          }
+                          return Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEFF7FF),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: const Color(0xFFCCE7FF),
+                              ),
+                            ),
+                            child: SelectableText(
+                              'Latest: ${latest.code}  (${latest.discountPercent}% OFF)  ${_formatExpiryText(latest)}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF1F4E79),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                    if (coupons.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Generated Coupons',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ...coupons.take(5).map(_couponRow),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
             ],
             const SizedBox(height: 8),
             TextField(
-            controller: _couponInputController,
-            decoration: InputDecoration(
-              hintText: 'Enter coupon code',
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFF007AFF), width: 1.4),
+              controller: _couponInputController,
+              decoration: InputDecoration(
+                hintText: 'Enter coupon code',
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF007AFF),
+                    width: 1.4,
+                  ),
+                ),
               ),
-            ),
             ),
             const SizedBox(height: 6),
             SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1F4E79),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 9),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1F4E79),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 9),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: _redeemCoupon,
+                icon: const Icon(Icons.check_circle_outline, size: 16),
+                label: const Text(
+                  'Redeem Promo Code',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                ),
               ),
-              onPressed: _redeemCoupon,
-              icon: const Icon(Icons.check_circle_outline, size: 16),
-              label: const Text(
-                'Redeem Promo Code',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
-              ),
-            ),
             ),
             const SizedBox(height: 6),
             Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: _appliedDiscount > 0 ? const Color(0xFFEAFBF0) : const Color(0xFFFFF4F4),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: _appliedDiscount > 0 ? const Color(0xFFB9F3CC) : const Color(0xFFFECACA),
+              width: double.infinity,
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: _appliedDiscount > 0
+                    ? const Color(0xFFEAFBF0)
+                    : const Color(0xFFFFF4F4),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: _appliedDiscount > 0
+                      ? const Color(0xFFB9F3CC)
+                      : const Color(0xFFFECACA),
+                ),
               ),
-            ),
-            child: Text(
-              _applyMessage,
-              style: TextStyle(
-                fontSize: 11,
-                color: _appliedDiscount > 0 ? const Color(0xFF166534) : const Color(0xFFB91C1C),
-                fontWeight: FontWeight.w700,
+              child: Text(
+                _applyMessage,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: _appliedDiscount > 0
+                      ? const Color(0xFF166534)
+                      : const Color(0xFFB91C1C),
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
             ),
           ],
         ],
@@ -4637,7 +5145,8 @@ class _CouponControlPanelState extends State<_CouponControlPanel> {
 
     if (_ownerAccessCode.trim().isEmpty) {
       setState(() {
-        _applyMessage = 'Owner access is disabled. Start app with --dart-define=OWNER_ACCESS_CODE=YourCode';
+        _applyMessage =
+            'Owner access is disabled. Start app with --dart-define=OWNER_ACCESS_CODE=YourCode';
         _appliedDiscount = 0;
       });
       return;
@@ -4656,9 +5165,7 @@ class _CouponControlPanelState extends State<_CouponControlPanel> {
         content: TextField(
           controller: pinController,
           obscureText: true,
-          decoration: const InputDecoration(
-            hintText: 'Enter owner code',
-          ),
+          decoration: const InputDecoration(hintText: 'Enter owner code'),
         ),
         actions: [
           TextButton(
@@ -4768,7 +5275,9 @@ class _CouponControlPanelState extends State<_CouponControlPanel> {
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: coupon.isActive ? const Color(0xFF166534) : const Color(0xFF991B1B),
+              color: coupon.isActive
+                  ? const Color(0xFF166534)
+                  : const Color(0xFF991B1B),
             ),
           ),
         ],
@@ -4780,7 +5289,8 @@ class _CouponControlPanelState extends State<_CouponControlPanel> {
     if (!_isSettingsSaved) {
       setState(() {
         _appliedDiscount = 0;
-        _applyMessage = 'Save promo settings first before creating a promo code';
+        _applyMessage =
+            'Save promo settings first before creating a promo code';
       });
       widget.onDiscountChanged(0);
       return;
@@ -4793,7 +5303,8 @@ class _CouponControlPanelState extends State<_CouponControlPanel> {
 
     setState(() {
       _lastGenerated = coupon;
-      _applyMessage = 'Generated ${coupon.code} (${coupon.discountPercent}% OFF, ${_currentValidityLabel()})';
+      _applyMessage =
+          'Generated ${coupon.code} (${coupon.discountPercent}% OFF, ${_currentValidityLabel()})';
       _appliedDiscount = 0;
     });
     widget.onDiscountChanged(0);
@@ -4816,7 +5327,8 @@ class _CouponControlPanelState extends State<_CouponControlPanel> {
       _selectedDiscount = discount;
       _isSettingsSaved = true;
       _appliedDiscount = 0;
-      _applyMessage = 'Promo settings saved: ${discount}% OFF, ${_currentValidityLabel()}';
+      _applyMessage =
+          'Promo settings saved: ${discount}% OFF, ${_currentValidityLabel()}';
     });
     widget.onDiscountChanged(0);
   }
@@ -4851,12 +5363,20 @@ class _V2Column extends StatelessWidget {
           ),
           child: const Row(
             children: [
-              Icon(Icons.auto_awesome_rounded, color: Color(0xFF1F4E79), size: 18),
+              Icon(
+                Icons.auto_awesome_rounded,
+                color: Color(0xFF1F4E79),
+                size: 18,
+              ),
               SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'Sponsored / Featured: AI Resume Builder and HD Photo Enhancer now highlighted for faster access.',
-                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF334155),
+                  ),
                 ),
               ),
             ],
@@ -4983,7 +5503,7 @@ class _MostPopularToolsCard extends StatelessWidget {
             label: 'Protect PDF',
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const PdfEditPage()),
+              MaterialPageRoute(builder: (_) => PdfEditPage()),
             ),
           ),
           _PopularToolRow(
@@ -4991,7 +5511,7 @@ class _MostPopularToolsCard extends StatelessWidget {
             label: 'Edit PDF',
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const PdfEditPage()),
+              MaterialPageRoute(builder: (_) => PdfEditPage()),
             ),
           ),
           _PopularToolRow(
@@ -4999,7 +5519,7 @@ class _MostPopularToolsCard extends StatelessWidget {
             label: 'OCR PDF',
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const PdfEditPage()),
+              MaterialPageRoute(builder: (_) => PdfEditPage()),
             ),
           ),
         ],
@@ -5032,15 +5552,20 @@ class _PopularToolRow extends StatelessWidget {
             children: [
               Icon(icon, size: 18, color: const Color(0xFF1F4E79)),
               const SizedBox(width: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1E293B),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 2,
+                  softWrap: true,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1E293B),
+                  ),
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               const Icon(
                 Icons.chevron_right_rounded,
                 size: 16,
@@ -5060,7 +5585,8 @@ class _RecentDocumentsSection extends StatefulWidget {
   const _RecentDocumentsSection({this.showHeader = true});
 
   @override
-  State<_RecentDocumentsSection> createState() => _RecentDocumentsSectionState();
+  State<_RecentDocumentsSection> createState() =>
+      _RecentDocumentsSectionState();
 }
 
 class _RecentDocumentsSectionState extends State<_RecentDocumentsSection> {
@@ -5086,36 +5612,42 @@ class _RecentDocumentsSectionState extends State<_RecentDocumentsSection> {
   }
 
   List<String> _availableFormats() {
-    final formats = _entries
-        .map((e) => e.outputFormat.trim())
-        .where((f) => f.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
+    final formats =
+        _entries
+            .map((e) => e.outputFormat.trim())
+            .where((f) => f.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
     return ['All', ...formats];
   }
 
   bool _isToday(DateTime value) {
     final now = DateTime.now().toLocal();
     final local = value.toLocal();
-    return local.year == now.year && local.month == now.month && local.day == now.day;
+    return local.year == now.year &&
+        local.month == now.month &&
+        local.day == now.day;
   }
 
   List<DocumentHistoryEntry> _filteredEntries() {
     final query = _searchQuery.trim().toLowerCase();
-    return _entries.where((entry) {
-      if (_selectedFormat != 'All' && entry.outputFormat != _selectedFormat) {
-        return false;
-      }
-      if (_todayOnly && !_isToday(entry.recordedAt)) {
-        return false;
-      }
-      if (query.isEmpty) {
-        return true;
-      }
-      return entry.fileName.toLowerCase().contains(query) ||
-          entry.outputFormat.toLowerCase().contains(query);
-    }).toList(growable: false);
+    return _entries
+        .where((entry) {
+          if (_selectedFormat != 'All' &&
+              entry.outputFormat != _selectedFormat) {
+            return false;
+          }
+          if (_todayOnly && !_isToday(entry.recordedAt)) {
+            return false;
+          }
+          if (query.isEmpty) {
+            return true;
+          }
+          return entry.fileName.toLowerCase().contains(query) ||
+              entry.outputFormat.toLowerCase().contains(query);
+        })
+        .toList(growable: false);
   }
 
   Future<void> _clearHistory() async {
@@ -5139,7 +5671,9 @@ class _RecentDocumentsSectionState extends State<_RecentDocumentsSection> {
       _entries = DocumentHistoryService.getEntries();
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('History retention updated to last $limit entries.')),
+      SnackBar(
+        content: Text('History retention updated to last $limit entries.'),
+      ),
     );
   }
 
@@ -5252,7 +5786,9 @@ class _RecentDocumentsSectionState extends State<_RecentDocumentsSection> {
                   decoration: InputDecoration(
                     labelText: 'Retention',
                     isDense: true,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 ),
               ),
@@ -5269,7 +5805,9 @@ class _RecentDocumentsSectionState extends State<_RecentDocumentsSection> {
               hintText: 'Search file name or format',
               isDense: true,
               prefixIcon: const Icon(Icons.search_rounded, size: 18),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -5302,7 +5840,9 @@ class _RecentDocumentsSectionState extends State<_RecentDocumentsSection> {
                   decoration: InputDecoration(
                     labelText: 'Output format',
                     isDense: true,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 ),
               ),
@@ -5332,7 +5872,11 @@ class _RecentDocumentsSectionState extends State<_RecentDocumentsSection> {
               padding: EdgeInsets.symmetric(vertical: 8),
               child: Text(
                 'No recent downloads yet. Completed outputs will appear here automatically.',
-                style: TextStyle(fontSize: 12, color: Color(0xFF6B7280), fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF6B7280),
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             )
           else if (filteredEntries.isEmpty)
@@ -5340,48 +5884,57 @@ class _RecentDocumentsSectionState extends State<_RecentDocumentsSection> {
               padding: EdgeInsets.symmetric(vertical: 8),
               child: Text(
                 'No items match current filters.',
-                style: TextStyle(fontSize: 12, color: Color(0xFF6B7280), fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF6B7280),
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             )
           else
-            ...filteredEntries.take(10).map(
-              (entry) => Container(
-                width: double.infinity,
-                margin: const EdgeInsets.only(top: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFE5E7EB)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      entry.fileName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF111827),
-                      ),
+            ...filteredEntries
+                .take(10)
+                .map(
+                  (entry) => Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(top: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 9,
                     ),
-                    const SizedBox(height: 3),
-                    Text(
-                      '${entry.outputFormat} • ${_formatBytes(entry.fileSizeBytes)} • ${_formatWhen(entry.recordedAt)}',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF4B5563),
-                      ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFE5E7EB)),
                     ),
-                  ],
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          entry.fileName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF111827),
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          '${entry.outputFormat} • ${_formatBytes(entry.fileSizeBytes)} • ${_formatWhen(entry.recordedAt)}',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF4B5563),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
         ],
       ),
     );
@@ -5394,7 +5947,8 @@ class _DailyUsageQuotaSection extends StatefulWidget {
   const _DailyUsageQuotaSection({this.showHeader = true});
 
   @override
-  State<_DailyUsageQuotaSection> createState() => _DailyUsageQuotaSectionState();
+  State<_DailyUsageQuotaSection> createState() =>
+      _DailyUsageQuotaSectionState();
 }
 
 class _DailyUsageQuotaSectionState extends State<_DailyUsageQuotaSection> {
@@ -5449,12 +6003,20 @@ class _DailyUsageQuotaSectionState extends State<_DailyUsageQuotaSection> {
           children: [
             Text(
               label,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF334155)),
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF334155),
+              ),
             ),
             const SizedBox(height: 4),
             Text(
               '$used / $limit',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: color),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
             ),
           ],
         ),
@@ -5499,14 +6061,22 @@ class _DailyUsageQuotaSectionState extends State<_DailyUsageQuotaSection> {
                 const Expanded(
                   child: Text(
                     'Daily Usage',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF1F2937),
+                    ),
                   ),
                 )
               else
                 const Expanded(
                   child: Text(
                     'Today\'s usage counters',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF1F2937),
+                    ),
                   ),
                 ),
               if (widget.showHeader)
@@ -5514,21 +6084,31 @@ class _DailyUsageQuotaSectionState extends State<_DailyUsageQuotaSection> {
                   onPressed: _refresh,
                   icon: const Icon(Icons.refresh_rounded, size: 15),
                   label: const Text('Refresh'),
-                  style: TextButton.styleFrom(foregroundColor: const Color(0xFF1F4E79), visualDensity: VisualDensity.compact),
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF1F4E79),
+                    visualDensity: VisualDensity.compact,
+                  ),
                 ),
               if (widget.showHeader)
                 TextButton.icon(
                   onPressed: _clearToday,
                   icon: const Icon(Icons.restart_alt_rounded, size: 15),
                   label: const Text('Reset'),
-                  style: TextButton.styleFrom(foregroundColor: const Color(0xFFB91C1C), visualDensity: VisualDensity.compact),
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFFB91C1C),
+                    visualDensity: VisualDensity.compact,
+                  ),
                 ),
             ],
           ),
           const SizedBox(height: 6),
           const Text(
             'Local free-tier counters for today. Upgrade prompts can be attached to these limits next.',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF6B7280)),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF6B7280),
+            ),
           ),
           if (nearOrOverLimit) ...[
             const SizedBox(height: 8),
@@ -5536,10 +6116,14 @@ class _DailyUsageQuotaSectionState extends State<_DailyUsageQuotaSection> {
               width: double.infinity,
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: overLimit ? const Color(0xFFFEF2F2) : const Color(0xFFFFFBEB),
+                color: overLimit
+                    ? const Color(0xFFFEF2F2)
+                    : const Color(0xFFFFFBEB),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: overLimit ? const Color(0xFFFECACA) : const Color(0xFFFDE68A),
+                  color: overLimit
+                      ? const Color(0xFFFECACA)
+                      : const Color(0xFFFDE68A),
                 ),
               ),
               child: Text(
@@ -5549,7 +6133,9 @@ class _DailyUsageQuotaSectionState extends State<_DailyUsageQuotaSection> {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: overLimit ? const Color(0xFFB91C1C) : const Color(0xFF92400E),
+                  color: overLimit
+                      ? const Color(0xFFB91C1C)
+                      : const Color(0xFF92400E),
                 ),
               ),
             ),
@@ -5557,9 +6143,17 @@ class _DailyUsageQuotaSectionState extends State<_DailyUsageQuotaSection> {
           const SizedBox(height: 10),
           Row(
             children: [
-              _metric('Convert', _summary.conversions, _summary.conversionLimit),
+              _metric(
+                'Convert',
+                _summary.conversions,
+                _summary.conversionLimit,
+              ),
               const SizedBox(width: 8),
-              _metric('Compress', _summary.compressions, _summary.compressionLimit),
+              _metric(
+                'Compress',
+                _summary.compressions,
+                _summary.compressionLimit,
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -5582,10 +6176,12 @@ class _UserAccountPrivacySection extends StatefulWidget {
   const _UserAccountPrivacySection({this.showHeader = true});
 
   @override
-  State<_UserAccountPrivacySection> createState() => _UserAccountPrivacySectionState();
+  State<_UserAccountPrivacySection> createState() =>
+      _UserAccountPrivacySectionState();
 }
 
-class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> {
+class _UserAccountPrivacySectionState
+    extends State<_UserAccountPrivacySection> {
   late final TextEditingController _nameController;
   late final TextEditingController _emailController;
   late final TextEditingController _mobileController;
@@ -5630,7 +6226,7 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
   bool _googleLoginPreferred = false;
 
   String _detectCountryByLocale() {
-    final language = html.window.navigator.language?.toUpperCase() ?? '';
+    final language = WebSafeBrowser.navigatorLanguage.toUpperCase();
     if (!language.contains('-')) {
       return 'India';
     }
@@ -5646,10 +6242,12 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
     _nameController = TextEditingController(text: profile.displayName);
     _emailController = TextEditingController(text: profile.email);
     _mobileController = TextEditingController(text: profile.mobileNumber);
-    _selectedCountry = profile.country.isNotEmpty ? profile.country : localeCountry;
+    _selectedCountry = profile.country.isNotEmpty
+        ? profile.country
+        : localeCountry;
     _selectedCountryCode = profile.countryCode.isNotEmpty
-      ? profile.countryCode
-      : (_countryDialCodeMap[_selectedCountry] ?? '+91');
+        ? profile.countryCode
+        : (_countryDialCodeMap[_selectedCountry] ?? '+91');
     _googleLoginPreferred = profile.googleLoginPreferred;
   }
 
@@ -5703,13 +6301,13 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Account details saved.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Account details saved.')));
   }
 
   void _loginWithGoogle() {
-    html.window.open('https://accounts.google.com/signin', '_blank');
+    WebSafeBrowser.openWindow('https://accounts.google.com/signin', target: '_blank');
     setState(() {
       _googleLoginPreferred = true;
     });
@@ -5766,15 +6364,23 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
               isDense: true,
               filled: true,
               fillColor: const Color(0xFFF8FAFC),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 14,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
                 borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+                borderSide: const BorderSide(
+                  color: Color(0xFF183A5B),
+                  width: 1.4,
+                ),
               ),
             ),
           ),
@@ -5788,15 +6394,23 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
               isDense: true,
               filled: true,
               fillColor: const Color(0xFFF8FAFC),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 14,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
                 borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+                borderSide: const BorderSide(
+                  color: Color(0xFF183A5B),
+                  width: 1.4,
+                ),
               ),
             ),
           ),
@@ -5817,7 +6431,8 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
               }
               setState(() {
                 _selectedCountry = value;
-                _selectedCountryCode = _countryDialCodeMap[value] ?? _selectedCountryCode;
+                _selectedCountryCode =
+                    _countryDialCodeMap[value] ?? _selectedCountryCode;
               });
             },
             decoration: InputDecoration(
@@ -5825,15 +6440,23 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
               isDense: true,
               filled: true,
               fillColor: const Color(0xFFF8FAFC),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 14,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
                 borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+                borderSide: const BorderSide(
+                  color: Color(0xFF183A5B),
+                  width: 1.4,
+                ),
               ),
             ),
           ),
@@ -5865,15 +6488,23 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
                     isDense: true,
                     filled: true,
                     fillColor: const Color(0xFFF8FAFC),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 14,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF183A5B),
+                        width: 1.4,
+                      ),
                     ),
                   ),
                 ),
@@ -5889,15 +6520,23 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
                     isDense: true,
                     filled: true,
                     fillColor: const Color(0xFFF8FAFC),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 14,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF183A5B),
+                        width: 1.4,
+                      ),
                     ),
                   ),
                 ),
@@ -5915,7 +6554,9 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
                 foregroundColor: const Color(0xFF183A5B),
                 side: const BorderSide(color: Color(0xFFBFDBFE)),
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
             ),
           ),
@@ -5929,7 +6570,9 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
                 backgroundColor: const Color(0xFF183A5B),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
             ),
           ),
@@ -5943,10 +6586,7 @@ class _SectionHeader extends StatelessWidget {
   final String title;
   final String subtitle;
 
-  const _SectionHeader({
-    required this.title,
-    required this.subtitle,
-  });
+  const _SectionHeader({required this.title, required this.subtitle});
 
   @override
   Widget build(BuildContext context) {

@@ -1,4 +1,4 @@
-import 'package:universal_html/html.dart' as html;
+import '../Utils/web_safe_browser.dart';
 
 class OwnerAdminAccessService {
   static const String _storageKey = 'jobready_owner_admin_unlock_v1';
@@ -9,18 +9,18 @@ class OwnerAdminAccessService {
   static const String defaultAdminId = 'Admin';
   static const String defaultAdminPassword = 'Admin@2026!';
 
-  static bool get isUnlocked => html.window.localStorage[_storageKey] == '1';
+  static bool get isUnlocked => WebSafeBrowser.readLocalStorage(_storageKey) == '1';
 
   static String get adminId =>
-      (html.window.localStorage[_adminIdKey] ?? defaultAdminId).trim();
+      (WebSafeBrowser.readLocalStorage(_adminIdKey) ?? defaultAdminId).trim();
 
   static String get adminPassword =>
-      (html.window.localStorage[_adminPasswordKey] ?? defaultAdminPassword).trim();
+      (WebSafeBrowser.readLocalStorage(_adminPasswordKey) ?? defaultAdminPassword).trim();
 
   static bool unlockWithCredentials(String inputAdminId, String inputPassword) {
     final ok = inputAdminId.trim() == adminId && inputPassword.trim() == adminPassword;
     if (ok) {
-      html.window.localStorage[_storageKey] = '1';
+      WebSafeBrowser.writeLocalStorage(_storageKey, '1');
     }
     return ok;
   }
@@ -29,20 +29,20 @@ class OwnerAdminAccessService {
     required String adminId,
     required String password,
   }) async {
-    html.window.localStorage[_adminIdKey] = adminId.trim();
-    html.window.localStorage[_adminPasswordKey] = password.trim();
+    WebSafeBrowser.writeLocalStorage(_adminIdKey, adminId.trim());
+    WebSafeBrowser.writeLocalStorage(_adminPasswordKey, password.trim());
   }
 
   static bool unlockWithCode(String inputCode) {
     // Backward compatibility for old owner code flow.
     final ok = inputCode.trim() == _legacyOwnerCode;
     if (ok) {
-      html.window.localStorage[_storageKey] = '1';
+      WebSafeBrowser.writeLocalStorage(_storageKey, '1');
     }
     return ok;
   }
 
   static void lock() {
-    html.window.localStorage.remove(_storageKey);
+    WebSafeBrowser.removeLocalStorage(_storageKey);
   }
 }

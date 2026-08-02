@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:universal_html/html.dart' as html;
+
+import '../Utils/web_safe_browser.dart';
 
 /// Global file storage service for sharing uploaded files across tool pages
 class StoredFile {
@@ -89,7 +90,7 @@ class FileStorageService {
 
       // Keep only last N files to avoid localStorage limits
       final trimmed = current.take(_maxStoredFiles).map((f) => f.toMap()).toList();
-      html.window.localStorage[_storageKey] = jsonEncode(trimmed);
+      WebSafeBrowser.writeLocalStorage(_storageKey, jsonEncode(trimmed));
 
       return true;
     } catch (e) {
@@ -99,7 +100,7 @@ class FileStorageService {
 
   /// Get all stored files
   static List<StoredFile> getStoredFiles() {
-    final raw = html.window.localStorage[_storageKey];
+    final raw = WebSafeBrowser.readLocalStorage(_storageKey);
     if (raw == null || raw.trim().isEmpty) {
       return const <StoredFile>[];
     }
@@ -141,15 +142,15 @@ class FileStorageService {
     current.removeWhere((f) => f.id == id);
 
     if (current.isEmpty) {
-      html.window.localStorage.remove(_storageKey);
+      WebSafeBrowser.removeLocalStorage(_storageKey);
     } else {
-      html.window.localStorage[_storageKey] = jsonEncode(current.map((f) => f.toMap()).toList());
+      WebSafeBrowser.writeLocalStorage(_storageKey, jsonEncode(current.map((f) => f.toMap()).toList()));
     }
   }
 
   /// Clear all stored files
   static Future<void> clearAll() async {
-    html.window.localStorage.remove(_storageKey);
+    WebSafeBrowser.removeLocalStorage(_storageKey);
   }
 
   /// Check if a file exists by name

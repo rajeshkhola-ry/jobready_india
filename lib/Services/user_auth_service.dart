@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:universal_html/html.dart' as html;
-
+import '../Utils/lifetime_device_limit_utils.dart';
+import '../Utils/web_safe_browser.dart';
 import 'user_account_service.dart';
 
 class UserAuthSession {
@@ -79,7 +79,7 @@ class UserAuthService {
   static bool get isSignedIn => getSession() != null;
 
   static UserAuthSession? getSession() {
-    final raw = html.window.localStorage[_sessionStorageKey];
+    final raw = WebSafeBrowser.readLocalStorage(_sessionStorageKey);
     if (raw == null || raw.trim().isEmpty) {
       return null;
     }
@@ -258,10 +258,13 @@ class UserAuthService {
       return false;
     }
 
-    html.window.localStorage[_passwordResetStorageKey] = jsonEncode({
-      'email': normalizedEmail,
-      'requested_at': DateTime.now().toIso8601String(),
-    });
+    WebSafeBrowser.writeLocalStorage(
+      _passwordResetStorageKey,
+      jsonEncode({
+        'email': normalizedEmail,
+        'requested_at': DateTime.now().toIso8601String(),
+      }),
+    );
     return true;
   }
 
@@ -297,25 +300,25 @@ class UserAuthService {
   }
 
   static Future<void> signOut() async {
-    html.window.localStorage.remove(_sessionStorageKey);
+    WebSafeBrowser.removeLocalStorage(_sessionStorageKey);
   }
 
   static Future<void> reset() async {
-    html.window.localStorage.remove(_sessionStorageKey);
-    html.window.localStorage.remove(_accountsStorageKey);
-    html.window.localStorage.remove(_passwordResetStorageKey);
+    WebSafeBrowser.removeLocalStorage(_sessionStorageKey);
+    WebSafeBrowser.removeLocalStorage(_accountsStorageKey);
+    WebSafeBrowser.removeLocalStorage(_passwordResetStorageKey);
   }
 
   static Future<void> _persistSession(UserAuthSession session) async {
-    html.window.localStorage[_sessionStorageKey] = jsonEncode(session.toMap());
+    WebSafeBrowser.writeLocalStorage(_sessionStorageKey, jsonEncode(session.toMap()));
   }
 
   static Future<void> _saveAccounts(Map<String, dynamic> accounts) async {
-    html.window.localStorage[_accountsStorageKey] = jsonEncode(accounts);
+    WebSafeBrowser.writeLocalStorage(_accountsStorageKey, jsonEncode(accounts));
   }
 
   static Map<String, dynamic> _readAccounts() {
-    final raw = html.window.localStorage[_accountsStorageKey];
+    final raw = WebSafeBrowser.readLocalStorage(_accountsStorageKey);
     if (raw == null || raw.trim().isEmpty) {
       return <String, dynamic>{};
     }
@@ -395,12 +398,12 @@ class UserAuthService {
     final isDesktopDevice = deviceType == 'desktop';
     final isMobileDevice = deviceType == 'mobile';
 
-    if ((isDesktopDevice && existingDesktopCount >= 1) ||
-        (isMobileDevice && existingMobileCount >= 1) ||
-        (existingDesktopCount + existingMobileCount) >= 2) {
-      throw const AuthRestrictionException(
-        'Lifetime Plan device limit reached. This account can be used on 1 desktop/laptop and 1 mobile device only.',
-      );
+    if (shouldBlockLifetimeDeviceLogin(
+      existingDesktopCount: existingDesktopCount,
+      existingMobileCount: existingMobileCount,
+      deviceType: deviceType,
+    )) {
+      throw AuthRestrictionException(buildLifetimeDeviceLimitNotice());
     }
 
     devices.add({
@@ -417,15 +420,17 @@ class UserAuthService {
   }
 
   static String _buildDeviceFingerprint() {
-    final navigator = html.window.navigator;
-    final screen = html.window.screen;
-    final payload = '${navigator.platform}|${navigator.language}|${screen?.width ?? 0}x${screen?.height ?? 0}|${navigator.userAgent}';
+    final platform = WebSafeBrowser.navigatorPlatform;
+    final language = WebSafeBrowser.navigatorLanguage;
+    final (screenWidth, screenHeight) = WebSafeBrowser.screenSize;
+    final userAgent = WebSafeBrowser.navigatorUserAgent;
+    final payload = '$platform|$language|${screenWidth}x${screenHeight}|$userAgent';
     return base64Encode(utf8.encode(payload));
   }
 
   static String _detectDeviceType() {
-    final platform = (html.window.navigator.platform ?? '').toLowerCase();
-    final userAgent = (html.window.navigator.userAgent ?? '').toLowerCase();
+    final platform = WebSafeBrowser.navigatorPlatform.toLowerCase();
+    final userAgent = WebSafeBrowser.navigatorUserAgent.toLowerCase();
     final isMobile = userAgent.contains('android') ||
         userAgent.contains('iphone') ||
         userAgent.contains('ipad') ||
@@ -439,17 +444,17 @@ class UserAuthService {
   }
 
   static String _getOrCreateSessionToken() {
-    final existing = html.window.localStorage[_deviceSessionTokenStorageKey] ?? '';
+    final existing = WebSafeBrowser.readLocalStorage(_deviceSessionTokenStorageKey) ?? '';
     if (existing.trim().isNotEmpty) {
       return existing;
     }
     final token = _buildDeviceFingerprint();
-    html.window.localStorage[_deviceSessionTokenStorageKey] = token;
+    WebSafeBrowser.writeLocalStorage(_deviceSessionTokenStorageKey, token);
     return token;
   }
 
   static Map<String, dynamic> _readLifetimeDeviceRegistry() {
-    final raw = html.window.localStorage[_lifetimeDeviceRegistryStorageKey];
+    final raw = WebSafeBrowser.readLocalStorage(_lifetimeDeviceRegistryStorageKey);
     if (raw == null || raw.trim().isEmpty) {
       return <String, dynamic>{};
     }
@@ -466,7 +471,7 @@ class UserAuthService {
   }
 
   static Future<void> _persistLifetimeDeviceRegistry(Map<String, dynamic> registry) async {
-    html.window.localStorage[_lifetimeDeviceRegistryStorageKey] = jsonEncode(registry);
+    WebSafeBrowser.writeLocalStorage(_lifetimeDeviceRegistryStorageKey, jsonEncode(registry));
   }
 
   static String _normalizeEmail(String email) {

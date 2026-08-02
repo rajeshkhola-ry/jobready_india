@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:universal_html/html.dart' as html;
+import '../Utils/web_safe_browser.dart';
 
 class SupportTicketEntry {
   final String ticketNumber;
@@ -44,7 +44,7 @@ class SupportTicketService {
   static const int _maxEntries = 200;
 
   static List<SupportTicketEntry> getEntries() {
-    final raw = html.window.localStorage[_ticketsStorageKey];
+    final raw = WebSafeBrowser.readLocalStorage(_ticketsStorageKey);
     if (raw == null || raw.trim().isEmpty) {
       return const <SupportTicketEntry>[];
     }
@@ -83,7 +83,7 @@ class SupportTicketService {
     final entries = getEntries().toList(growable: true);
     entries.insert(0, ticket);
     final trimmed = entries.take(_maxEntries).map((entry) => entry.toMap()).toList(growable: false);
-    html.window.localStorage[_ticketsStorageKey] = jsonEncode(trimmed);
+    WebSafeBrowser.writeLocalStorage(_ticketsStorageKey, jsonEncode(trimmed));
 
     return ticket;
   }
@@ -96,7 +96,7 @@ class SupportTicketService {
   }
 
   static int _nextSequence(String dayKey) {
-    final raw = html.window.localStorage[_counterStorageKey];
+    final raw = WebSafeBrowser.readLocalStorage(_counterStorageKey);
     Map<String, dynamic> counters = <String, dynamic>{};
 
     if (raw != null && raw.trim().isNotEmpty) {
@@ -113,7 +113,7 @@ class SupportTicketService {
     final current = int.tryParse(counters[dayKey]?.toString() ?? '0') ?? 0;
     final next = current + 1;
     counters[dayKey] = next;
-    html.window.localStorage[_counterStorageKey] = jsonEncode(counters);
+    WebSafeBrowser.writeLocalStorage(_counterStorageKey, jsonEncode(counters));
     return next;
   }
 }

@@ -1,8 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:universal_html/html.dart' as html;
 
+import '../Utils/web_safe_browser.dart';
 import 'owner_admin_access_service.dart';
 import 'user_auth_service.dart';
 
@@ -11,7 +11,7 @@ class AuthRouterService {
   static const String _authTokenStorageKey = 'jobready_auth_token_v1';
 
   static String getCurrentRole({String fallback = 'guest'}) {
-    final storedRole = html.window.localStorage[_roleStorageKey]?.toString().trim().toLowerCase();
+    final storedRole = WebSafeBrowser.readLocalStorage(_roleStorageKey)?.toString().trim().toLowerCase();
     if (storedRole == 'admin') {
       return 'admin';
     }
@@ -19,7 +19,7 @@ class AuthRouterService {
       return 'user';
     }
 
-    final token = html.window.localStorage[_authTokenStorageKey]?.toString().trim() ?? '';
+    final token = WebSafeBrowser.readLocalStorage(_authTokenStorageKey)?.toString().trim() ?? '';
     if (token.isNotEmpty) {
       final decodedRole = _decodeTokenRole(token);
       if (decodedRole != null) {
@@ -50,16 +50,16 @@ class AuthRouterService {
   }
 
   static Future<void> markAdminAuthenticated({String? authToken}) async {
-    html.window.localStorage[_roleStorageKey] = 'admin';
+    WebSafeBrowser.writeLocalStorage(_roleStorageKey, 'admin');
     if (authToken != null && authToken.trim().isNotEmpty) {
-      html.window.localStorage[_authTokenStorageKey] = authToken.trim();
+      WebSafeBrowser.writeLocalStorage(_authTokenStorageKey, authToken.trim());
     }
   }
 
   static Future<void> markUserAuthenticated({String? authToken}) async {
-    html.window.localStorage[_roleStorageKey] = 'user';
+    WebSafeBrowser.writeLocalStorage(_roleStorageKey, 'user');
     if (authToken != null && authToken.trim().isNotEmpty) {
-      html.window.localStorage[_authTokenStorageKey] = authToken.trim();
+      WebSafeBrowser.writeLocalStorage(_authTokenStorageKey, authToken.trim());
     }
   }
 

@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:universal_html/html.dart' as html;
+import '../Utils/web_safe_browser.dart';
 
 class UserAccountProfile {
   final String displayName;
@@ -135,7 +135,7 @@ class UserAccountService {
   static const String _storageKey = 'jobready_user_account_profile_v2';
 
   static UserAccountProfile getProfile() {
-    final raw = html.window.localStorage[_storageKey];
+    final raw = WebSafeBrowser.readLocalStorage(_storageKey);
     if (raw == null || raw.trim().isEmpty) {
       return UserAccountProfile.initial();
     }
@@ -152,6 +152,6 @@ class UserAccountService {
   }
 
   static Future<void> saveProfile(UserAccountProfile profile) async {
-    html.window.localStorage[_storageKey] = jsonEncode(profile.toMap());
+    WebSafeBrowser.writeLocalStorage(_storageKey, jsonEncode(profile.toMap()));
   }
 }

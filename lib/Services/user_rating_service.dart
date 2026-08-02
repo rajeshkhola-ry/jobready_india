@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:universal_html/html.dart' as html;
+import '../Utils/web_safe_browser.dart';
 
 class UserRatingSummary {
   final int totalCount;
@@ -33,7 +33,7 @@ class UserRatingService {
         ? entries.sublist(entries.length - _maxEntries)
         : entries;
 
-    html.window.localStorage[_ratingsKey] = jsonEncode(trimmed);
+    WebSafeBrowser.writeLocalStorage(_ratingsKey, jsonEncode(trimmed));
   }
 
   static UserRatingSummary getSummary() {
@@ -75,7 +75,7 @@ class UserRatingService {
   }
 
   static bool isPublicVisible() {
-    final raw = html.window.localStorage[_visibilityKey];
+    final raw = WebSafeBrowser.readLocalStorage(_visibilityKey);
     if (raw == null || raw.trim().isEmpty) {
       return true;
     }
@@ -83,11 +83,11 @@ class UserRatingService {
   }
 
   static Future<void> setPublicVisible(bool visible) async {
-    html.window.localStorage[_visibilityKey] = visible.toString();
+    WebSafeBrowser.writeLocalStorage(_visibilityKey, visible.toString());
   }
 
   static List<Map<String, dynamic>> _loadRatings() {
-    final raw = html.window.localStorage[_ratingsKey];
+    final raw = WebSafeBrowser.readLocalStorage(_ratingsKey);
     if (raw == null || raw.trim().isEmpty) {
       return const <Map<String, dynamic>>[];
     }

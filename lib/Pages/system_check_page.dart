@@ -1,9 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:universal_html/html.dart' as html;
 
 import '../Services/api_config.dart';
+import '../Utils/web_safe_browser.dart';
 import '../Services/integration_hub_service.dart';
 
 import 'compression_tool_page.dart' deferred as compression_page;
@@ -45,7 +45,7 @@ class _SystemCheckPageState extends State<SystemCheckPage> {
   }
 
   void _loadQaSignOff() {
-    final raw = html.window.localStorage[_qaSignOffStorageKey];
+    final raw = WebSafeBrowser.readLocalStorage(_qaSignOffStorageKey);
     if (raw == null || raw.trim().isEmpty) {
       return;
     }
@@ -53,7 +53,7 @@ class _SystemCheckPageState extends State<SystemCheckPage> {
   }
 
   void _loadQaChecks() {
-    final raw = html.window.localStorage[_qaStorageKey];
+    final raw = WebSafeBrowser.readLocalStorage(_qaStorageKey);
     if (raw == null || raw.trim().isEmpty) {
       return;
     }
@@ -74,7 +74,7 @@ class _SystemCheckPageState extends State<SystemCheckPage> {
 
   void _saveQaChecks() {
     final jsonMap = _qaChecks.map((key, value) => MapEntry(key, value));
-    html.window.localStorage[_qaStorageKey] = jsonEncode(jsonMap);
+    WebSafeBrowser.writeLocalStorage(_qaStorageKey, jsonEncode(jsonMap));
   }
 
   Future<void> _loadIntegrationStats() async {
@@ -140,7 +140,7 @@ class _SystemCheckPageState extends State<SystemCheckPage> {
     setState(() {
       _qaSignedOffAt = nowIso;
     });
-    html.window.localStorage[_qaSignOffStorageKey] = nowIso;
+    WebSafeBrowser.writeLocalStorage(_qaSignOffStorageKey, nowIso);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('QA smoke matrix signed off locally.')),
     );

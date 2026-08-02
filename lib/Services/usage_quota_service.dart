@@ -1,7 +1,6 @@
 import 'dart:convert';
 
-import 'package:universal_html/html.dart' as html;
-
+import '../Utils/web_safe_browser.dart';
 import 'api_config.dart';
 
 class UsageQuotaSummary {
@@ -35,7 +34,7 @@ class UsageQuotaService {
   }
 
   static Map<String, dynamic> _loadStore() {
-    final raw = html.window.localStorage[_storageKey];
+    final raw = WebSafeBrowser.readLocalStorage(_storageKey);
     if (raw == null || raw.trim().isEmpty) {
       return <String, dynamic>{};
     }
@@ -53,7 +52,7 @@ class UsageQuotaService {
   }
 
   static Future<void> _saveStore(Map<String, dynamic> store) async {
-    html.window.localStorage[_storageKey] = jsonEncode(store);
+    WebSafeBrowser.writeLocalStorage(_storageKey, jsonEncode(store));
   }
 
   static UsageQuotaSummary getTodaySummary() {

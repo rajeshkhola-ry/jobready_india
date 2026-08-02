@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 import 'Pages/about_page.dart';
@@ -31,15 +33,50 @@ import 'Pages/v2/resume/resume_workspace_page.dart' deferred as resumeWorkspaceP
 import 'Widgets/deferred_route_page.dart';
 
 void main() {
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    debugPrint('FlutterError: ${details.exception}\n${details.stack}');
+  };
+
+  PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
+    debugPrint('PlatformDispatcher error: $error\n$stack');
+    return true;
+  };
+
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    debugPrint('ErrorWidget: ${details.exception}\n${details.stack}');
+    return const MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: Text('App failed to render. Please check the browser console.'),
+        ),
+      ),
+    );
+  };
+
   runApp(const JobReadyV11App());
 }
 
 // Integration working copy derived from frozen V1 baseline.
 class JobReadyV11App extends StatelessWidget {
-  const JobReadyV11App({super.key});
+  const JobReadyV11App({super.key, this.useMinimalBootstrap = false});
+
+  final bool useMinimalBootstrap;
 
   @override
   Widget build(BuildContext context) {
+    if (useMinimalBootstrap) {
+      return const MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'GETREADYJOB V1.1',
+        home: Scaffold(
+          body: Center(
+            child: Text('GETREADYJOB V1.1'),
+          ),
+        ),
+      );
+    }
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'GETREADYJOB V1.1',

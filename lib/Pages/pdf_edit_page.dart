@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
-import 'dart:ui_web' as ui_web;
+
+import '../Utils/ui_web_stub.dart' if (dart.library.html) 'dart:ui_web' as ui_web;
 
 import 'package:archive/archive.dart';
 import 'package:archive/archive_io.dart';

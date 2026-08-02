@@ -5,11 +5,19 @@ import '../Services/user_auth_service.dart';
 
 enum UserAuthMode { signIn, createAccount }
 
+typedef UserAuthCallback = void Function(String? plan, String? currency);
+
 class UserAuthDialog extends StatefulWidget {
   final String? preselectedPlan;
-  final ValueChanged<String?>? onAuthenticated;
+  final String? selectedCurrency;
+  final UserAuthCallback? onAuthenticated;
 
-  const UserAuthDialog({super.key, this.preselectedPlan, this.onAuthenticated});
+  const UserAuthDialog({
+    super.key,
+    this.preselectedPlan,
+    this.selectedCurrency,
+    this.onAuthenticated,
+  });
 
   @override
   State<UserAuthDialog> createState() => _UserAuthDialogState();
@@ -23,7 +31,9 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _countryController = TextEditingController(text: 'India');
+  final TextEditingController _countryController = TextEditingController(
+    text: 'India',
+  );
   final TextEditingController _mobileController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
@@ -76,7 +86,9 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
           displayName: _nameController.text.trim(),
           email: email,
           password: password,
-          country: _countryController.text.trim().isNotEmpty ? _countryController.text.trim() : 'India',
+          country: _countryController.text.trim().isNotEmpty
+              ? _countryController.text.trim()
+              : 'India',
           countryCode: '+91',
           mobileNumber: _mobileController.text.trim(),
           selectedPlan: widget.preselectedPlan,
@@ -93,24 +105,41 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
         if (!mounted) {
           return;
         }
-        await AuthRouterService.markUserAuthenticated(authToken: 'user-session');
+        await AuthRouterService.markUserAuthenticated(
+          authToken: 'user-session',
+        );
         Navigator.of(context).pop();
         if (widget.onAuthenticated != null) {
-          widget.onAuthenticated!(widget.preselectedPlan);
+          widget.onAuthenticated!(
+            widget.preselectedPlan,
+            widget.selectedCurrency,
+          );
           return;
         }
-        if (widget.preselectedPlan != null && widget.preselectedPlan!.trim().isNotEmpty) {
-          Navigator.of(context).pushNamed('/dashboard', arguments: {'plan': widget.preselectedPlan});
+        if (widget.preselectedPlan != null &&
+            widget.preselectedPlan!.trim().isNotEmpty) {
+          Navigator.of(context).pushNamed(
+            '/dashboard',
+            arguments: {'plan': widget.preselectedPlan},
+          );
         } else {
-          AuthRouterService.redirectAfterLogin(context, fallbackRoute: '/dashboard');
+          AuthRouterService.redirectAfterLogin(
+            context,
+            fallbackRoute: '/dashboard',
+          );
         }
         return;
       }
 
-      final session = await UserAuthService.signInWithEmailPassword(email, password, selectedPlan: widget.preselectedPlan);
+      final session = await UserAuthService.signInWithEmailPassword(
+        email,
+        password,
+        selectedPlan: widget.preselectedPlan,
+      );
       if (session == null) {
         setState(() {
-          _errorText = 'We could not find that account. Try creating one first.';
+          _errorText =
+              'We could not find that account. Try creating one first.';
           _isSubmitting = false;
         });
         return;
@@ -122,13 +151,22 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
       await AuthRouterService.markUserAuthenticated(authToken: 'user-session');
       Navigator.of(context).pop();
       if (widget.onAuthenticated != null) {
-        widget.onAuthenticated!(widget.preselectedPlan);
+        widget.onAuthenticated!(
+          widget.preselectedPlan,
+          widget.selectedCurrency,
+        );
         return;
       }
-      if (widget.preselectedPlan != null && widget.preselectedPlan!.trim().isNotEmpty) {
-        Navigator.of(context).pushNamed('/dashboard', arguments: {'plan': widget.preselectedPlan});
+      if (widget.preselectedPlan != null &&
+          widget.preselectedPlan!.trim().isNotEmpty) {
+        Navigator.of(
+          context,
+        ).pushNamed('/dashboard', arguments: {'plan': widget.preselectedPlan});
       } else {
-        AuthRouterService.redirectAfterLogin(context, fallbackRoute: '/dashboard');
+        AuthRouterService.redirectAfterLogin(
+          context,
+          fallbackRoute: '/dashboard',
+        );
       }
     } on AuthRestrictionException catch (exception) {
       if (mounted) {
@@ -156,9 +194,15 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
 
     try {
       final session = await UserAuthService.signInWithGoogle(
-        email: _emailController.text.trim().isNotEmpty ? _emailController.text.trim() : 'google-user@getreadyjob.com',
-        displayName: _nameController.text.trim().isNotEmpty ? _nameController.text.trim() : 'Google User',
-        country: _countryController.text.trim().isNotEmpty ? _countryController.text.trim() : 'India',
+        email: _emailController.text.trim().isNotEmpty
+            ? _emailController.text.trim()
+            : 'google-user@getreadyjob.com',
+        displayName: _nameController.text.trim().isNotEmpty
+            ? _nameController.text.trim()
+            : 'Google User',
+        country: _countryController.text.trim().isNotEmpty
+            ? _countryController.text.trim()
+            : 'India',
         countryCode: '+91',
         mobileNumber: _mobileController.text.trim(),
         selectedPlan: widget.preselectedPlan,
@@ -178,13 +222,22 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
       await AuthRouterService.markUserAuthenticated(authToken: 'user-session');
       Navigator.of(context).pop();
       if (widget.onAuthenticated != null) {
-        widget.onAuthenticated!(widget.preselectedPlan);
+        widget.onAuthenticated!(
+          widget.preselectedPlan,
+          widget.selectedCurrency,
+        );
         return;
       }
-      if (widget.preselectedPlan != null && widget.preselectedPlan!.trim().isNotEmpty) {
-        Navigator.of(context).pushNamed('/dashboard', arguments: {'plan': widget.preselectedPlan});
+      if (widget.preselectedPlan != null &&
+          widget.preselectedPlan!.trim().isNotEmpty) {
+        Navigator.of(
+          context,
+        ).pushNamed('/dashboard', arguments: {'plan': widget.preselectedPlan});
       } else {
-        AuthRouterService.redirectAfterLogin(context, fallbackRoute: '/dashboard');
+        AuthRouterService.redirectAfterLogin(
+          context,
+          fallbackRoute: '/dashboard',
+        );
       }
     } on AuthRestrictionException catch (exception) {
       if (mounted) {
@@ -244,19 +297,29 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
                   children: [
                     Expanded(
                       child: Text(
-                        isCreateAccount ? 'Create your account' : 'Welcome back',
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                        isCreateAccount
+                            ? 'Create your account'
+                            : 'Welcome back',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF0F172A),
+                        ),
                       ),
                     ),
                     TextButton(
                       onPressed: () {
                         setState(() {
-                          _mode = isCreateAccount ? UserAuthMode.signIn : UserAuthMode.createAccount;
+                          _mode = isCreateAccount
+                              ? UserAuthMode.signIn
+                              : UserAuthMode.createAccount;
                           _errorText = null;
                           _successText = null;
                         });
                       },
-                      child: Text(isCreateAccount ? 'Sign in instead' : 'Create account'),
+                      child: Text(
+                        isCreateAccount ? 'Sign in instead' : 'Create account',
+                      ),
                     ),
                   ],
                 ),
@@ -265,7 +328,11 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
                   isCreateAccount
                       ? 'Create an account in a few steps and keep your conversions and plan access in sync.'
                       : 'Sign in quickly to view your dashboard, downloads, and plan access.',
-                  style: const TextStyle(fontSize: 13, height: 1.45, color: Color(0xFF475569)),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    height: 1.45,
+                    color: Color(0xFF475569),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 if (isCreateAccount) ...[
@@ -326,16 +393,33 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
                 ],
                 if (_errorText != null) ...[
                   const SizedBox(height: 8),
-                  Text(
-                    _errorText!,
-                    style: const TextStyle(color: Color(0xFFDC2626), fontSize: 12.5, fontWeight: FontWeight.w600),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF1F2),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFFB7185)),
+                    ),
+                    child: Text(
+                      _errorText!,
+                      style: const TextStyle(
+                        color: Color(0xFFBE123C),
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                 ],
                 if (_successText != null) ...[
                   const SizedBox(height: 8),
                   Text(
                     _successText!,
-                    style: const TextStyle(color: Color(0xFF2563EB), fontSize: 12.5, fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                      color: Color(0xFF2563EB),
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
                 const SizedBox(height: 14),
@@ -344,14 +428,24 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
                   child: ElevatedButton.icon(
                     onPressed: _isSubmitting ? null : _submit,
                     icon: _isSubmitting
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                        : Icon(isCreateAccount ? Icons.person_add_alt_1_rounded : Icons.lock_open_rounded),
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(
+                            isCreateAccount
+                                ? Icons.person_add_alt_1_rounded
+                                : Icons.lock_open_rounded,
+                          ),
                     label: Text(isCreateAccount ? 'Create account' : 'Sign in'),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       backgroundColor: const Color(0xFF2563EB),
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
                   ),
                 ),
@@ -366,7 +460,9 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       side: const BorderSide(color: Color(0xFFC7D2FE)),
                       foregroundColor: const Color(0xFF1E3A8A),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
                   ),
                 ),

@@ -1,9 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:universal_html/html.dart' as html;
 
 import '../Services/coupon_service.dart';
+import '../Utils/web_safe_browser.dart';
 import '../Services/plan_catalog_service.dart';
 import '../Widgets/brand_logo_button.dart';
 
@@ -59,7 +59,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
   List<String> _loadAuditEntries() {
     try {
-      final raw = html.window.localStorage[_auditStorageKey];
+      final raw = WebSafeBrowser.readLocalStorage(_auditStorageKey);
       if (raw == null || raw.trim().isEmpty) {
         return <String>[];
       }
@@ -73,7 +73,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
   Map<String, dynamic> _loadCheckoutSettings() {
     try {
-      final raw = html.window.localStorage[_checkoutStorageKey];
+      final raw = WebSafeBrowser.readLocalStorage(_checkoutStorageKey);
       if (raw == null || raw.trim().isEmpty) {
         return <String, dynamic>{};
       }
@@ -87,7 +87,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
   Map<String, dynamic> _loadResumeSettings() {
     try {
-      final raw = html.window.localStorage[_resumeStorageKey];
+      final raw = WebSafeBrowser.readLocalStorage(_resumeStorageKey);
       if (raw == null || raw.trim().isEmpty) {
         return <String, dynamic>{};
       }
@@ -106,7 +106,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     }
     _auditEntries = updated;
     try {
-      html.window.localStorage[_auditStorageKey] = jsonEncode(updated);
+      WebSafeBrowser.writeLocalStorage(_auditStorageKey, jsonEncode(updated));
     } catch (_) {}
   }
 
@@ -117,7 +117,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       'require_account': _requireAccount,
     };
     try {
-      html.window.localStorage[_checkoutStorageKey] = jsonEncode(data);
+      WebSafeBrowser.writeLocalStorage(_checkoutStorageKey, jsonEncode(data));
     } catch (_) {}
   }
 
@@ -127,7 +127,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       'headline': _resumeHeadline,
     };
     try {
-      html.window.localStorage[_resumeStorageKey] = jsonEncode(data);
+      WebSafeBrowser.writeLocalStorage(_resumeStorageKey, jsonEncode(data));
     } catch (_) {}
   }
 
@@ -267,7 +267,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               setState(() {
                 _auditEntries = <String>[];
                 try {
-                  html.window.localStorage.remove(_auditStorageKey);
+                  WebSafeBrowser.removeLocalStorage(_auditStorageKey);
                 } catch (_) {}
               });
               Navigator.of(dialogContext).pop();

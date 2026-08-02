@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:universal_html/html.dart' as html;
+import '../Utils/web_safe_browser.dart';
 
 class PlanCatalogConfig {
   static const String resumeBuilderToolName = 'AI Resume Builder';
@@ -174,7 +174,7 @@ class PlanCatalogService {
   }
 
   static PlanCatalogConfig load() {
-    final raw = html.window.localStorage[_storageKey];
+    final raw = WebSafeBrowser.readLocalStorage(_storageKey);
     if (raw == null || raw.trim().isEmpty) {
       return PlanCatalogConfig.defaults();
     }
@@ -191,10 +191,10 @@ class PlanCatalogService {
   }
 
   static Future<void> save(PlanCatalogConfig config) async {
-    html.window.localStorage[_storageKey] = jsonEncode(config.toMap());
+    WebSafeBrowser.writeLocalStorage(_storageKey, jsonEncode(config.toMap()));
   }
 
   static Future<void> reset() async {
-    html.window.localStorage.remove(_storageKey);
+    WebSafeBrowser.removeLocalStorage(_storageKey);
   }
 }

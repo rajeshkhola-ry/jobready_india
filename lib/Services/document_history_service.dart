@@ -1,7 +1,6 @@
 import 'dart:convert';
 
-import 'package:universal_html/html.dart' as html;
-
+import '../Utils/web_safe_browser.dart';
 import 'user_account_service.dart';
 
 class DocumentHistoryEntry {
@@ -50,7 +49,7 @@ class DocumentHistoryService {
   static const int _defaultMaxEntries = 100;
 
   static int getRetentionLimit() {
-    final raw = html.window.localStorage[_retentionStorageKey];
+    final raw = WebSafeBrowser.readLocalStorage(_retentionStorageKey);
     final parsed = int.tryParse(raw ?? '');
     if (parsed == null || parsed <= 0) {
       return _defaultMaxEntries;
@@ -60,12 +59,12 @@ class DocumentHistoryService {
 
   static Future<void> setRetentionLimit(int limit) async {
     final safe = limit <= 0 ? _defaultMaxEntries : limit;
-    html.window.localStorage[_retentionStorageKey] = safe.toString();
+    WebSafeBrowser.writeLocalStorage(_retentionStorageKey, safe.toString());
     await trimToRetentionLimit();
   }
 
   static List<DocumentHistoryEntry> getEntries() {
-    final raw = html.window.localStorage[_storageKey];
+    final raw = WebSafeBrowser.readLocalStorage(_storageKey);
     if (raw == null || raw.trim().isEmpty) {
       return const <DocumentHistoryEntry>[];
     }
@@ -111,17 +110,17 @@ class DocumentHistoryService {
 
     final retentionLimit = getRetentionLimit();
     final trimmed = current.take(retentionLimit).map((entry) => entry.toMap()).toList(growable: false);
-    html.window.localStorage[_storageKey] = jsonEncode(trimmed);
+    WebSafeBrowser.writeLocalStorage(_storageKey, jsonEncode(trimmed));
   }
 
   static Future<void> trimToRetentionLimit() async {
     final entries = getEntries();
     final retentionLimit = getRetentionLimit();
     final trimmed = entries.take(retentionLimit).map((entry) => entry.toMap()).toList(growable: false);
-    html.window.localStorage[_storageKey] = jsonEncode(trimmed);
+    WebSafeBrowser.writeLocalStorage(_storageKey, jsonEncode(trimmed));
   }
 
   static Future<void> clear() async {
-    html.window.localStorage.remove(_storageKey);
+    WebSafeBrowser.removeLocalStorage(_storageKey);
   }
 }
