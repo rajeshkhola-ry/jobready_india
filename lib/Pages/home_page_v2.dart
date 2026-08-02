@@ -623,7 +623,7 @@ class _HomePageV2State extends State<HomePageV2> {
       context: context,
       builder: (dialogContext) => UserAuthDialog(
         preselectedPlan: plan,
-        onAuthenticated: (selectedPlan) {
+        onAuthenticated: (selectedPlan, _) {
           if (!mounted) {
             return;
           }
