@@ -5,6 +5,7 @@ services:
     staticPublishPath: build/web
     buildCommand: |
       echo "Using prebuilt Flutter web assets from build/web"
+      test -d build/web || { echo "Expected build/web directory is missing"; exit 1; }
     autoDeploy: true
     routes:
       - type: rewrite

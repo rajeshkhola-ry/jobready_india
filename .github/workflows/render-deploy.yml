@@ -15,8 +15,10 @@ jobs:
         env:
           RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
         run: |
-          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
-            echo "RENDER_DEPLOY_HOOK_URL secret is not configured"
-            exit 1
+          if [ -n "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "Triggering Render deployment via deploy hook"
+            curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL"
+          else
+            echo "RENDER_DEPLOY_HOOK_URL secret is not configured."
+            echo "Render auto-deploy is enabled for the connected service, so this workflow will skip the manual hook step."
           fi
-          curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL"
