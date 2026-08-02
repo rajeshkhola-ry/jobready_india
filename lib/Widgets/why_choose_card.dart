@@ -117,6 +117,61 @@ class WhyChooseCard extends StatelessWidget {
               ),
             ),
             SizedBox(height: _s(16)),
+            Text(
+              'Why these tools stand out',
+              style: TextStyle(
+                fontSize: _s(13),
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF1F4E79),
+              ),
+            ),
+            SizedBox(height: _s(8)),
+            Container(
+              padding: EdgeInsets.all(_s(10)),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF7E6),
+                borderRadius: BorderRadius.circular(_s(12)),
+                border: Border.all(color: const Color(0xFFFFD166)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'AI Resume Builder',
+                    style: TextStyle(fontSize: _s(13), fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
+                  ),
+                  SizedBox(height: _s(3)),
+                  Text(
+                    'Create polished resumes with smart tailoring, cover letters, and interview prep support.',
+                    style: TextStyle(fontSize: _s(12), height: 1.35, color: Color(0xFF6B7280)),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: _s(8)),
+            Container(
+              padding: EdgeInsets.all(_s(10)),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0F9FF),
+                borderRadius: BorderRadius.circular(_s(12)),
+                border: Border.all(color: const Color(0xFF93C5FD)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'HD Photo Tool',
+                    style: TextStyle(fontSize: _s(13), fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
+                  ),
+                  SizedBox(height: _s(3)),
+                  Text(
+                    'Enhance and restore photos with a clean, focused workflow for better visual output.',
+                    style: TextStyle(fontSize: _s(12), height: 1.35, color: Color(0xFF6B7280)),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: _s(16)),
             item(
               Icons.flash_on_rounded,
               'Lightning Fast Conversion',

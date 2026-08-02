@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:universal_html/html.dart' as html;
 
@@ -24,6 +26,8 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
   final TextEditingController _targetRoleController = TextEditingController();
   final TextEditingController _companyController = TextEditingController();
 
+  Uint8List? _profilePhotoBytes;
+  String? _profilePhotoName;
   String _selectedTier = '0–5 yrs';
   String _resumeOutput = '';
   String _coverLetterOutput = '';
@@ -119,6 +123,10 @@ $tailored''';
       _resumeOutput = _buildResume();
       _showTailoredPreview = true;
     });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Your resume is ready! Please scroll down to preview and download.')),
+    );
   }
 
   void _generateCoverLetter() {
@@ -253,28 +261,56 @@ $tailored''';
     AiCoverLetterService.downloadTextFile(_coverLetterOutput, 'cover_letter_export.txt');
   }
 
-  void _handleShareAction(String action) {
+  Future<void> _handleShareAction(String action) async {
     final resumeText = _resumeOutput.isEmpty ? 'Resume not generated yet.' : _resumeOutput;
     final coverLetterText = _coverLetterOutput.isEmpty ? 'Cover Letter not generated yet.' : _coverLetterOutput;
 
-    switch (action) {
-      case 'whatsapp':
-        AiCoverLetterService.openWhatsApp(
-          'Hi! I created a polished resume and cover letter with AI Resume Builder.\n\nResume:\n$resumeText\n\nCover Letter:\n$coverLetterText',
-        );
-        break;
-      case 'email':
-        AiCoverLetterService.openEmail(
-          'AI Resume Builder export',
-          'Hello,\n\nPlease find the generated resume and cover letter below.\n\nResume:\n$resumeText\n\nCover Letter:\n$coverLetterText',
-        );
-        break;
-      case 'drive':
+    if (action == 'drive' || action == 'onedrive') {
+      if (action == 'drive') {
         AiCoverLetterService.openGoogleDrive();
-        break;
-      case 'onedrive':
+      } else {
         AiCoverLetterService.openOneDrive();
-        break;
+      }
+      return;
+    }
+
+    final selectedFormat = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Select File Format'),
+          content: const Text('Choose PDF or DOCX for the exported resume file.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext, null), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(dialogContext, 'pdf'), child: const Text('PDF')),
+            TextButton(onPressed: () => Navigator.pop(dialogContext, 'docx'), child: const Text('DOCX')),
+          ],
+        );
+      },
+    );
+
+    if (selectedFormat == null) {
+      return;
+    }
+
+    final shareText = 'Hi! I created a polished resume and cover letter with AI Resume Builder.\n\nResume:\n$resumeText\n\nCover Letter:\n$coverLetterText';
+
+    if (action == 'whatsapp') {
+      await AiCoverLetterService.shareResumeExport(
+        resumeText,
+        selectedFormat,
+        subject: 'AI Resume Builder export',
+        text: shareText,
+      );
+      AiCoverLetterService.openWhatsApp(shareText);
+    } else if (action == 'email') {
+      await AiCoverLetterService.shareResumeExport(
+        resumeText,
+        selectedFormat,
+        subject: 'AI Resume Builder export',
+        text: shareText,
+      );
+      AiCoverLetterService.openEmail('AI Resume Builder export', shareText);
     }
   }
 
@@ -407,6 +443,102 @@ $tailored''';
     );
   }
 
+  Widget _buildPhotoUploadSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Profile Photo', style: TextStyle(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 6),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (_profilePhotoBytes == null)
+                const Text('Add a professional photo for your resume.', style: TextStyle(fontSize: 13, color: Color(0xFF475569)))
+              else
+                Row(
+                  children: [
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: const Color(0xFFE2E8F0),
+                        image: DecorationImage(
+                          image: MemoryImage(_profilePhotoBytes!),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _profilePhotoName ?? 'Profile photo ready',
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      final uploadInput = html.FileUploadInputElement();
+                      uploadInput.accept = 'image/*';
+                      uploadInput.click();
+                      uploadInput.onChange.listen((_) {
+                        final files = uploadInput.files;
+                        if (files == null || files.isEmpty) {
+                          return;
+                        }
+                        final file = files.first;
+                        final reader = html.FileReader();
+                        reader.readAsArrayBuffer(file);
+                        reader.onLoadEnd.listen((_) {
+                          final data = reader.result as ByteBuffer?;
+                          if (data == null) {
+                            return;
+                          }
+                          setState(() {
+                            _profilePhotoBytes = data.asUint8List();
+                            _profilePhotoName = file.name;
+                          });
+                        });
+                      });
+                    },
+                    icon: const Icon(Icons.upload_file_rounded),
+                    label: const Text('Upload Photo'),
+                  ),
+                  if (_profilePhotoBytes != null)
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _profilePhotoBytes = null;
+                          _profilePhotoName = null;
+                        });
+                      },
+                      icon: const Icon(Icons.delete_outline_rounded),
+                      label: const Text('Remove'),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildPreviewActions() {
     return Wrap(
       spacing: 10,
@@ -506,6 +638,8 @@ $tailored''';
             _buildField(label: 'Full Name', controller: _fullNameController),
             const SizedBox(height: 12),
             _buildField(label: 'Email', controller: _emailController),
+            const SizedBox(height: 12),
+            _buildPhotoUploadSection(),
             const SizedBox(height: 12),
             _buildField(label: 'Phone', controller: _phoneController),
             const SizedBox(height: 12),
