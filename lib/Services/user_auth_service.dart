@@ -60,10 +60,21 @@ class UserAuthSession {
   }
 }
 
+class AuthRestrictionException implements Exception {
+  final String message;
+
+  const AuthRestrictionException(this.message);
+
+  @override
+  String toString() => message;
+}
+
 class UserAuthService {
   static const String _sessionStorageKey = 'jobready_auth_session_v2';
   static const String _accountsStorageKey = 'jobready_auth_accounts_v2';
   static const String _passwordResetStorageKey = 'jobready_auth_password_resets_v2';
+  static const String _lifetimeDeviceRegistryStorageKey = 'jobready_lifetime_device_registry_v2';
+  static const String _deviceSessionTokenStorageKey = 'jobready_device_session_token_v2';
 
   static bool get isSignedIn => getSession() != null;
 
@@ -84,7 +95,7 @@ class UserAuthService {
     }
   }
 
-  static Future<UserAuthSession?> signInWithEmailPassword(String email, String password) async {
+  static Future<UserAuthSession?> signInWithEmailPassword(String email, String password, {String? selectedPlan}) async {
     final normalizedEmail = _normalizeEmail(email);
     if (normalizedEmail.isEmpty || password.trim().isEmpty) {
       return null;
@@ -101,6 +112,11 @@ class UserAuthService {
       return null;
     }
 
+    final effectivePlan = _normalizePlan(selectedPlan ?? rawAccount['active_plan']?.toString());
+    if (effectivePlan == 'Lifetime') {
+      await _enforceLifetimeDeviceLimit(email: normalizedEmail, selectedPlan: effectivePlan);
+    }
+
     final session = UserAuthSession(
       uid: rawAccount['uid']?.toString() ?? 'local-${DateTime.now().microsecondsSinceEpoch}',
       displayName: rawAccount['display_name']?.toString() ?? 'User',
@@ -115,7 +131,7 @@ class UserAuthService {
     );
 
     await _persistSession(session);
-    await _updateProfileFromSession(session);
+    await _updateProfileFromSession(session, activePlan: effectivePlan);
     return session;
   }
 
@@ -126,6 +142,7 @@ class UserAuthService {
     required String country,
     required String countryCode,
     required String mobileNumber,
+    String? selectedPlan,
   }) async {
     final normalizedEmail = _normalizeEmail(email);
     if (normalizedEmail.isEmpty || displayName.trim().isEmpty || password.trim().isEmpty) {
@@ -135,6 +152,11 @@ class UserAuthService {
     final accounts = _readAccounts();
     if (accounts.containsKey(normalizedEmail)) {
       return signInWithEmailPassword(normalizedEmail, password);
+    }
+
+    final effectivePlan = _normalizePlan(selectedPlan);
+    if (effectivePlan == 'Lifetime') {
+      await _enforceLifetimeDeviceLimit(email: normalizedEmail, selectedPlan: effectivePlan);
     }
 
     final session = UserAuthSession(
@@ -154,6 +176,7 @@ class UserAuthService {
       'uid': session.uid,
       'display_name': session.displayName,
       'email': normalizedEmail,
+      'active_plan': effectivePlan,
       'country': session.country,
       'country_code': session.countryCode,
       'mobile_number': session.mobileNumber,
@@ -166,7 +189,7 @@ class UserAuthService {
     accounts[normalizedEmail] = accountEntry;
     await _saveAccounts(accounts);
     await _persistSession(session);
-    await _updateProfileFromSession(session);
+    await _updateProfileFromSession(session, activePlan: effectivePlan);
     return session;
   }
 
@@ -176,6 +199,7 @@ class UserAuthService {
     String? country,
     String? countryCode,
     String? mobileNumber,
+    String? selectedPlan,
   }) async {
     final normalizedEmail = _normalizeEmail(email);
     if (normalizedEmail.isEmpty) {
@@ -184,6 +208,11 @@ class UserAuthService {
 
     final accounts = _readAccounts();
     final existing = accounts[normalizedEmail];
+    final effectivePlan = _normalizePlan(selectedPlan ?? (existing is Map ? existing['active_plan']?.toString() : null));
+    if (effectivePlan == 'Lifetime') {
+      await _enforceLifetimeDeviceLimit(email: normalizedEmail, selectedPlan: effectivePlan);
+    }
+
     final session = UserAuthSession(
       uid: existing is Map ? existing['uid']?.toString() ?? 'local-${DateTime.now().microsecondsSinceEpoch}' : 'local-${DateTime.now().microsecondsSinceEpoch}',
       displayName: displayName?.trim().isNotEmpty == true ? displayName!.trim() : 'Google User',
@@ -201,6 +230,7 @@ class UserAuthService {
       'uid': session.uid,
       'display_name': session.displayName,
       'email': normalizedEmail,
+      'active_plan': effectivePlan,
       'country': session.country,
       'country_code': session.countryCode,
       'mobile_number': session.mobileNumber,
@@ -213,7 +243,7 @@ class UserAuthService {
     accounts[normalizedEmail] = accountEntry;
     await _saveAccounts(accounts);
     await _persistSession(session);
-    await _updateProfileFromSession(session);
+    await _updateProfileFromSession(session, activePlan: effectivePlan);
     return session;
   }
 
@@ -301,7 +331,7 @@ class UserAuthService {
     }
   }
 
-  static Future<void> _updateProfileFromSession(UserAuthSession session) async {
+  static Future<void> _updateProfileFromSession(UserAuthSession session, {String? activePlan}) async {
     final profile = UserAccountService.getProfile();
     await UserAccountService.saveProfile(
       profile.copyWith(
@@ -311,8 +341,132 @@ class UserAuthService {
         countryCode: session.countryCode,
         mobileNumber: session.mobileNumber,
         googleLoginPreferred: session.authMethod == 'google',
+        activePlan: activePlan ?? profile.activePlan,
       ),
     );
+  }
+
+  static String _normalizePlan(String? plan) {
+    final normalized = (plan ?? '').trim();
+    if (normalized.isEmpty) {
+      return 'Free';
+    }
+    return normalized.toLowerCase().contains('lifetime') ? 'Lifetime' : normalized;
+  }
+
+  static Future<void> _enforceLifetimeDeviceLimit({required String email, required String selectedPlan}) async {
+    if (selectedPlan != 'Lifetime') {
+      return;
+    }
+
+    final normalizedEmail = _normalizeEmail(email);
+    final deviceId = _buildDeviceFingerprint();
+    final deviceToken = _getOrCreateSessionToken();
+    final deviceType = _detectDeviceType();
+    final registry = _readLifetimeDeviceRegistry();
+    final accountEntry = (registry[normalizedEmail] is Map)
+        ? Map<String, dynamic>.from(registry[normalizedEmail] as Map)
+        : <String, dynamic>{};
+    final devices = <Map<String, dynamic>>[];
+    if (accountEntry['devices'] is List) {
+      for (final item in accountEntry['devices'] as List) {
+        if (item is Map) {
+          devices.add(Map<String, dynamic>.from(item));
+        }
+      }
+    }
+
+    final existingDeviceIndex = devices.indexWhere((device) {
+      final deviceIdValue = device['device_id']?.toString() ?? '';
+      final tokenValue = device['session_token']?.toString() ?? '';
+      return deviceIdValue == deviceId || tokenValue == deviceToken;
+    });
+
+    if (existingDeviceIndex >= 0) {
+      devices[existingDeviceIndex]['last_seen_at'] = DateTime.now().toIso8601String();
+      accountEntry['devices'] = devices;
+      registry[normalizedEmail] = accountEntry;
+      await _persistLifetimeDeviceRegistry(registry);
+      return;
+    }
+
+    final existingDesktopCount = devices.where((device) => device['device_type'] == 'desktop').length;
+    final existingMobileCount = devices.where((device) => device['device_type'] == 'mobile').length;
+    final isDesktopDevice = deviceType == 'desktop';
+    final isMobileDevice = deviceType == 'mobile';
+
+    if ((isDesktopDevice && existingDesktopCount >= 1) ||
+        (isMobileDevice && existingMobileCount >= 1) ||
+        (existingDesktopCount + existingMobileCount) >= 2) {
+      throw const AuthRestrictionException(
+        'Lifetime Plan device limit reached. This account can be used on 1 desktop/laptop and 1 mobile device only.',
+      );
+    }
+
+    devices.add({
+      'device_id': deviceId,
+      'session_token': deviceToken,
+      'device_type': deviceType,
+      'label': isDesktopDevice ? 'Desktop / Laptop' : (isMobileDevice ? 'Mobile' : 'Other device'),
+      'created_at': DateTime.now().toIso8601String(),
+      'last_seen_at': DateTime.now().toIso8601String(),
+    });
+    accountEntry['devices'] = devices;
+    registry[normalizedEmail] = accountEntry;
+    await _persistLifetimeDeviceRegistry(registry);
+  }
+
+  static String _buildDeviceFingerprint() {
+    final navigator = html.window.navigator;
+    final screen = html.window.screen;
+    final payload = '${navigator.platform}|${navigator.language}|${screen?.width ?? 0}x${screen?.height ?? 0}|${navigator.userAgent}';
+    return base64Encode(utf8.encode(payload));
+  }
+
+  static String _detectDeviceType() {
+    final platform = (html.window.navigator.platform ?? '').toLowerCase();
+    final userAgent = (html.window.navigator.userAgent ?? '').toLowerCase();
+    final isMobile = userAgent.contains('android') ||
+        userAgent.contains('iphone') ||
+        userAgent.contains('ipad') ||
+        userAgent.contains('mobile') ||
+        platform.contains('iphone') ||
+        platform.contains('android');
+    if (isMobile) {
+      return 'mobile';
+    }
+    return 'desktop';
+  }
+
+  static String _getOrCreateSessionToken() {
+    final existing = html.window.localStorage[_deviceSessionTokenStorageKey] ?? '';
+    if (existing.trim().isNotEmpty) {
+      return existing;
+    }
+    final token = _buildDeviceFingerprint();
+    html.window.localStorage[_deviceSessionTokenStorageKey] = token;
+    return token;
+  }
+
+  static Map<String, dynamic> _readLifetimeDeviceRegistry() {
+    final raw = html.window.localStorage[_lifetimeDeviceRegistryStorageKey];
+    if (raw == null || raw.trim().isEmpty) {
+      return <String, dynamic>{};
+    }
+
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) {
+        return <String, dynamic>{};
+      }
+      return Map<String, dynamic>.from(decoded);
+    } catch (_) {
+      return <String, dynamic>{};
+    }
+  }
+
+  static Future<void> _persistLifetimeDeviceRegistry(Map<String, dynamic> registry) async {
+    html.window.localStorage[_lifetimeDeviceRegistryStorageKey] = jsonEncode(registry);
   }
 
   static String _normalizeEmail(String email) {

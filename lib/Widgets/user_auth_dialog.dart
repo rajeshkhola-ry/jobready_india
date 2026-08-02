@@ -79,6 +79,7 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
           country: _countryController.text.trim().isNotEmpty ? _countryController.text.trim() : 'India',
           countryCode: '+91',
           mobileNumber: _mobileController.text.trim(),
+          selectedPlan: widget.preselectedPlan,
         );
 
         if (session == null) {
@@ -106,7 +107,7 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
         return;
       }
 
-      final session = await UserAuthService.signInWithEmailPassword(email, password);
+      final session = await UserAuthService.signInWithEmailPassword(email, password, selectedPlan: widget.preselectedPlan);
       if (session == null) {
         setState(() {
           _errorText = 'We could not find that account. Try creating one first.';
@@ -128,6 +129,13 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
         Navigator.of(context).pushNamed('/dashboard', arguments: {'plan': widget.preselectedPlan});
       } else {
         AuthRouterService.redirectAfterLogin(context, fallbackRoute: '/dashboard');
+      }
+    } on AuthRestrictionException catch (exception) {
+      if (mounted) {
+        setState(() {
+          _errorText = exception.message;
+          _isSubmitting = false;
+        });
       }
     } catch (_) {
       if (mounted) {
@@ -153,6 +161,7 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
         country: _countryController.text.trim().isNotEmpty ? _countryController.text.trim() : 'India',
         countryCode: '+91',
         mobileNumber: _mobileController.text.trim(),
+        selectedPlan: widget.preselectedPlan,
       );
 
       if (session == null) {
@@ -176,6 +185,13 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
         Navigator.of(context).pushNamed('/dashboard', arguments: {'plan': widget.preselectedPlan});
       } else {
         AuthRouterService.redirectAfterLogin(context, fallbackRoute: '/dashboard');
+      }
+    } on AuthRestrictionException catch (exception) {
+      if (mounted) {
+        setState(() {
+          _errorText = exception.message;
+          _isSubmitting = false;
+        });
       }
     } catch (_) {
       if (mounted) {

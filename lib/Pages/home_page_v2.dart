@@ -20,6 +20,7 @@ import '../Services/usage_quota_service.dart';
 import '../Widgets/user_auth_dialog.dart';
 import '../Widgets/ai_resume_feature_banner.dart';
 import '../Widgets/brand_logo_button.dart';
+import 'ai_resume_builder_page.dart';
 import 'compression_benchmark_page.dart';
 import 'compression_tool_page.dart';
 import 'convert_tool_page.dart';
@@ -32,6 +33,7 @@ import 'post_launch_control_page.dart';
 import 'split_tool_page.dart';
 import 'system_check_page.dart';
 import 'terms_conditions_page.dart';
+import 'v2/photo/photo_hd_workspace_page.dart';
 
 const Map<String, String> _paymentCurrencyLabels = {
   'USD': 'US Dollar (USD)',
@@ -116,6 +118,31 @@ String _formatCurrencyAmount(double amount, String currencyCode) {
   return '$symbol$formatted';
 }
 
+String resolvePreferredPaymentCurrency({
+  String? storedCurrency,
+  String? profileCountry,
+  String? browserLanguage,
+}) {
+  final normalizedStoredCurrency = (storedCurrency ?? '').trim().toUpperCase();
+  if (normalizedStoredCurrency.isNotEmpty && _paymentCurrencyLabels.containsKey(normalizedStoredCurrency)) {
+    return normalizedStoredCurrency;
+  }
+
+  final normalizedCountry = (profileCountry ?? '').trim().toLowerCase();
+  final normalizedCountryCode = (profileCountry ?? '').trim().toUpperCase();
+  final normalizedBrowserLanguage = (browserLanguage ?? '').trim().toLowerCase();
+
+  final isIndia = normalizedCountry.contains('india') ||
+      normalizedCountryCode == 'IN' ||
+      normalizedBrowserLanguage == 'hi' ||
+      normalizedBrowserLanguage.startsWith('hi-') ||
+      normalizedBrowserLanguage.contains('en-in') ||
+      normalizedBrowserLanguage.endsWith('-in') ||
+      normalizedBrowserLanguage.contains('-in');
+
+  return isIndia ? 'INR' : 'USD';
+}
+
 class HomePageV2 extends StatefulWidget {
   const HomePageV2({super.key});
 
@@ -155,11 +182,33 @@ class _HomePageV2State extends State<HomePageV2> {
     super.initState();
     _planCatalog = PlanCatalogService.load();
     _showCookieConsentBanner = !_hasAcceptedCookieConsent();
+    _selectedPaymentCurrency = _resolveInitialPaymentCurrency();
+  }
+
+  String _resolveInitialPaymentCurrency() {
+    final profile = UserAccountService.getProfile();
+    final browserLanguage = html.window.navigator.language;
+    final storedCurrency = _getStoredPaymentCurrency();
+    return resolvePreferredPaymentCurrency(
+      storedCurrency: storedCurrency,
+      profileCountry: profile.country,
+      browserLanguage: browserLanguage,
+    );
   }
 
   bool _hasAcceptedCookieConsent() {
     final storedValue = html.window.localStorage['jobready_cookie_consent'];
     return storedValue == 'accepted';
+  }
+
+  String _getStoredPaymentCurrency() {
+    final storedValue = html.window.localStorage['jobready_payment_currency'];
+    final normalizedValue = (storedValue ?? '').trim().toUpperCase();
+    return normalizedValue;
+  }
+
+  void _persistPaymentCurrency(String currency) {
+    html.window.localStorage['jobready_payment_currency'] = currency;
   }
 
   void _acceptCookieConsent() {
@@ -440,8 +489,11 @@ class _HomePageV2State extends State<HomePageV2> {
   }
 
   Future<void> _openCheckoutFlow(String plan) async {
+    final resolvedCurrency = _resolveInitialPaymentCurrency();
     setState(() {
       _selectedPlanForPayment = plan;
+      _selectedPaymentCurrency = resolvedCurrency;
+      _persistPaymentCurrency(resolvedCurrency);
     });
 
     if (!mounted) {
@@ -455,35 +507,66 @@ class _HomePageV2State extends State<HomePageV2> {
         insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 720, maxHeight: 760),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: SingleChildScrollView(
-              child: _UserPaymentPanel(
-                activeGateway: _activeGateway,
-                selectedPlan: _selectedPlanForPayment,
-                selectedCurrency: _selectedPaymentCurrency,
-                usageType: _selectedUsageType,
-                sevenDayAmount: _displayAmountForPlan('7Days', _selectedPaymentCurrency),
-                monthlyAmount: _displayAmountForPlan('Monthly', _selectedPaymentCurrency),
-                yearlyAmount: _displayAmountForPlan('Yearly', _selectedPaymentCurrency),
-                lifetimePlanAmount: _displayAmountForPlan('Lifetime', _selectedPaymentCurrency),
-                onPlanChanged: (value) {
-                  setState(() {
-                    _selectedPlanForPayment = value;
-                  });
-                },
-                onCurrencyChanged: (value) {
-                  setState(() {
-                    _selectedPaymentCurrency = value;
-                  });
-                },
-                onUsageTypeChanged: (value) {
-                  setState(() {
-                    _selectedUsageType = value;
-                  });
-                },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                child: Row(
+                  children: [
+                    IconButton(
+                      tooltip: 'Back',
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                    ),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Checkout',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF0F172A),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                  child: SingleChildScrollView(
+                    child: _UserPaymentPanel(
+                      activeGateway: _activeGateway,
+                      selectedPlan: _selectedPlanForPayment,
+                      selectedCurrency: _selectedPaymentCurrency,
+                      usageType: _selectedUsageType,
+                      sevenDayAmount: _displayAmountForPlan('7Days', _selectedPaymentCurrency),
+                      monthlyAmount: _displayAmountForPlan('Monthly', _selectedPaymentCurrency),
+                      yearlyAmount: _displayAmountForPlan('Yearly', _selectedPaymentCurrency),
+                      lifetimePlanAmount: _displayAmountForPlan('Lifetime', _selectedPaymentCurrency),
+                      onPlanChanged: (value) {
+                        setState(() {
+                          _selectedPlanForPayment = value;
+                        });
+                      },
+                      onCurrencyChanged: (value) {
+                        setState(() {
+                          _selectedPaymentCurrency = value;
+                          _persistPaymentCurrency(value);
+                        });
+                      },
+                      onUsageTypeChanged: (value) {
+                        setState(() {
+                          _selectedUsageType = value;
+                        });
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -1277,10 +1360,13 @@ class _UsageTypeSelector extends StatelessWidget {
                       ),
                       Text(
                         subtitle,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          fontSize: 11,
+                          fontSize: 10,
                           fontWeight: FontWeight.w600,
                           color: Color(0xFF4B5563),
+                          height: 1.25,
                         ),
                       ),
                     ],
@@ -1315,9 +1401,15 @@ class _UsageTypeSelector extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: [
-              buildTypeChip(label: 'Personal', subtitle: 'Standard pricing'),
+              buildTypeChip(
+                label: 'Personal',
+                subtitle: 'Standard pricing — For personal, individual documents only (not for official or commercial use).',
+              ),
               const SizedBox(width: 8),
-              buildTypeChip(label: 'Business', subtitle: 'Business pricing'),
+              buildTypeChip(
+                label: 'Business',
+                subtitle: 'Business pricing — For official, corporate, or commercial document processing to ensure regulatory compliance.',
+              ),
             ],
           ),
         ],
@@ -1398,7 +1490,7 @@ class _PlanCardsSection extends StatelessWidget {
           ),
           _PlanCardTile(
             title: 'LIFETIME LAUNCH OFFER',
-            subtitle: 'One-time access with PDF edit, OCR, and long-term workspace usage',
+            subtitle: 'One-time access for 1 desktop/laptop and 1 mobile device',
             priceLine: lifetimePriceLine,
             enabledTools: enabledToolsByPlan['Lifetime'] ?? const <String>[],
             buttonLabel: 'Select Plan',
@@ -2373,6 +2465,21 @@ class _UserPaymentPanel extends StatefulWidget {
 class _UserPaymentPanelState extends State<_UserPaymentPanel> {
   bool _submitting = false;
   Map<String, dynamic>? _lastCheckoutResponse;
+  String _localCurrency = 'USD';
+
+  @override
+  void initState() {
+    super.initState();
+    _localCurrency = widget.selectedCurrency;
+  }
+
+  @override
+  void didUpdateWidget(covariant _UserPaymentPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedCurrency != widget.selectedCurrency) {
+      _localCurrency = widget.selectedCurrency;
+    }
+  }
 
   bool _canProceedWithPurchase() {
     final profile = UserAccountService.getProfile();
@@ -2416,7 +2523,7 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
       gateway: widget.activeGateway,
       planId: widget.selectedPlan,
       amount: _chargeAmountForPlan(widget.selectedPlan),
-      currency: widget.selectedCurrency,
+      currency: _localCurrency,
       usageType: widget.usageType,
     );
   }
@@ -2627,7 +2734,7 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Plan: ${widget.selectedPlan} | Amount: ${_formatCurrencyAmount(amount, widget.selectedCurrency)} | Usage: ${widget.usageType ?? 'NOT SELECTED'}',
+            'Plan: ${widget.selectedPlan} | Amount: ${_formatCurrencyAmount(amount, _localCurrency)} | Usage: ${widget.usageType ?? 'NOT SELECTED'}',
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
           ),
           const SizedBox(height: 4),
@@ -2714,7 +2821,7 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
           ),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
-            initialValue: widget.selectedCurrency,
+            value: _localCurrency,
             isExpanded: true,
             items: _paymentCurrencyLabels.entries
                 .map(
@@ -2730,6 +2837,9 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
                 .toList(growable: false),
             onChanged: (value) {
               if (value != null) {
+                setState(() {
+                  _localCurrency = value;
+                });
                 widget.onCurrencyChanged(value);
               }
             },
@@ -2789,7 +2899,7 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
               DropdownMenuItem(
                 value: '7Days',
                 child: Text(
-                  '7 DAYS - ${_formatCurrencyAmount(widget.sevenDayAmount, widget.selectedCurrency)}',
+                  '7 DAYS - ${_formatCurrencyAmount(widget.sevenDayAmount, _localCurrency)}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -2797,7 +2907,7 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
               DropdownMenuItem(
                 value: 'Monthly',
                 child: Text(
-                  'MONTHLY - ${_formatCurrencyAmount(widget.monthlyAmount, widget.selectedCurrency)}/month',
+                  'MONTHLY - ${_formatCurrencyAmount(widget.monthlyAmount, _localCurrency)}/month',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -2805,7 +2915,7 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
               DropdownMenuItem(
                 value: 'Yearly',
                 child: Text(
-                  'YEARLY - ${_formatCurrencyAmount(widget.yearlyAmount, widget.selectedCurrency)}/year ⭐',
+                  'YEARLY - ${_formatCurrencyAmount(widget.yearlyAmount, _localCurrency)}/year ⭐',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -2813,7 +2923,7 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
               DropdownMenuItem(
                 value: 'Lifetime',
                 child: Text(
-                  'LIFETIME - ${_formatCurrencyAmount(widget.lifetimePlanAmount, widget.selectedCurrency)} one-time',
+                  'LIFETIME - ${_formatCurrencyAmount(widget.lifetimePlanAmount, _localCurrency)} one-time',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -2844,10 +2954,10 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
               ),
               child: Text(
                 widget.selectedPlan == '7Days'
-                    ? 'Short access plan selected: ${_formatCurrencyAmount(widget.sevenDayAmount, widget.selectedCurrency)} for 7-day use.'
+                    ? 'Short access plan selected: ${_formatCurrencyAmount(widget.sevenDayAmount, _localCurrency)} for 7-day use.'
                     : _isSubscriptionPlan(widget.selectedPlan)
-                        ? 'Offer active: Pay for 10 months (${_formatCurrencyAmount(_monthlyForPlan(widget.selectedPlan) * 10, widget.selectedCurrency)}) and get 12 months access.'
-                        : 'One-time Lifetime plan payment: ${_formatCurrencyAmount(widget.lifetimePlanAmount, widget.selectedCurrency)}.',
+                        ? 'Offer active: Pay for 10 months (${_formatCurrencyAmount(_monthlyForPlan(widget.selectedPlan) * 10, _localCurrency)}) and get 12 months access.'
+                        : 'One-time Lifetime plan payment: ${_formatCurrencyAmount(widget.lifetimePlanAmount, _localCurrency)}.',
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,

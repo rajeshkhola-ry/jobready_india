@@ -96,7 +96,7 @@ $phone''';
     await Share.share(text, subject: subject);
   }
 
-  static Uint8List buildResumeExportBytes(String content, String format) {
+  static Future<Uint8List> buildResumeExportBytes(String content, String format) async {
     if (format.toLowerCase() == 'docx') {
       return _buildDocxBytes(content);
     }
@@ -108,7 +108,7 @@ $phone''';
   static String getResumeExportMimeType(String format) => format.toLowerCase() == 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/pdf';
 
   static Future<void> shareResumeExport(String content, String format, {required String subject, String? text}) async {
-    final bytes = buildResumeExportBytes(content, format);
+    final bytes = await buildResumeExportBytes(content, format);
     final fileName = 'resume_export.${getResumeExportExtension(format)}';
     final xFile = XFile.fromData(
       bytes,
@@ -128,7 +128,7 @@ $phone''';
     _downloadBytes(bytes, fileName);
   }
 
-  static Uint8List _buildPdfBytes(String content) {
+  static Future<Uint8List> _buildPdfBytes(String content) async {
     final pdfDoc = pw.Document();
     pdfDoc.addPage(
       pw.Page(
@@ -141,7 +141,7 @@ $phone''';
         },
       ),
     );
-    return Uint8List.fromList(pdfDoc.save());
+    return await pdfDoc.save();
   }
 
   static Uint8List _buildDocxBytes(String content) {
