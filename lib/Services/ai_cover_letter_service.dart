@@ -1,5 +1,9 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
+import 'package:archive/archive.dart';
+import 'package:pdf/pdf.dart' as pdf;
+import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 import 'package:universal_html/html.dart' as html;
 
@@ -92,9 +96,103 @@ $phone''';
     await Share.share(text, subject: subject);
   }
 
+  static Uint8List buildResumeExportBytes(String content, String format) {
+    if (format.toLowerCase() == 'docx') {
+      return _buildDocxBytes(content);
+    }
+    return _buildPdfBytes(content);
+  }
+
+  static String getResumeExportExtension(String format) => format.toLowerCase() == 'docx' ? 'docx' : 'pdf';
+
+  static String getResumeExportMimeType(String format) => format.toLowerCase() == 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/pdf';
+
+  static Future<void> shareResumeExport(String content, String format, {required String subject, String? text}) async {
+    final bytes = buildResumeExportBytes(content, format);
+    final fileName = 'resume_export.${getResumeExportExtension(format)}';
+    final xFile = XFile.fromData(
+      bytes,
+      name: fileName,
+      mimeType: getResumeExportMimeType(format),
+    );
+
+    try {
+      await Share.shareXFiles([xFile], subject: subject, text: text ?? 'Here is your generated resume file.');
+    } catch (_) {
+      _downloadBytes(bytes, fileName);
+    }
+  }
+
   static void downloadTextFile(String content, String fileName) {
     final bytes = utf8.encode(content);
-    final blob = html.Blob([bytes], 'text/plain;charset=utf-8');
+    _downloadBytes(bytes, fileName);
+  }
+
+  static Uint8List _buildPdfBytes(String content) {
+    final pdfDoc = pw.Document();
+    pdfDoc.addPage(
+      pw.Page(
+        pageFormat: pdf.PdfPageFormat.a4,
+        build: (pw.Context context) {
+          return pw.Padding(
+            padding: const pw.EdgeInsets.all(24),
+            child: pw.Text(content, style: const pw.TextStyle(fontSize: 10)),
+          );
+        },
+      ),
+    );
+    return Uint8List.fromList(pdfDoc.save());
+  }
+
+  static Uint8List _buildDocxBytes(String content) {
+    final archive = Archive();
+    final documentXml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:p><w:r><w:t>${_escapeXml(content)}</w:t></w:r></w:p>
+    <w:sectPr/></w:body>
+</w:document>''';
+
+    archive.addFile(ArchiveFile.noCompress(
+      '[Content_Types].xml',
+      0,
+      utf8.encode('''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>'''),
+    ));
+
+    archive.addFile(ArchiveFile.noCompress(
+      '_rels/.rels',
+      0,
+      utf8.encode('''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>'''),
+    ));
+
+    archive.addFile(ArchiveFile.noCompress(
+      'word/document.xml',
+      0,
+      utf8.encode(documentXml),
+    ));
+
+    return Uint8List.fromList(ZipEncoder().encode(archive)!);
+  }
+
+  static String _escapeXml(String input) {
+    return input
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&apos;');
+  }
+
+  static void _downloadBytes(List<int> bytes, String fileName) {
+    final blob = html.Blob([bytes], 'application/octet-stream');
     final url = html.Url.createObjectUrlFromBlob(blob);
     final anchor = html.AnchorElement(href: url)
       ..setAttribute('download', fileName)

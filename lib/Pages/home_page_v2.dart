@@ -4707,6 +4707,28 @@ class _V2Column extends StatelessWidget {
       children: [
         const UploadCardV2(),
         const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.auto_awesome_rounded, color: Color(0xFF1F4E79), size: 18),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Sponsored / Featured: AI Resume Builder and HD Photo Enhancer now highlighted for faster access.',
+                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
         LayoutBuilder(
           builder: (context, constraints) {
             if (constraints.maxWidth < 940) {
@@ -4769,6 +4791,26 @@ class _MostPopularToolsCard extends StatelessWidget {
               context,
               MaterialPageRoute(builder: (_) => const ConvertToolPage()),
             ),
+          ),
+          _PopularToolRow(
+            icon: Icons.auto_awesome_rounded,
+            label: 'AI Resume Builder',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => AiResumeBuilderPage()),
+              );
+            },
+          ),
+          _PopularToolRow(
+            icon: Icons.photo_camera_outlined,
+            label: 'HD Photo Converter / Enhancer',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => PhotoHdWorkspacePage()),
+              );
+            },
           ),
           _PopularToolRow(
             icon: Icons.image_outlined,
