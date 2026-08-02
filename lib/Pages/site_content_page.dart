@@ -32,9 +32,11 @@ class SiteContentPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1F2937),
-        foregroundColor: Colors.white,
+        backgroundColor: const Color(0xFFF8FAFC),
+        foregroundColor: const Color(0xFF0F172A),
         titleSpacing: 12,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -50,7 +52,7 @@ class SiteContentPage extends StatelessWidget {
             Flexible(
               child: Text(
                 title,
-                style: const TextStyle(fontWeight: FontWeight.w800),
+                style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.2),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -62,7 +64,7 @@ class SiteContentPage extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFF5F8FC), Color(0xFFE6EEF7)],
+            colors: [Color(0xFFF8FAFC), Color(0xFFF1F5F9)],
           ),
         ),
         child: ListView(
@@ -72,8 +74,15 @@ class SiteContentPage extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: const Color(0xFFDDE7F4)),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF0F172A).withValues(alpha: 0.04),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -105,7 +114,7 @@ class SiteContentPage extends StatelessWidget {
                             (item) => Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFEAF2FF),
+                                color: const Color(0xFFEEF2FF),
                                 borderRadius: BorderRadius.circular(999),
                               ),
                               child: Text(
@@ -132,7 +141,14 @@ class SiteContentPage extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0xFFDDE7F4)),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF0F172A).withValues(alpha: 0.03),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

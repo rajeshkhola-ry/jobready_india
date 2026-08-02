@@ -20,6 +20,8 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
   final PhotoResizeService _photoResizeService = const PhotoResizeService();
   final GlobalKey _dropZoneKey = GlobalKey();
   bool _isDragOver = false;
+  bool _hasShownPlanDialog = false;
+  String _selectedPlanId = 'pro';
 
   PickedFileData? _selectedImage;
   PhotoSizePreset _selectedPreset = PhotoResizeService.presets.first;
@@ -39,6 +41,12 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
   void initState() {
     super.initState();
     _hydrateFromUploadContext();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _hasShownPlanDialog) {
+        return;
+      }
+      _showPlanSelectionDialog();
+    });
     if (kIsWeb) {
       html.document.body?.addEventListener('dragover', _handleBodyDragOver);
       html.document.body?.addEventListener('dragleave', _handleBodyDragLeave);
@@ -295,6 +303,340 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
     return '${(bytes / (1024 * 1024)).toStringAsFixed(2)} MB';
   }
 
+  List<_PlanOption> get _planOptions => [
+        _PlanOption(
+          id: 'lite',
+          label: 'HD Lite',
+          subtitle: 'Fast boost for quick passport and ID-sized images',
+          priceTag: 'Starter',
+          description: 'Perfect for light upscaling with a cleaner, identity-safe result.',
+          features: ['Fast preview generation', 'Identity-safe enhancement', 'Portable output sizes'],
+          accent: const Color(0xFF2563EB),
+          icon: Icons.auto_fix_high_rounded,
+        ),
+        _PlanOption(
+          id: 'pro',
+          label: 'HD Pro',
+          subtitle: 'Balanced quality and control for everyday photo work',
+          priceTag: 'Recommended',
+          description: 'A stronger quality lift with more refinement detail and sharper output.',
+          features: ['Higher detail recovery', 'Better color balance', 'More controlled resizing'],
+          accent: const Color(0xFF4F46E5),
+          icon: Icons.workspace_premium_rounded,
+        ),
+        _PlanOption(
+          id: 'team',
+          label: 'HD Team',
+          subtitle: 'For batch work and premium studio-style workflows',
+          priceTag: 'Team',
+          description: 'Ideal for more demanding output and multi-image review sessions.',
+          features: ['Batch-friendly workflow', 'Premium refinement controls', 'Priority output handling'],
+          accent: const Color(0xFF0F766E),
+          icon: Icons.groups_rounded,
+        ),
+      ];
+
+  _PlanOption _getSelectedPlan(String id) {
+    return _planOptions.firstWhere(
+      (plan) => plan.id == id,
+      orElse: () => _planOptions[1],
+    );
+  }
+
+  Future<void> _showPlanSelectionDialog() async {
+    if (!mounted || _hasShownPlanDialog) {
+      return;
+    }
+
+    final selection = await showDialog<_PlanOption>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        String selectedPlanId = _selectedPlanId;
+        String? hoveredPlanId;
+
+        return Dialog(
+          insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          backgroundColor: Colors.transparent,
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 720),
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFF8FBFF), Color(0xFFEFF6FF)],
+              ),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: const Color(0xFFDCE9F8)),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF0F172A).withValues(alpha: 0.10),
+                  blurRadius: 24,
+                  offset: const Offset(0, 16),
+                ),
+              ],
+            ),
+            child: StatefulBuilder(
+              builder: (context, setDialogState) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        TextButton.icon(
+                          onPressed: () => Navigator.of(dialogContext).pop(null),
+                          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16),
+                          label: const Text('Back'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: const Color(0xFF0F172A),
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                          ),
+                        ),
+                        const Spacer(),
+                        TextButton(
+                          onPressed: () => Navigator.of(dialogContext).pop(null),
+                          child: const Text('Skip'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Choose your HD Photo plan',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0F172A),
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Pick a plan to tailor your enhancement experience and keep the image workflow moving.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1.55,
+                        color: Color(0xFF475569),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ..._planOptions.map((plan) {
+                      final isSelected = plan.id == selectedPlanId;
+                      final isHovered = hoveredPlanId == plan.id;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          onEnter: (_) => setDialogState(() => hoveredPlanId = plan.id),
+                          onExit: (_) => setDialogState(() => hoveredPlanId = null),
+                          child: GestureDetector(
+                            onTap: () {
+                              setDialogState(() => selectedPlanId = plan.id);
+                              setState(() {
+                                _selectedPlanId = plan.id;
+                              });
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              transform: Matrix4.identity()..scale(isHovered ? 1.01 : 1.0),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(
+                                  color: isSelected ? plan.accent : const Color(0xFFE2E8F0),
+                                  width: isSelected ? 2.2 : 1.1,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF0F172A).withValues(alpha: 0.05),
+                                    blurRadius: 18,
+                                    offset: const Offset(0, 8),
+                                  ),
+                                ],
+                              ),
+                              padding: const EdgeInsets.all(14),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    width: 44,
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      color: plan.accent.withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    child: Icon(plan.icon, color: plan.accent, size: 22),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Text(
+                                              plan.label,
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w800,
+                                                color: Color(0xFF0F172A),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: plan.accent.withValues(alpha: 0.12),
+                                                borderRadius: BorderRadius.circular(999),
+                                              ),
+                                              child: Text(
+                                                plan.priceTag,
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w800,
+                                                  color: plan.accent,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          plan.subtitle,
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF475569),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          plan.description,
+                                          style: const TextStyle(
+                                            fontSize: 12.5,
+                                            height: 1.5,
+                                            color: Color(0xFF64748B),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Wrap(
+                                          spacing: 8,
+                                          runSpacing: 8,
+                                          children: plan.features
+                                              .map(
+                                                (feature) => Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(0xFFF8FAFC),
+                                                    borderRadius: BorderRadius.circular(999),
+                                                  ),
+                                                  child: Text(
+                                                    feature,
+                                                    style: const TextStyle(
+                                                      fontSize: 11.5,
+                                                      fontWeight: FontWeight.w700,
+                                                      color: Color(0xFF334155),
+                                                    ),
+                                                  ),
+                                                ),
+                                              )
+                                              .toList(),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Container(
+                                    width: 24,
+                                    height: 24,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: isSelected ? plan.accent : const Color(0xFFCBD5E1),
+                                        width: 2,
+                                      ),
+                                      color: isSelected ? plan.accent : Colors.white,
+                                    ),
+                                    child: isSelected
+                                        ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
+                                        : null,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF2563EB), Color(0xFF4F46E5)],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF2563EB).withValues(alpha: 0.24),
+                            blurRadius: 16,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(16),
+                          onTap: () {
+                            final chosenPlan = _planOptions.firstWhere(
+                              (plan) => plan.id == selectedPlanId,
+                              orElse: () => _planOptions[1],
+                            );
+                            setState(() {
+                              _selectedPlanId = chosenPlan.id;
+                            });
+                            Navigator.of(dialogContext).pop(chosenPlan);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            alignment: Alignment.center,
+                            child: const Text(
+                              'Try Pro for Free',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _hasShownPlanDialog = true;
+      if (selection != null) {
+        _selectedPlanId = selection.id;
+        _statusType = _StatusType.idle;
+        _statusMessage = 'Selected ${selection.label}. Continue with your enhancement workflow.';
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -335,7 +677,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
                               color: const Color(0xFFEAF2FF),
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(14),
                             ),
                             child: const Icon(
                               Icons.high_quality_rounded,
@@ -351,21 +693,82 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                                 Text(
                                   'Identity-Preserving HD Photo Studio',
                                   style: TextStyle(
-                                    fontSize: 16,
+                                    fontSize: 18,
                                     fontWeight: FontWeight.w800,
                                     color: Color(0xFF0F172A),
+                                    height: 1.25,
                                   ),
                                 ),
-                                SizedBox(height: 4),
+                                SizedBox(height: 6),
                                 Text(
                                   'Upload a photo, choose a target size, and generate a conservative HD export without changing facial identity.',
                                   style: TextStyle(
-                                    fontSize: 13,
-                                    height: 1.5,
+                                    fontSize: 13.5,
+                                    height: 1.55,
                                     color: Color(0xFF475569),
                                   ),
                                 ),
                               ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    _panel(
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: _getSelectedPlan(_selectedPlanId).accent.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              _getSelectedPlan(_selectedPlanId).icon,
+                              color: _getSelectedPlan(_selectedPlanId).accent,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Selected plan: ${_getSelectedPlan(_selectedPlanId).label}',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF0F172A),
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  _getSelectedPlan(_selectedPlanId).description,
+                                  style: const TextStyle(
+                                    fontSize: 12.5,
+                                    height: 1.45,
+                                    color: Color(0xFF64748B),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: _getSelectedPlan(_selectedPlanId).accent.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Text(
+                              _getSelectedPlan(_selectedPlanId).priceTag,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: _getSelectedPlan(_selectedPlanId).accent,
+                              ),
                             ),
                           ),
                         ],
@@ -812,15 +1215,44 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
   Widget _panel({required Widget child}) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFFD8E5F5)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withValues(alpha: 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: child,
     );
   }
+}
+
+class _PlanOption {
+  const _PlanOption({
+    required this.id,
+    required this.label,
+    required this.subtitle,
+    required this.priceTag,
+    required this.description,
+    required this.features,
+    required this.accent,
+    required this.icon,
+  });
+
+  final String id;
+  final String label;
+  final String subtitle;
+  final String priceTag;
+  final String description;
+  final List<String> features;
+  final Color accent;
+  final IconData icon;
 }
 
 enum _StatusType { idle, processing, success, error }

@@ -75,8 +75,22 @@ class UserAuthService {
   static const String _passwordResetStorageKey = 'jobready_auth_password_resets_v2';
   static const String _lifetimeDeviceRegistryStorageKey = 'jobready_lifetime_device_registry_v2';
   static const String _deviceSessionTokenStorageKey = 'jobready_device_session_token_v2';
+  static const String _authRoleStorageKey = 'jobready_auth_role_v1';
+  static const String _authTokenStorageKey = 'jobready_auth_token_v1';
 
-  static bool get isSignedIn => getSession() != null;
+  static bool get isSignedIn {
+    if (getSession() != null) {
+      return true;
+    }
+
+    final role = WebSafeBrowser.readLocalStorage(_authRoleStorageKey)?.trim().toLowerCase();
+    if (role == 'user' || role == 'admin') {
+      return true;
+    }
+
+    final token = WebSafeBrowser.readLocalStorage(_authTokenStorageKey)?.trim();
+    return token != null && token.isNotEmpty;
+  }
 
   static UserAuthSession? getSession() {
     final raw = WebSafeBrowser.readLocalStorage(_sessionStorageKey);
@@ -301,12 +315,16 @@ class UserAuthService {
 
   static Future<void> signOut() async {
     WebSafeBrowser.removeLocalStorage(_sessionStorageKey);
+    WebSafeBrowser.removeLocalStorage(_authRoleStorageKey);
+    WebSafeBrowser.removeLocalStorage(_authTokenStorageKey);
   }
 
   static Future<void> reset() async {
     WebSafeBrowser.removeLocalStorage(_sessionStorageKey);
     WebSafeBrowser.removeLocalStorage(_accountsStorageKey);
     WebSafeBrowser.removeLocalStorage(_passwordResetStorageKey);
+    WebSafeBrowser.removeLocalStorage(_authRoleStorageKey);
+    WebSafeBrowser.removeLocalStorage(_authTokenStorageKey);
   }
 
   static Future<void> _persistSession(UserAuthSession session) async {

@@ -23,14 +23,14 @@ class ToolSelectorV2 extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFCF8),
+        color: const Color(0xFFFFFFFF),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.1),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF183A5B).withValues(alpha: 0.05),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+            color: const Color(0xFF0F172A).withValues(alpha: 0.04),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -57,6 +57,7 @@ class ToolSelectorV2 extends StatelessWidget {
                 Icons.picture_as_pdf,
                 "Compress",
                 "Tries to match your target size; some files may stay above target.",
+                false,
                 () => _openTool(context, const CompressionToolPage()),
               ),
               _tool(
@@ -64,6 +65,7 @@ class ToolSelectorV2 extends StatelessWidget {
                 Icons.swap_horiz,
                 "Convert",
                 "Convert PDF, DOCX, images, and office files.",
+                false,
                 () => _openTool(context, const ConvertToolPage()),
               ),
               _tool(
@@ -71,6 +73,7 @@ class ToolSelectorV2 extends StatelessWidget {
                 Icons.merge_type,
                 "Merge",
                 "Combine multiple PDFs into one file.",
+                false,
                 () => _openTool(context, const MergeToolPage()),
               ),
               _tool(
@@ -78,6 +81,7 @@ class ToolSelectorV2 extends StatelessWidget {
                 Icons.content_cut,
                 "Split",
                 "Split one PDF into selected page ranges.",
+                false,
                 () => _openTool(context, const SplitToolPage()),
               ),
               _tool(
@@ -85,6 +89,7 @@ class ToolSelectorV2 extends StatelessWidget {
                 Icons.description,
                 "Extract",
                 "Extract text and content from PDF pages.",
+                false,
                 () => _openTool(context, const ExtractToolPage()),
               ),
               _tool(
@@ -92,6 +97,7 @@ class ToolSelectorV2 extends StatelessWidget {
                 Icons.edit_document,
                 "Edit PDF",
                 "Edit PDF, then save and download.",
+                false,
                 () => _openTool(context, const PdfEditPage()),
               ),
               _tool(
@@ -99,6 +105,7 @@ class ToolSelectorV2 extends StatelessWidget {
                 Icons.dashboard_customize_rounded,
                 "PDF Tools",
                 "Open complete PDF utility workspace.",
+                false,
                 () => _openTool(context, const PdfToolsPage()),
               ),
               _tool(
@@ -106,6 +113,7 @@ class ToolSelectorV2 extends StatelessWidget {
                 Icons.smart_toy_rounded,
                 "AI Resume Builder",
                 "Create and tailor professional resumes directly from the main tools list.",
+                true,
                 () => _openTool(context, const AiResumeBuilderPage()),
               ),
               _tool(
@@ -113,6 +121,7 @@ class ToolSelectorV2 extends StatelessWidget {
                 Icons.camera_alt_rounded,
                 "HD Photo Studio",
                 "Enhance, edit, upscale photos and remove backgrounds in HD.",
+                true,
                 () => _openTool(context, const PhotoHdWorkspacePage()),
               ),
             ];
@@ -126,15 +135,17 @@ class ToolSelectorV2 extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF111827),
+                    letterSpacing: -0.02,
+                    color: Color(0xFF0F172A),
                   ),
                 ),
                 const SizedBox(height: 6),
                 const Text(
                   "Professional AI-powered tools for document optimization",
                   style: TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF4B5563),
+                    fontSize: 13,
+                    height: 1.45,
+                    color: Color(0xFF475569),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -162,6 +173,7 @@ class ToolSelectorV2 extends StatelessWidget {
     IconData icon,
     String title,
     String subtitle,
+    bool isFeatured,
     VoidCallback onTap,
   ) {
     final colorMap = <String, Color>{
@@ -177,97 +189,103 @@ class ToolSelectorV2 extends StatelessWidget {
 
     final accent = colorMap[title] ?? const Color(0xFF1F4E79);
 
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-
-      onTap: onTap,
-
-      child: Container(
-        height: 92,
-
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFFFFF),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: const Color(0xFFE2E8F0),
-            width: 1.2,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        transform: Matrix4.translationValues(0, 0, 0),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onTap,
+          child: Container(
+            height: 104,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFFFF),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: isFeatured ? accent.withValues(alpha: 0.55) : const Color(0xFFE2E8F0),
+                width: isFeatured ? 1.8 : 1.1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: isFeatured ? accent.withValues(alpha: 0.16) : const Color(0xFF0F172A).withValues(alpha: 0.04),
+                  blurRadius: isFeatured ? 16 : 12,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 14,
+                      backgroundColor: accent.withValues(alpha: 0.13),
+                      child: Icon(
+                        icon,
+                        size: 16,
+                        color: accent,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (isFeatured)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: accent.withValues(alpha: 0.16),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          'Featured',
+                          style: TextStyle(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w800,
+                            color: accent,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    height: 1.35,
+                    color: Color(0xFF64748B),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Spacer(),
+                Row(
+                  children: [
+                    const Spacer(),
+                    Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 12,
+                      color: accent.withValues(alpha: 0.85),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF183A5B).withValues(alpha: 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-
-        padding: const EdgeInsets.symmetric(
-          horizontal: 10,
-          vertical: 8,
-        ),
-
-        child: Row(
-          children: [
-
-            CircleAvatar(
-              radius: 14,
-
-              backgroundColor:
-                  accent.withValues(alpha: 0.13),
-
-              child: Icon(
-                icon,
-                size: 15,
-                color: accent,
-              ),
-            ),
-
-            const SizedBox(width: 8),
-
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-
-                children: [
-
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 12,
-                      color: Color(0xFF111827),
-                    ),
-                  ),
-
-                  const SizedBox(height: 2),
-
-                  Text(
-                    subtitle,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      color: Color(0xFF6B7280),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-
-                ],
-              ),
-            ),
-
-            const SizedBox(width: 6),
-            Icon(
-              Icons.arrow_forward_ios_rounded,
-              size: 12,
-              color: accent.withValues(alpha: 0.85),
-            ),
-
-          ],
         ),
       ),
     );

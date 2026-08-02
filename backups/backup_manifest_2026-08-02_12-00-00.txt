@@ -1,0 +1,4 @@
+Backup created from workspace c:\JobReadyIndia\jobready_india
+Timestamp: 2026-08-02 12:00:00
+Scope: workspace snapshot and local backup artifact
+Note: Repository and OneDrive backup mirror requested by user.

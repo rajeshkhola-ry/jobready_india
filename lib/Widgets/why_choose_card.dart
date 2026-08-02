@@ -10,11 +10,18 @@ class WhyChooseCard extends StatelessWidget {
   Widget item(IconData icon, String title, String subtitle) {
     return Container(
       margin: EdgeInsets.only(bottom: _s(10)),
-      padding: EdgeInsets.symmetric(horizontal: _s(12), vertical: _s(12)),
+      padding: EdgeInsets.symmetric(horizontal: _s(13), vertical: _s(12)),
       decoration: BoxDecoration(
         color: const Color(0xFFFFFFFF),
         borderRadius: BorderRadius.circular(_s(18)),
         border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withValues(alpha: 0.04),
+            blurRadius: _s(10),
+            offset: Offset(0, _s(4)),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -70,7 +77,7 @@ class WhyChooseCard extends StatelessWidget {
         border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF183A5B).withOpacity(0.05),
+            color: const Color(0xFF183A5B).withValues(alpha: 0.06),
             blurRadius: _s(18),
             offset: Offset(0, _s(8)),
           ),
@@ -111,8 +118,8 @@ class WhyChooseCard extends StatelessWidget {
             Text(
               'Built for fast document work with a calmer interface, safer handling, and clearer results.',
               style: TextStyle(
-                fontSize: _s(13),
-                height: 1.35,
+                fontSize: _s(13.5),
+                height: 1.4,
                 color: Color(0xFF6B7280),
               ),
             ),

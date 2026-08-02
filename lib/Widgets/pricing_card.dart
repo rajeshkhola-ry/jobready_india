@@ -45,25 +45,26 @@ class PricingCard extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: isPremium ? const Color(0xFFFFD86B) : const Color(0xFFD6E6FF),
+          color: isPremium ? const Color(0xFFFFD86B) : const Color(0xFFE2E8F0),
         ),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.12),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
+            color: color.withValues(alpha: 0.12),
+            blurRadius: 18,
+            offset: const Offset(0, 9),
           ),
         ],
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 46,
-              height: 46,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.88),
+                color: Colors.white.withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Icon(
@@ -82,7 +83,7 @@ class PricingCard extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF1F2937),
+                      color: Color(0xFF0F172A),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -91,13 +92,13 @@ class PricingCard extends StatelessWidget {
                         ? hasDiscount
                             ? 'Coupon applied: $appliedDiscountPercent% off is active for this plan.'
                             : 'Advanced features and premium tools are on the way.'
-                      : isFreePlan
-                        ? 'Start free with core document tools and fast actions.'
-                        : 'Best for regular users who need more usage and smoother workflow.',
+                        : isFreePlan
+                            ? 'Start free with core document tools and fast actions.'
+                            : 'Best for regular users who need more usage and smoother workflow.',
                     style: const TextStyle(
-                      fontSize: 12,
-                      height: 1.3,
-                      color: Color(0xFF6B7280),
+                      fontSize: 12.5,
+                      height: 1.45,
+                      color: Color(0xFF475569),
                     ),
                   ),
                   if (hasDiscount) ...[
@@ -115,11 +116,11 @@ class PricingCard extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.9),
+                color: Colors.white.withValues(alpha: 0.92),
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(

@@ -50,21 +50,118 @@ return MaterialApp(
 debugShowCheckedModeBanner: false,
 title: 'GETREADYJOB',
 theme: ThemeData(
-scaffoldBackgroundColor: const Color(0xFFF8F9FA),
-appBarTheme: const AppBarTheme(
-  backgroundColor: Color(0xFFF8FAFC),
-  foregroundColor: Color(0xFF0F172A),
-  elevation: 0,
-  surfaceTintColor: Colors.transparent,
-  titleTextStyle: TextStyle(
-    color: Color(0xFF0F172A),
-    fontSize: 18,
-    fontWeight: FontWeight.w800,
-    letterSpacing: 0.2,
+  useMaterial3: true,
+  fontFamily: 'Segoe UI',
+  scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+  colorScheme: ColorScheme.fromSeed(
+    seedColor: const Color(0xFF2563EB),
+    primary: const Color(0xFF2563EB),
+    secondary: const Color(0xFF0F766E),
+    surface: const Color(0xFFF8FAFC),
+    onSurface: const Color(0xFF0F172A),
   ),
-  iconTheme: IconThemeData(color: Color(0xFF334155)),
-),
-useMaterial3: true,
+  textTheme: const TextTheme(
+    displayLarge: TextStyle(
+      fontSize: 32,
+      fontWeight: FontWeight.w800,
+      height: 1.12,
+      letterSpacing: -0.03,
+      color: Color(0xFF0F172A),
+    ),
+    headlineMedium: TextStyle(
+      fontSize: 24,
+      fontWeight: FontWeight.w800,
+      height: 1.18,
+      letterSpacing: -0.02,
+      color: Color(0xFF0F172A),
+    ),
+    titleMedium: TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.w700,
+      color: Color(0xFF0F172A),
+    ),
+    bodyLarge: TextStyle(
+      fontSize: 15,
+      fontWeight: FontWeight.w500,
+      height: 1.55,
+      color: Color(0xFF334155),
+    ),
+    bodyMedium: TextStyle(
+      fontSize: 14,
+      fontWeight: FontWeight.w500,
+      height: 1.55,
+      color: Color(0xFF475569),
+    ),
+  ),
+  appBarTheme: const AppBarTheme(
+    backgroundColor: Color(0xFFF8FAFC),
+    foregroundColor: Color(0xFF0F172A),
+    elevation: 0,
+    surfaceTintColor: Colors.transparent,
+    titleTextStyle: TextStyle(
+      color: Color(0xFF0F172A),
+      fontSize: 18,
+      fontWeight: FontWeight.w800,
+      letterSpacing: 0.2,
+    ),
+    iconTheme: IconThemeData(color: Color(0xFF334155)),
+  ),
+  cardTheme: CardThemeData(
+    elevation: 0,
+    color: Colors.white,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(20),
+      side: const BorderSide(color: Color(0xFFE2E8F0), width: 1),
+    ),
+    margin: EdgeInsets.zero,
+  ),
+  dialogTheme: const DialogThemeData(
+    backgroundColor: Color(0xFFF8FAFC),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(24)),
+    ),
+  ),
+  chipTheme: ChipThemeData(
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+    side: const BorderSide(color: Color(0xFFE2E8F0)),
+    showCheckmark: false,
+  ),
+  inputDecorationTheme: InputDecorationTheme(
+    filled: true,
+    fillColor: const Color(0xFFF8FAFC),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.4),
+    ),
+  ),
+  elevatedButtonTheme: ElevatedButtonThemeData(
+    style: ElevatedButton.styleFrom(
+      elevation: 0,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    ),
+  ),
+  textButtonTheme: TextButtonThemeData(
+    style: TextButton.styleFrom(
+      foregroundColor: const Color(0xFF2563EB),
+      textStyle: const TextStyle(fontWeight: FontWeight.w700),
+    ),
+  ),
+  outlinedButtonTheme: OutlinedButtonThemeData(
+    style: OutlinedButton.styleFrom(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    ),
+  ),
 ),
 initialRoute: '/',
 routes: {

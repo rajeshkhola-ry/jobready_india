@@ -310,14 +310,14 @@ class _UploadCardV2State extends State<UploadCardV2> {
         child: Container(
           width: double.infinity,
           decoration: BoxDecoration(
-            color: const Color(0xFFFFFCF8),
+            color: const Color(0xFFFFFFFF),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+            border: Border.all(color: const Color(0xFFE2E8F0), width: 1.1),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF183A5B).withValues(alpha: 0.05),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
+                color: const Color(0xFF0F172A).withValues(alpha: 0.04),
+                blurRadius: 24,
+                offset: const Offset(0, 10),
               ),
             ],
           ),
@@ -329,7 +329,7 @@ class _UploadCardV2State extends State<UploadCardV2> {
                   width: 68,
                   height: 68,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
+                    color: const Color(0xFFEEF2FF),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
@@ -345,7 +345,7 @@ class _UploadCardV2State extends State<UploadCardV2> {
                   style: TextStyle(
                     fontSize: 21,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF111827),
+                    color: Color(0xFF0F172A),
                     letterSpacing: 0.2,
                   ),
                 ),
@@ -354,7 +354,7 @@ class _UploadCardV2State extends State<UploadCardV2> {
                   'Drag & Drop your file(s) here',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Color(0xFF374151),
+                    color: Color(0xFF475569),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -370,7 +370,7 @@ class _UploadCardV2State extends State<UploadCardV2> {
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF183A5B),
+                      backgroundColor: const Color(0xFF2563EB),
                       foregroundColor: Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -389,7 +389,7 @@ class _UploadCardV2State extends State<UploadCardV2> {
                       color: _dragging ? const Color(0xFFF2F7FF) : const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: _dragging ? const Color(0xFF183A5B) : const Color(0xFFE2E8F0),
+                        color: _dragging ? const Color(0xFF2563EB) : const Color(0xFFE2E8F0),
                         width: 1.2,
                       ),
                     ),
@@ -397,7 +397,7 @@ class _UploadCardV2State extends State<UploadCardV2> {
                       child: Text(
                         _dragging ? 'Release to upload' : 'Drop files here',
                         style: const TextStyle(
-                          color: Color(0xFF1F4E79),
+                          color: Color(0xFF2563EB),
                           fontWeight: FontWeight.w700,
                           fontSize: 13,
                         ),
