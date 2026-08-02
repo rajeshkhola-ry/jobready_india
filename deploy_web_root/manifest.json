@@ -1,9 +1,18 @@
 {
-  "name": "GETREADYJOB",
-  "short_name": "GETREADYJOB",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#1F4E79",
-  "icons": []
+    "name": "GETREADYJOB",
+    "short_name": "GETREADYJOB",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#1F4E79",
+    "theme_color": "#1F4E79",
+    "description": "GETREADYJOB helps users work faster with resumes, documents, and PDF workflows.",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "icons/logo-gold.svg?v=grj-20260727-moon-g-v1",
+            "sizes": "any",
+            "type": "image/svg+xml"
+        }
+    ]
 }

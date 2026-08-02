@@ -1,45 +1,274 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
   <base href="/">
+
   <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GETREADYJOB</title>
+  <meta name="description" content="GET READY JOB is a free AI-powered career platform for ATS-ready resumes, cover letters, company insights, and PDF conversion workflows for India and global job seekers.">
+  <meta name="keywords" content="GET READY JOB, AI resume builder, ATS resume, PDF converter, cover letter generator, company insights">
+  <meta name="author" content="GET READY JOB">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <meta name="theme-color" content="#1F4E79">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="GET READY JOB">
+  <meta property="og:title" content="GET READY JOB | AI Resume Builder, PDF Converter & Career Tools">
+  <meta property="og:description" content="Create ATS-ready resumes, cover letters, and company insights with GET READY JOB — plus PDF conversion and document workflow tools for busy professionals.">
+  <meta property="og:url" content="https://www.getreadyjob.com/">
+  <meta property="og:image" content="https://www.getreadyjob.com/icons/GRJ-512.png">
+  <meta property="og:image:alt" content="GET READY JOB logo">
+  <meta property="og:image:width" content="512">
+  <meta property="og:image:height" content="512">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="GET READY JOB | AI Resume Builder, PDF Converter & Career Tools">
+  <meta name="twitter:description" content="Create ATS-ready resumes, cover letters, and company insights with GET READY JOB — plus PDF conversion and document workflow tools for busy professionals.">
+  <meta name="twitter:image" content="https://www.getreadyjob.com/icons/GRJ-512.png">
+  <meta name="twitter:image:alt" content="GET READY JOB logo">
+
+  <link rel="canonical" href="https://www.getreadyjob.com/">
+  <link rel="alternate" href="https://www.getreadyjob.com/" hreflang="x-default" />
+  <link rel="alternate" href="https://www.getreadyjob.com/" hreflang="en" />
+  <link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="GETREADYJOB">
+  <link rel="apple-touch-icon" href="icons/logo-gold.svg?v=grj-20260727-moon-g-v1">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="icons/logo-gold.svg?v=grj-20260727-moon-g-v1"/>
+  <link rel="alternate icon" type="image/png" href="icons/GRJ-192.png?v=grj-20260727-moon-g-v1"/>
+
+  <title>GET READY JOB | AI Resume Builder & PDF Tools</title>
+  <link rel="manifest" href="manifest.json?v=grj-20260727-moon-g-v1">
+
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "GET READY JOB",
+      "url": "https://www.getreadyjob.com/",
+      "logo": "https://www.getreadyjob.com/icons/GRJ-512.png",
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "email": "hello@getreadyjob.com",
+        "contactType": "customer support"
+      }
+    }
+  </script>
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "GET READY JOB",
+      "url": "https://www.getreadyjob.com/",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://getreadyjob.com/?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+  </script>
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "GET READY JOB",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web",
+      "url": "https://getreadyjob.com/",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      }
+    }
+  </script>
+
+  <!-- Google Analytics 4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-2ZPF7K5JX6"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-2ZPF7K5JX6');
+  </script>
+
+
+<!-- Microsoft Clarity -->
+<script type="text/javascript">
+(function(c,l,a,r,i,t,y){
+    c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+    t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+    y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+})(window, document, "clarity", "script", "xrbk0aa08z");
+</script>
+
 </head>
 <body>
+  <!--
+    You can customize the "flutter_bootstrap.js" script.
+    This is useful to provide a custom configuration to the Flutter loader
+    or to give the user feedback during the initialization process.
+
+    For more details:
+    * https://docs.flutter.dev/platform-integration/web/initialization
+  -->
   <script>
     (function () {
-      var bootstrapVersion = 'grj-20260725-sw-reset-1';
+      var bootstrapVersion = 'grj-20260801-' + Date.now();
+      var fallbackVersion = 'grj-render-fallback-20260801';
       var cleanupKey = 'grj-bootstrap-cleanup-' + bootstrapVersion;
+
+      function cacheBustedUrl(path) {
+        if (!path) {
+          return path;
+        }
+
+        if (path.indexOf('http://') === 0 || path.indexOf('https://') === 0) {
+          if (path.indexOf(window.location.origin) !== 0) {
+            return path;
+          }
+        }
+
+        var separator = path.indexOf('?') === -1 ? '?' : '&';
+        return path + separator + 'v=' + (window.__GRJ_BUILD_TS__ || bootstrapVersion || fallbackVersion);
+      }
+
+      function decorateLocalScripts() {
+        try {
+          if (!document || !document.scripts) {
+            return;
+          }
+
+          Array.prototype.forEach.call(document.scripts, function (script) {
+            if (!script || !script.src) {
+              return;
+            }
+
+            var lowerSrc = script.src.toLowerCase();
+            if (lowerSrc.indexOf('flutter_bootstrap.js') !== -1 || lowerSrc.indexOf('flutter.js') !== -1 || lowerSrc.indexOf('main.dart.js') !== -1) {
+              script.src = cacheBustedUrl(script.src);
+            }
+          });
+        } catch (error) {
+          console.warn('Local script cache busting failed.', error);
+        }
+      }
+
       function loadFlutter() {
+        decorateLocalScripts();
+
         var script = document.createElement('script');
-        script.src = 'flutter_bootstrap.js?v=' + bootstrapVersion;
+        script.src = cacheBustedUrl('flutter_bootstrap.js');
         script.async = true;
         document.body.appendChild(script);
       }
+
+      function setupAutoFallbackRenderer() {
+        window.__GRJ_FALLBACK_RENDERER__ = 'html';
+        window.__GRJ_AUTO_FALLBACK__ = true;
+        window.__GRJ_FALLBACK_TRIGGERED__ = false;
+
+        if (window.flutterConfiguration) {
+          window.flutterConfiguration = Object.assign({}, window.flutterConfiguration, {
+            renderer: window.flutterConfiguration.renderer || 'auto'
+          });
+        }
+
+        window.addEventListener('flutter-first-frame', function () {
+          window.__GRJ_RENDERER_READY__ = true;
+        });
+
+        window.addEventListener('flutter-initialization-error', function (event) {
+          try {
+            if (window.__GRJ_AUTO_FALLBACK__ && !window.__GRJ_FALLBACK_TRIGGERED__ && event && event.detail && event.detail.error) {
+              window.__GRJ_FALLBACK_TRIGGERED__ = true;
+              window.__GRJ_FALLBACK_RENDERER__ = 'html';
+              if (window.flutterConfiguration) {
+                window.flutterConfiguration.renderer = 'html';
+              }
+              console.warn('Flutter initialization failed, falling back to HTML renderer.', event.detail.error);
+            }
+          } catch (error) {
+            console.warn('Fallback renderer setup failed.', error);
+          }
+        });
+
+        window.setTimeout(function () {
+          try {
+            if (!window.__GRJ_RENDERER_READY__ && window.__GRJ_AUTO_FALLBACK__ && !window.__GRJ_FALLBACK_TRIGGERED__) {
+              window.__GRJ_FALLBACK_TRIGGERED__ = true;
+              window.__GRJ_FALLBACK_RENDERER__ = 'html';
+              if (window.flutterConfiguration) {
+                window.flutterConfiguration.renderer = 'html';
+              }
+              console.warn('Flutter did not start in time, switching to the HTML renderer fallback.');
+            }
+          } catch (error) {
+            console.warn('Fallback timer failed.', error);
+          }
+        }, 8000);
+      }
+
       async function cleanupLegacyClientState() {
         if ('serviceWorker' in navigator) {
           var registrations = await navigator.serviceWorker.getRegistrations();
-          await Promise.all(registrations.map(function (registration) { return registration.unregister().catch(function () { return false; }); }));
+          await Promise.all(registrations.map(function (registration) {
+            return registration.unregister().catch(function () {
+              return false;
+            });
+          }));
         }
+
         if ('caches' in window) {
           var cacheKeys = await caches.keys();
-          await Promise.all(cacheKeys.map(function (cacheKey) { return caches.delete(cacheKey).catch(function () { return false; }); }));
+          await Promise.all(cacheKeys.map(function (cacheKey) {
+            return caches.delete(cacheKey).catch(function () {
+              return false;
+            });
+          }));
         }
       }
+
       async function start() {
         try {
+          setupAutoFallbackRenderer();
+
           if (window.localStorage && localStorage.getItem(cleanupKey) === 'done') {
             loadFlutter();
             return;
           }
+
           await cleanupLegacyClientState();
-          if (window.localStorage) { localStorage.setItem(cleanupKey, 'done'); }
+
+          if (window.localStorage) {
+            localStorage.setItem(cleanupKey, 'done');
+          }
         } catch (error) {
           console.warn('Bootstrap cleanup failed.', error);
         }
+
         loadFlutter();
       }
+
       start();
     })();
   </script>

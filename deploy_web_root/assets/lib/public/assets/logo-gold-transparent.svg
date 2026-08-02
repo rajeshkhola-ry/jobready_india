@@ -1,0 +1,15 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="GET READY JOB Lufthansa yellow moon-glow G logo transparent">
+  <defs>
+    <filter id="moonGlowLite" x="74" y="74" width="364" height="364" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.9647 0 0 0 0 0.7451 0 0 0 0 0 0 0 0 0.75 0"/>
+      <feBlend in="SourceGraphic" mode="normal"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#moonGlowLite)">
+    <circle cx="256" cy="256" r="146" stroke="#F6BE00" stroke-width="52"/>
+    <path d="M347 256H254" stroke="#F6BE00" stroke-width="52" stroke-linecap="round"/>
+    <path d="M306 256V314" stroke="#F6BE00" stroke-width="52" stroke-linecap="round"/>
+  </g>
+</svg>
