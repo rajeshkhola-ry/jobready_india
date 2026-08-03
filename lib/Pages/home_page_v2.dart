@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:js' as js;
-import 'dart:js_util' as js_util;
 
 import 'package:flutter/material.dart';
 import 'package:universal_html/html.dart' as html;
@@ -2625,6 +2624,7 @@ class _UserPaymentPanel extends StatefulWidget {
 
 class _UserPaymentPanelState extends State<_UserPaymentPanel> {
   bool _submitting = false;
+  bool _creatingPaymentLink = false;
   Map<String, dynamic>? _lastCheckoutResponse;
   String _localCurrency = 'USD';
 
@@ -2823,35 +2823,15 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
     }
 
     final completer = Completer<Map<String, String>>();
+    final bridgeToken = 'rzp_${DateTime.now().microsecondsSinceEpoch}';
 
-    final handler = js_util.allowInterop((dynamic response) {
-      final razorpayOrderId = response['razorpay_order_id']?.toString() ?? '';
-      final razorpayPaymentId = response['razorpay_payment_id']?.toString() ?? '';
-      final razorpaySignature = response['razorpay_signature']?.toString() ?? '';
-
-      if (!completer.isCompleted) {
-        completer.complete({
-          'order_id': razorpayOrderId,
-          'payment_id': razorpayPaymentId,
-          'signature': razorpaySignature,
-        });
-      }
-    });
-
-    final dismissHandler = js_util.allowInterop(() {
-      if (!completer.isCompleted) {
-        completer.completeError(Exception('Payment cancelled by user.'));
-      }
-    });
-
-    final options = js.JsObject.jsify({
+    final baseOptions = {
       'key': keyId,
       'amount': amount,
       'currency': currency,
       'name': ApiConfig.razorpayConfig.businessName,
       'description': ApiConfig.razorpayConfig.description,
       'order_id': orderId,
-      'handler': handler,
       'prefill': {
         'name': billing['name']?.toString() ?? 'User',
         'email': billing['email']?.toString() ?? 'guest@example.com',
@@ -2860,23 +2840,79 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
       'theme': {
         'color': '#${ApiConfig.razorpayConfig.themeColor.toUpperCase()}',
       },
-      'modal': {
-        'ondismiss': dismissHandler,
-      },
+    };
+
+    final messageSubscription = html.window.onMessage.listen((event) {
+      final data = event.data;
+      if (data is! Map) {
+        return;
+      }
+      final source = data['source']?.toString() ?? '';
+      final token = data['token']?.toString() ?? '';
+      if (source != 'jobready_razorpay' || token != bridgeToken) {
+        return;
+      }
+
+      final type = data['type']?.toString() ?? '';
+      if (type == 'success') {
+        final payloadRaw = data['payload'];
+        if (payloadRaw is Map) {
+          if (!completer.isCompleted) {
+            completer.complete({
+              'order_id': payloadRaw['order_id']?.toString() ?? '',
+              'payment_id': payloadRaw['payment_id']?.toString() ?? '',
+              'signature': payloadRaw['signature']?.toString() ?? '',
+            });
+          }
+        }
+      } else if (type == 'dismiss') {
+        if (!completer.isCompleted) {
+          completer.completeError(Exception('Payment cancelled by user.'));
+        }
+      }
     });
 
-    final razorpayCtor = js.context['Razorpay'];
-    if (razorpayCtor == null) {
-      throw Exception('Razorpay checkout SDK not available in browser context.');
+    final optionsJson = jsonEncode(baseOptions);
+    final script = '''
+(function() {
+  if (!window.Razorpay) {
+    window.postMessage({ source: 'jobready_razorpay', token: '$bridgeToken', type: 'dismiss' }, window.location.origin);
+    return;
+  }
+  const opts = $optionsJson;
+  opts.handler = function(response) {
+    window.postMessage({
+      source: 'jobready_razorpay',
+      token: '$bridgeToken',
+      type: 'success',
+      payload: {
+        order_id: response.razorpay_order_id || '',
+        payment_id: response.razorpay_payment_id || '',
+        signature: response.razorpay_signature || ''
+      }
+    }, window.location.origin);
+  };
+  opts.modal = {
+    ondismiss: function() {
+      window.postMessage({ source: 'jobready_razorpay', token: '$bridgeToken', type: 'dismiss' }, window.location.origin);
     }
+  };
+  const checkout = new window.Razorpay(opts);
+  checkout.open();
+})();
+''';
 
-    final checkout = js.JsObject(razorpayCtor, [options]);
-    checkout.callMethod('open');
+    js.context.callMethod('eval', [script]);
 
-    final paymentResult = await completer.future.timeout(
-      _checkoutTimeout,
-      onTimeout: () => throw TimeoutException('Payment confirmation timed out.'),
-    );
+    late final Map<String, String> paymentResult;
+    try {
+      paymentResult = await completer.future.timeout(
+        _checkoutTimeout,
+        onTimeout: () => throw TimeoutException('Payment confirmation timed out.'),
+      );
+    } finally {
+      await messageSubscription.cancel();
+    }
 
     final verifyPayload = {
       'order_id': paymentResult['order_id'],
@@ -2916,6 +2952,119 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
         },
       ),
     );
+  }
+
+  Future<void> _createPaymentLink(BuildContext context) async {
+    if (_submitting || _creatingPaymentLink) {
+      return;
+    }
+
+    if (!_canProceedWithPurchase()) {
+      await _openAuthThenContinue();
+      return;
+    }
+
+    final readiness = _readiness();
+    final readinessStatus = readiness['status']?.toString() ?? 'configuration_required';
+    if (readinessStatus != 'ready_for_integration') {
+      setState(() {
+        _lastCheckoutResponse = {
+          ...readiness,
+          'selected_plan': widget.selectedPlan,
+          'checkout_state': readinessStatus,
+        };
+      });
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              readiness['message']?.toString() ?? 'Checkout is not ready for payment link creation.',
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
+    setState(() {
+      _creatingPaymentLink = true;
+    });
+
+    try {
+      final billing = _buildBillingPayload();
+      final amountMinor = (_chargeAmountForPlan(widget.selectedPlan) * 100).round();
+      if (amountMinor <= 0) {
+        throw Exception('Invalid payment amount for selected plan.');
+      }
+
+      final payload = {
+        'gateway': _resolvedGatewayName(),
+        'amount': amountMinor,
+        'currency': _localCurrency,
+        'receipt': 'plink-${widget.selectedPlan.toLowerCase()}-${DateTime.now().millisecondsSinceEpoch}',
+        'planId': widget.selectedPlan,
+        'billing': billing,
+      };
+
+      final response = await _requestJsonWithFallback(
+        'POST',
+        '/api/create-payment-link',
+        body: payload,
+      );
+
+      if (response['success'] != true) {
+        final failure = response['error']?.toString() ?? 'Unable to generate payment link.';
+        throw Exception(failure);
+      }
+
+      final paymentLink = response['payment_link']?.toString().trim() ?? '';
+      if (paymentLink.isEmpty) {
+        throw Exception('Payment link was created but link URL is missing.');
+      }
+
+      setState(() {
+        _lastCheckoutResponse = {
+          ...response,
+          'checkout_state': 'payment_link_created',
+          'status': 'ready_for_integration',
+          'label': 'Payment Link Created',
+          'message': 'Razorpay payment link generated successfully. Share or open the link to complete payment.',
+          'order_id': response['reference_id']?.toString() ?? 'N/A',
+        };
+      });
+
+      html.window.open(paymentLink, '_blank');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Payment link created and opened in a new tab.')),
+        );
+      }
+    } catch (error) {
+      final failureMessage = _friendlyCheckoutError(error, '/api/create-payment-link');
+      if (mounted) {
+        setState(() {
+          _lastCheckoutResponse = {
+            ...readiness,
+            'checkout_state': 'payment_link_failed',
+            'status': 'unavailable',
+            'label': 'Payment Link Failed',
+            'message': failureMessage,
+            'order_id': _lastCheckoutResponse?['order_id']?.toString() ?? 'N/A',
+          };
+        });
+      }
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(failureMessage)),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _creatingPaymentLink = false;
+        });
+      }
+    }
   }
 
   Future<void> _continueToPayment(BuildContext context) async {
@@ -3408,7 +3557,7 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: _submitting ? null : () => _continueToPayment(context),
+              onPressed: (_submitting || _creatingPaymentLink) ? null : () => _continueToPayment(context),
               icon: const Icon(Icons.payments_rounded, size: 22),
               label: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 6),
@@ -3424,6 +3573,28 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                 elevation: 4,
                 shadowColor: const Color(0xFF0F172A).withValues(alpha: 0.35),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: (_submitting || _creatingPaymentLink) ? null : () => _createPaymentLink(context),
+              icon: const Icon(Icons.link_rounded, size: 20),
+              label: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Text(
+                  _creatingPaymentLink ? 'Generating Payment Link...' : 'Generate Razorpay Payment Link',
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF0F172A),
+                side: const BorderSide(color: Color(0xFFCBD5E1)),
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                backgroundColor: Colors.white,
               ),
             ),
           ),
