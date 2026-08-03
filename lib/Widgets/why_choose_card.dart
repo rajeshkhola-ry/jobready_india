@@ -7,6 +7,41 @@ class WhyChooseCard extends StatelessWidget {
 
   double _s(double value) => value * scale;
 
+  Widget highlightedTool({
+    required String title,
+    required String subtitle,
+    required Color background,
+    required Color border,
+  }) {
+    return Container(
+      height: _s(96),
+      padding: EdgeInsets.all(_s(10)),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(_s(12)),
+        border: Border.all(color: border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(fontSize: _s(13), fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
+          ),
+          SizedBox(height: _s(3)),
+          Expanded(
+            child: Text(
+              subtitle,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: _s(12), height: 1.35, color: Color(0xFF6B7280)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget item(IconData icon, String title, String subtitle) {
     return Container(
       margin: EdgeInsets.only(bottom: _s(10)),
@@ -133,50 +168,18 @@ class WhyChooseCard extends StatelessWidget {
               ),
             ),
             SizedBox(height: _s(8)),
-            Container(
-              padding: EdgeInsets.all(_s(10)),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF7E6),
-                borderRadius: BorderRadius.circular(_s(12)),
-                border: Border.all(color: const Color(0xFFFFD166)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'AI Resume Builder',
-                    style: TextStyle(fontSize: _s(13), fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
-                  ),
-                  SizedBox(height: _s(3)),
-                  Text(
-                    'Create polished resumes with smart tailoring, cover letters, and interview prep support.',
-                    style: TextStyle(fontSize: _s(12), height: 1.35, color: Color(0xFF6B7280)),
-                  ),
-                ],
-              ),
+            highlightedTool(
+              title: 'AI Resume Builder',
+              subtitle: 'Create polished resumes with smart tailoring, cover letters, and interview prep support.',
+              background: const Color(0xFFFFF7E6),
+              border: const Color(0xFFFFD166),
             ),
             SizedBox(height: _s(8)),
-            Container(
-              padding: EdgeInsets.all(_s(10)),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0F9FF),
-                borderRadius: BorderRadius.circular(_s(12)),
-                border: Border.all(color: const Color(0xFF93C5FD)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'HD Photo Tool',
-                    style: TextStyle(fontSize: _s(13), fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
-                  ),
-                  SizedBox(height: _s(3)),
-                  Text(
-                    'Enhance and restore photos with a clean, focused workflow for better visual output.',
-                    style: TextStyle(fontSize: _s(12), height: 1.35, color: Color(0xFF6B7280)),
-                  ),
-                ],
-              ),
+            highlightedTool(
+              title: 'HD Photo Tool',
+              subtitle: 'Enhance and restore photos with a clean, focused workflow for better visual output.',
+              background: const Color(0xFFF0F9FF),
+              border: const Color(0xFF93C5FD),
             ),
             SizedBox(height: _s(16)),
             item(

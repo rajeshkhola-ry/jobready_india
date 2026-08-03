@@ -5,9 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:universal_html/html.dart' as html;
 
 import '../../../Services/file_picker_service.dart';
+import '../../../Services/free_trial_service.dart';
 import '../../../Services/photo_resize_service.dart';
 import '../../../Services/upload_context_service.dart';
 import '../../../Widgets/download_result_dialog.dart';
+import '../../../Widgets/quota_gate.dart';
 
 class PhotoHdWorkspacePage extends StatefulWidget {
   const PhotoHdWorkspacePage({super.key});
@@ -41,12 +43,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
   void initState() {
     super.initState();
     _hydrateFromUploadContext();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _hasShownPlanDialog) {
-        return;
-      }
-      _showPlanSelectionDialog();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _enforceAccessGate());
     if (kIsWeb) {
       html.document.body?.addEventListener('dragover', _handleBodyDragOver);
       html.document.body?.addEventListener('dragleave', _handleBodyDragLeave);
@@ -341,6 +338,27 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
       (plan) => plan.id == id,
       orElse: () => _planOptions[1],
     );
+  }
+
+  Future<void> _enforceAccessGate() async {
+    if (!mounted) {
+      return;
+    }
+    final allowed = await checkOneTimeToolAccessAndProceed(
+      context: context,
+      toolKey: FreeTrialService.hdPhotoTool,
+      toolLabel: 'HD Photo Studio',
+    );
+    if (!mounted) {
+      return;
+    }
+    if (!allowed) {
+      Navigator.of(context).pop();
+      return;
+    }
+    if (!_hasShownPlanDialog) {
+      _showPlanSelectionDialog();
+    }
   }
 
   Future<void> _showPlanSelectionDialog() async {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../Pages/ai_resume_builder_page.dart';
 import '../Pages/plan_features_page.dart';
+import '../Services/free_trial_service.dart';
 
 class AiResumeFeatureBanner extends StatelessWidget {
   final String activePlan;
@@ -16,9 +17,12 @@ class AiResumeFeatureBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isEligible = _isEligiblePlan(activePlan);
+    final canTryFree = !isEligible && !FreeTrialService.hasUsedFreeTrial(FreeTrialService.resumeBuilderTool);
     final message = isEligible
         ? '🔥 HOT FEATURE LIVE: Free AI Resume Builder, Cover Letter Generator & Company Insights now available for 1-Year & Lifetime Plan Users!'
-        : 'Upgrade to a 1-Year or Lifetime plan to unlock the AI Resume Builder, Cover Letter Generator, and Company Insights.';
+        : canTryFree
+            ? '🎁 New here? Get 1 FREE use of the AI Resume Builder — create your free account and try it now!'
+            : 'Upgrade to a 1-Year or Lifetime plan to unlock the AI Resume Builder, Cover Letter Generator, and Company Insights.';
 
     return Container(
       width: double.infinity,
@@ -53,7 +57,7 @@ class AiResumeFeatureBanner extends StatelessWidget {
           const SizedBox(height: 8),
           TextButton.icon(
             onPressed: () {
-              if (isEligible) {
+              if (isEligible || canTryFree) {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const AiResumeBuilderPage()),
@@ -72,7 +76,7 @@ class AiResumeFeatureBanner extends StatelessWidget {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
             ),
             icon: const Icon(Icons.arrow_forward_rounded, size: 16),
-            label: Text(isEligible ? 'Try Resume Builder Now' : 'View Plans'),
+            label: Text(isEligible ? 'Try Resume Builder Now' : canTryFree ? 'Try Free Once' : 'View Plans'),
           ),
         ],
       ),

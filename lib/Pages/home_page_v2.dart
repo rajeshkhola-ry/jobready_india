@@ -4949,7 +4949,6 @@ class _WhyChooseIllustrationPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      constraints: const BoxConstraints(minHeight: 220),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
@@ -4958,20 +4957,240 @@ class _WhyChooseIllustrationPlaceholder extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: const Color(0xFFBFD4F3)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF183A5B).withValues(alpha: 0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
-      alignment: Alignment.center,
-      child: const Column(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1F4E79),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.verified_rounded, size: 12, color: Color(0xFFFFC72C)),
+                    SizedBox(width: 4),
+                    Text(
+                      'PRO STUDIO SUITE',
+                      style: TextStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.6,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDCFCE7),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  '100% Safe',
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF15803D)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFFFD166)),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF0F172A).withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF7E6),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.auto_awesome_rounded, color: Color(0xFFD97706), size: 20),
+                ),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'AI Resume Builder',
+                        style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'ATS Optimized • 104 Templates',
+                        style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: Color(0xFF65A30D)),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 18),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFF93C5FD)),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF0F172A).withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0F9FF),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.photo_camera_outlined, color: Color(0xFF2563EB), size: 20),
+                ),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'HD Photo Studio',
+                        style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        '100KB Passport • Studio Polish',
+                        style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: Color(0xFF2563EB)),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 18),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF0F172A).withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.picture_as_pdf_outlined, color: Color(0xFF475569), size: 20),
+                ),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Smart Document Engine',
+                        style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Compress • Convert • Merge • Split',
+                        style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.bolt_rounded, color: Color(0xFFD97706), size: 20),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              _IllustrationBadge(icon: Icons.speed_rounded, label: 'Instant Processing'),
+              _IllustrationBadge(icon: Icons.cloud_done_rounded, label: 'Zero Data Storage'),
+              _IllustrationBadge(icon: Icons.star_rounded, label: 'A4 Layout Ready'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _IllustrationBadge extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _IllustrationBadge({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFCBD5E1)),
+      ),
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.image_outlined, size: 40, color: Color(0xFF1F4E79)),
-          SizedBox(height: 8),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12),
-            child: Text(
-              'Brand illustration slot (SVG/WebP)',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: Color(0xFF1F4E79)),
-            ),
+          Icon(icon, size: 12, color: const Color(0xFF1F4E79)),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
           ),
         ],
       ),
@@ -5012,21 +5231,13 @@ class _MostPopularToolsCard extends StatelessWidget {
                       ? 2
                       : 1;
 
-              final tools = <Widget>[
-                _PopularToolRow(
-                  icon: Icons.description_outlined,
-                  label: 'PDF to Word',
-                  description: 'Convert PDF documents into fully editable Word files in seconds.',
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const ConvertToolPage()),
-                  ),
-                ),
+              final flagshipTools = <Widget>[
                 _PopularToolRow(
                   icon: Icons.auto_awesome_rounded,
                   label: 'AI Resume Builder',
                   description: 'Build ATS-ready resumes with AI-guided summaries and formatting.',
                   isFlagship: true,
+                  badgeText: '1 FREE USE',
                   onTap: () {
                     Navigator.push(
                       context,
@@ -5039,12 +5250,35 @@ class _MostPopularToolsCard extends StatelessWidget {
                   label: 'HD Photo Converter / Enhancer',
                   description: 'Enhance, resize, and convert photos to studio-quality output.',
                   isFlagship: true,
+                  badgeText: '1 FREE USE',
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => PhotoHdWorkspacePage()),
                     );
                   },
+                ),
+                _PopularToolRow(
+                  icon: Icons.document_scanner_outlined,
+                  label: 'PDF to PDF OCR Tool',
+                  description: 'Extract and search text from scanned documents accurately.',
+                  isFlagship: true,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PdfEditPage()),
+                  ),
+                ),
+              ];
+
+              final tools = <Widget>[
+                _PopularToolRow(
+                  icon: Icons.description_outlined,
+                  label: 'PDF to Word',
+                  description: 'Convert PDF documents into fully editable Word files in seconds.',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ConvertToolPage()),
+                  ),
                 ),
                 _PopularToolRow(
                   icon: Icons.image_outlined,
@@ -5100,16 +5334,6 @@ class _MostPopularToolsCard extends StatelessWidget {
                     MaterialPageRoute(builder: (_) => const PdfEditPage()),
                   ),
                 ),
-                _PopularToolRow(
-                  icon: Icons.document_scanner_outlined,
-                  label: 'PDF to PDF OCR Tool',
-                  description: 'Extract and search text from scanned documents accurately.',
-                  isFlagship: true,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const PdfEditPage()),
-                  ),
-                ),
               ];
 
               final rows = <Widget>[];
@@ -5131,7 +5355,46 @@ class _MostPopularToolsCard extends StatelessWidget {
                 );
               }
 
-              return Column(children: rows);
+              final flagshipRow = constraints.maxWidth >= 900
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (var i = 0; i < flagshipTools.length; i++) ...[
+                          if (i > 0) const SizedBox(width: 10),
+                          Expanded(child: flagshipTools[i]),
+                        ],
+                      ],
+                    )
+                  : SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          for (var i = 0; i < flagshipTools.length; i++) ...[
+                            if (i > 0) const SizedBox(width: 10),
+                            SizedBox(width: 300, child: flagshipTools[i]),
+                          ],
+                        ],
+                      ),
+                    );
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Flagship tools',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFFB45309),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  flagshipRow,
+                  const SizedBox(height: 10),
+                  Column(children: rows),
+                ],
+              );
             },
           ),
         ],
@@ -5146,6 +5409,7 @@ class _PopularToolRow extends StatelessWidget {
   final String description;
   final VoidCallback onTap;
   final bool isFlagship;
+  final String? badgeText;
 
   const _PopularToolRow({
     required this.icon,
@@ -5153,6 +5417,7 @@ class _PopularToolRow extends StatelessWidget {
     required this.description,
     required this.onTap,
     this.isFlagship = false,
+    this.badgeText,
   });
 
   @override
@@ -5217,6 +5482,20 @@ class _PopularToolRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), height: 1.25),
                   ),
+                  if (badgeText != null) ...[
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDCFCE7),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        badgeText!,
+                        style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w800, color: Color(0xFF15803D), letterSpacing: 0.3),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

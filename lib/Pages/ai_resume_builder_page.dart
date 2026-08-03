@@ -7,7 +7,21 @@ import '../Utils/ui_web_stub.dart' if (dart.library.html) 'dart:ui_web' as ui_we
 import '../Services/ai_cover_letter_service.dart';
 import '../Services/company_insights_service.dart';
 import '../Services/file_picker_service.dart';
+import '../Services/free_trial_service.dart';
 import '../Services/resume_template_gallery.dart';
+import '../Widgets/quota_gate.dart';
+
+class _ExperienceTier {
+  final String name;
+  final String range;
+  const _ExperienceTier(this.name, this.range);
+}
+
+const List<_ExperienceTier> _experienceTiers = [
+  _ExperienceTier('Freshers', '0–5 yrs'),
+  _ExperienceTier('Experienced', '5–15 yrs'),
+  _ExperienceTier('Senior Professional', '15–30+ yrs'),
+];
 
 class AiResumeBuilderPage extends StatefulWidget {
   const AiResumeBuilderPage({super.key});
@@ -51,6 +65,29 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
   bool _isAssisting = false;
   String? _activeAssistField;
   TextEditingController? _activeAssistController;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _enforceAccessGate());
+  }
+
+  Future<void> _enforceAccessGate() async {
+    if (!mounted) {
+      return;
+    }
+    final allowed = await checkOneTimeToolAccessAndProceed(
+      context: context,
+      toolKey: FreeTrialService.resumeBuilderTool,
+      toolLabel: 'AI Resume Builder',
+    );
+    if (!mounted) {
+      return;
+    }
+    if (!allowed) {
+      Navigator.of(context).pop();
+    }
+  }
 
   @override
   void dispose() {
@@ -805,15 +842,39 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
-              children: ['0–5 yrs', '5–15 yrs', '15–30+ yrs'].map<Widget>((tier) {
-                final selected = _selectedTier == tier;
+              runSpacing: 8,
+              children: _experienceTiers.map<Widget>((tier) {
+                final selected = _selectedTier == tier.range;
                 return ChoiceChip(
-                  label: Text(tier),
+                  selectedColor: const Color(0xFF1F4E79),
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  label: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        tier.name,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w800,
+                          color: selected ? Colors.white : const Color(0xFF1F2937),
+                        ),
+                      ),
+                      Text(
+                        tier.range,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: selected ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF6B7280),
+                        ),
+                      ),
+                    ],
+                  ),
                   selected: selected,
                   onSelected: (value) {
                     if (value) {
                       setState(() {
-                        _selectedTier = tier;
+                        _selectedTier = tier.range;
                       });
                     }
                   },
