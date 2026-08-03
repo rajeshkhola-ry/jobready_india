@@ -778,6 +778,8 @@ Prepared For: JOBREADY
   - None — all 4 requested items completed in this batch.
 - Validation result:
   - `flutter analyze` (targeted: `home_page_v2.dart`, `ai_resume_builder_page.dart`, `user_dashboard_page.dart`, `plan_catalog_service.dart`, `ai_cover_letter_service.dart`): PASS — 0 new errors/warnings; only pre-existing repo-wide info/warning items remain (deprecated `withOpacity`/`Share`, a few pre-existing unused private declarations unrelated to this batch).
+- Deployment:
+  - Pushed commit `d413905` to `origin/main` (2026-08-03). GitHub Actions auto-triggered: "Deploy Flutter Web Preview (GitHub Pages)" (builds `lib/main_v1_1.dart` → `getreadyjob.com`) and "Deploy to Render". Confirmed both workflows started successfully from the Actions run list; GitHub Pages build was still in progress at last check — verify `https://getreadyjob.com/` shows the new layout once the run completes.
 - Owner:
   - Founder + Copilot
 
