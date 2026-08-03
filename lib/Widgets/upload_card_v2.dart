@@ -370,7 +370,7 @@ class _UploadCardV2State extends State<UploadCardV2> {
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2563EB),
+                      backgroundColor: const Color(0xFF183A5B),
                       foregroundColor: Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

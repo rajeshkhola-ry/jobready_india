@@ -30,7 +30,7 @@ class AiResumeFeatureBanner extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         gradient: const LinearGradient(
-          colors: [Color(0xFF1F4E79), Color(0xFFFFC72C)],
+          colors: [Color(0xFF183A5B), Color(0xFF0F2D4A)],
         ),
       ),
       child: Column(

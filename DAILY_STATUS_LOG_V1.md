@@ -1054,3 +1054,23 @@ Prepared For: JOBREADY
 - Decisions needed:
   - None.
 - Owner: Founder + Copilot
+
+### Checkpoint - 2026-08-03 (Home Page Banner & Browse Button Dark Navy Color Match)
+- Overall status: Green (Main page banner lines and Browse Files button updated to Send Suggestion dark blue)
+- Completed today:
+  - **Upload One Document Banner Dark Blue Update** ✓
+    - Updated top banner in `lib/Pages/home_page_v2.dart` to clean dark blue gradient (`#183A5B` to `#0F2D4A`), matching the Send Suggestion button base color and removing yellow/gold clash.
+  - **AI Resume Feature Banner Dark Blue Update** ✓
+    - Updated feature banner in `lib/Widgets/ai_resume_feature_banner.dart` to dark blue gradient (`#183A5B` to `#0F2D4A`).
+  - **Browse Files Button Dark Blue Update** ✓
+    - Updated Browse Files button in `lib/Widgets/upload_card_v2.dart` background color to dark navy (`#183A5B`).
+  - **Validation & Deployment** ✓
+    - Analyzer check passed with 0 errors across edited files.
+    - Staged, committed, and pushed changes to main branch.
+- In progress:
+  - Completed.
+- Blockers:
+  - None.
+- Decisions needed:
+  - None.
+- Owner: Founder + Copilot

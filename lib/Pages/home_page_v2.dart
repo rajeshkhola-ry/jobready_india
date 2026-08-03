@@ -789,7 +789,7 @@ class _HomePageV2State extends State<HomePageV2> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(18),
                     gradient: const LinearGradient(
-                      colors: [Color(0xFF1F4E79), Color(0xFFFFC72C)],
+                      colors: [Color(0xFF183A5B), Color(0xFF0F2D4A)],
                     ),
                   ),
                   child: const Text(
