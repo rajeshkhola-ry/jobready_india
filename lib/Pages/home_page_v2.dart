@@ -2857,7 +2857,10 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
     return normalized.contains('did not open') ||
         normalized.contains('timed out') ||
         normalized.contains('before checkout opened') ||
-        normalized.contains('unable to load razorpay checkout sdk');
+        normalized.contains('unable to load razorpay checkout sdk') ||
+        normalized.contains('nosuchmethoderror') ||
+        normalized.contains('is not a function') ||
+        normalized.contains('.nk is not a function');
   }
 
   Map<String, dynamic>? _decodeBridgeMessage(dynamic data) {
@@ -2990,17 +2993,19 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
     }
   };
   const checkout = new window.Razorpay(opts);
-  checkout.on('payment.failed', function(response) {
-    const message = response && response.error && response.error.description
-      ? response.error.description
-      : 'Razorpay payment failed before confirmation.';
-    window.postMessage({
-      source: 'jobready_razorpay',
-      token: '$bridgeToken',
-      type: 'failed',
-      payload: { message: message }
-    }, window.location.origin);
-  });
+  if (checkout && typeof checkout.on === 'function') {
+    checkout.on('payment.failed', function(response) {
+      const message = response && response.error && response.error.description
+        ? response.error.description
+        : 'Razorpay payment failed before confirmation.';
+      window.postMessage({
+        source: 'jobready_razorpay',
+        token: '$bridgeToken',
+        type: 'failed',
+        payload: { message: message }
+      }, window.location.origin);
+    });
+  }
   try {
     checkout.open();
   } catch (error) {
