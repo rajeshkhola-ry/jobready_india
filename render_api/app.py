@@ -1,4 +1,6 @@
 import base64
+import hashlib
+import hmac
 import io
 import json
 import os
@@ -71,6 +73,32 @@ def _post_razorpay_json(url: str, payload: dict) -> dict:
         headers={
             "Authorization": f"Basic {base64.b64encode(credentials).decode('ascii')}",
             "Content-Type": "application/json",
+            "Accept": "application/json",
+        },
+    )
+
+    try:
+        with urllib.request.urlopen(http_request, timeout=30) as response:
+            body = response.read().decode("utf-8")
+            return json.loads(body) if body else {}
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8") if exc.fp else ""
+        detail = body
+        try:
+            parsed = json.loads(body) if body else {}
+            detail = parsed.get("error", {}).get("description") or parsed.get("description") or body
+        except Exception:
+            pass
+        raise RuntimeError(detail or f"Razorpay request failed with HTTP {exc.code}") from exc
+
+
+def _get_razorpay_json(url: str) -> dict:
+    credentials = f"{_razorpay_key_id()}:{_razorpay_key_secret()}".encode("utf-8")
+    http_request = urllib.request.Request(
+        url,
+        method="GET",
+        headers={
+            "Authorization": f"Basic {base64.b64encode(credentials).decode('ascii')}",
             "Accept": "application/json",
         },
     )
@@ -180,6 +208,121 @@ def create_payment_link():
             "plan_id": plan_id,
             "plan_name": _plan_name(plan_id),
             "expires_at": link.get("expire_by"),
+        }
+    )
+
+
+@app.post("/api/create-order")
+def create_order():
+    if not _razorpay_payment_link_enabled():
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": "Razorpay checkout is not configured on server. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.",
+                }
+            ),
+            503,
+        )
+
+    payload = request.get_json(silent=True) or {}
+    amount = payload.get("amount")
+    try:
+        amount = int(amount)
+    except (TypeError, ValueError):
+        amount = 0
+
+    if amount <= 0:
+        return jsonify({"success": False, "error": "Amount must be greater than zero."}), 400
+
+    currency = str(payload.get("currency") or "INR").upper()
+    receipt = str(payload.get("receipt") or f"order-{int(__import__('time').time() * 1000)}")
+    plan_id = str(payload.get("planId") or payload.get("plan_id") or "Lifetime").strip() or "Lifetime"
+    usage_type = str(payload.get("usageType") or payload.get("usage_type") or "personal").strip() or "personal"
+
+    razorpay_payload = {
+        "amount": amount,
+        "currency": currency,
+        "receipt": receipt,
+        "notes": {
+            "plan_id": plan_id,
+            "usage_type": usage_type,
+        },
+    }
+
+    try:
+        order = _post_razorpay_json("https://api.razorpay.com/v1/orders", razorpay_payload)
+    except RuntimeError as exc:
+        return jsonify({"success": False, "error": str(exc)}), 400
+    except Exception as exc:
+        return jsonify({"success": False, "error": f"Unable to create Razorpay order: {exc}"}), 500
+
+    return jsonify(
+        {
+            "success": True,
+            "provider": "razorpay",
+            "order_id": order.get("id", ""),
+            "amount": order.get("amount", amount),
+            "currency": order.get("currency", currency),
+            "status": order.get("status", "created"),
+            "receipt": order.get("receipt", receipt),
+        }
+    )
+
+
+@app.post("/api/verify-payment")
+def verify_payment():
+    if not _razorpay_payment_link_enabled():
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": "Razorpay checkout is not configured on server. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.",
+                }
+            ),
+            503,
+        )
+
+    payload = request.get_json(silent=True) or {}
+    order_id = str(payload.get("order_id") or "").strip()
+    payment_id = str(payload.get("payment_id") or "").strip()
+    signature = str(payload.get("signature") or "").strip()
+
+    if not order_id or not payment_id or not signature:
+        return jsonify({"success": False, "error": "order_id, payment_id and signature are required."}), 400
+
+    message = f"{order_id}|{payment_id}".encode("utf-8")
+    expected_signature = hmac.new(
+        _razorpay_key_secret().encode("utf-8"),
+        message,
+        hashlib.sha256,
+    ).hexdigest()
+
+    if not hmac.compare_digest(expected_signature, signature):
+        return jsonify({"success": False, "error": "Invalid payment signature."}), 400
+
+    payment_status = "unknown"
+    amount = None
+    currency = None
+    try:
+        payment = _get_razorpay_json(f"https://api.razorpay.com/v1/payments/{payment_id}")
+        payment_status = str(payment.get("status") or "unknown")
+        amount = payment.get("amount")
+        currency = payment.get("currency")
+    except Exception:
+        # Signature verification already succeeded; status enrichment is best-effort.
+        pass
+
+    return jsonify(
+        {
+            "success": True,
+            "verified": True,
+            "provider": "razorpay",
+            "order_id": order_id,
+            "payment_id": payment_id,
+            "payment_status": payment_status,
+            "amount": amount,
+            "currency": currency,
         }
     )
 
