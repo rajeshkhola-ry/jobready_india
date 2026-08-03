@@ -120,12 +120,6 @@ Future<bool> checkOneTimeToolAccessAndProceed({
   required String toolKey,
   required String toolLabel,
 }) async {
-  final activePlan = UserAccountService.getProfile().activePlan.trim().toLowerCase();
-  final isPaidPlan = activePlan.contains('year') || activePlan.contains('lifetime');
-  if (isPaidPlan) {
-    return true;
-  }
-
   if (!UserAuthService.isSignedIn) {
     if (!context.mounted) {
       return false;
@@ -180,12 +174,21 @@ Future<bool> checkOneTimeToolAccessAndProceed({
     // were trying to open.
     await showDialog<void>(
       context: context,
-      builder: (authContext) => UserAuthDialog(onAuthenticated: (_, __) {}),
+      builder: (authContext) => UserAuthDialog(
+        stayOnHomeAfterAuth: true,
+        onAuthenticated: (_, __) {},
+      ),
     );
 
     if (!UserAuthService.isSignedIn) {
       return false;
     }
+  }
+
+  final activePlan = UserAccountService.getProfile().activePlan.trim().toLowerCase();
+  final isPaidPlan = activePlan.contains('year') || activePlan.contains('lifetime');
+  if (isPaidPlan) {
+    return true;
   }
 
   if (!FreeTrialService.hasUsedFreeTrial(toolKey)) {

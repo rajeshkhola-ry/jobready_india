@@ -503,16 +503,54 @@ class _HomePageV2State extends State<HomePageV2> {
 
   Future<void> _openUserLoginPanel() async {
     if (UserAuthService.isSignedIn) {
-      if (!mounted) {
-        return;
-      }
-      Navigator.of(context).pushNamed('/dashboard');
+      await _showPostLoginPrompt();
       return;
     }
 
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => const UserAuthDialog(),
+      builder: (dialogContext) => UserAuthDialog(
+        stayOnHomeAfterAuth: true,
+        onAuthenticated: (_, __) {
+          if (!mounted) {
+            return;
+          }
+          Future<void>.microtask(_showPostLoginPrompt);
+        },
+      ),
+    );
+  }
+
+  Future<void> _showPostLoginPrompt() async {
+    if (!mounted) {
+      return;
+    }
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('You are logged in'),
+        content: const Text(
+          'You are logged in successfully. If you want to go to your user account, press User Account.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Stay on Home'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              if (!mounted) {
+                return;
+              }
+              Navigator.of(context).pushNamed('/dashboard');
+            },
+            child: const Text('User Account'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -624,6 +662,7 @@ class _HomePageV2State extends State<HomePageV2> {
       context: context,
       builder: (dialogContext) => UserAuthDialog(
         preselectedPlan: plan,
+        stayOnHomeAfterAuth: true,
         onAuthenticated: (selectedPlan, _) {
           if (!mounted) {
             return;
@@ -2512,14 +2551,7 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
   }
 
   bool _canProceedWithPurchase() {
-    final profile = UserAccountService.getProfile();
-    final hasName = profile.displayName.trim().isNotEmpty;
-    final hasEmail = profile.email.trim().isNotEmpty;
-    final hasCountry = profile.country.trim().isNotEmpty;
-    final hasMobile = profile.mobileNumber.trim().isNotEmpty;
-
-    // V1.1 purchase guard: all four fields required for payment flow.
-    return hasName && hasEmail && hasCountry && hasMobile;
+    return UserAuthService.isSignedIn;
   }
 
   double _monthlyForPlan(String plan) {
@@ -2558,84 +2590,26 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
     );
   }
 
-  Future<void> _showAccountRequiredDialog() async {
+  Future<void> _openAuthThenContinue() async {
     await showDialog<void>(
       context: context,
-      barrierDismissible: true,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-        contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-        title: const Row(
-          children: [
-            Icon(Icons.lock_outline_rounded, color: Color(0xFF2563EB), size: 24),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Account required to continue',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Please create your account or log in using User Login or Google Account to proceed with the payment.',
-              style: TextStyle(fontSize: 14, height: 1.45, color: Color(0xFF475569)),
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.of(dialogContext).pop();
-                    showDialog<void>(
-                      context: context,
-                      builder: (authContext) => const UserAuthDialog(),
-                    );
-                  },
-                  icon: const Icon(Icons.login_rounded),
-                  label: const Text('Sign In / Register'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2563EB),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.of(dialogContext).pop();
-                    showDialog<void>(
-                      context: context,
-                      builder: (authContext) => const UserAuthDialog(),
-                    );
-                  },
-                  icon: const Icon(Icons.g_mobiledata_rounded),
-                  label: const Text('Continue with Google'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF0F766E),
-                    side: const BorderSide(color: Color(0xFF0F766E)),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+      builder: (authContext) => UserAuthDialog(
+        preselectedPlan: widget.selectedPlan,
+        selectedCurrency: _localCurrency,
+        stayOnHomeAfterAuth: true,
+        onAuthenticated: (_, __) {
+          if (!mounted) {
+            return;
+          }
+          Future<void>.microtask(() => _continueToPayment(context));
+        },
       ),
     );
   }
 
   Future<void> _continueToPayment(BuildContext context) async {
     if (!_canProceedWithPurchase()) {
-      await _showAccountRequiredDialog();
+      await _openAuthThenContinue();
       return;
     }
 
@@ -3055,6 +3029,15 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
                 elevation: 2,
                 shadowColor: const Color(0xFF2563EB).withValues(alpha: 0.35),
               ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'To view your quota details or upgrade later, open User Account after sign up/sign in.',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF475569),
             ),
           ),
         ],

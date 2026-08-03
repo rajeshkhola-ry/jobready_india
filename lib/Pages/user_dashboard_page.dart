@@ -21,11 +21,22 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
   UserAccountProfile _profile = UserAccountProfile.initial();
   List<DocumentHistoryEntry> _history = const <DocumentHistoryEntry>[];
   bool _isBusy = false;
+  bool _hasProcessedRouteArgs = false;
 
   @override
   void initState() {
     super.initState();
     _loadDashboard();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_hasProcessedRouteArgs) {
+      return;
+    }
+    _hasProcessedRouteArgs = true;
+    _handleInitialRouteArgs();
   }
 
   Future<void> _loadDashboard() async {
@@ -38,7 +49,10 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
       _profile = UserAccountService.getProfile();
       _history = DocumentHistoryService.getEntries();
     });
+  }
 
+  Future<void> _handleInitialRouteArgs() async {
+    final session = UserAuthService.getSession();
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is Map && args['plan'] != null && args['plan'].toString().trim().isNotEmpty && session != null) {
       await _purchasePlan(args['plan'].toString());

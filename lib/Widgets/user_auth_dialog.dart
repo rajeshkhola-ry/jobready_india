@@ -11,12 +11,14 @@ class UserAuthDialog extends StatefulWidget {
   final String? preselectedPlan;
   final String? selectedCurrency;
   final UserAuthCallback? onAuthenticated;
+  final bool stayOnHomeAfterAuth;
 
   const UserAuthDialog({
     super.key,
     this.preselectedPlan,
     this.selectedCurrency,
     this.onAuthenticated,
+    this.stayOnHomeAfterAuth = false,
   });
 
   @override
@@ -36,6 +38,21 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
   );
   final TextEditingController _mobileController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+
+  bool _isStrongPassword(String password) {
+    if (password.length < 8) {
+      return false;
+    }
+    final hasUpper = password.contains(RegExp(r'[A-Z]'));
+    final hasLower = password.contains(RegExp(r'[a-z]'));
+    final hasDigit = password.contains(RegExp(r'\d'));
+    return hasUpper && hasLower && hasDigit;
+  }
+
+  bool _isValidMobile(String value) {
+    final digitsOnly = value.replaceAll(RegExp(r'\D'), '');
+    return digitsOnly.length >= 10;
+  }
 
   @override
   void dispose() {
@@ -81,6 +98,20 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
           });
           return;
         }
+        if (!_isValidMobile(_mobileController.text.trim())) {
+          setState(() {
+            _errorText = 'Please enter a valid mobile number (minimum 10 digits).';
+            _isSubmitting = false;
+          });
+          return;
+        }
+        if (!_isStrongPassword(password)) {
+          setState(() {
+            _errorText = 'Use a stronger password: minimum 8 characters with upper case, lower case, and a number.';
+            _isSubmitting = false;
+          });
+          return;
+        }
 
         final session = await UserAuthService.signUpWithEmailPassword(
           displayName: _nameController.text.trim(),
@@ -114,6 +145,9 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
             widget.preselectedPlan,
             widget.selectedCurrency,
           );
+          return;
+        }
+        if (widget.stayOnHomeAfterAuth) {
           return;
         }
         if (widget.preselectedPlan != null &&
@@ -157,6 +191,9 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
         );
         return;
       }
+      if (widget.stayOnHomeAfterAuth) {
+        return;
+      }
       if (widget.preselectedPlan != null &&
           widget.preselectedPlan!.trim().isNotEmpty) {
         Navigator.of(
@@ -193,18 +230,46 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
     });
 
     try {
+      final email = _emailController.text.trim();
+      final name = _nameController.text.trim();
+      final country = _countryController.text.trim();
+      final mobile = _mobileController.text.trim();
+
+      if (email.isEmpty) {
+        setState(() {
+          _errorText = 'Enter your Google email to continue.';
+          _isSubmitting = false;
+        });
+        return;
+      }
+      if (name.isEmpty) {
+        setState(() {
+          _errorText = 'Enter your full name to continue with Google.';
+          _isSubmitting = false;
+        });
+        return;
+      }
+      if (country.isEmpty) {
+        setState(() {
+          _errorText = 'Please enter your country.';
+          _isSubmitting = false;
+        });
+        return;
+      }
+      if (!_isValidMobile(mobile)) {
+        setState(() {
+          _errorText = 'Enter a valid mobile number (minimum 10 digits) to continue with Google.';
+          _isSubmitting = false;
+        });
+        return;
+      }
+
       final session = await UserAuthService.signInWithGoogle(
-        email: _emailController.text.trim().isNotEmpty
-            ? _emailController.text.trim()
-            : 'google-user@getreadyjob.com',
-        displayName: _nameController.text.trim().isNotEmpty
-            ? _nameController.text.trim()
-            : 'Google User',
-        country: _countryController.text.trim().isNotEmpty
-            ? _countryController.text.trim()
-            : 'India',
+        email: email,
+        displayName: name,
+        country: country,
         countryCode: '+91',
-        mobileNumber: _mobileController.text.trim(),
+        mobileNumber: mobile,
         selectedPlan: widget.preselectedPlan,
       );
 
@@ -226,6 +291,9 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
           widget.preselectedPlan,
           widget.selectedCurrency,
         );
+        return;
+      }
+      if (widget.stayOnHomeAfterAuth) {
         return;
       }
       if (widget.preselectedPlan != null &&
@@ -373,6 +441,33 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
                   ),
                   const SizedBox(height: 12),
                 ],
+                if (!isCreateAccount) ...[
+                  TextField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Full Name (required for Google sign-in)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _countryController,
+                    decoration: const InputDecoration(
+                      labelText: 'Country (required for Google sign-in)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _mobileController,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                      labelText: 'Mobile Number (required for Google sign-in)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 TextField(
                   controller: _passwordController,
                   obscureText: true,
@@ -382,6 +477,16 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
                   ),
                 ),
                 const SizedBox(height: 10),
+                if (isCreateAccount)
+                  const Text(
+                    'Password must be 8+ characters and include upper case, lower case, and a number.',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF475569),
+                    ),
+                  ),
+                if (isCreateAccount) const SizedBox(height: 8),
                 if (!isCreateAccount) ...[
                   Align(
                     alignment: Alignment.centerRight,

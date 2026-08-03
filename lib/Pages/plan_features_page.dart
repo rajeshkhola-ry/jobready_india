@@ -53,7 +53,6 @@ class _PlanFeaturesPageState extends State<PlanFeaturesPage> {
       const _PlanFeature(name: 'Extract PDF Text & Images - pull readable content from documents', free: true, sevenDay: true, monthly: true, yearly: true, lifetime: true),
       const _PlanFeature(name: 'PDF to PDF Edit Tools - edit, save, and download updated PDF files', free: false, sevenDay: true, monthly: true, yearly: true, lifetime: true),
       const _PlanFeature(name: 'OCR (Optical Character Recognition) - read scanned PDF text where possible', free: false, sevenDay: true, monthly: true, yearly: true, lifetime: true),
-      const _PlanFeature(name: 'HD Photo Studio - photo enhancement and resizing workspace', free: false, sevenDay: false, monthly: false, yearly: true, lifetime: true),
       const _PlanFeature(name: 'Issue / Suggestion / Query Ticket Number Support', free: true, sevenDay: true, monthly: true, yearly: true, lifetime: true),
       const _PlanFeature(name: 'Multi-Currency Payment Display - top 20 currencies with INR rate card support', free: false, sevenDay: true, monthly: true, yearly: true, lifetime: true),
       const _PlanFeature(name: 'Higher Daily Usage Limit', free: false, sevenDay: true, monthly: true, yearly: true, lifetime: true),
@@ -107,6 +106,22 @@ class _PlanFeaturesPageState extends State<PlanFeaturesPage> {
             yearlyValue: quotaValues['YEARLY']?.isNotEmpty == true ? quotaValues['YEARLY'] : '1000',
             lifetimeValue: quotaValues['LIFETIME']?.isNotEmpty == true ? quotaValues['LIFETIME'] : 'Unlimited',
           ),
+          const _PlanFeature(
+            name: 'HD Photo Studio (1 time usage is free under Free plan)',
+            free: true,
+            sevenDay: true,
+            monthly: true,
+            yearly: true,
+            lifetime: true,
+          ),
+          const _PlanFeature(
+            name: 'AI Resume Builder (1 time usage is free under Free plan)',
+            free: true,
+            sevenDay: true,
+            monthly: true,
+            yearly: true,
+            lifetime: true,
+          ),
           ...features,
         ];
 
@@ -131,7 +146,14 @@ class _PlanFeaturesPageState extends State<PlanFeaturesPage> {
 
         final combinedRows = <_PlanFeature>[
           ...tableRows,
-          ...matrixRows.where((row) => !tableRows.any((existing) => existing.name == row.name)),
+          ...matrixRows.where((row) {
+            final normalized = row.name.trim().toLowerCase();
+            final isPriorityTool = normalized.contains('hd photo studio') || normalized.contains('ai resume builder');
+            if (isPriorityTool) {
+              return false;
+            }
+            return !tableRows.any((existing) => existing.name == row.name);
+          }),
         ];
 
         return Scaffold(

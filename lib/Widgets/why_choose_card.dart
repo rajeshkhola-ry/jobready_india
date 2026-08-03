@@ -14,7 +14,8 @@ class WhyChooseCard extends StatelessWidget {
     required Color border,
   }) {
     return Container(
-      height: _s(96),
+      width: double.infinity,
+      constraints: BoxConstraints.tightFor(height: _s(96)),
       padding: EdgeInsets.all(_s(10)),
       decoration: BoxDecoration(
         color: background,
