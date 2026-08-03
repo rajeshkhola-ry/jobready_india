@@ -783,6 +783,21 @@ Prepared For: JOBREADY
 - Owner:
   - Founder + Copilot
 
+### Checkpoint - 2026-08-03 (AI Resume Builder Follow-up Fixes)
+- Overall status: Green (checkpoint stable)
+- Reported after live verification:
+  - Photo upload still unreliable on the live site; no explicit user choice on whether the uploaded photo is actually attached to the exported resume.
+  - Career Summary's "AI Assist" text was committing real, printable content into the field instead of behaving as a ghost/hint line that disappears once the user types and never appears in the export.
+- Completed today:
+  - **Reliable photo upload:** Replaced the raw, detached `dart:html` `FileUploadInputElement` in `_buildPhotoUploadSection` with `FilePickerService.pickFileData(allowedExtensions: ['jpg','jpeg','png','webp'])` — the same proven picker already used by the HD Photo tool (`Pages/v2/photo/photo_hd_workspace_page.dart`).
+  - **Explicit attach choice:** Added a "Yes, attach photo" / "No, do not attach" `ChoiceChip` toggle (`_attachPhotoToResume`) shown once a photo is picked, with a status line confirming the current choice. `_downloadResume()` and both share actions now only pass the photo through when the user has explicitly chosen "attach."
+  - **Career Summary ghost hint:** Added `_summaryGhostHint` state used as the field's `hintText` instead of writing generated text into the controller. The "AI Assist" button for Career Summary now calls `_refreshSummaryGhostHint()` (regenerates the hint only) instead of `_applyAiAssistToField` (which used to commit real text). Native `hintText` behavior guarantees the guidance auto-hides once typing starts and is never part of `controller.text`, so it can never leak into the exported resume.
+  - **Removed mismatched AI Assist on identity fields:** `_buildField` gained a `showAssistButton` flag; Full Name, Email, and Phone no longer show "AI Assist" (clicking it previously fell into a generic-filler default case and produced garbled text in the Phone field, as seen live).
+- Validation result:
+  - `flutter analyze Pages/ai_resume_builder_page.dart`: PASS — 0 new issues (only the 2 pre-existing `withOpacity` deprecation infos remain).
+- Owner:
+  - Founder + Copilot
+
 ### Checkpoint - 2026-07-18 (V1.1 Controlled Merge - Checkpoint 5)
 - Overall status: Green (checkpoint stable)
 - Completed today:

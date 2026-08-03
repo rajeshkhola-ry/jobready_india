@@ -5,6 +5,7 @@ import 'package:universal_html/html.dart' as html;
 
 import '../Services/ai_cover_letter_service.dart';
 import '../Services/company_insights_service.dart';
+import '../Services/file_picker_service.dart';
 
 class AiResumeBuilderPage extends StatefulWidget {
   const AiResumeBuilderPage({super.key});
@@ -28,6 +29,8 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
 
   Uint8List? _profilePhotoBytes;
   String? _profilePhotoName;
+  bool? _attachPhotoToResume;
+  String _summaryGhostHint = 'e.g. Results-driven professional with several years of experience delivering measurable impact through strategic execution, stakeholder collaboration, and continuous improvement.';
   String _selectedTier = '0–5 yrs';
   String _resumeOutput = '';
   String _coverLetterOutput = '';
@@ -279,7 +282,8 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
   }
 
   void _downloadResume() {
-    AiCoverLetterService.downloadResumeExport(_resumeOutput, 'pdf', photoBytes: _profilePhotoBytes);
+    final photoBytes = _attachPhotoToResume == true ? _profilePhotoBytes : null;
+    AiCoverLetterService.downloadResumeExport(_resumeOutput, 'pdf', photoBytes: photoBytes);
   }
 
   void _downloadCoverLetter() {
@@ -319,6 +323,7 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
     }
 
     final shareText = 'Hi! I created a polished resume and cover letter with AI Resume Builder.\n\nResume:\n$resumeText\n\nCover Letter:\n$coverLetterText';
+    final photoBytes = _attachPhotoToResume == true ? _profilePhotoBytes : null;
 
     if (action == 'whatsapp') {
       await AiCoverLetterService.shareResumeExport(
@@ -326,7 +331,7 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
         selectedFormat,
         subject: 'AI Resume Builder export',
         text: shareText,
-        photoBytes: _profilePhotoBytes,
+        photoBytes: photoBytes,
       );
       AiCoverLetterService.openWhatsApp(shareText);
     } else if (action == 'email') {
@@ -335,7 +340,7 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
         selectedFormat,
         subject: 'AI Resume Builder export',
         text: shareText,
-        photoBytes: _profilePhotoBytes,
+        photoBytes: photoBytes,
       );
       AiCoverLetterService.openEmail('AI Resume Builder export', shareText);
     }
@@ -424,11 +429,11 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
     }
   }
 
-  Widget _buildAssistButton({required String label, required TextEditingController controller}) {
+  Widget _buildAssistButton({required String label, required TextEditingController controller, VoidCallback? onTap}) {
     final isLoading = _isAssisting && _activeAssistField == label;
 
     return TextButton.icon(
-      onPressed: isLoading ? null : () => _applyAiAssistToField(label, controller),
+      onPressed: isLoading ? null : (onTap ?? () => _applyAiAssistToField(label, controller)),
       icon: isLoading
           ? const SizedBox(
               width: 16,
@@ -470,7 +475,23 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
     );
   }
 
-  Widget _buildField({required String label, required TextEditingController controller, int maxLines = 1, bool isMultiline = false}) {
+  // Career Summary's AI Assist only ever refreshes a hint (ghost text); it never writes into the controller.
+  void _refreshSummaryGhostHint() {
+    final generated = _generateAssistedText('career summary', '');
+    setState(() {
+      _summaryGhostHint = 'e.g. $generated';
+    });
+  }
+
+  Widget _buildField({
+    required String label,
+    required TextEditingController controller,
+    int maxLines = 1,
+    bool isMultiline = false,
+    bool showAssistButton = true,
+    String? hintText,
+    VoidCallback? onAssistTap,
+  }) {
     final isPhoneField = label.toLowerCase() == 'phone';
 
     return Column(
@@ -479,7 +500,7 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
         Row(
           children: [
             Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700))),
-            _buildAssistButton(label: label, controller: controller),
+            if (showAssistButton) _buildAssistButton(label: label, controller: controller, onTap: onAssistTap),
           ],
         ),
         const SizedBox(height: 6),
@@ -490,7 +511,7 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
           onTap: () => _setActiveAssistField(label, controller),
           style: const TextStyle(fontSize: 14, color: Color(0xFF0F172A)),
           decoration: _buildStyledInputDecoration(
-            hintText: isPhoneField ? 'Type your contact number' : label,
+            hintText: hintText ?? (isPhoneField ? 'Type your contact number' : label),
           ),
         ),
       ],
@@ -553,28 +574,17 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
                 runSpacing: 10,
                 children: [
                   ElevatedButton.icon(
-                    onPressed: () {
-                      final uploadInput = html.FileUploadInputElement();
-                      uploadInput.accept = 'image/*';
-                      uploadInput.click();
-                      uploadInput.onChange.listen((_) {
-                        final files = uploadInput.files;
-                        if (files == null || files.isEmpty) {
-                          return;
-                        }
-                        final file = files.first;
-                        final reader = html.FileReader();
-                        reader.readAsArrayBuffer(file);
-                        reader.onLoadEnd.listen((_) {
-                          final data = reader.result as ByteBuffer?;
-                          if (data == null) {
-                            return;
-                          }
-                          setState(() {
-                            _profilePhotoBytes = data.asUint8List();
-                            _profilePhotoName = file.name;
-                          });
-                        });
+                    onPressed: () async {
+                      final picked = await FilePickerService.pickFileData(
+                        allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp'],
+                      );
+                      if (picked == null || !mounted) {
+                        return;
+                      }
+                      setState(() {
+                        _profilePhotoBytes = picked.bytes;
+                        _profilePhotoName = picked.name;
+                        _attachPhotoToResume = true;
                       });
                     },
                     icon: const Icon(Icons.upload_file_rounded),
@@ -586,6 +596,7 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
                         setState(() {
                           _profilePhotoBytes = null;
                           _profilePhotoName = null;
+                          _attachPhotoToResume = null;
                         });
                       },
                       icon: const Icon(Icons.delete_outline_rounded),
@@ -593,6 +604,47 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
                     ),
                 ],
               ),
+              if (_profilePhotoBytes != null) ...[
+                const SizedBox(height: 12),
+                const Text(
+                  'Add this photo to your downloaded/exported resume?',
+                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 8,
+                  children: [
+                    ChoiceChip(
+                      label: const Text('Yes, attach photo'),
+                      selected: _attachPhotoToResume == true,
+                      onSelected: (_) => setState(() => _attachPhotoToResume = true),
+                      selectedColor: const Color(0xFF2563EB),
+                      labelStyle: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: _attachPhotoToResume == true ? Colors.white : const Color(0xFF334155),
+                      ),
+                    ),
+                    ChoiceChip(
+                      label: const Text('No, do not attach'),
+                      selected: _attachPhotoToResume == false,
+                      onSelected: (_) => setState(() => _attachPhotoToResume = false),
+                      selectedColor: const Color(0xFF64748B),
+                      labelStyle: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: _attachPhotoToResume == false ? Colors.white : const Color(0xFF334155),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _attachPhotoToResume == true
+                      ? 'This photo will be included in your downloaded resume.'
+                      : 'This photo will NOT be included in your downloaded resume.',
+                  style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
+                ),
+              ],
             ],
           ),
         ),
@@ -696,15 +748,21 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
               }).toList(),
             ),
             const SizedBox(height: 16),
-            _buildField(label: 'Full Name', controller: _fullNameController),
+            _buildField(label: 'Full Name', controller: _fullNameController, showAssistButton: false),
             const SizedBox(height: 12),
-            _buildField(label: 'Email', controller: _emailController),
+            _buildField(label: 'Email', controller: _emailController, showAssistButton: false),
             const SizedBox(height: 12),
             _buildPhotoUploadSection(),
             const SizedBox(height: 12),
-            _buildField(label: 'Phone', controller: _phoneController),
+            _buildField(label: 'Phone', controller: _phoneController, showAssistButton: false),
             const SizedBox(height: 12),
-            _buildField(label: 'Career Summary', controller: _summaryController, isMultiline: true),
+            _buildField(
+              label: 'Career Summary',
+              controller: _summaryController,
+              isMultiline: true,
+              hintText: _summaryGhostHint,
+              onAssistTap: _refreshSummaryGhostHint,
+            ),
             const SizedBox(height: 12),
             _buildField(label: 'Experience', controller: _experienceController, isMultiline: true),
             const SizedBox(height: 12),
