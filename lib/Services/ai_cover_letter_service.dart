@@ -112,10 +112,15 @@ $phoneLine''';
   static Future<void> shareResumeExport(String content, String format, {required String subject, String? text, Uint8List? photoBytes}) async {
     final bytes = await buildResumeExportBytes(content, format, photoBytes: photoBytes);
     final fileName = 'resume_export.${getResumeExportExtension(format)}';
+    await shareBytes(bytes, fileName: fileName, mimeType: getResumeExportMimeType(format), subject: subject, text: text);
+  }
+
+  // Reusable share path for any prebuilt file bytes (e.g. a selected resume template's PDF).
+  static Future<void> shareBytes(Uint8List bytes, {required String fileName, required String mimeType, required String subject, String? text}) async {
     final xFile = XFile.fromData(
       bytes,
       name: fileName,
-      mimeType: getResumeExportMimeType(format),
+      mimeType: mimeType,
     );
 
     try {
@@ -123,6 +128,10 @@ $phoneLine''';
     } catch (_) {
       _downloadBytes(bytes, fileName);
     }
+  }
+
+  static void downloadBytes(List<int> bytes, String fileName) {
+    _downloadBytes(bytes, fileName);
   }
 
   static Future<void> downloadResumeExport(String content, String format, {Uint8List? photoBytes}) async {
@@ -140,29 +149,24 @@ $phoneLine''';
     final pdfDoc = pw.Document();
     final photoImage = (photoBytes != null && photoBytes.isNotEmpty) ? pw.MemoryImage(photoBytes) : null;
     pdfDoc.addPage(
-      pw.Page(
+      pw.MultiPage(
         pageFormat: pdf.PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(24),
         build: (pw.Context context) {
-          return pw.Padding(
-            padding: const pw.EdgeInsets.all(24),
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                if (photoImage != null) ...[
-                  pw.Align(
-                    alignment: pw.Alignment.topRight,
-                    child: pw.ClipRRect(
-                      horizontalRadius: 8,
-                      verticalRadius: 8,
-                      child: pw.Image(photoImage, width: 80, height: 80, fit: pw.BoxFit.cover),
-                    ),
-                  ),
-                  pw.SizedBox(height: 12),
-                ],
-                pw.Text(content, style: const pw.TextStyle(fontSize: 10)),
-              ],
-            ),
-          );
+          return [
+            if (photoImage != null) ...[
+              pw.Align(
+                alignment: pw.Alignment.topRight,
+                child: pw.ClipRRect(
+                  horizontalRadius: 8,
+                  verticalRadius: 8,
+                  child: pw.Image(photoImage, width: 80, height: 80, fit: pw.BoxFit.cover),
+                ),
+              ),
+              pw.SizedBox(height: 12),
+            ],
+            pw.Text(content, style: const pw.TextStyle(fontSize: 10)),
+          ];
         },
       ),
     );

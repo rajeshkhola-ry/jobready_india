@@ -2,10 +2,12 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:universal_html/html.dart' as html;
+import '../Utils/ui_web_stub.dart' if (dart.library.html) 'dart:ui_web' as ui_web;
 
 import '../Services/ai_cover_letter_service.dart';
 import '../Services/company_insights_service.dart';
 import '../Services/file_picker_service.dart';
+import '../Services/resume_template_gallery.dart';
 
 class AiResumeBuilderPage extends StatefulWidget {
   const AiResumeBuilderPage({super.key});
@@ -15,6 +17,8 @@ class AiResumeBuilderPage extends StatefulWidget {
 }
 
 class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
+  static const int _maxPhotoSizeBytes = 100 * 1024;
+
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
@@ -31,6 +35,8 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
   String? _profilePhotoName;
   bool? _attachPhotoToResume;
   String _summaryGhostHint = 'e.g. Results-driven professional with several years of experience delivering measurable impact through strategic execution, stakeholder collaboration, and continuous improvement.';
+  final List<ResumeTemplateOption> _templateCatalog = ResumeTemplateGallery.buildCatalog();
+  ResumeTemplateOption? _selectedTemplate;
   String _selectedTier = '0–5 yrs';
   String _resumeOutput = '';
   String _coverLetterOutput = '';
@@ -281,13 +287,57 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
     );
   }
 
-  void _downloadResume() {
+  Future<void> _downloadResume() async {
     final photoBytes = _attachPhotoToResume == true ? _profilePhotoBytes : null;
+    final template = _selectedTemplate;
+    if (template != null) {
+      final bytes = await ResumeTemplateGallery.buildResumePdf(
+        fields: _currentFields(),
+        template: template,
+        photoBytes: photoBytes,
+      );
+      AiCoverLetterService.downloadBytes(bytes, 'resume_export.pdf');
+      return;
+    }
     AiCoverLetterService.downloadResumeExport(_resumeOutput, 'pdf', photoBytes: photoBytes);
   }
 
   void _downloadCoverLetter() {
     AiCoverLetterService.downloadTextFile(_coverLetterOutput, 'cover_letter_export.txt');
+  }
+
+  ResumeFields _currentFields() {
+    return ResumeFields(
+      fullName: _fullNameController.text.trim(),
+      email: _emailController.text.trim(),
+      phone: _phoneController.text.trim(),
+      targetRole: _targetRoleController.text.trim(),
+      summary: _summaryController.text.trim(),
+      experience: _experienceController.text.trim(),
+      education: _educationController.text.trim(),
+      skills: _skillsController.text.trim(),
+      projects: _projectsController.text.trim(),
+    );
+  }
+
+  Future<void> _openTemplateGallery() async {
+    final chosen = await showDialog<ResumeTemplateOption>(
+      context: context,
+      builder: (dialogContext) => _ResumeTemplateGalleryDialog(
+        catalog: _templateCatalog,
+        fields: _currentFields(),
+        photoBytes: _attachPhotoToResume == true ? _profilePhotoBytes : null,
+        initialSelection: _selectedTemplate,
+      ),
+    );
+    if (chosen != null && mounted) {
+      setState(() {
+        _selectedTemplate = chosen;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Template set: ${chosen.displayName}. It will be used for your next download/share.')),
+      );
+    }
   }
 
   Future<void> _handleShareAction(String action) async {
@@ -324,25 +374,37 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
 
     final shareText = 'Hi! I created a polished resume and cover letter with AI Resume Builder.\n\nResume:\n$resumeText\n\nCover Letter:\n$coverLetterText';
     final photoBytes = _attachPhotoToResume == true ? _profilePhotoBytes : null;
+    final template = _selectedTemplate;
 
-    if (action == 'whatsapp') {
-      await AiCoverLetterService.shareResumeExport(
-        resumeText,
-        selectedFormat,
-        subject: 'AI Resume Builder export',
-        text: shareText,
-        photoBytes: photoBytes,
-      );
-      AiCoverLetterService.openWhatsApp(shareText);
-    } else if (action == 'email') {
-      await AiCoverLetterService.shareResumeExport(
-        resumeText,
-        selectedFormat,
-        subject: 'AI Resume Builder export',
-        text: shareText,
-        photoBytes: photoBytes,
-      );
-      AiCoverLetterService.openEmail('AI Resume Builder export', shareText);
+    if (action == 'whatsapp' || action == 'email') {
+      if (template != null && selectedFormat == 'pdf') {
+        final bytes = await ResumeTemplateGallery.buildResumePdf(
+          fields: _currentFields(),
+          template: template,
+          photoBytes: photoBytes,
+        );
+        await AiCoverLetterService.shareBytes(
+          bytes,
+          fileName: 'resume_export.pdf',
+          mimeType: 'application/pdf',
+          subject: 'AI Resume Builder export',
+          text: shareText,
+        );
+      } else {
+        await AiCoverLetterService.shareResumeExport(
+          resumeText,
+          selectedFormat,
+          subject: 'AI Resume Builder export',
+          text: shareText,
+          photoBytes: photoBytes,
+        );
+      }
+
+      if (action == 'whatsapp') {
+        AiCoverLetterService.openWhatsApp(shareText);
+      } else {
+        AiCoverLetterService.openEmail('AI Resume Builder export', shareText);
+      }
     }
   }
 
@@ -543,7 +605,10 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (_profilePhotoBytes == null)
-                const Text('Add a professional photo for your resume.', style: TextStyle(fontSize: 13, color: Color(0xFF475569)))
+                const Text(
+                  'Add a passport-size photo for your resume (JPG, PNG or WEBP, up to 100 KB).',
+                  style: TextStyle(fontSize: 13, color: Color(0xFF475569)),
+                )
               else
                 Row(
                   children: [
@@ -579,6 +644,14 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
                         allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp'],
                       );
                       if (picked == null || !mounted) {
+                        return;
+                      }
+                      if (picked.bytes.length > _maxPhotoSizeBytes) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Photo is too large. Please upload a passport-size photo up to 100 KB.'),
+                          ),
+                        );
                         return;
                       }
                       setState(() {
@@ -748,6 +821,29 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
               }).toList(),
             ),
             const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFBFDBFE)),
+              ),
+              child: const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.info_outline_rounded, size: 18, color: Color(0xFF1D4ED8)),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'All fields below are optional — you can leave any box empty. Your final resume/PDF automatically fits A4 page size regardless of how much you fill in.',
+                      style: TextStyle(fontSize: 12.5, color: Color(0xFF1E3A8A), fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
             _buildField(label: 'Full Name', controller: _fullNameController, showAssistButton: false),
             const SizedBox(height: 12),
             _buildField(label: 'Email', controller: _emailController, showAssistButton: false),
@@ -829,11 +925,12 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
             ),
             SwitchListTile.adaptive(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Zero mandatory fields mode'),
-              value: !_onePageLayout,
+              title: const Text('Prefer 1-page resume length'),
+              subtitle: const Text('Off uses a 2-page-friendly layout instead.'),
+              value: _onePageLayout,
               onChanged: (value) {
                 setState(() {
-                  _onePageLayout = !value;
+                  _onePageLayout = value;
                 });
               },
             ),
@@ -873,10 +970,8 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
                   ),
                   _ActionChipButton(
                     icon: Icons.library_books_rounded,
-                    label: 'Select Template (500+)',
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Template gallery will open here.')));
-                    },
+                    label: _selectedTemplate == null ? 'Select Resume Template (100+ styles)' : 'Template: ${_selectedTemplate!.displayName}',
+                    onPressed: _openTemplateGallery,
                   ),
                   _ActionChipButton(
                     icon: Icons.copy_rounded,
@@ -1017,6 +1112,262 @@ class _ActionChipButton extends StatelessWidget {
             Icon(icon, size: 16, color: foregroundColor),
             const SizedBox(width: 8),
             Text(label, style: TextStyle(color: foregroundColor, fontWeight: FontWeight.w700)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ResumeTemplateGalleryDialog extends StatefulWidget {
+  final List<ResumeTemplateOption> catalog;
+  final ResumeFields fields;
+  final Uint8List? photoBytes;
+  final ResumeTemplateOption? initialSelection;
+
+  const _ResumeTemplateGalleryDialog({
+    required this.catalog,
+    required this.fields,
+    required this.photoBytes,
+    required this.initialSelection,
+  });
+
+  @override
+  State<_ResumeTemplateGalleryDialog> createState() => _ResumeTemplateGalleryDialogState();
+}
+
+class _ResumeTemplateGalleryDialogState extends State<_ResumeTemplateGalleryDialog> {
+  static const String _previewViewType = 'resume-template-preview-view';
+  static bool _factoryRegistered = false;
+  static html.IFrameElement? _previewIframe;
+
+  late ResumeTemplateOption _current;
+  String _searchQuery = '';
+  bool _isLoading = false;
+  String? _previewUrl;
+  int _requestId = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _current = widget.initialSelection ?? widget.catalog.first;
+    _ensureFactoryRegistered();
+    _regeneratePreview();
+  }
+
+  @override
+  void dispose() {
+    final url = _previewUrl;
+    if (url != null) {
+      html.Url.revokeObjectUrl(url);
+    }
+    super.dispose();
+  }
+
+  void _ensureFactoryRegistered() {
+    if (_factoryRegistered) {
+      return;
+    }
+    _factoryRegistered = true;
+    try {
+      ui_web.platformViewRegistry.registerViewFactory(_previewViewType, (int viewId) {
+        final iframe = html.IFrameElement()
+          ..style.border = 'none'
+          ..style.width = '100%'
+          ..style.height = '100%';
+        _previewIframe = iframe;
+        return iframe;
+      });
+    } catch (_) {
+      // Ignore registration failures on environments that do not support this path.
+    }
+  }
+
+  Future<void> _regeneratePreview() async {
+    final requestId = ++_requestId;
+    setState(() {
+      _isLoading = true;
+    });
+
+    final bytes = await ResumeTemplateGallery.buildResumePdf(
+      fields: widget.fields,
+      template: _current,
+      photoBytes: widget.photoBytes,
+    );
+
+    if (!mounted || requestId != _requestId) {
+      return;
+    }
+
+    final blob = html.Blob([bytes], 'application/pdf');
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    final oldUrl = _previewUrl;
+    _previewIframe?.src = url;
+
+    setState(() {
+      _previewUrl = url;
+      _isLoading = false;
+    });
+
+    if (oldUrl != null) {
+      html.Url.revokeObjectUrl(oldUrl);
+    }
+  }
+
+  void _selectTemplate(ResumeTemplateOption option) {
+    if (option.id == _current.id) {
+      return;
+    }
+    setState(() {
+      _current = option;
+    });
+    _regeneratePreview();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final query = _searchQuery.trim().toLowerCase();
+    final filtered = query.isEmpty ? widget.catalog : widget.catalog.where((option) => option.displayName.toLowerCase().contains(query)).toList();
+
+    return Dialog(
+      insetPadding: const EdgeInsets.all(24),
+      child: SizedBox(
+        width: 980,
+        height: 640,
+        child: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(20, 14, 8, 14),
+              decoration: const BoxDecoration(
+                color: Color(0xFF1F2937),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              ),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Choose a Resume Template',
+                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close_rounded, color: Colors.white),
+                    tooltip: 'Close',
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: TextField(
+                            decoration: const InputDecoration(
+                              prefixIcon: Icon(Icons.search_rounded),
+                              hintText: 'Search styles or colors\u2026',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            onChanged: (value) => setState(() => _searchQuery = value),
+                          ),
+                        ),
+                        Expanded(
+                          child: filtered.isEmpty
+                              ? const Center(child: Text('No templates match your search.', style: TextStyle(color: Color(0xFF64748B))))
+                              : ListView.builder(
+                                  itemCount: filtered.length,
+                                  itemBuilder: (context, index) {
+                                    final option = filtered[index];
+                                    final selected = option.id == _current.id;
+                                    return ListTile(
+                                      dense: true,
+                                      selected: selected,
+                                      selectedTileColor: const Color(0xFFEFF6FF),
+                                      leading: Container(
+                                        width: 20,
+                                        height: 20,
+                                        decoration: BoxDecoration(
+                                          color: Color(option.theme.primaryArgb),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                      ),
+                                      title: Text(option.layoutLabel, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                                      subtitle: Text(option.theme.name, style: const TextStyle(fontSize: 11.5)),
+                                      trailing: selected ? const Icon(Icons.check_circle_rounded, color: Color(0xFF2563EB), size: 18) : null,
+                                      onTap: () => _selectTemplate(option),
+                                    );
+                                  },
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const VerticalDivider(width: 1),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Text(
+                            _current.displayName,
+                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF0F172A)),
+                          ),
+                        ),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(0, 0, 12, 12),
+                            child: Stack(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Container(
+                                    color: const Color(0xFFE5E7EB),
+                                    child: HtmlElementView(viewType: _previewViewType),
+                                  ),
+                                ),
+                                if (_isLoading)
+                                  const Positioned.fill(
+                                    child: Center(child: CircularProgressIndicator()),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: const BoxDecoration(
+                border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Cancel'),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(_current),
+                    child: const Text('Use this template'),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),

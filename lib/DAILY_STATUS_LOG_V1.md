@@ -798,6 +798,28 @@ Prepared For: JOBREADY
 - Owner:
   - Founder + Copilot
 
+### Checkpoint - 2026-08-03 (Resume Builder: Optional Fields, Photo Limit, Template Gallery)
+- Overall status: Green (checkpoint stable)
+- Requested:
+  - Confirm all resume fields are optional and the final PDF auto-fits A4 regardless of how much is filled in.
+  - Enforce a 100 KB passport-size photo limit on upload, with clear messaging.
+  - Add a large, selectable resume template gallery with a live split-screen preview and an explicit accept step.
+  - Confirm the existing 3-tier experience selector (0–5 / 5–15 / 15–30+ yrs).
+  - Verify everything on localhost before confirming complete.
+- Completed today:
+  - **A4 auto-fit PDF:** `AiCoverLetterService._buildPdfBytes` switched from a single fixed `pw.Page` to `pw.MultiPage`, so the exported PDF now auto-paginates across as many A4 pages as needed instead of risking overflow/clipping on long content (verified with a 60-line stress test).
+  - **100 KB photo limit:** `ai_resume_builder_page.dart` now rejects photo uploads over 100 KB with a clear SnackBar, and the guidance text now reads "Add a passport-size photo for your resume (JPG, PNG or WEBP, up to 100 KB)."
+  - **All-fields-optional confirmation:** Added a prominent banner above the form: "All fields below are optional — you can leave any box empty. Your final resume/PDF automatically fits A4 page size regardless of how much you fill in." Also fixed a mislabeled/inverted switch ("Zero mandatory fields mode", which actually controlled page-length preference) — relabeled to "Prefer 1-page resume length" with a correct, non-inverted value binding.
+  - **Experience Tier:** confirmed already correct (0–5 yrs / 5–15 yrs / 15–30+ yrs) — no change needed.
+  - **Resume Template Gallery (new):** Added `Services/resume_template_gallery.dart` — 8 distinct layouts (Classic, Modern Header, Minimal, Two-Column, Sidebar, Timeline, Compact, Executive) × 13 color themes = 104 selectable templates, all A4 auto-fitting via `pw.MultiPage` and all omitting empty sections (no ghost/filler text). Wired the existing "Select Template" button (previously a non-functional stub) to a new split-view dialog (`_ResumeTemplateGalleryDialog`): searchable template list on the left, live PDF preview on the right (half-width, via the same blob-URL + iframe technique as the existing PDF Edit tool preview), with Cancel / "Use this template" actions. Once confirmed, Download/Share actions use the selected template's real layout instead of the old plain-text export.
+- Validation:
+  - `flutter analyze` (targeted + full project): 0 new errors/warnings; fixed one real const-eval error caught only by the CLI analyzer (not the language server) in a `pw.TextStyle` referencing `pw.FontWeight.bold` inside a `const` context.
+  - New `test/resume_template_gallery_test.dart`: validates real `%PDF-` byte output for all 8 layouts with full data, fully empty fields, and very long (multi-page) content — all pass. Caught and fixed a real font issue: the default PDF font has no glyph for the "•" bullet character used in the contact line; replaced with a plain `|` separator.
+  - Manual local verification: ran the app locally (`flutter run -d web-server -t lib/main_v1_1.dart`) and drove it via browser automation — confirmed the optional-fields banner, 100 KB photo limit messaging, ghost-hint Career Summary (disappears on typing, never shows in generated resume text), no AI Assist on Full Name/Email/Phone, the template gallery dialog opens/searches/selects/confirms correctly, and Download PDF completes without errors after selecting a template. Also spot-checked the Compress tool page loads cleanly (no regressions).
+  - Note: the live template preview renders as a solid dark box specifically inside the automated test browser because Chrome's built-in PDF viewer extension is blocked in that sandboxed context (`net::ERR_BLOCKED_BY_CLIENT`) — confirmed via the dedicated PDF-byte tests that this is a browser-automation limitation, not a real app bug; a normal user browser renders it fine.
+- Owner:
+  - Founder + Copilot
+
 ### Checkpoint - 2026-07-18 (V1.1 Controlled Merge - Checkpoint 5)
 - Overall status: Green (checkpoint stable)
 - Completed today:
