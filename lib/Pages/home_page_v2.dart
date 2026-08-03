@@ -2814,6 +2814,51 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
     };
   }
 
+  Future<Map<String, dynamic>> _createPaymentLinkFromBilling(Map<String, dynamic> billing) async {
+    final amountMinor = (_chargeAmountForPlan(widget.selectedPlan) * 100).round();
+    if (amountMinor <= 0) {
+      throw Exception('Invalid payment amount for selected plan.');
+    }
+
+    final payload = {
+      'gateway': _resolvedGatewayName(),
+      'amount': amountMinor,
+      'currency': _localCurrency,
+      'receipt': 'plink-${widget.selectedPlan.toLowerCase()}-${DateTime.now().millisecondsSinceEpoch}',
+      'planId': widget.selectedPlan,
+      'billing': billing,
+    };
+
+    final response = await _requestJsonWithFallback(
+      'POST',
+      '/api/create-payment-link',
+      body: payload,
+    );
+
+    if (response['success'] != true) {
+      final failure = response['error']?.toString() ?? 'Unable to generate payment link.';
+      throw Exception(failure);
+    }
+
+    final paymentLink = response['payment_link']?.toString().trim() ?? '';
+    if (paymentLink.isEmpty) {
+      throw Exception('Payment link was created but link URL is missing.');
+    }
+
+    return response;
+  }
+
+  bool _shouldFallbackToPaymentLink(String failureMessage) {
+    final normalized = failureMessage.toLowerCase();
+    if (normalized.contains('cancelled by user')) {
+      return false;
+    }
+    return normalized.contains('did not open') ||
+        normalized.contains('timed out') ||
+        normalized.contains('before checkout opened') ||
+        normalized.contains('unable to load razorpay checkout sdk');
+  }
+
   Future<Map<String, dynamic>> _openRazorpayAndVerify({
     required String keyId,
     required String orderId,
@@ -2873,6 +2918,18 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
         if (!completer.isCompleted) {
           completer.completeError(Exception('Payment cancelled by user.'));
         }
+      } else if (type == 'failed') {
+        final payloadRaw = data['payload'];
+        final message = payloadRaw is Map
+            ? payloadRaw['message']?.toString().trim()
+            : null;
+        if (!completer.isCompleted) {
+          completer.completeError(
+            Exception(message?.isNotEmpty == true
+                ? message
+                : 'Razorpay checkout could not be opened.'),
+          );
+        }
       }
     });
 
@@ -2902,7 +2959,40 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
     }
   };
   const checkout = new window.Razorpay(opts);
-  checkout.open();
+  checkout.on('payment.failed', function(response) {
+    const message = response && response.error && response.error.description
+      ? response.error.description
+      : 'Razorpay payment failed before confirmation.';
+    window.postMessage({
+      source: 'jobready_razorpay',
+      token: '$bridgeToken',
+      type: 'failed',
+      payload: { message: message }
+    }, window.location.origin);
+  });
+  try {
+    checkout.open();
+  } catch (error) {
+    window.postMessage({
+      source: 'jobready_razorpay',
+      token: '$bridgeToken',
+      type: 'failed',
+      payload: { message: 'Razorpay checkout did not open. Please allow popups and try again.' }
+    }, window.location.origin);
+    return;
+  }
+
+  setTimeout(function() {
+    const hasFrame = !!document.querySelector('.razorpay-container, iframe[src*="razorpay"]');
+    if (!hasFrame) {
+      window.postMessage({
+        source: 'jobready_razorpay',
+        token: '$bridgeToken',
+        type: 'failed',
+        payload: { message: 'Razorpay checkout did not open. Please allow popups/cookies or use payment link.' }
+      }, window.location.origin);
+    }
+  }, 2200);
 })();
 ''';
 
@@ -2996,35 +3086,8 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
 
     try {
       final billing = _buildBillingPayload();
-      final amountMinor = (_chargeAmountForPlan(widget.selectedPlan) * 100).round();
-      if (amountMinor <= 0) {
-        throw Exception('Invalid payment amount for selected plan.');
-      }
-
-      final payload = {
-        'gateway': _resolvedGatewayName(),
-        'amount': amountMinor,
-        'currency': _localCurrency,
-        'receipt': 'plink-${widget.selectedPlan.toLowerCase()}-${DateTime.now().millisecondsSinceEpoch}',
-        'planId': widget.selectedPlan,
-        'billing': billing,
-      };
-
-      final response = await _requestJsonWithFallback(
-        'POST',
-        '/api/create-payment-link',
-        body: payload,
-      );
-
-      if (response['success'] != true) {
-        final failure = response['error']?.toString() ?? 'Unable to generate payment link.';
-        throw Exception(failure);
-      }
-
+      final response = await _createPaymentLinkFromBilling(billing);
       final paymentLink = response['payment_link']?.toString().trim() ?? '';
-      if (paymentLink.isEmpty) {
-        throw Exception('Payment link was created but link URL is missing.');
-      }
 
       setState(() {
         _lastCheckoutResponse = {
@@ -3111,12 +3174,14 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
       _submitting = true;
     });
 
+    Map<String, dynamic>? billingForFallback;
     try {
       if (!mounted || !context.mounted) {
         return;
       }
 
       final billing = _buildBillingPayload();
+      billingForFallback = billing;
       final keyResponse = await _requestJsonWithFallback('GET', '/api/config');
       final keyId = keyResponse['key_id']?.toString().trim() ?? '';
       if (keyId.isEmpty) {
@@ -3192,6 +3257,53 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
       );
     } catch (error) {
       final failureMessage = _friendlyCheckoutError(error, '/api/create-order');
+      final shouldFallback = billingForFallback != null && _shouldFallbackToPaymentLink(failureMessage);
+      if (shouldFallback) {
+        try {
+          final paymentLinkResponse = await _createPaymentLinkFromBilling(billingForFallback);
+          final paymentLink = paymentLinkResponse['payment_link']?.toString().trim() ?? '';
+          html.window.open(paymentLink, '_blank');
+          if (mounted) {
+            setState(() {
+              _lastCheckoutResponse = {
+                ...paymentLinkResponse,
+                'checkout_state': 'payment_link_created',
+                'status': 'ready_for_integration',
+                'label': 'Checkout Fallback Activated',
+                'message': 'Razorpay popup did not open. Payment link was generated and opened in a new tab.',
+                'order_id': paymentLinkResponse['reference_id']?.toString() ?? _lastCheckoutResponse?['order_id']?.toString() ?? 'N/A',
+              };
+            });
+          }
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Razorpay popup was blocked. Opened payment link in new tab.')),
+            );
+          }
+          return;
+        } catch (fallbackError) {
+          final fallbackFailure = _friendlyCheckoutError(fallbackError, '/api/create-payment-link');
+          if (mounted) {
+            setState(() {
+              _lastCheckoutResponse = {
+                ...readiness,
+                'checkout_state': 'payment_link_failed',
+                'status': 'unavailable',
+                'label': 'Payment Link Fallback Failed',
+                'message': fallbackFailure,
+                'order_id': _lastCheckoutResponse?['order_id']?.toString() ?? 'N/A',
+              };
+            });
+          }
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(fallbackFailure)),
+            );
+          }
+          return;
+        }
+      }
+
       if (mounted) {
         setState(() {
           _lastCheckoutResponse = {
