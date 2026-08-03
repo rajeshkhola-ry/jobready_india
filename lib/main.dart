@@ -22,7 +22,6 @@ import 'Pages/terms_conditions_page.dart';
 import 'Pages/cookie_policy_page.dart';
 import 'Pages/disclaimer_page.dart';
 import 'Pages/testimonials_page.dart';
-import 'Widgets/deferred_route_page.dart';
 import 'main_v1_1.dart' as production;
 // ===============================
 // GLOBAL RESUME DATA MODEL

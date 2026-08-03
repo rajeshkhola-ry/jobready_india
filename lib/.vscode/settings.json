@@ -9,5 +9,6 @@
   "python.terminal.activateEnvironment": false,
   "terminal.integrated.env.windows": {
     "PATH": "${env:PATH};C:\\Users\\Avita\\bin"
-  }
+  },
+  "chat.agent.maxRequests": 200
 }
