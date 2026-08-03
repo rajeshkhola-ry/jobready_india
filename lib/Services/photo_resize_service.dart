@@ -1,6 +1,7 @@
 import 'dart:isolate';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 
 class PhotoSizePreset {
@@ -145,7 +146,18 @@ class PhotoResizeService {
       previewOnly: previewOnly,
     );
 
-    return Isolate.run(() => _renderPhotoInIsolate(request));
+    // Flutter web does not support the isolate primitives used by Isolate.run
+    // (RawReceivePort). Run processing inline on web and keep isolate offload
+    // for native targets.
+    if (kIsWeb) {
+      return _renderPhotoInIsolate(request);
+    }
+
+    try {
+      return await Isolate.run(() => _renderPhotoInIsolate(request));
+    } on UnsupportedError {
+      return _renderPhotoInIsolate(request);
+    }
   }
 
   Uint8List _encodeToTargetSize(
