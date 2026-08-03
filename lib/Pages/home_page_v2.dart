@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:js' as js;
+import 'dart:js_util' as js_util;
 
 import 'package:flutter/material.dart';
 import 'package:universal_html/html.dart' as html;
@@ -2859,6 +2860,36 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
         normalized.contains('unable to load razorpay checkout sdk');
   }
 
+  Map<String, dynamic>? _decodeBridgeMessage(dynamic data) {
+    dynamic normalized = data;
+
+    if (normalized is String) {
+      final candidate = normalized.trim();
+      if (candidate.isNotEmpty) {
+        try {
+          normalized = jsonDecode(candidate);
+        } catch (_) {
+          return null;
+        }
+      }
+    }
+
+    if (normalized is Map) {
+      return Map<String, dynamic>.from(normalized);
+    }
+
+    try {
+      final dartified = js_util.dartify(normalized);
+      if (dartified is Map) {
+        return Map<String, dynamic>.from(dartified);
+      }
+    } catch (_) {
+      return null;
+    }
+
+    return null;
+  }
+
   Future<Map<String, dynamic>> _openRazorpayAndVerify({
     required String keyId,
     required String orderId,
@@ -2892,8 +2923,8 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
     };
 
     final messageSubscription = html.window.onMessage.listen((event) {
-      final data = event.data;
-      if (data is! Map) {
+      final data = _decodeBridgeMessage(event.data);
+      if (data == null) {
         return;
       }
       final source = data['source']?.toString() ?? '';
