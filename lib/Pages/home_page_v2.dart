@@ -702,18 +702,18 @@ class _HomePageV2State extends State<HomePageV2> {
     final yearlyPriceLine = _planPriceLine('Yearly', ' per year');
     final lifetimePriceLine = _planPriceLine('Lifetime', ' one-time');
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FC),
+      backgroundColor: const Color(0xFFF3F6FB),
 
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF8FAFC),
+        backgroundColor: const Color(0xFFFCFEFF),
         foregroundColor: const Color(0xFF0F172A),
         centerTitle: true,
         toolbarHeight: 72,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         shape: const RoundedRectangleBorder(
-          side: BorderSide(color: Color(0xFFE2E8F0), width: 1),
-          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+          side: BorderSide(color: Color(0xFFDCE7F3), width: 1),
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
         ),
         actions: [
           TextButton.icon(
@@ -728,7 +728,7 @@ class _HomePageV2State extends State<HomePageV2> {
           _TopActionIcon(
             tooltip: 'Benchmark',
             icon: Icons.bar_chart_rounded,
-            iconColor: const Color(0xFF9BD7FF),
+            iconColor: const Color(0xFF3F648A),
             onTap: () {
               Navigator.push(
                 context,
@@ -741,7 +741,7 @@ class _HomePageV2State extends State<HomePageV2> {
           _TopActionIcon(
             tooltip: 'Readiness',
             icon: Icons.rocket_launch_rounded,
-            iconColor: const Color(0xFFB7F59E),
+            iconColor: const Color(0xFF3C7A67),
             onTap: () {
               Navigator.push(
                 context,
@@ -754,7 +754,7 @@ class _HomePageV2State extends State<HomePageV2> {
           _TopActionIcon(
             tooltip: 'Runbook',
             icon: Icons.task_alt_rounded,
-            iconColor: const Color(0xFFC6D2FF),
+            iconColor: const Color(0xFF4E5F96),
             onTap: () {
               Navigator.push(
                 context,
@@ -767,7 +767,7 @@ class _HomePageV2State extends State<HomePageV2> {
           _TopActionIcon(
             tooltip: 'Post-Launch',
             icon: Icons.monitor_heart_rounded,
-            iconColor: const Color(0xFFFFD6A5),
+            iconColor: const Color(0xFF94664A),
             onTap: () {
               Navigator.push(
                 context,
@@ -780,7 +780,7 @@ class _HomePageV2State extends State<HomePageV2> {
           _TopActionIcon(
             tooltip: 'Support Email',
             icon: Icons.email_outlined,
-            iconColor: const Color(0xFFFFC72C),
+            iconColor: const Color(0xFF7B5E2B),
             onTap: () {
               _openMailComposer(
                 subject: 'GETREADYJOB Support Request',
@@ -791,7 +791,7 @@ class _HomePageV2State extends State<HomePageV2> {
           _TopActionIcon(
             tooltip: 'Terms & Conditions',
             icon: Icons.gavel_rounded,
-            iconColor: const Color(0xFFFFC72C),
+            iconColor: const Color(0xFF6F5675),
             onTap: () {
               Navigator.push(
                 context,
@@ -825,7 +825,7 @@ class _HomePageV2State extends State<HomePageV2> {
                   style: TextStyle(
                     color: Color(0xFF0F172A),
                     fontWeight: FontWeight.w800,
-                    letterSpacing: 1.1,
+                    letterSpacing: 1.4,
                   ),
                 ),
               ),
@@ -836,6 +836,44 @@ class _HomePageV2State extends State<HomePageV2> {
 
       body: Stack(
         children: [
+          Positioned(
+            top: -80,
+            left: -50,
+            child: IgnorePointer(
+              child: Container(
+                width: 260,
+                height: 260,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      const Color(0xFFDBF4FF).withValues(alpha: 0.55),
+                      const Color(0xFFDBF4FF).withValues(alpha: 0.0),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 110,
+            right: -70,
+            child: IgnorePointer(
+              child: Container(
+                width: 250,
+                height: 250,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      const Color(0xFFE8FDE9).withValues(alpha: 0.60),
+                      const Color(0xFFE8FDE9).withValues(alpha: 0.0),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
           SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(14, 10, 14, 96),
             child: Column(
@@ -843,11 +881,18 @@ class _HomePageV2State extends State<HomePageV2> {
               children: [
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF2F7FF),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFD9E5F6)),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: const Color(0xFFD8E6FA)),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x1490A3BE),
+                        blurRadius: 16,
+                        offset: Offset(0, 6),
+                      ),
+                    ],
                   ),
                   child: const Text(
                     'Upload one document or multiple files together and start working instantly.',
@@ -868,8 +913,15 @@ class _HomePageV2State extends State<HomePageV2> {
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF8FCFF),
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: const Color(0xFFD8E6F7)),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x1090A3BE),
+                        blurRadius: 12,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
                   ),
                   child: const Text(
                     'Welcome to GETREADYJOB!',
@@ -896,9 +948,16 @@ class _HomePageV2State extends State<HomePageV2> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    color: const Color(0xFFFCFEFF),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFFDDE7F1)),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x1290A3BE),
+                        blurRadius: 14,
+                        offset: Offset(0, 5),
+                      ),
+                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -943,10 +1002,10 @@ class _HomePageV2State extends State<HomePageV2> {
                     gradient: const LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [Color(0xFFFFFBEB), Color(0xFFFDE68A)],
+                      colors: [Color(0xFFF7FCFF), Color(0xFFE9FDF3)],
                     ),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFF59E0B), width: 1.1),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFFB9E9D0), width: 1.0),
                   ),
                   child: Row(
                     children: [
@@ -959,7 +1018,7 @@ class _HomePageV2State extends State<HomePageV2> {
                         ),
                         child: const Icon(
                           Icons.verified_rounded,
-                          color: Color(0xFFB45309),
+                          color: Color(0xFF0D7A5F),
                           size: 18,
                         ),
                       ),
@@ -974,7 +1033,7 @@ class _HomePageV2State extends State<HomePageV2> {
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w800,
-                                color: Color(0xFF7C2D12),
+                                color: Color(0xFF155E4A),
                               ),
                             ),
                             SizedBox(height: 2),
@@ -983,7 +1042,7 @@ class _HomePageV2State extends State<HomePageV2> {
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF92400E),
+                                color: Color(0xFF1E6A56),
                                 height: 1.25,
                               ),
                             ),
@@ -1049,14 +1108,14 @@ class _HomePageV2State extends State<HomePageV2> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                    color: const Color(0xFFFCFEFF),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFDCE7F3)),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF1F2937).withOpacity(0.05),
-                        blurRadius: 12,
-                        offset: const Offset(0, 5),
+                        color: const Color(0xFF1F2937).withValues(alpha: 0.05),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
                       ),
                     ],
                   ),
@@ -1165,12 +1224,12 @@ class _HomePageV2State extends State<HomePageV2> {
                   child: Container(
                     padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF111827),
-                      borderRadius: BorderRadius.circular(16),
+                      color: const Color(0xFF132238),
+                      borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.18),
-                          blurRadius: 16,
+                          color: Colors.black.withValues(alpha: 0.18),
+                          blurRadius: 20,
                           offset: const Offset(0, 8),
                         ),
                       ],
@@ -1242,9 +1301,16 @@ class _QuickAccessButton extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: accent.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: accent.withOpacity(0.22)),
+        color: accent.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: accent.withValues(alpha: 0.18)),
+        boxShadow: [
+          BoxShadow(
+            color: accent.withValues(alpha: 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1282,13 +1348,20 @@ class _QuickAccessActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(14),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: accent.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: accent.withOpacity(0.22)),
+          color: accent.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: accent.withValues(alpha: 0.18)),
+          boxShadow: [
+            BoxShadow(
+              color: accent.withValues(alpha: 0.08),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -4635,25 +4708,32 @@ class _TopActionIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 10),
       child: Tooltip(
         message: tooltip,
         child: Material(
           color: Colors.transparent,
           child: InkWell(
             onTap: onTap,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
             child: Ink(
-              width: 34,
-              height: 34,
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
-                color: const Color(0xFFFFFFFF),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFDCE7F5)),
+                color: const Color(0xFFFCFEFF),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFD8E4F2)),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x1290A3BE),
+                    blurRadius: 10,
+                    offset: Offset(0, 3),
+                  ),
+                ],
               ),
               child: Icon(
                 icon,
-                size: 19,
+                size: 18,
                 color: iconColor,
               ),
             ),
