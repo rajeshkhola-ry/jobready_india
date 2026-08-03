@@ -2777,6 +2777,9 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
     if (raw.contains('HTTP 404') || raw.contains('Unable to reach payment API')) {
       return 'Payment service endpoint is not reachable for $path. Please retry in 1 minute.';
     }
+    if (raw.contains('Recurring digits in customer contact are disallowed')) {
+      return 'Please update your mobile number in account profile and try payment again.';
+    }
     if (raw.contains('minified:') || raw.contains('ProgressEvent')) {
       return 'Payment request failed before checkout opened. Please refresh and try again.';
     }
@@ -2792,12 +2795,12 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
         : (session?.displayName.trim().isNotEmpty == true ? session!.displayName.trim() : 'User');
     final email = profile.email.trim().isNotEmpty
         ? profile.email.trim()
-        : (session?.email.trim().isNotEmpty == true ? session!.email.trim() : 'guest@example.com');
+      : (session?.email.trim().isNotEmpty == true ? session!.email.trim() : '');
     final mobileRaw = profile.mobileNumber.trim().isNotEmpty
         ? profile.mobileNumber.trim()
-        : (session?.mobileNumber.trim() ?? '9999999999');
+      : (session?.mobileNumber.trim() ?? '');
     final mobileDigits = mobileRaw.replaceAll(RegExp(r'\D'), '');
-    final normalizedMobile = mobileDigits.isEmpty ? '9999999999' : mobileDigits;
+    final normalizedMobile = mobileDigits;
 
     return {
       'name': displayName,
@@ -2834,8 +2837,8 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
       'order_id': orderId,
       'prefill': {
         'name': billing['name']?.toString() ?? 'User',
-        'email': billing['email']?.toString() ?? 'guest@example.com',
-        'contact': billing['mobile']?.toString() ?? '9999999999',
+        'email': billing['email']?.toString() ?? '',
+        'contact': billing['mobile']?.toString() ?? '',
       },
       'theme': {
         'color': '#${ApiConfig.razorpayConfig.themeColor.toUpperCase()}',
