@@ -159,6 +159,10 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
   }
 
   double _priceForPlan(String planName) {
+    final configured = PlanCatalogService.load().usdPrices[planName];
+    if (configured != null) {
+      return configured;
+    }
     switch (planName) {
       case '7Days':
         return 0.99;

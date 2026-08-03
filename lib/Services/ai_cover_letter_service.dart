@@ -25,6 +25,8 @@ class AiCoverLetterService {
     final shortJd = jd.trim().isEmpty ? 'the role requirements and business context' : jd.trim();
     final tone = mncStandard ? 'MNC-standard structure and professional tone' : 'clear and practical business tone';
 
+    final phoneLine = phone.trim().isEmpty ? '' : '$phone';
+
     return '''Dear Hiring Manager,
 
 I am excited to apply for the $role position. With a strong foundation in $summary and hands-on experience aligned to $shortJd, I am confident in my ability to contribute meaningfully to your team.
@@ -38,7 +40,7 @@ Thank you for your time and consideration. I look forward to the possibility of 
 Sincerely,
 $fullName
 $email
-$phone''';
+$phoneLine''';
   }
 
   static String buildInterviewQuestions({
@@ -96,19 +98,19 @@ $phone''';
     await Share.share(text, subject: subject);
   }
 
-  static Future<Uint8List> buildResumeExportBytes(String content, String format) async {
+  static Future<Uint8List> buildResumeExportBytes(String content, String format, {Uint8List? photoBytes}) async {
     if (format.toLowerCase() == 'docx') {
       return _buildDocxBytes(content);
     }
-    return _buildPdfBytes(content);
+    return _buildPdfBytes(content, photoBytes: photoBytes);
   }
 
   static String getResumeExportExtension(String format) => format.toLowerCase() == 'docx' ? 'docx' : 'pdf';
 
   static String getResumeExportMimeType(String format) => format.toLowerCase() == 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/pdf';
 
-  static Future<void> shareResumeExport(String content, String format, {required String subject, String? text}) async {
-    final bytes = await buildResumeExportBytes(content, format);
+  static Future<void> shareResumeExport(String content, String format, {required String subject, String? text, Uint8List? photoBytes}) async {
+    final bytes = await buildResumeExportBytes(content, format, photoBytes: photoBytes);
     final fileName = 'resume_export.${getResumeExportExtension(format)}';
     final xFile = XFile.fromData(
       bytes,
@@ -123,20 +125,43 @@ $phone''';
     }
   }
 
+  static Future<void> downloadResumeExport(String content, String format, {Uint8List? photoBytes}) async {
+    final bytes = await buildResumeExportBytes(content, format, photoBytes: photoBytes);
+    final fileName = 'resume_export.${getResumeExportExtension(format)}';
+    _downloadBytes(bytes, fileName);
+  }
+
   static void downloadTextFile(String content, String fileName) {
     final bytes = utf8.encode(content);
     _downloadBytes(bytes, fileName);
   }
 
-  static Future<Uint8List> _buildPdfBytes(String content) async {
+  static Future<Uint8List> _buildPdfBytes(String content, {Uint8List? photoBytes}) async {
     final pdfDoc = pw.Document();
+    final photoImage = (photoBytes != null && photoBytes.isNotEmpty) ? pw.MemoryImage(photoBytes) : null;
     pdfDoc.addPage(
       pw.Page(
         pageFormat: pdf.PdfPageFormat.a4,
         build: (pw.Context context) {
           return pw.Padding(
             padding: const pw.EdgeInsets.all(24),
-            child: pw.Text(content, style: const pw.TextStyle(fontSize: 10)),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                if (photoImage != null) ...[
+                  pw.Align(
+                    alignment: pw.Alignment.topRight,
+                    child: pw.ClipRRect(
+                      horizontalRadius: 8,
+                      verticalRadius: 8,
+                      child: pw.Image(photoImage, width: 80, height: 80, fit: pw.BoxFit.cover),
+                    ),
+                  ),
+                  pw.SizedBox(height: 12),
+                ],
+                pw.Text(content, style: const pw.TextStyle(fontSize: 10)),
+              ],
+            ),
           );
         },
       ),

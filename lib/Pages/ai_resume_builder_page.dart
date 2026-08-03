@@ -59,47 +59,73 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
     super.dispose();
   }
 
+  // Ghost-text fields (empty fields are skipped entirely, never printed as filler content).
   String _buildResume() {
-    final name = _fullNameController.text.trim().isEmpty ? 'Your Name' : _fullNameController.text.trim();
-    final email = _emailController.text.trim().isEmpty ? 'email@example.com' : _emailController.text.trim();
-    final phone = _phoneController.text.trim().isEmpty ? 'Phone' : _phoneController.text.trim();
-    final summary = _summaryController.text.trim().isEmpty ? 'Results-driven professional ready to create impact.' : _summaryController.text.trim();
-    final experience = _experienceController.text.trim().isEmpty ? 'Add your experience summary here.' : _experienceController.text.trim();
-    final education = _educationController.text.trim().isEmpty ? 'Add education details here.' : _educationController.text.trim();
-    final skills = _skillsController.text.trim().isEmpty ? 'Add core skills here.' : _skillsController.text.trim();
-    final projects = _projectsController.text.trim().isEmpty ? 'Add key projects and achievements.' : _projectsController.text.trim();
+    final name = _fullNameController.text.trim();
+    final email = _emailController.text.trim();
+    final phone = _phoneController.text.trim();
+    final summary = _summaryController.text.trim();
+    final experience = _experienceController.text.trim();
+    final education = _educationController.text.trim();
+    final skills = _skillsController.text.trim();
+    final projects = _projectsController.text.trim();
     final jd = _jdController.text.trim();
-    final role = _targetRoleController.text.trim().isEmpty ? 'Target Role' : _targetRoleController.text.trim();
+    final role = _targetRoleController.text.trim();
 
-    final tailored = jd.isEmpty
-        ? 'JD matcher will tailor this resume once a job description is added.'
-        : 'Tailored for $role using JD keywords: ${jd.split(RegExp(r'\s+')).take(10).join(', ')}';
+    final buffer = StringBuffer();
 
-    return '''$name
-Email: $email
-Phone: $phone
+    if (name.isNotEmpty) {
+      buffer.writeln(name);
+    }
+    if (email.isNotEmpty) {
+      buffer.writeln('Email: $email');
+    }
+    if (phone.isNotEmpty) {
+      buffer.writeln('Phone: $phone');
+    }
 
-Profile
-$summary
+    if (summary.isNotEmpty) {
+      buffer.writeln();
+      buffer.writeln('Profile');
+      buffer.writeln(summary);
+    }
 
-Experience Tier: $_selectedTier
-${_mncStandard ? 'MNC Standard: 1-page / 2-page auto-format ready' : 'Flexible layout mode'}
-${_onePageLayout ? 'Preferred length: 1 page' : 'Preferred length: 2 pages'}
+    buffer.writeln();
+    buffer.writeln('Experience Tier: $_selectedTier');
+    buffer.writeln(_mncStandard ? 'MNC Standard: 1-page / 2-page auto-format ready' : 'Flexible layout mode');
+    buffer.writeln(_onePageLayout ? 'Preferred length: 1 page' : 'Preferred length: 2 pages');
 
-Experience
-$experience
+    if (experience.isNotEmpty) {
+      buffer.writeln();
+      buffer.writeln('Experience');
+      buffer.writeln(experience);
+    }
 
-Education
-$education
+    if (education.isNotEmpty) {
+      buffer.writeln();
+      buffer.writeln('Education');
+      buffer.writeln(education);
+    }
 
-Skills
-$skills
+    if (skills.isNotEmpty) {
+      buffer.writeln();
+      buffer.writeln('Skills');
+      buffer.writeln(skills);
+    }
 
-Projects / Achievements
-$projects
+    if (projects.isNotEmpty) {
+      buffer.writeln();
+      buffer.writeln('Projects / Achievements');
+      buffer.writeln(projects);
+    }
 
-JD Matcher
-$tailored''';
+    if (jd.isNotEmpty) {
+      buffer.writeln();
+      buffer.writeln('JD Matcher');
+      buffer.writeln('Tailored for ${role.isEmpty ? 'target role' : role} using JD keywords: ${jd.split(RegExp(r'\s+')).take(10).join(', ')}');
+    }
+
+    return buffer.toString().trim();
   }
 
   String _buildCoverLetter() {
@@ -193,10 +219,9 @@ $tailored''';
                 TextField(
                   controller: _jdController,
                   maxLines: 8,
-                  decoration: const InputDecoration(
+                  decoration: _buildStyledInputDecoration(
                     labelText: 'Job description / JD',
                     hintText: 'Paste JD here…',
-                    border: OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -254,7 +279,7 @@ $tailored''';
   }
 
   void _downloadResume() {
-    AiCoverLetterService.downloadTextFile(_resumeOutput, 'resume_export.txt');
+    AiCoverLetterService.downloadResumeExport(_resumeOutput, 'pdf', photoBytes: _profilePhotoBytes);
   }
 
   void _downloadCoverLetter() {
@@ -301,6 +326,7 @@ $tailored''';
         selectedFormat,
         subject: 'AI Resume Builder export',
         text: shareText,
+        photoBytes: _profilePhotoBytes,
       );
       AiCoverLetterService.openWhatsApp(shareText);
     } else if (action == 'email') {
@@ -309,6 +335,7 @@ $tailored''';
         selectedFormat,
         subject: 'AI Resume Builder export',
         text: shareText,
+        photoBytes: _profilePhotoBytes,
       );
       AiCoverLetterService.openEmail('AI Resume Builder export', shareText);
     }
@@ -419,7 +446,33 @@ $tailored''';
     await _applyAiAssistToField(label, controller);
   }
 
+  InputDecoration _buildStyledInputDecoration({required String hintText, String? labelText}) {
+    return InputDecoration(
+      labelText: labelText,
+      hintText: hintText,
+      hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+      labelStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
+      filled: true,
+      fillColor: const Color(0xFFFFFFFF),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.4),
+      ),
+    );
+  }
+
   Widget _buildField({required String label, required TextEditingController controller, int maxLines = 1, bool isMultiline = false}) {
+    final isPhoneField = label.toLowerCase() == 'phone';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -432,11 +485,12 @@ $tailored''';
         const SizedBox(height: 6),
         TextField(
           controller: controller,
+          keyboardType: isPhoneField ? TextInputType.phone : TextInputType.text,
           maxLines: isMultiline ? 4 : maxLines,
           onTap: () => _setActiveAssistField(label, controller),
-          decoration: InputDecoration(
-            hintText: label,
-            border: const OutlineInputBorder(),
+          style: const TextStyle(fontSize: 14, color: Color(0xFF0F172A)),
+          decoration: _buildStyledInputDecoration(
+            hintText: isPhoneField ? 'Type your contact number' : label,
           ),
         ),
       ],
@@ -453,9 +507,16 @@ $tailored''';
           width: double.infinity,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(12),
+            color: const Color(0xFFFFFFFF),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(color: const Color(0xFFE2E8F0)),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF0F172A).withOpacity(0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -659,9 +720,16 @@ $tailored''';
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(12),
+                color: const Color(0xFFFFFFFF),
+                borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: const Color(0xFFE2E8F0)),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF0F172A).withOpacity(0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: const Text(
                 'If you send the JD or Job Post Name, then we can generate a tailored Resume, Cover Letter, AI Interview Preparation Questions, and Company Insights following your target role!',
@@ -676,9 +744,8 @@ $tailored''';
                 Expanded(
                   child: TextField(
                     controller: _companyController,
-                    decoration: const InputDecoration(
+                    decoration: _buildStyledInputDecoration(
                       labelText: 'Company Name',
-                      border: OutlineInputBorder(),
                       hintText: 'Search company insights',
                     ),
                   ),

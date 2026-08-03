@@ -863,6 +863,8 @@ class _HomePageV2State extends State<HomePageV2> {
                   ),
                 ),
                 const SizedBox(height: 18),
+                const _WhyChooseSection(),
+                const SizedBox(height: 18),
                 const _SectionHeader(
                   title: 'Plans',
                   subtitle: 'Simple access today, premium workspace upgrades coming next.',
@@ -4901,32 +4903,78 @@ class _V2Column extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            if (constraints.maxWidth < 940) {
-              return const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  WhyChooseCard(scale: 0.6),
-                  SizedBox(height: 10),
-                  _MostPopularToolsCard(),
-                ],
-              );
-            }
-
-            return const Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(flex: 7, child: WhyChooseCard(scale: 0.6)),
-                SizedBox(width: 10),
-                Expanded(flex: 5, child: _MostPopularToolsCard()),
-              ],
-            );
-          },
-        ),
+        const _MostPopularToolsCard(),
         const SizedBox(height: 10),
         const ToolSelectorV2(),
       ],
+    );
+  }
+}
+
+class _WhyChooseSection extends StatelessWidget {
+  const _WhyChooseSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 760) {
+          return const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              WhyChooseCard(),
+              SizedBox(height: 12),
+              _WhyChooseIllustrationPlaceholder(),
+            ],
+          );
+        }
+
+        return const Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(flex: 3, child: WhyChooseCard()),
+            SizedBox(width: 16),
+            Expanded(flex: 1, child: _WhyChooseIllustrationPlaceholder()),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _WhyChooseIllustrationPlaceholder extends StatelessWidget {
+  const _WhyChooseIllustrationPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(minHeight: 220),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFEAF2FF), Color(0xFFDCEBFF)],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFBFD4F3)),
+      ),
+      alignment: Alignment.center,
+      child: const Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.image_outlined, size: 40, color: Color(0xFF1F4E79)),
+          SizedBox(height: 8),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              'Brand illustration slot (SVG/WebP)',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: Color(0xFF1F4E79)),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -4956,89 +5004,135 @@ class _MostPopularToolsCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          _PopularToolRow(
-            icon: Icons.description_outlined,
-            label: 'PDF to Word',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ConvertToolPage()),
-            ),
-          ),
-          _PopularToolRow(
-            icon: Icons.auto_awesome_rounded,
-            label: 'AI Resume Builder',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => AiResumeBuilderPage()),
-              );
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final crossAxisCount = constraints.maxWidth >= 1000
+                  ? 3
+                  : constraints.maxWidth >= 640
+                      ? 2
+                      : 1;
+
+              final tools = <Widget>[
+                _PopularToolRow(
+                  icon: Icons.description_outlined,
+                  label: 'PDF to Word',
+                  description: 'Convert PDF documents into fully editable Word files in seconds.',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ConvertToolPage()),
+                  ),
+                ),
+                _PopularToolRow(
+                  icon: Icons.auto_awesome_rounded,
+                  label: 'AI Resume Builder',
+                  description: 'Build ATS-ready resumes with AI-guided summaries and formatting.',
+                  isFlagship: true,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => AiResumeBuilderPage()),
+                    );
+                  },
+                ),
+                _PopularToolRow(
+                  icon: Icons.photo_camera_outlined,
+                  label: 'HD Photo Converter / Enhancer',
+                  description: 'Enhance, resize, and convert photos to studio-quality output.',
+                  isFlagship: true,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => PhotoHdWorkspacePage()),
+                    );
+                  },
+                ),
+                _PopularToolRow(
+                  icon: Icons.image_outlined,
+                  label: 'JPG to PDF',
+                  description: 'Turn one or more images into a clean, shareable PDF file.',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ConvertToolPage()),
+                  ),
+                ),
+                _PopularToolRow(
+                  icon: Icons.compress_outlined,
+                  label: 'Compress PDF',
+                  description: 'Shrink file size while keeping document quality intact.',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CompressionToolPage()),
+                  ),
+                ),
+                _PopularToolRow(
+                  icon: Icons.merge_type,
+                  label: 'Merge PDF',
+                  description: 'Combine multiple PDF files into a single organized document.',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const MergeToolPage()),
+                  ),
+                ),
+                _PopularToolRow(
+                  icon: Icons.call_split_outlined,
+                  label: 'Split PDF',
+                  description: 'Break a large PDF into separate, easy-to-share pages or sections.',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SplitToolPage()),
+                  ),
+                ),
+                _PopularToolRow(
+                  icon: Icons.lock_outline_rounded,
+                  label: 'Protect PDF',
+                  description: 'Add access protection to keep sensitive documents secure.',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PdfEditPage()),
+                  ),
+                ),
+                _PopularToolRow(
+                  icon: Icons.edit_note_rounded,
+                  label: 'Edit PDF',
+                  description: 'Make quick text and layout edits directly inside your PDF.',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PdfEditPage()),
+                  ),
+                ),
+                _PopularToolRow(
+                  icon: Icons.document_scanner_outlined,
+                  label: 'PDF to PDF OCR Tool',
+                  description: 'Extract and search text from scanned documents accurately.',
+                  isFlagship: true,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PdfEditPage()),
+                  ),
+                ),
+              ];
+
+              final rows = <Widget>[];
+              for (var i = 0; i < tools.length; i += crossAxisCount) {
+                final rowItems = tools.skip(i).take(crossAxisCount).toList();
+                rows.add(
+                  Padding(
+                    padding: EdgeInsets.only(bottom: i + crossAxisCount < tools.length ? 10 : 0),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (var col = 0; col < crossAxisCount; col++) ...[
+                          if (col > 0) const SizedBox(width: 10),
+                          Expanded(child: col < rowItems.length ? rowItems[col] : const SizedBox.shrink()),
+                        ],
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              return Column(children: rows);
             },
-          ),
-          _PopularToolRow(
-            icon: Icons.photo_camera_outlined,
-            label: 'HD Photo Converter / Enhancer',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => PhotoHdWorkspacePage()),
-              );
-            },
-          ),
-          _PopularToolRow(
-            icon: Icons.image_outlined,
-            label: 'JPG to PDF',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ConvertToolPage()),
-            ),
-          ),
-          _PopularToolRow(
-            icon: Icons.compress_outlined,
-            label: 'Compress PDF',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const CompressionToolPage()),
-            ),
-          ),
-          _PopularToolRow(
-            icon: Icons.merge_type,
-            label: 'Merge PDF',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const MergeToolPage()),
-            ),
-          ),
-          _PopularToolRow(
-            icon: Icons.call_split_outlined,
-            label: 'Split PDF',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const SplitToolPage()),
-            ),
-          ),
-          _PopularToolRow(
-            icon: Icons.lock_outline_rounded,
-            label: 'Protect PDF',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const PdfEditPage()),
-            ),
-          ),
-          _PopularToolRow(
-            icon: Icons.edit_note_rounded,
-            label: 'Edit PDF',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const PdfEditPage()),
-            ),
-          ),
-          _PopularToolRow(
-            icon: Icons.document_scanner_outlined,
-            label: 'OCR PDF',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const PdfEditPage()),
-            ),
           ),
         ],
       ),
@@ -5049,43 +5143,90 @@ class _MostPopularToolsCard extends StatelessWidget {
 class _PopularToolRow extends StatelessWidget {
   final IconData icon;
   final String label;
+  final String description;
   final VoidCallback onTap;
+  final bool isFlagship;
 
   const _PopularToolRow({
     required this.icon,
     required this.label,
+    required this.description,
     required this.onTap,
+    this.isFlagship = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 7),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
-          child: Row(
-            children: [
-              Icon(icon, size: 18, color: const Color(0xFF1F4E79)),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1E293B),
-                ),
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+        decoration: BoxDecoration(
+          color: isFlagship ? const Color(0xFFFFF7E6) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: isFlagship ? const Color(0xFFFFD166) : const Color(0xFFE2E8F0)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: isFlagship ? const Color(0xFFFFC72C).withValues(alpha: 0.18) : const Color(0xFFEFF4FA),
+                borderRadius: BorderRadius.circular(10),
               ),
-              const Spacer(),
-              const Icon(
-                Icons.chevron_right_rounded,
-                size: 16,
-                color: Color(0xFF64748B),
+              child: Icon(icon, size: 18, color: const Color(0xFF1F4E79)),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          label,
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF1E293B)),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (isFlagship) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFC72C),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: const Text(
+                            'FLAGSHIP',
+                            style: TextStyle(fontSize: 8, fontWeight: FontWeight.w800, color: Color(0xFF1F2937), letterSpacing: 0.4),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), height: 1.25),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(
+              Icons.chevron_right_rounded,
+              size: 18,
+              color: Color(0xFF64748B),
+            ),
+          ],
         ),
       ),
     );

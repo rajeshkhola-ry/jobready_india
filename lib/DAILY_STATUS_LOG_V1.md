@@ -766,6 +766,21 @@ Prepared For: JOBREADY
 - Owner:
   - Founder + Copilot
 
+### Checkpoint - 2026-08-03 (Live Site UI/Functionality Fixes - 4-Item Batch)
+- Overall status: Green (checkpoint stable)
+- Completed today:
+  - **Pricing sync fix:** `PlanCatalogService.formatPlanPriceLine` now reads the persisted/admin-saved plan catalog (`load()`) instead of hardcoded `PlanCatalogConfig.defaults()`; `UserDashboardPage._priceForPlan` now checks the saved admin config first. Admin rate changes now propagate to both Home Page and User Dashboard consistently.
+  - **AI Resume Builder ghost text fix:** `AiResumeBuilderPage._buildResume()` no longer inserts instructional filler text ("Add your experience summary here.", "Your Name", "email@example.com", etc.) into the generated resume body. Empty fields/sections are now omitted entirely instead of being printed into the export.
+  - **AI Resume Builder photo attach + real PDF export:** `AiCoverLetterService` PDF export now accepts optional `photoBytes` and embeds the uploaded profile photo (top-right) in the generated PDF. `_downloadResume()` now produces an actual PDF via `downloadResumeExport(...)` (previously downloaded a mislabeled `.txt` file despite the "Download PDF" button label). Share actions (WhatsApp/email) also carry the photo through.
+  - **Why Choose relocation + 75/25 layout:** Added `_WhyChooseSection` in `lib/Pages/home_page_v2.dart`, placed directly below the Ad Space and above the Plans section header. Wide layout uses a 75/25 (`flex 3:1`) split: `WhyChooseCard` (text/features) + a new `_WhyChooseIllustrationPlaceholder` container reserved for a future SVG/WebP brand illustration. Removed the old cramped inline Row that squeezed Why Choose + Most Popular Tools side by side above the Ad Space.
+  - **Most Popular Tools full-width redesign:** `_MostPopularToolsCard` now renders full width (no longer sharing a flex row with Why Choose), using a responsive content-sized row grid (1/2/3 columns by breakpoint) instead of a fixed-aspect-ratio grid. Each `_PopularToolRow` now shows a 1-2 line description, and flagship tools (AI Resume Builder, HD Photo Converter/Enhancer, renamed "PDF to PDF OCR Tool") get a highlighted card style with a "FLAGSHIP" badge.
+- In progress:
+  - None — all 4 requested items completed in this batch.
+- Validation result:
+  - `flutter analyze` (targeted: `home_page_v2.dart`, `ai_resume_builder_page.dart`, `user_dashboard_page.dart`, `plan_catalog_service.dart`, `ai_cover_letter_service.dart`): PASS — 0 new errors/warnings; only pre-existing repo-wide info/warning items remain (deprecated `withOpacity`/`Share`, a few pre-existing unused private declarations unrelated to this batch).
+- Owner:
+  - Founder + Copilot
+
 ### Checkpoint - 2026-07-18 (V1.1 Controlled Merge - Checkpoint 5)
 - Overall status: Green (checkpoint stable)
 - Completed today:

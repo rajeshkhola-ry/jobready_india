@@ -159,8 +159,9 @@ class PlanCatalogService {
   static const String _storageKey = 'jobready_plan_catalog_config_v1_1';
 
   static String formatPlanPriceLine(String plan, {required String currencyCode, String suffix = ''}) {
-    final inrAmount = PlanCatalogConfig.defaults().inrPrices[plan] ?? 0.0;
-    final usdAmount = PlanCatalogConfig.defaults().usdPrices[plan] ?? 0.0;
+    final config = load();
+    final inrAmount = config.inrPrices[plan] ?? 0.0;
+    final usdAmount = config.usdPrices[plan] ?? 0.0;
 
     if (plan == 'Free') {
       return '₹0 / \$0$suffix';
