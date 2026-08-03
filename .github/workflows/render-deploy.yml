@@ -26,7 +26,7 @@ jobs:
 
       - name: Verify Render health endpoint
         run: |
-          HEALTH_URL="https://getreadyjob.onrender.com/api/info"
+          HEALTH_URL="https://jobready-india.onrender.com/api/info"
 
           echo "Checking Render health at: $HEALTH_URL"
           for i in {1..12}; do
