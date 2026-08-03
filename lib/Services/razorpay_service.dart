@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:js_util' as js_util;
 
 import 'package:flutter/foundation.dart';
 import 'dart:js' as js;
@@ -78,8 +79,8 @@ class RazorpayPaymentService {
       }
     }
 
-    script.callMethod('addEventListener', ['load', js.allowInterop(completeLoad)]);
-    script.callMethod('addEventListener', ['error', js.allowInterop(completeError)]);
+    script.callMethod('addEventListener', ['load', js_util.allowInterop(completeLoad)]);
+    script.callMethod('addEventListener', ['error', js_util.allowInterop(completeError)]);
 
     try {
       await _scriptCompleter!.future;

@@ -1,3 +1,8 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:js' as js;
+import 'dart:js_util' as js_util;
+
 import 'package:flutter/material.dart';
 import 'package:universal_html/html.dart' as html;
 
@@ -17,6 +22,7 @@ import '../Services/user_rating_service.dart';
 import '../Services/user_account_service.dart';
 import '../Services/user_auth_service.dart';
 import '../Services/usage_quota_service.dart';
+import '../Services/razorpay_service.dart';
 import '../Widgets/user_auth_dialog.dart';
 import '../Widgets/ai_resume_feature_banner.dart';
 import '../Widgets/brand_logo_button.dart';
@@ -504,6 +510,9 @@ class _HomePageV2State extends State<HomePageV2> {
   Future<void> _openUserLoginPanel() async {
     if (UserAuthService.isSignedIn) {
       await _showPostLoginPrompt();
+      if (mounted) {
+        setState(() {});
+      }
       return;
     }
 
@@ -515,10 +524,30 @@ class _HomePageV2State extends State<HomePageV2> {
           if (!mounted) {
             return;
           }
+          setState(() {});
           Future<void>.microtask(_showPostLoginPrompt);
         },
       ),
     );
+
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  String? _homeLoginStatusLabel() {
+    if (!UserAuthService.isSignedIn) {
+      return null;
+    }
+
+    final session = UserAuthService.getSession();
+    final profile = UserAccountService.getProfile();
+    final preferredName = (profile.displayName.trim().isNotEmpty
+            ? profile.displayName.trim()
+            : session?.displayName.trim() ?? '')
+        .trim();
+    final name = preferredName.isEmpty ? 'User' : preferredName;
+    return 'U R LOGIN: Mr $name';
   }
 
   Future<void> _showPostLoginPrompt() async {
@@ -667,6 +696,7 @@ class _HomePageV2State extends State<HomePageV2> {
           if (!mounted) {
             return;
           }
+          setState(() {});
           if (selectedPlan == null || selectedPlan.trim().isEmpty) {
             return;
           }
@@ -674,6 +704,10 @@ class _HomePageV2State extends State<HomePageV2> {
         },
       ),
     );
+
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -682,6 +716,7 @@ class _HomePageV2State extends State<HomePageV2> {
     final monthlyPriceLine = _planPriceLine('Monthly', ' per month');
     final yearlyPriceLine = _planPriceLine('Yearly', ' per year');
     final lifetimePriceLine = _planPriceLine('Lifetime', ' one-time');
+    final loginStatusLabel = _homeLoginStatusLabel();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FC),
@@ -700,10 +735,15 @@ class _HomePageV2State extends State<HomePageV2> {
         actions: [
           TextButton.icon(
             onPressed: _openUserLoginPanel,
-            icon: const Icon(Icons.person_outline_rounded, size: 16),
-            label: const Text('User Login'),
+            icon: Icon(
+              loginStatusLabel == null ? Icons.person_outline_rounded : Icons.verified_user_rounded,
+              size: 16,
+            ),
+            label: Text(
+              loginStatusLabel == null ? 'User Login' : 'U R LOGIN',
+            ),
             style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF334155),
+              foregroundColor: loginStatusLabel == null ? const Color(0xFF334155) : const Color(0xFF166534),
               textStyle: const TextStyle(fontWeight: FontWeight.w700),
             ),
           ),
@@ -823,11 +863,32 @@ class _HomePageV2State extends State<HomePageV2> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (loginStatusLabel != null) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFECFDF3),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF86EFAC)),
+                    ),
+                    child: Text(
+                      '$loginStatusLabel is shown on home screen.',
+                      style: const TextStyle(
+                        color: Color(0xFF166534),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF183A5B),
+                    color: const Color(0xFF0F172A),
                     borderRadius: BorderRadius.circular(18),
                   ),
                   child: const Text(
@@ -1061,7 +1122,7 @@ class _HomePageV2State extends State<HomePageV2> {
                         child: _QuickAccessButton(
                           icon: Icons.tune_rounded,
                           label: 'Daily Usage',
-                          accent: const Color(0xFF1F4E79),
+                          accent: const Color(0xFF0F172A),
                         ),
                       ),
                       PopupMenuButton<String>(
@@ -2351,7 +2412,7 @@ class _GatewayControlPanelState extends State<_GatewayControlPanel> {
               child: ElevatedButton(
                 onPressed: _unlockOwner,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1F4E79),
+                  backgroundColor: const Color(0xFF0F172A),
                   foregroundColor: Colors.white,
                 ),
                 child: const Text('Unlock Owner Controls'),
@@ -2480,7 +2541,7 @@ class _OwnerIntegrationHubPanelState extends State<_OwnerIntegrationHubPanel> {
               child: ElevatedButton(
                 onPressed: _unlock,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1F4E79),
+                  backgroundColor: const Color(0xFF0F172A),
                   foregroundColor: Colors.white,
                 ),
                 child: const Text('Unlock Integration Hub'),
@@ -2536,6 +2597,8 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
   Map<String, dynamic>? _lastCheckoutResponse;
   String _localCurrency = 'USD';
 
+  static const Duration _checkoutTimeout = Duration(minutes: 10);
+
   @override
   void initState() {
     super.initState();
@@ -2588,6 +2651,168 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
       currency: _localCurrency,
       usageType: widget.usageType,
     );
+  }
+
+  String _apiUrl(String path) {
+    final base = ApiConfig.baseUrl.endsWith('/')
+        ? ApiConfig.baseUrl.substring(0, ApiConfig.baseUrl.length - 1)
+        : ApiConfig.baseUrl;
+    if (path.startsWith('/')) {
+      return '$base$path';
+    }
+    return '$base/$path';
+  }
+
+  String _resolvedGatewayName() {
+    final configured = widget.activeGateway.trim().toLowerCase();
+    if (configured.isNotEmpty) {
+      return configured;
+    }
+    return 'razorpay';
+  }
+
+  Future<Map<String, dynamic>> _requestJson(
+    String method,
+    String url, {
+    Map<String, dynamic>? body,
+  }) async {
+    final response = await html.HttpRequest.request(
+      url,
+      method: method,
+      sendData: body == null ? null : jsonEncode(body),
+      requestHeaders: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+    );
+
+    final raw = response.responseText ?? '{}';
+    final decoded = jsonDecode(raw);
+    if (decoded is! Map) {
+      throw Exception('Unexpected response format from server.');
+    }
+
+    final mapped = Map<String, dynamic>.from(decoded);
+    mapped['_http_status'] = response.status;
+    return mapped;
+  }
+
+  Map<String, dynamic> _buildBillingPayload() {
+    final profile = UserAccountService.getProfile();
+    final session = UserAuthService.getSession();
+
+    final displayName = profile.displayName.trim().isNotEmpty
+        ? profile.displayName.trim()
+        : (session?.displayName.trim().isNotEmpty == true ? session!.displayName.trim() : 'User');
+    final email = profile.email.trim().isNotEmpty
+        ? profile.email.trim()
+        : (session?.email.trim().isNotEmpty == true ? session!.email.trim() : 'guest@example.com');
+    final mobileRaw = profile.mobileNumber.trim().isNotEmpty
+        ? profile.mobileNumber.trim()
+        : (session?.mobileNumber.trim() ?? '9999999999');
+    final mobileDigits = mobileRaw.replaceAll(RegExp(r'\D'), '');
+    final normalizedMobile = mobileDigits.isEmpty ? '9999999999' : mobileDigits;
+
+    return {
+      'name': displayName,
+      'company': '',
+      'address': '',
+      'country': profile.country.trim().isEmpty ? 'India' : profile.country.trim(),
+      'gstin': '',
+      'email': email,
+      'mobile': normalizedMobile,
+    };
+  }
+
+  Future<Map<String, dynamic>> _openRazorpayAndVerify({
+    required String keyId,
+    required String orderId,
+    required int amount,
+    required String currency,
+    required Map<String, dynamic> billing,
+  }) async {
+    final initialized = await RazorpayPaymentService.instance.initialize();
+    if (!initialized) {
+      throw Exception('Unable to load Razorpay checkout SDK.');
+    }
+
+    final completer = Completer<Map<String, String>>();
+
+    final handler = js_util.allowInterop((dynamic response) {
+      final razorpayOrderId = response['razorpay_order_id']?.toString() ?? '';
+      final razorpayPaymentId = response['razorpay_payment_id']?.toString() ?? '';
+      final razorpaySignature = response['razorpay_signature']?.toString() ?? '';
+
+      if (!completer.isCompleted) {
+        completer.complete({
+          'order_id': razorpayOrderId,
+          'payment_id': razorpayPaymentId,
+          'signature': razorpaySignature,
+        });
+      }
+    });
+
+    final dismissHandler = js_util.allowInterop(() {
+      if (!completer.isCompleted) {
+        completer.completeError(Exception('Payment cancelled by user.'));
+      }
+    });
+
+    final options = js.JsObject.jsify({
+      'key': keyId,
+      'amount': amount,
+      'currency': currency,
+      'name': ApiConfig.razorpayConfig.businessName,
+      'description': ApiConfig.razorpayConfig.description,
+      'order_id': orderId,
+      'handler': handler,
+      'prefill': {
+        'name': billing['name']?.toString() ?? 'User',
+        'email': billing['email']?.toString() ?? 'guest@example.com',
+        'contact': billing['mobile']?.toString() ?? '9999999999',
+      },
+      'theme': {
+        'color': '#${ApiConfig.razorpayConfig.themeColor.toUpperCase()}',
+      },
+      'modal': {
+        'ondismiss': dismissHandler,
+      },
+    });
+
+    final razorpayCtor = js.context['Razorpay'];
+    if (razorpayCtor == null) {
+      throw Exception('Razorpay checkout SDK not available in browser context.');
+    }
+
+    final checkout = js.JsObject(razorpayCtor, [options]);
+    checkout.callMethod('open');
+
+    final paymentResult = await completer.future.timeout(
+      _checkoutTimeout,
+      onTimeout: () => throw TimeoutException('Payment confirmation timed out.'),
+    );
+
+    final verifyPayload = {
+      'order_id': paymentResult['order_id'],
+      'payment_id': paymentResult['payment_id'],
+      'signature': paymentResult['signature'],
+    };
+
+    final verifyResponse = await _requestJson(
+      'POST',
+      _apiUrl('/api/verify-payment'),
+      body: verifyPayload,
+    );
+
+    if (verifyResponse['success'] != true) {
+      final failure = verifyResponse['error']?.toString() ?? 'Payment verification failed.';
+      throw Exception(failure);
+    }
+
+    return {
+      ...verifyResponse,
+      ...paymentResult,
+    };
   }
 
   Future<void> _openAuthThenContinue() async {
@@ -2652,23 +2877,98 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
         return;
       }
 
+      final billing = _buildBillingPayload();
+      final keyResponse = await _requestJson('GET', _apiUrl('/api/config'));
+      final keyId = keyResponse['key_id']?.toString().trim() ?? '';
+      if (keyId.isEmpty) {
+        throw Exception('Razorpay public key is not configured on the server.');
+      }
+
+      final amountMinor = (_chargeAmountForPlan(widget.selectedPlan) * 100).round();
+      if (amountMinor <= 0) {
+        throw Exception('Invalid payment amount for selected plan.');
+      }
+
+      final createOrderPayload = {
+        'gateway': _resolvedGatewayName(),
+        'amount': amountMinor,
+        'currency': _localCurrency,
+        'receipt': 'plan-${widget.selectedPlan.toLowerCase()}-${DateTime.now().millisecondsSinceEpoch}',
+        'planId': widget.selectedPlan,
+        'billing': billing,
+      };
+
+      final createOrderResponse = await _requestJson(
+        'POST',
+        _apiUrl('/api/create-order'),
+        body: createOrderPayload,
+      );
+
+      if (createOrderResponse['success'] != true) {
+        final failure = createOrderResponse['error']?.toString() ?? 'Unable to create payment order.';
+        throw Exception(failure);
+      }
+
+      final orderId = createOrderResponse['order_id']?.toString() ?? '';
+      final orderAmount = int.tryParse(createOrderResponse['amount']?.toString() ?? '') ?? amountMinor;
+      final orderCurrency = createOrderResponse['currency']?.toString().toUpperCase() ?? _localCurrency;
+
+      if (orderId.isEmpty) {
+        throw Exception('Payment order ID is missing from server response.');
+      }
+
       setState(() {
         _lastCheckoutResponse = {
           ...readiness,
           'selected_plan': widget.selectedPlan,
-          'checkout_state': 'ready_for_integration',
+          'checkout_state': 'order_created',
           'status': 'ready_for_integration',
-          'label': 'Ready for Integration',
-          'message': 'Checkout readiness confirmed in local UI state only. No live gateway call was made.',
-          'order_id': 'UI-ONLY-CHECKPOINT',
-          'checkout_url': 'Not generated in UI-only checkpoint',
+          'label': 'Order Created',
+          'message': 'Payment order created successfully. Opening Razorpay checkout...',
+          'order_id': orderId,
         };
       });
 
-      const message = 'Local readiness saved. No live checkout action was performed.';
+      final verification = await _openRazorpayAndVerify(
+        keyId: keyId,
+        orderId: orderId,
+        amount: orderAmount,
+        currency: orderCurrency,
+        billing: billing,
+      );
+
+      setState(() {
+        _lastCheckoutResponse = {
+          ...verification,
+          'checkout_state': 'verified',
+          'status': 'ready_for_integration',
+          'label': 'Payment Verified',
+          'message': 'Payment processed and verified successfully.',
+        };
+      });
+
+      const message = 'Payment verified successfully.';
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text(message)),
       );
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _lastCheckoutResponse = {
+            ...readiness,
+            'checkout_state': 'failed',
+            'status': 'unavailable',
+            'label': 'Payment Failed',
+            'message': error.toString().replaceFirst('Exception: ', ''),
+            'order_id': _lastCheckoutResponse?['order_id']?.toString() ?? 'N/A',
+          };
+        });
+      }
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.toString().replaceFirst('Exception: ', ''))),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -2743,7 +3043,7 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Gateway display: ${widget.activeGateway.trim().isEmpty ? 'NOT FINALIZED' : widget.activeGateway.toUpperCase()} | Currency mode: ${readiness['currency_mode']?.toString() ?? 'n/a'}',
+            'Gateway display: ${_resolvedGatewayName().toUpperCase()} | Currency mode: ${readiness['currency_mode']?.toString() ?? 'n/a'}',
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
           ),
           const SizedBox(height: 4),
@@ -2816,7 +3116,7 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Selected payment gateway: ${widget.activeGateway.trim().isEmpty ? 'NOT FINALIZED' : widget.activeGateway.toUpperCase()}',
+            'Selected payment gateway: ${_resolvedGatewayName().toUpperCase()}',
             style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w800,
@@ -3022,12 +3322,12 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
                 ),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2563EB),
+                backgroundColor: const Color(0xFF0F172A),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 elevation: 2,
-                shadowColor: const Color(0xFF2563EB).withValues(alpha: 0.35),
+                shadowColor: const Color(0xFF0F172A).withValues(alpha: 0.35),
               ),
             ),
           ),
@@ -3144,7 +3444,7 @@ class _AdminLoginPanelState extends State<_AdminLoginPanel> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+                borderSide: const BorderSide(color: Color(0xFF0F172A), width: 1.4),
               ),
             ),
           ),
@@ -3165,7 +3465,7 @@ class _AdminLoginPanelState extends State<_AdminLoginPanel> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+                borderSide: const BorderSide(color: Color(0xFF0F172A), width: 1.4),
               ),
               suffixIcon: IconButton(
                 onPressed: () {
@@ -3188,7 +3488,7 @@ class _AdminLoginPanelState extends State<_AdminLoginPanel> {
               icon: const Icon(Icons.lock_open_rounded),
               label: const Text('Login for Admin Controls'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1F4E79),
+                backgroundColor: const Color(0xFF0F172A),
                 foregroundColor: Colors.white,
               ),
             ),
@@ -3271,7 +3571,7 @@ class _AdminCredentialsPanelState extends State<_AdminCredentialsPanel> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF183A5B).withOpacity(0.06),
+            color: const Color(0xFF0F172A).withOpacity(0.06),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -3300,7 +3600,7 @@ class _AdminCredentialsPanelState extends State<_AdminCredentialsPanel> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+                borderSide: const BorderSide(color: Color(0xFF0F172A), width: 1.4),
               ),
             ),
           ),
@@ -3321,7 +3621,7 @@ class _AdminCredentialsPanelState extends State<_AdminCredentialsPanel> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+                borderSide: const BorderSide(color: Color(0xFF0F172A), width: 1.4),
               ),
               suffixIcon: IconButton(
                 onPressed: () {
@@ -3344,7 +3644,7 @@ class _AdminCredentialsPanelState extends State<_AdminCredentialsPanel> {
               icon: const Icon(Icons.password_rounded),
               label: const Text('Save Admin ID / Password'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF183A5B),
+                backgroundColor: const Color(0xFF0F172A),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -3742,7 +4042,7 @@ class _PlanCatalogManagerPanelState extends State<_PlanCatalogManagerPanel> {
                   icon: const Icon(Icons.save_rounded),
                   label: const Text('Save Plan Settings'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1F4E79),
+                    backgroundColor: const Color(0xFF0F172A),
                     foregroundColor: Colors.white,
                   ),
                 ),
@@ -3840,7 +4140,7 @@ class _OwnerOfferManagerPanelState extends State<_OwnerOfferManagerPanel> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+                borderSide: const BorderSide(color: Color(0xFF0F172A), width: 1.4),
               ),
             ),
           ),
@@ -3859,7 +4159,7 @@ class _OwnerOfferManagerPanelState extends State<_OwnerOfferManagerPanel> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+                borderSide: const BorderSide(color: Color(0xFF0F172A), width: 1.4),
               ),
             ),
           ),
@@ -3884,7 +4184,7 @@ class _OwnerOfferManagerPanelState extends State<_OwnerOfferManagerPanel> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+                borderSide: const BorderSide(color: Color(0xFF0F172A), width: 1.4),
               ),
             ),
           ),
@@ -3896,7 +4196,7 @@ class _OwnerOfferManagerPanelState extends State<_OwnerOfferManagerPanel> {
               icon: const Icon(Icons.publish_rounded),
               label: const Text('Publish Offer & Promo'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF183A5B),
+                backgroundColor: const Color(0xFF0F172A),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -3950,7 +4250,7 @@ class _FuturePlanSection extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF183A5B).withOpacity(0.06),
+            color: const Color(0xFF0F172A).withOpacity(0.06),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -3985,7 +4285,7 @@ class _SuggestionSection extends StatelessWidget {
         icon: const Icon(Icons.feedback_outlined),
         label: const Text('Send Suggestion'),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF183A5B),
+          backgroundColor: const Color(0xFF0F172A),
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 12),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -4073,7 +4373,7 @@ class _UserRatingSectionState extends State<_UserRatingSection> {
               icon: const Icon(Icons.rate_review_outlined),
               label: const Text('Submit Rating'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1F4E79),
+                backgroundColor: const Color(0xFF0F172A),
                 foregroundColor: Colors.white,
               ),
             ),
@@ -4226,7 +4526,7 @@ class _FooterBadge extends StatelessWidget {
           fontSize: 10,
           fontWeight: FontWeight.w800,
           letterSpacing: 0.8,
-          color: Color(0xFF1F4E79),
+          color: Color(0xFF0F172A),
         ),
       ),
     );
@@ -4284,7 +4584,7 @@ class _FooterInfoRow extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF1F4E79),
+                    color: Color(0xFF0F172A),
                   ),
                 ),
               ],
@@ -4417,7 +4717,7 @@ class _CouponControlPanelState extends State<_CouponControlPanel> {
                 ),
                 label: Text(_isPanelExpanded ? 'Hide' : 'Show'),
                 style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF1F4E79),
+                  foregroundColor: const Color(0xFF0F172A),
                   visualDensity: VisualDensity.compact,
                 ),
               ),
@@ -4450,8 +4750,8 @@ class _CouponControlPanelState extends State<_CouponControlPanel> {
                   icon: Icon(_isAdminUnlocked ? Icons.lock_open_rounded : Icons.lock_rounded, size: 16),
                   label: Text(_isAdminUnlocked ? 'Owner On' : 'Owner'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF1F4E79),
-                    side: const BorderSide(color: Color(0xFF1F4E79)),
+                    foregroundColor: const Color(0xFF0F172A),
+                    side: const BorderSide(color: Color(0xFF0F172A)),
                     visualDensity: VisualDensity.compact,
                   ),
                 ),
@@ -4466,7 +4766,7 @@ class _CouponControlPanelState extends State<_CouponControlPanel> {
                 childrenPadding: const EdgeInsets.only(bottom: 8),
                 title: const Text(
                   'Owner Tools',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF1F4E79)),
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
                 ),
                 subtitle: const Text(
                   'Expand only when needed',
@@ -4518,8 +4818,8 @@ class _CouponControlPanelState extends State<_CouponControlPanel> {
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF1F4E79),
-                        side: const BorderSide(color: Color(0xFF1F4E79)),
+                        foregroundColor: const Color(0xFF0F172A),
+                        side: const BorderSide(color: Color(0xFF0F172A)),
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
@@ -4570,7 +4870,7 @@ class _CouponControlPanelState extends State<_CouponControlPanel> {
                             style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF1F4E79),
+                              color: Color(0xFF0F172A),
                             ),
                           ),
                         );
@@ -4612,7 +4912,7 @@ class _CouponControlPanelState extends State<_CouponControlPanel> {
             width: double.infinity,
             child: ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1F4E79),
+                backgroundColor: const Color(0xFF0F172A),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 9),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -4875,7 +5175,7 @@ class _V2Column extends StatelessWidget {
           ),
           child: const Row(
             children: [
-              Icon(Icons.auto_awesome_rounded, color: Color(0xFF1F4E79), size: 18),
+              Icon(Icons.auto_awesome_rounded, color: Color(0xFF0F172A), size: 18),
               SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -4943,7 +5243,7 @@ class _WhyChooseIllustrationPlaceholder extends StatelessWidget {
         border: Border.all(color: const Color(0xFFBFD4F3)),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF183A5B).withValues(alpha: 0.06),
+            color: const Color(0xFF0F172A).withValues(alpha: 0.06),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -4959,7 +5259,7 @@ class _WhyChooseIllustrationPlaceholder extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1F4E79),
+                  color: const Color(0xFF0F172A),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: const Row(
@@ -5065,7 +5365,7 @@ class _WhyChooseIllustrationPlaceholder extends StatelessWidget {
                     color: const Color(0xFFF0F9FF),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.photo_camera_outlined, color: Color(0xFF2563EB), size: 20),
+                  child: const Icon(Icons.photo_camera_outlined, color: Color(0xFF0F172A), size: 20),
                 ),
                 const SizedBox(width: 10),
                 const Expanded(
@@ -5079,7 +5379,7 @@ class _WhyChooseIllustrationPlaceholder extends StatelessWidget {
                       SizedBox(height: 2),
                       Text(
                         '100KB Passport • Studio Polish',
-                        style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: Color(0xFF2563EB)),
+                        style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
                       ),
                     ],
                   ),
@@ -5170,7 +5470,7 @@ class _IllustrationBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: const Color(0xFF1F4E79)),
+          Icon(icon, size: 12, color: const Color(0xFF0F172A)),
           const SizedBox(width: 4),
           Text(
             label,
@@ -5426,7 +5726,7 @@ class _PopularToolRow extends StatelessWidget {
                 color: isFlagship ? const Color(0xFFFFC72C).withValues(alpha: 0.18) : const Color(0xFFEFF4FA),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, size: 18, color: const Color(0xFF1F4E79)),
+              child: Icon(icon, size: 18, color: const Color(0xFF0F172A)),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -5658,7 +5958,7 @@ class _RecentDocumentsSectionState extends State<_RecentDocumentsSection> {
                   icon: const Icon(Icons.refresh_rounded, size: 15),
                   label: const Text('Refresh'),
                   style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFF1F4E79),
+                    foregroundColor: const Color(0xFF0F172A),
                     visualDensity: VisualDensity.compact,
                   ),
                 ),
@@ -5956,7 +6256,7 @@ class _DailyUsageQuotaSectionState extends State<_DailyUsageQuotaSection> {
                   onPressed: _refresh,
                   icon: const Icon(Icons.refresh_rounded, size: 15),
                   label: const Text('Refresh'),
-                  style: TextButton.styleFrom(foregroundColor: const Color(0xFF1F4E79), visualDensity: VisualDensity.compact),
+                  style: TextButton.styleFrom(foregroundColor: const Color(0xFF0F172A), visualDensity: VisualDensity.compact),
                 ),
               if (widget.showHeader)
                 TextButton.icon(
@@ -6171,7 +6471,7 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF183A5B).withOpacity(0.06),
+            color: const Color(0xFF0F172A).withOpacity(0.06),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -6216,7 +6516,7 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+                borderSide: const BorderSide(color: Color(0xFF0F172A), width: 1.4),
               ),
             ),
           ),
@@ -6238,7 +6538,7 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+                borderSide: const BorderSide(color: Color(0xFF0F172A), width: 1.4),
               ),
             ),
           ),
@@ -6275,7 +6575,7 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+                borderSide: const BorderSide(color: Color(0xFF0F172A), width: 1.4),
               ),
             ),
           ),
@@ -6315,7 +6615,7 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+                      borderSide: const BorderSide(color: Color(0xFF0F172A), width: 1.4),
                     ),
                   ),
                 ),
@@ -6339,7 +6639,7 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Color(0xFF183A5B), width: 1.4),
+                      borderSide: const BorderSide(color: Color(0xFF0F172A), width: 1.4),
                     ),
                   ),
                 ),
@@ -6354,7 +6654,7 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
               icon: const Icon(Icons.g_mobiledata_rounded, size: 20),
               label: const Text('Login with Google'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF183A5B),
+                foregroundColor: const Color(0xFF0F172A),
                 side: const BorderSide(color: Color(0xFFBFDBFE)),
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -6368,7 +6668,7 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
               icon: const Icon(Icons.person_add_alt_1_rounded, size: 16),
               label: const Text('Create Account'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF183A5B),
+                backgroundColor: const Color(0xFF0F172A),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
