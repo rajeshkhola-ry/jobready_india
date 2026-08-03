@@ -788,10 +788,8 @@ class _HomePageV2State extends State<HomePageV2> {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                   decoration: BoxDecoration(
+                    color: const Color(0xFF183A5B),
                     borderRadius: BorderRadius.circular(18),
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF183A5B), Color(0xFF0F2D4A)],
-                    ),
                   ),
                   child: const Text(
                     'Upload one document or multiple files together and start working instantly.',

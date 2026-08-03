@@ -28,10 +28,8 @@ class AiResumeFeatureBanner extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
+        color: const Color(0xFF183A5B),
         borderRadius: BorderRadius.circular(16),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF183A5B), Color(0xFF0F2D4A)],
-        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

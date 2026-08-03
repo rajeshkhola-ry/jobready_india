@@ -1103,3 +1103,20 @@ Prepared For: JOBREADY
 - Decisions needed:
   - None.
 - Owner: Founder + Copilot
+
+### Checkpoint - 2026-08-03 (Single Solid Dark Blue Color for Home Banners)
+- Overall status: Green (Removed two-color gradients and set single flat dark navy blue #183A5B base color for both top home banners)
+- Completed today:
+  - **Flat Solid Dark Navy Color Update** ✓
+    - Updated top banner in `lib/Pages/home_page_v2.dart` from `LinearGradient` to single solid `color: const Color(0xFF183A5B)`.
+    - Updated feature banner in `lib/Widgets/ai_resume_feature_banner.dart` from `LinearGradient` to single solid `color: const Color(0xFF183A5B)`.
+  - **Validation & Deployment** ✓
+    - Analyzer check passed with 0 errors across edited files.
+    - Staged, committed, and pushed changes to main branch.
+- In progress:
+  - Completed.
+- Blockers:
+  - None.
+- Decisions needed:
+  - None.
+- Owner: Founder + Copilot
