@@ -20,6 +20,7 @@ import '../Services/usage_quota_service.dart';
 import '../Widgets/user_auth_dialog.dart';
 import '../Widgets/ai_resume_feature_banner.dart';
 import '../Widgets/brand_logo_button.dart';
+import '../Widgets/production_footer.dart';
 import 'ai_resume_builder_page.dart';
 import 'compression_benchmark_page.dart';
 import 'compression_tool_page.dart';
@@ -1091,6 +1092,8 @@ class _HomePageV2State extends State<HomePageV2> {
                   label: 'Support',
                   value: PublicBrandConfig.supportEmail,
                 ),
+                const SizedBox(height: 12),
+                const ProductionFooter(),
                 const SizedBox(height: 6),
               ],
             ),

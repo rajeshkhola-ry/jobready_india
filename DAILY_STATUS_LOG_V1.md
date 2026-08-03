@@ -1074,3 +1074,32 @@ Prepared For: JOBREADY
 - Decisions needed:
   - None.
 - Owner: Founder + Copilot
+
+### Checkpoint - 2026-08-03 (Added Production Footer Box to Home Page)
+- Overall status: Green (Production footer card matching screenshot added below Support, all 10 links fully functional)
+- Completed today:
+  - **Added Production Footer to Home Page** ✓
+    - Placed `ProductionFooter` in `lib/Pages/home_page_v2.dart` directly below the Support section.
+    - Matches attached screenshot layout: dark navy box, header, subtitle, 10 pill buttons, business email, social handles, website, and copyright line.
+  - **Wired Routes & Details Pages** ✓
+    - Verified and wired all 10 route targets in `lib/main_v1_1.dart` and `lib/main.dart`:
+      1. About Us (`/about` -> `AboutPage`)
+      2. Contact (`/contact` -> `ContactPage`)
+      3. Pricing (`/pricing` -> `PricingPage`)
+      4. FAQ (`/faq` -> `FaqPage`)
+      5. Help Center / Support (`/support` -> `SupportPage`)
+      6. Privacy Policy (`/privacy` -> `PrivacyPolicyPage`)
+      7. Terms & Conditions (`/terms` -> `TermsConditionsPage`)
+      8. Cookie Policy (`/cookie-policy` -> `CookiePolicyPage`)
+      9. Disclaimer (`/disclaimer` -> `DisclaimerPage`)
+      10. Customer Reviews / Testimonials (`/testimonials` -> `TestimonialsPage`)
+  - **Validation & Deployment** ✓
+    - Analyzer check passed with 0 errors across edited files.
+    - Staged, committed, and pushed changes to main branch.
+- In progress:
+  - Completed.
+- Blockers:
+  - None.
+- Decisions needed:
+  - None.
+- Owner: Founder + Copilot

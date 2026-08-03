@@ -12,6 +12,16 @@ import 'Pages/pdf_tools_page.dart';
 import 'Pages/system_check_page.dart';
 import 'Pages/user_dashboard_page.dart';
 import 'Pages/ai_resume_builder_page.dart';
+import 'Pages/about_page.dart';
+import 'Pages/contact_page.dart';
+import 'Pages/pricing_page.dart';
+import 'Pages/faq_page.dart';
+import 'Pages/support_page.dart';
+import 'Pages/privacy_policy_page.dart';
+import 'Pages/terms_conditions_page.dart';
+import 'Pages/cookie_policy_page.dart';
+import 'Pages/disclaimer_page.dart';
+import 'Pages/testimonials_page.dart';
 import 'Widgets/deferred_route_page.dart';
 import 'main_v1_1.dart' as production;
 // ===============================
@@ -172,6 +182,16 @@ routes: {
   '/coming-soon': (_) => const ComingSoonPage(),
   '/system-check': (_) => const SystemCheckPage(),
   '/dashboard': (_) => const UserDashboardPage(),
+  '/about': (_) => const AboutPage(),
+  '/contact': (_) => const ContactPage(),
+  '/pricing': (_) => const PricingPage(),
+  '/faq': (_) => const FaqPage(),
+  '/support': (_) => const SupportPage(),
+  '/privacy': (_) => const PrivacyPolicyPage(),
+  '/terms': (_) => const TermsConditionsPage(),
+  '/cookie-policy': (_) => const CookiePolicyPage(),
+  '/disclaimer': (_) => const DisclaimerPage(),
+  '/testimonials': (_) => const TestimonialsPage(),
 },
 );
 }
