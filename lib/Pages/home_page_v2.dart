@@ -2698,7 +2698,8 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
     if (fallback == normalized) {
       return <String>[normalized];
     }
-    return <String>[normalized, fallback];
+    // Prefer the configured backend first, then same-origin as fallback.
+    return <String>[fallback, normalized];
   }
 
   String _resolvedGatewayName() {
