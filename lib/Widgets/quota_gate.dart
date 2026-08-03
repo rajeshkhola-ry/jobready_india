@@ -5,7 +5,12 @@ import '../Services/public_brand_config.dart';
 import '../Services/free_trial_service.dart';
 import '../Services/user_account_service.dart';
 import '../Services/user_auth_service.dart';
+import '../Services/owner_admin_access_service.dart';
 import 'user_auth_dialog.dart';
+
+bool _isAdminBypassActive() {
+  return OwnerAdminAccessService.isUnlocked;
+}
 
 /// Call this before starting any tool action.
 /// Returns true if usage is within the free-tier limit.
@@ -14,6 +19,10 @@ Future<bool> checkQuotaAndProceed({
   required BuildContext context,
   required String actionBucket,
 }) async {
+  if (_isAdminBypassActive()) {
+    return true;
+  }
+
   final summary = UsageQuotaService.getTodaySummary();
 
   bool overLimit = false;
@@ -98,7 +107,7 @@ Future<bool> checkQuotaAndProceed({
             Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
           },
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF1F4E79),
+            backgroundColor: const Color(0xFF0F172A),
             foregroundColor: Colors.white,
           ),
           child: const Text('View Plans'),
@@ -120,6 +129,10 @@ Future<bool> checkOneTimeToolAccessAndProceed({
   required String toolKey,
   required String toolLabel,
 }) async {
+  if (_isAdminBypassActive()) {
+    return true;
+  }
+
   if (!UserAuthService.isSignedIn) {
     if (!context.mounted) {
       return false;
@@ -132,7 +145,7 @@ Future<bool> checkOneTimeToolAccessAndProceed({
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: const Row(
           children: [
-            Icon(Icons.lock_outline_rounded, color: Color(0xFF1F4E79)),
+            Icon(Icons.lock_outline_rounded, color: Color(0xFF0F172A)),
             SizedBox(width: 8),
             Text('Create a Free Account', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
           ],
@@ -152,7 +165,7 @@ Future<bool> checkOneTimeToolAccessAndProceed({
               Navigator.of(dialogContext).pop();
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1F4E79),
+              backgroundColor: const Color(0xFF0F172A),
               foregroundColor: Colors.white,
             ),
             child: const Text('Sign Up / Sign In'),
@@ -226,7 +239,7 @@ Future<bool> checkOneTimeToolAccessAndProceed({
             Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
           },
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF1F4E79),
+            backgroundColor: const Color(0xFF0F172A),
             foregroundColor: Colors.white,
           ),
           child: const Text('View Plans'),
