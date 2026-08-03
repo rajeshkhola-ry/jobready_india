@@ -1,15 +1,15 @@
-<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="GET READY JOB Lufthansa yellow moon-glow G logo transparent">
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="GET READY JOB white circle logo with gold G transparent">
   <defs>
-    <filter id="moonGlowLite" x="74" y="74" width="364" height="364" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-      <feGaussianBlur stdDeviation="10" result="blur"/>
-      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.9647 0 0 0 0 0.7451 0 0 0 0 0 0 0 0 0.75 0"/>
-      <feBlend in="SourceGraphic" mode="normal"/>
+    <filter id="outerGlowLite" x="42" y="42" width="428" height="428" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="0" stdDeviation="11" flood-color="#FFFFFF" flood-opacity="0.68"/>
     </filter>
   </defs>
 
-  <g filter="url(#moonGlowLite)">
-    <circle cx="256" cy="256" r="146" stroke="#F6BE00" stroke-width="52"/>
-    <path d="M347 256H254" stroke="#F6BE00" stroke-width="52" stroke-linecap="round"/>
-    <path d="M306 256V314" stroke="#F6BE00" stroke-width="52" stroke-linecap="round"/>
+  <g filter="url(#outerGlowLite)">
+    <circle cx="256" cy="256" r="180" fill="#FFFFFF"/>
+    <circle cx="256" cy="256" r="180" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-opacity="0.95"/>
   </g>
+
+  <path d="M334 212C321 191 299 178 272 178C229 178 194 213 194 256C194 299 229 334 272 334C311 334 343 306 349 268H286" stroke="#C18F00" stroke-width="34" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M286 268H349" stroke="#C18F00" stroke-width="34" stroke-linecap="round"/>
 </svg>

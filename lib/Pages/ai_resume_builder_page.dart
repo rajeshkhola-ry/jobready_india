@@ -136,11 +136,6 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
       buffer.writeln(summary);
     }
 
-    buffer.writeln();
-    buffer.writeln('Experience Tier: $_selectedTier');
-    buffer.writeln(_mncStandard ? 'MNC Standard: 1-page / 2-page auto-format ready' : 'Flexible layout mode');
-    buffer.writeln(_onePageLayout ? 'Preferred length: 1 page' : 'Preferred length: 2 pages');
-
     if (experience.isNotEmpty) {
       buffer.writeln();
       buffer.writeln('Experience');
@@ -569,7 +564,7 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.4),
+        borderSide: const BorderSide(color: Color(0xFF0F172A), width: 1.4),
       ),
     );
   }
@@ -729,7 +724,7 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
                       label: const Text('Yes, attach photo'),
                       selected: _attachPhotoToResume == true,
                       onSelected: (_) => setState(() => _attachPhotoToResume = true),
-                      selectedColor: const Color(0xFF2563EB),
+                      selectedColor: const Color(0xFF0F172A),
                       labelStyle: TextStyle(
                         fontWeight: FontWeight.w700,
                         color: _attachPhotoToResume == true ? Colors.white : const Color(0xFF334155),
@@ -846,7 +841,7 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
               children: _experienceTiers.map<Widget>((tier) {
                 final selected = _selectedTier == tier.range;
                 return ChoiceChip(
-                  selectedColor: const Color(0xFF1F4E79),
+                  selectedColor: const Color(0xFF0F172A),
                   labelPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   label: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -1362,7 +1357,7 @@ class _ResumeTemplateGalleryDialogState extends State<_ResumeTemplateGalleryDial
                                       ),
                                       title: Text(option.layoutLabel, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
                                       subtitle: Text(option.theme.name, style: const TextStyle(fontSize: 11.5)),
-                                      trailing: selected ? const Icon(Icons.check_circle_rounded, color: Color(0xFF2563EB), size: 18) : null,
+                                      trailing: selected ? const Icon(Icons.check_circle_rounded, color: Color(0xFF0F172A), size: 18) : null,
                                       onTap: () => _selectTemplate(option),
                                     );
                                   },

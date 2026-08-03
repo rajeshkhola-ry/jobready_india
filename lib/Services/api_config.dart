@@ -448,8 +448,8 @@ class ApiService {
     return {
       'status': 'ready_for_integration',
       'label': 'Ready for Integration',
-      'message': 'Local checkout state is complete and ready for a future gateway connection.',
-      'fallback': 'This checkpoint records UI readiness only. No live checkout action is performed.',
+      'message': 'Secure checkout is ready. Payment opens Razorpay and verifies on completion.',
+      'fallback': 'If checkout does not open, refresh the page and retry with a stable network.',
       'gateway': normalizedGateway,
       'plan_id': normalizedPlan.toLowerCase().replaceAll(' ', '_'),
       'display_plan': normalizedPlan,

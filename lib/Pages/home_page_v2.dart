@@ -535,21 +535,6 @@ class _HomePageV2State extends State<HomePageV2> {
     }
   }
 
-  String? _homeLoginStatusLabel() {
-    if (!UserAuthService.isSignedIn) {
-      return null;
-    }
-
-    final session = UserAuthService.getSession();
-    final profile = UserAccountService.getProfile();
-    final preferredName = (profile.displayName.trim().isNotEmpty
-            ? profile.displayName.trim()
-            : session?.displayName.trim() ?? '')
-        .trim();
-    final name = preferredName.isEmpty ? 'User' : preferredName;
-    return 'U R LOGIN: Mr $name';
-  }
-
   Future<void> _showPostLoginPrompt() async {
     if (!mounted) {
       return;
@@ -716,8 +701,6 @@ class _HomePageV2State extends State<HomePageV2> {
     final monthlyPriceLine = _planPriceLine('Monthly', ' per month');
     final yearlyPriceLine = _planPriceLine('Yearly', ' per year');
     final lifetimePriceLine = _planPriceLine('Lifetime', ' one-time');
-    final loginStatusLabel = _homeLoginStatusLabel();
-
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FC),
 
@@ -735,15 +718,10 @@ class _HomePageV2State extends State<HomePageV2> {
         actions: [
           TextButton.icon(
             onPressed: _openUserLoginPanel,
-            icon: Icon(
-              loginStatusLabel == null ? Icons.person_outline_rounded : Icons.verified_user_rounded,
-              size: 16,
-            ),
-            label: Text(
-              loginStatusLabel == null ? 'User Login' : 'U R LOGIN',
-            ),
+            icon: Icon(UserAuthService.isSignedIn ? Icons.verified_user_rounded : Icons.person_outline_rounded, size: 16),
+            label: const Text('User Login'),
             style: TextButton.styleFrom(
-              foregroundColor: loginStatusLabel == null ? const Color(0xFF334155) : const Color(0xFF166534),
+              foregroundColor: UserAuthService.isSignedIn ? const Color(0xFF166534) : const Color(0xFF334155),
               textStyle: const TextStyle(fontWeight: FontWeight.w700),
             ),
           ),
@@ -863,41 +841,21 @@ class _HomePageV2State extends State<HomePageV2> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (loginStatusLabel != null) ...[
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFECFDF3),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFF86EFAC)),
-                    ),
-                    child: Text(
-                      '$loginStatusLabel is shown on home screen.',
-                      style: const TextStyle(
-                        color: Color(0xFF166534),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                ],
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0F172A),
-                    borderRadius: BorderRadius.circular(18),
+                    color: const Color(0xFFF2F7FF),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFD9E5F6)),
                   ),
                   child: const Text(
                     'Upload one document or multiple files together and start working instantly.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Color(0xFF1D3557),
                       fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
                       letterSpacing: 0.3,
                     ),
                   ),
@@ -909,15 +867,15 @@ class _HomePageV2State extends State<HomePageV2> {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEAF2FF),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFBFD4F3)),
+                    color: const Color(0xFFF8FCFF),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFD8E6F7)),
                   ),
                   child: const Text(
                     'Welcome to GETREADYJOB!',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Color(0xFF0E3A66),
+                      color: Color(0xFF244466),
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.2,
@@ -2654,13 +2612,20 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
   }
 
   String _apiUrl(String path) {
+    final normalized = path.startsWith('/') ? path : '/$path';
+    return normalized;
+  }
+
+  List<String> _candidateApiUrls(String path) {
+    final normalized = _apiUrl(path);
     final base = ApiConfig.baseUrl.endsWith('/')
         ? ApiConfig.baseUrl.substring(0, ApiConfig.baseUrl.length - 1)
         : ApiConfig.baseUrl;
-    if (path.startsWith('/')) {
-      return '$base$path';
+    final fallback = '$base$normalized';
+    if (fallback == normalized) {
+      return <String>[normalized];
     }
-    return '$base/$path';
+    return <String>[normalized, fallback];
   }
 
   String _resolvedGatewayName() {
@@ -2676,25 +2641,73 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
     String url, {
     Map<String, dynamic>? body,
   }) async {
-    final response = await html.HttpRequest.request(
-      url,
-      method: method,
-      sendData: body == null ? null : jsonEncode(body),
-      requestHeaders: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-    );
-
-    final raw = response.responseText ?? '{}';
-    final decoded = jsonDecode(raw);
-    if (decoded is! Map) {
-      throw Exception('Unexpected response format from server.');
+    html.HttpRequest response;
+    try {
+      response = await html.HttpRequest.request(
+        url,
+        method: method,
+        sendData: body == null ? null : jsonEncode(body),
+        requestHeaders: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      );
+    } catch (_) {
+      throw Exception('Unable to reach payment API at $url.');
     }
 
-    final mapped = Map<String, dynamic>.from(decoded);
+    final raw = response.responseText ?? '{}';
+    Map<String, dynamic> mapped = <String, dynamic>{};
+    if (raw.trim().isNotEmpty) {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map) {
+        mapped = Map<String, dynamic>.from(decoded);
+      } else {
+        throw Exception('Unexpected response format from $url.');
+      }
+    }
+
     mapped['_http_status'] = response.status;
+    final status = response.status ?? 0;
+    if (status < 200 || status >= 300) {
+      final backendError = mapped['error']?.toString().trim() ?? '';
+      if (backendError.isNotEmpty) {
+        throw Exception(backendError);
+      }
+      throw Exception('Payment service returned HTTP $status.');
+    }
+
     return mapped;
+  }
+
+  Future<Map<String, dynamic>> _requestJsonWithFallback(
+    String method,
+    String path, {
+    Map<String, dynamic>? body,
+  }) async {
+    Object? lastError;
+    for (final url in _candidateApiUrls(path)) {
+      try {
+        return await _requestJson(method, url, body: body);
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw Exception(_friendlyCheckoutError(lastError, path));
+  }
+
+  String _friendlyCheckoutError(Object? error, String path) {
+    final raw = (error?.toString() ?? 'Unknown payment error')
+        .replaceFirst('Exception: ', '')
+        .trim();
+    if (raw.contains('HTTP 404') || raw.contains('Unable to reach payment API')) {
+      return 'Payment service endpoint is not reachable for $path. Please retry in 1 minute.';
+    }
+    if (raw.contains('minified:') || raw.contains('ProgressEvent')) {
+      return 'Payment request failed before checkout opened. Please refresh and try again.';
+    }
+    return raw;
   }
 
   Map<String, dynamic> _buildBillingPayload() {
@@ -2798,9 +2811,9 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
       'signature': paymentResult['signature'],
     };
 
-    final verifyResponse = await _requestJson(
+      final verifyResponse = await _requestJsonWithFallback(
       'POST',
-      _apiUrl('/api/verify-payment'),
+      '/api/verify-payment',
       body: verifyPayload,
     );
 
@@ -2878,7 +2891,7 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
       }
 
       final billing = _buildBillingPayload();
-      final keyResponse = await _requestJson('GET', _apiUrl('/api/config'));
+      final keyResponse = await _requestJsonWithFallback('GET', '/api/config');
       final keyId = keyResponse['key_id']?.toString().trim() ?? '';
       if (keyId.isEmpty) {
         throw Exception('Razorpay public key is not configured on the server.');
@@ -2898,9 +2911,9 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
         'billing': billing,
       };
 
-      final createOrderResponse = await _requestJson(
+      final createOrderResponse = await _requestJsonWithFallback(
         'POST',
-        _apiUrl('/api/create-order'),
+        '/api/create-order',
         body: createOrderPayload,
       );
 
@@ -2952,6 +2965,7 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
         const SnackBar(content: Text(message)),
       );
     } catch (error) {
+      final failureMessage = _friendlyCheckoutError(error, '/api/create-order');
       if (mounted) {
         setState(() {
           _lastCheckoutResponse = {
@@ -2959,14 +2973,14 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
             'checkout_state': 'failed',
             'status': 'unavailable',
             'label': 'Payment Failed',
-            'message': error.toString().replaceFirst('Exception: ', ''),
+            'message': failureMessage,
             'order_id': _lastCheckoutResponse?['order_id']?.toString() ?? 'N/A',
           };
         });
       }
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.toString().replaceFirst('Exception: ', ''))),
+          SnackBar(content: Text(failureMessage)),
         );
       }
     } finally {
@@ -3048,7 +3062,9 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
           ),
           const SizedBox(height: 4),
           Text(
-            readiness['fallback']?.toString() ?? 'No fallback note available.',
+            status == 'ready_for_integration'
+                ? 'Secure flow: create order, open Razorpay, then verify payment.'
+                : 'Resolve configuration notes above before attempting checkout.',
             style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
           ),
         ],
@@ -3108,9 +3124,16 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFEEF2FF),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFC7D2FE)),
+        color: const Color(0xFFF8FAFF),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFDCE5F4)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1A94A3B8),
+            blurRadius: 18,
+            offset: Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3322,11 +3345,11 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
                 ),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0F172A),
+                backgroundColor: const Color(0xFF0B1220),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                elevation: 2,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                elevation: 4,
                 shadowColor: const Color(0xFF0F172A).withValues(alpha: 0.35),
               ),
             ),
