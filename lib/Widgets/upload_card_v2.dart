@@ -5,8 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:universal_html/html.dart' as html;
 
-import '../Pages/convert_tool_page.dart';
-import '../Pages/v2/photo/photo_hd_workspace_page.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/file_storage_service.dart';
 import '../Services/upload_context_service.dart';
@@ -171,16 +169,6 @@ class _UploadCardV2State extends State<UploadCardV2> {
     return _allowedExtensions.contains(extension);
   }
 
-  bool _isImageFile(String name) {
-    final dotIndex = name.lastIndexOf('.');
-    if (dotIndex == -1 || dotIndex == name.length - 1) {
-      return false;
-    }
-
-    final extension = name.substring(dotIndex + 1).toLowerCase();
-    return ['jpg', 'jpeg', 'png', 'webp', 'bmp'].contains(extension);
-  }
-
   String _getMimeType(String fileName) {
     final lowerName = fileName.toLowerCase();
     if (lowerName.endsWith('.pdf')) return 'application/pdf';
@@ -269,18 +257,6 @@ class _UploadCardV2State extends State<UploadCardV2> {
         );
       }
 
-      if (!mounted) {
-        return;
-      }
-
-      final isImageSelection = files.any((file) => _isImageFile(file.name));
-      await Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => isImageSelection
-              ? const PhotoHdWorkspacePage()
-              : const ConvertToolPage(),
-        ),
-      );
     } catch (_) {
       if (!mounted) {
         return;
@@ -362,6 +338,30 @@ class _UploadCardV2State extends State<UploadCardV2> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
+                if (_selectedFiles.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFECFDF3),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFB7F1C7)),
+                    ),
+                    child: Text(
+                      _selectedFiles.length == 1
+                          ? '✓ File uploaded successfully: ${_selectedFiles.first.name}'
+                          : '✓ ${_selectedFiles.length} files uploaded successfully and ready.',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF166534),
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 10),
                 SizedBox(
                   width: 220,
@@ -434,7 +434,7 @@ class _UploadCardV2State extends State<UploadCardV2> {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'Tap the card or use the button above to browse your files instantly.',
+                  'Upload on Home, then open any tool below. Your file stays loaded and is shared automatically.',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
                 ),
