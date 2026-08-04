@@ -2732,13 +2732,22 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
     }
 
     final raw = response.responseText ?? '{}';
+    final contentType = response.getResponseHeader('content-type')?.toLowerCase() ?? '';
+    if (_looksLikeHtmlResponse(raw, contentType)) {
+      throw Exception('Payment service returned HTML instead of JSON from $url.');
+    }
+
     Map<String, dynamic> mapped = <String, dynamic>{};
     if (raw.trim().isNotEmpty) {
-      final decoded = jsonDecode(raw);
-      if (decoded is Map) {
-        mapped = Map<String, dynamic>.from(decoded);
-      } else {
-        throw Exception('Unexpected response format from $url.');
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is Map) {
+          mapped = Map<String, dynamic>.from(decoded);
+        } else {
+          throw Exception('Unexpected response format from $url.');
+        }
+      } on FormatException {
+        throw Exception('Payment service returned non-JSON response from $url.');
       }
     }
 
@@ -2760,16 +2769,43 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
     String path, {
     Map<String, dynamic>? body,
   }) async {
+    Object? primaryError;
     Object? lastError;
-    for (final url in _candidateApiUrls(path)) {
+    final candidates = _candidateApiUrls(path);
+    for (var i = 0; i < candidates.length; i++) {
+      final url = candidates[i];
       try {
         return await _requestJson(method, url, body: body);
       } catch (error) {
-        lastError = error;
+        if (i == 0) {
+          primaryError = error;
+        }
+
+        if (_isNonJsonResponseError(error) && primaryError != null) {
+          lastError = primaryError;
+        } else {
+          lastError = error;
+        }
       }
     }
 
     throw Exception(_friendlyCheckoutError(lastError, path));
+  }
+
+  bool _looksLikeHtmlResponse(String raw, String contentType) {
+    final normalizedBody = raw.trimLeft().toLowerCase();
+    return contentType.contains('text/html') ||
+        normalizedBody.startsWith('<!doctype html') ||
+        normalizedBody.startsWith('<html');
+  }
+
+  bool _isNonJsonResponseError(Object error) {
+    final normalized = error.toString().toLowerCase();
+    return normalized.contains('html instead of json') ||
+        normalized.contains('non-json response') ||
+        normalized.contains('is not valid json') ||
+        normalized.contains('unexpected token') ||
+        normalized.contains('<!doctype');
   }
 
   String _friendlyCheckoutError(Object? error, String path) {
@@ -2777,6 +2813,9 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
         .replaceFirst('Exception: ', '')
         .trim();
     if (raw.contains('HTTP 404') || raw.contains('Unable to reach payment API')) {
+      return 'Payment service endpoint is not reachable for $path. Please retry in 1 minute.';
+    }
+    if (raw.contains('returned HTML instead of JSON') || raw.contains('returned non-JSON response')) {
       return 'Payment service endpoint is not reachable for $path. Please retry in 1 minute.';
     }
     if (raw.contains('Recurring digits in customer contact are disallowed')) {
