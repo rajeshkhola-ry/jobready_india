@@ -7,7 +7,7 @@ import 'Services/public_brand_config.dart';
 import 'Pages/coming_soon_page.dart';
 import 'Pages/home_page_v2.dart';
 import 'Pages/admin_dashboard_page.dart';
-import 'Pages/admin_gate_page.dart';
+import 'screens/admin/admin_login_screen.dart';
 import 'Pages/pdf_tools_page.dart';
 import 'Pages/system_check_page.dart';
 import 'Pages/user_dashboard_page.dart';
@@ -176,7 +176,7 @@ initialRoute: '/',
 routes: {
   '/': (_) => const HomePageV2(),
   '/home': (_) => const HomePageV2(),
-  '/admin': (_) => const AdminGatePage(targetRoute: '/admin-dashboard'),
+  '/admin': (_) => const AdminLoginScreen(targetRoute: '/admin-dashboard'),
   '/admin-dashboard': (_) => const AdminDashboardPage(),
   '/coming-soon': (_) => const ComingSoonPage(),
   '/system-check': (_) => const SystemCheckPage(),

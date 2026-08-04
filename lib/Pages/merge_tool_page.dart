@@ -69,7 +69,7 @@ class _MergeToolPageState extends State<MergeToolPage> {
               navigator.pushNamedAndRemoveUntil('/home', (route) => false);
             }
           },
-          icon: const Icon(Icons.arrow_back_rounded),
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
         ),
         actions: [
           IconButton(

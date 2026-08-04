@@ -1,10 +1,10 @@
 import 'dart:ui';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'Pages/about_page.dart';
 import 'Pages/admin_dashboard_page.dart';
-import 'Pages/admin_gate_page.dart';
 import 'Pages/blog_page.dart';
 import 'Pages/blog_detail_page.dart';
 import 'Pages/coming_soon_page.dart';
@@ -31,8 +31,16 @@ import 'Pages/v2/converter/converter_workspace_page.dart' deferred as converterW
 import 'Pages/v2/history/history_page.dart' deferred as historyPage;
 import 'Pages/v2/resume/resume_workspace_page.dart' deferred as resumeWorkspacePage;
 import 'Widgets/deferred_route_page.dart';
+import 'screens/admin/admin_login_screen.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await Firebase.initializeApp();
+  } catch (error, stack) {
+    debugPrint('Firebase init warning: $error\n$stack');
+  }
+
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
     debugPrint('FlutterError: ${details.exception}\n${details.stack}');
@@ -286,7 +294,7 @@ class JobReadyV11App extends StatelessWidget {
           },
           builder: () => converterWorkspacePage.ConverterWorkspacePage(),
         ),
-        '/admin': (_) => const AdminGatePage(targetRoute: '/admin-dashboard'),
+        '/admin': (_) => const AdminLoginScreen(targetRoute: '/admin-dashboard'),
         '/admin-dashboard': (_) => const AdminDashboardPage(),
         '/coming-soon': (_) => const ComingSoonPage(),
         '/system-check': (_) => const SystemCheckPage(),
