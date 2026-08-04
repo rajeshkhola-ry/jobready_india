@@ -434,6 +434,21 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     height: 1.5,
                   ),
                 ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: OutlinedButton.icon(
+                    onPressed: _logoutAdmin,
+                    icon: const Icon(Icons.logout_rounded),
+                    label: const Text('Logout'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFFB91C1C),
+                      side: const BorderSide(color: Color(0xFFFCA5A5)),
+                      backgroundColor: const Color(0xFFFFF1F2),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 24),
                 Container(
                   width: double.infinity,
