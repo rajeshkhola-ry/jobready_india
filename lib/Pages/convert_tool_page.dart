@@ -14,6 +14,7 @@ import '../Services/conversion_service.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/file_storage_service.dart';
 import '../Services/upload_context_service.dart';
+import 'compression_tool_page.dart';
 
 /// Convert Tool Page - File format conversion (PDF, Word, Excel, Images, etc.)
 /// User selects input format → Output format → Converts
@@ -135,6 +136,57 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
     }
 
     return true;
+  }
+
+  bool _isCompressPdfFlow() {
+    return _selectedInputFormat == 'PDF' && _selectedOutputFormat == 'Compress PDF';
+  }
+
+  String _inferMimeType(String fileName) {
+    final lower = fileName.toLowerCase();
+    if (lower.endsWith('.pdf')) return 'application/pdf';
+    if (lower.endsWith('.docx')) return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    if (lower.endsWith('.doc')) return 'application/msword';
+    if (lower.endsWith('.xlsx')) return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    if (lower.endsWith('.xls')) return 'application/vnd.ms-excel';
+    if (lower.endsWith('.csv')) return 'text/csv';
+    if (lower.endsWith('.pptx')) return 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+    if (lower.endsWith('.ppt')) return 'application/vnd.ms-powerpoint';
+    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+    if (lower.endsWith('.png')) return 'image/png';
+    if (lower.endsWith('.webp')) return 'image/webp';
+    if (lower.endsWith('.bmp')) return 'image/bmp';
+    return 'application/octet-stream';
+  }
+
+  Future<void> _openCompressToolWithContext() async {
+    if (_selectedFiles.isEmpty) {
+      setState(() {
+        _statusMessage = 'Select at least one PDF file first, then open compression settings.';
+      });
+      return;
+    }
+
+    UploadContextService.setUploadedFiles(_selectedFiles);
+    for (final file in _selectedFiles) {
+      await FileStorageService.storeFile(
+        name: file.name,
+        bytes: file.bytes,
+        mimeType: _inferMimeType(file.name),
+      );
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _statusMessage = 'Opening Compress Tool with loaded file context...';
+    });
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const CompressionToolPage()),
+    );
   }
 
   void _applyConverterSeoMetadata() {
@@ -898,7 +950,7 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
               const SizedBox(width: 10),
               const Expanded(
                 child: Text(
-                  'Choose File and Start Convert',
+                  'Choose File and Continue',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
@@ -910,7 +962,11 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
           ),
           const SizedBox(height: 10),
           Text(
-            canStartConvert
+            _isCompressPdfFlow()
+              ? (_selectedFileName == null
+                ? 'Choose your PDF file, then open dedicated compression settings (target size + engine mode).'
+                : 'Ready for compression. Open Compress Tool to set target KB and compression engine.')
+              : canStartConvert
                 ? 'Pick a file that matches your input format, then convert it right here.'
                 : (canPickFile
                     ? 'Choose output format to enable Start Convert.'
@@ -1014,12 +1070,12 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
               Expanded(
                 child: AppleButton(
                   label: _isConverting
-                      ? 'Working...'
-                      : 'Start Convert',
-                  icon: Icons.auto_fix_high,
+                    ? 'Working...'
+                    : (_isCompressPdfFlow() ? 'Open Compress Settings' : 'Start Convert'),
+                  icon: _isCompressPdfFlow() ? Icons.tune_rounded : Icons.auto_fix_high,
                   onPressed: (_isConverting || !canStartConvert || _selectedFileName == null)
                       ? null
-                      : _convertSelectedFile,
+                    : (_isCompressPdfFlow() ? _openCompressToolWithContext : _convertSelectedFile),
                   isPrimary: _selectedFileName != null,
                   isFullWidth: true,
                 ),
@@ -1103,8 +1159,17 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
             _statusMessage = 'Choose output format to continue';
           } else {
             _selectedOutputFormat = format;
+            if (format == 'Compress PDF') {
+              _statusMessage = _selectedFiles.isEmpty
+                  ? 'Compress PDF selected. Choose file and open compression settings.'
+                  : 'Compress PDF selected. Open compression settings to set target KB and engine mode.';
+            }
           }
         });
+
+        if (!isInput && format == 'Compress PDF' && _selectedFiles.isNotEmpty) {
+          Future<void>.microtask(_openCompressToolWithContext);
+        }
       },
       child: Container(
         decoration: BoxDecoration(
@@ -1228,18 +1293,30 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
         return;
       }
       final effectiveInput = _selectedInputFormat;
+      final shouldOpenCompressionSettings =
+          effectiveInput == 'PDF' && _selectedOutputFormat == 'Compress PDF';
+
       if (effectiveInput != null && files.isNotEmpty) {
         setState(() {
           _selectedFiles = files;
           _selectedFile = files.first.bytes;
           _selectedFileName = files.first.name;
-          _statusMessage = files.length == 1
-              ? 'File selected. Review the next steps below.'
-              : '${files.length} files selected. Review the next steps below.';
-          _showIntentPopup = true;
-          _pendingIntentFormat = effectiveInput;
+          _statusMessage = shouldOpenCompressionSettings
+              ? (files.length == 1
+                  ? 'PDF selected. Open Compress Settings to continue.'
+                  : '${files.length} PDFs selected. Open Compress Settings to continue.')
+              : (files.length == 1
+                  ? 'File selected. Review the next steps below.'
+                  : '${files.length} files selected. Review the next steps below.');
+          _showIntentPopup = !shouldOpenCompressionSettings;
+          _pendingIntentFormat = shouldOpenCompressionSettings ? null : effectiveInput;
           _selectedIntentActions = <String>{};
         });
+
+        if (shouldOpenCompressionSettings) {
+          await _openCompressToolWithContext();
+          return;
+        }
       } else {
         setState(() {
           _selectedFiles = files;
@@ -1273,6 +1350,11 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
   }
 
   Future<void> _convertSelectedFile() async {
+    if (_isCompressPdfFlow()) {
+      await _openCompressToolWithContext();
+      return;
+    }
+
     if (_selectedFile == null || _selectedFileName == null || _selectedFiles.isEmpty) {
       setState(() {
         _statusMessage = 'Please choose a file first.';
