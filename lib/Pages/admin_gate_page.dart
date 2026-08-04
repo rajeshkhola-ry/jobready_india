@@ -46,19 +46,22 @@ class _AdminGatePageState extends State<AdminGatePage> {
       if (!mounted) {
         return;
       }
-      Navigator.of(context).pushReplacementNamed(widget.targetRoute);
+      if (OwnerAdminAccessService.isTwoFactorVerifiedForSession) {
+        Navigator.of(context).pushReplacementNamed(widget.targetRoute);
+      } else {
+        Navigator.of(context).pushReplacementNamed('/admin-2fa');
+      }
     });
   }
 
-  void _unlock() {
+  Future<void> _unlock() async {
     final ok = OwnerAdminAccessService.unlockWithCredentials(
       _adminIdController.text,
       _passwordController.text,
     );
     if (ok) {
-      AuthRouterService.markAdminAuthenticated(authToken: 'admin-session');
-      final targetRoute = widget.targetRoute.isNotEmpty ? widget.targetRoute : '/admin-dashboard';
-      Navigator.of(context).pushNamedAndRemoveUntil(targetRoute, (route) => false);
+      await AuthRouterService.clearAuthentication();
+      Navigator.of(context).pushNamedAndRemoveUntil('/admin-2fa', (route) => false);
       return;
     }
 

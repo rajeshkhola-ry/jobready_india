@@ -8,6 +8,7 @@ import 'Pages/coming_soon_page.dart';
 import 'Pages/home_page_v2.dart';
 import 'Pages/admin_dashboard_page.dart';
 import 'Pages/admin_gate_page.dart';
+import 'Pages/admin_two_factor_page.dart';
 import 'Pages/pdf_tools_page.dart';
 import 'Pages/system_check_page.dart';
 import 'Pages/user_dashboard_page.dart';
@@ -177,6 +178,7 @@ routes: {
   '/': (_) => const HomePageV2(),
   '/home': (_) => const HomePageV2(),
   '/admin': (_) => const AdminGatePage(targetRoute: '/admin-dashboard'),
+  '/admin-2fa': (_) => const AdminTwoFactorPage(),
   '/admin-dashboard': (_) => const AdminDashboardPage(),
   '/coming-soon': (_) => const ComingSoonPage(),
   '/system-check': (_) => const SystemCheckPage(),

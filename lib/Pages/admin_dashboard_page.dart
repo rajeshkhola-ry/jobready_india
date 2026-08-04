@@ -35,6 +35,26 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   @override
   void initState() {
     super.initState();
+    if (!OwnerAdminAccessService.isUnlocked) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        Navigator.of(context).pushNamedAndRemoveUntil('/admin', (route) => false);
+      });
+      return;
+    }
+
+    if (!OwnerAdminAccessService.isTwoFactorVerifiedForSession) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        Navigator.of(context).pushNamedAndRemoveUntil('/admin-2fa', (route) => false);
+      });
+      return;
+    }
+
     _config = PlanCatalogService.load();
     _auditEntries = _loadAuditEntries();
     final checkoutSettings = _loadCheckoutSettings();

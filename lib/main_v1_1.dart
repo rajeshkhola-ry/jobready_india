@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'Pages/about_page.dart';
 import 'Pages/admin_dashboard_page.dart';
 import 'Pages/admin_gate_page.dart';
+import 'Pages/admin_two_factor_page.dart';
 import 'Pages/blog_page.dart';
 import 'Pages/blog_detail_page.dart';
 import 'Pages/coming_soon_page.dart';
@@ -287,6 +288,7 @@ class JobReadyV11App extends StatelessWidget {
           builder: () => converterWorkspacePage.ConverterWorkspacePage(),
         ),
         '/admin': (_) => const AdminGatePage(targetRoute: '/admin-dashboard'),
+        '/admin-2fa': (_) => const AdminTwoFactorPage(),
         '/admin-dashboard': (_) => const AdminDashboardPage(),
         '/coming-soon': (_) => const ComingSoonPage(),
         '/system-check': (_) => const SystemCheckPage(),
