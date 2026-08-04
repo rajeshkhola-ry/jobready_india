@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../Services/public_brand_config.dart';
 import '../Widgets/brand_logo_button.dart';
 import '../Widgets/production_footer.dart';
 
@@ -82,7 +81,7 @@ class TermsConditionsPage extends StatelessWidget {
                   const _Section(
                     title: '1. Acceptance of Terms',
                     body:
-                        'By accessing and using GETREADYJOB (including Document Utilities, OCR Pipeline, and HD Photo Studio), you agree to these Terms & Conditions and browser cache usage.',
+                        'By accessing and using GETREADYJOB (including Document Utilities, OCR Pipeline, HD Photo Studio, and AI Tools), you agree to these Terms & Conditions, Privacy Policy, and browser cache usage.',
                   ),
                   const _Section(
                     title: '2. Platform Scope & Services',
@@ -90,37 +89,47 @@ class TermsConditionsPage extends StatelessWidget {
                         'GETREADYJOB provides online document conversion (PDF, Word, Excel, OCR), split/merge utilities, and media enhancement tools such as HD Photo Studio, Background Removal, and Image Upscaling.',
                   ),
                   const _Section(
-                    title: '3. Privacy & Zero-Storage Policy',
+                    title: '3. Subscription Plans & Service Modification/Termination Rights',
                     body:
-                        'Ephemeral Processing: All uploaded files, images, and processed document outputs are generated dynamically in memory or short-lived temporary streams.\n\nNo Retention: We do not store, archive, sell, or index your uploaded content or edited outputs. Download links serve freshly rendered buffers and bypass stale storage caches.',
+                        '- Subscription Types: GETREADYJOB offers various access options, including Weekly, Monthly, Yearly, and Lifetime plans.\n\n- Definition of "Lifetime Plan": The term "Lifetime" in any plan, promotional offer, or pricing model refers strictly to a maximum product lifecycle of up to 10 (ten) calendar years from the date of purchase, or for as long as GETREADYJOB continues to operate and maintain the specific tool/service, whichever is shorter.\n\n- Absolute Authority to Terminate or Modify Services: GETREADYJOB reserves full, unconditional, and sole authority to modify, suspend, restrict, degrade, or completely terminate any subscription plan (Weekly, Monthly, Yearly, or Lifetime) or any individual tool/service at any time, for any reason, with or without prior notice to users.\n\n- Waiver of Claims: Users explicitly agree and acknowledge that they cannot raise any legal claims, disputes, demands, or questions against GETREADYJOB, its founders, or its parent company regarding service modification, plan termination, or tool deprecation.',
                   ),
                   const _Section(
-                    title: '4. User Conduct & Acceptable Use',
+                    title: '4. Refund & Cancellation Policy',
                     body:
-                        'You agree not to use GETREADYJOB to process, create, or distribute unlawful or infringing material.',
+                        '- All subscription payments, tier upgrades, and Lifetime purchases are final and non-refundable.\n\n- In the event of tool deprecation or plan termination, no partial or pro-rated refunds will be issued unless explicitly agreed to in writing by GETREADYJOB.',
                   ),
                   const _Section(
-                    title: '5. Intellectual Property Rights',
+                    title: '5. Privacy & Zero-Storage Policy',
+                    body:
+                        '- Ephemeral Processing: All uploaded files, images, and processed document outputs are generated dynamically in memory or short-lived temporary streams.\n\n- No Retention: We do not store, archive, sell, or index your uploaded content or edited outputs. Download links serve freshly rendered buffers and bypass stale storage caches.',
+                  ),
+                  const _Section(
+                    title: '6. User Conduct & Acceptable Use',
+                    body:
+                        '- You agree not to use GETREADYJOB to process, create, or distribute unlawful, harmful, or infringing material.\n\n- Fair Usage Policy (FUP): Automated bot activities, scraping, server overloading, or abusing unlimited processing capabilities are strictly prohibited. We reserve the right to ban or terminate any user account violating FUP without notice.',
+                  ),
+                  const _Section(
+                    title: '7. Intellectual Property Rights',
                     body:
                         'Users retain full ownership over all documents and images uploaded and generated through the platform. GETREADYJOB claims no ownership over user content.',
                   ),
                   const _Section(
-                    title: '6. Service Availability & Disclaimers',
+                    title: '8. Service Availability & Disclaimers',
                     body:
-                        'Services are provided on an “as-is” basis without warranties regarding uninterrupted service or zero file transformation errors.',
+                        'Services are provided on an "as-is" and "as-available" basis without warranties of any kind regarding uninterrupted service, uptime guarantees, or zero file transformation errors.',
                   ),
                   const _Section(
-                    title: '7. Limitation of Liability',
+                    title: '9. Limitation of Liability',
                     body:
-                        'GETREADYJOB shall not be liable for any indirect or consequential damages resulting from service disruption during file conversion or media editing.',
+                        'GETREADYJOB shall not be liable for any direct, indirect, incidental, or consequential damages resulting from service disruption, data loss, or tool termination during file conversion or media editing.',
                   ),
                   const _Section(
-                    title: 'Contact',
-                    body: 'For legal and support matters, please contact ${PublicBrandConfig.supportEmail}.',
+                    title: '10. Contact Information',
+                    body: 'For legal and support matters, please contact: hello@getreadyjob.com',
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'Last updated: 2026-07-30',
+                    'Last updated: 2026-08-04',
                     style: TextStyle(
                       fontSize: 12,
                       color: Color(0xFF6B7280),
