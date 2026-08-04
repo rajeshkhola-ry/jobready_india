@@ -310,14 +310,18 @@ class _UploadCardV2State extends State<UploadCardV2> {
         child: Container(
           width: double.infinity,
           decoration: BoxDecoration(
-            color: const Color(0xFFFFFFFF),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFFFFFFFF), Color(0xFFF7FBFF)],
+            ),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: const Color(0xFFE2E8F0), width: 1.1),
+            border: Border.all(color: const Color(0xFFD9E4F2), width: 1.1),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF0F172A).withValues(alpha: 0.04),
-                blurRadius: 24,
-                offset: const Offset(0, 10),
+                color: const Color(0xFF0F172A).withValues(alpha: 0.05),
+                blurRadius: 26,
+                offset: const Offset(0, 12),
               ),
             ],
           ),
@@ -329,9 +333,9 @@ class _UploadCardV2State extends State<UploadCardV2> {
                   width: 68,
                   height: 68,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEEF2FF),
+                    color: const Color(0xFFEAF3FF),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    border: Border.all(color: const Color(0xFFD5E2F2)),
                   ),
                   child: const Icon(
                     Icons.cloud_upload_rounded,
@@ -343,10 +347,10 @@ class _UploadCardV2State extends State<UploadCardV2> {
                 const Text(
                   'Upload your document',
                   style: TextStyle(
-                    fontSize: 21,
+                    fontSize: 22,
                     fontWeight: FontWeight.w800,
                     color: Color(0xFF0F172A),
-                    letterSpacing: 0.2,
+                    letterSpacing: 0.1,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -370,12 +374,13 @@ class _UploadCardV2State extends State<UploadCardV2> {
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF183A5B),
+                      backgroundColor: const Color(0xFF123A63),
                       foregroundColor: Colors.white,
-                      elevation: 0,
+                      elevation: 1,
+                      shadowColor: const Color(0xFF123A63).withValues(alpha: 0.28),
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                     ),
                   ),
@@ -386,10 +391,10 @@ class _UploadCardV2State extends State<UploadCardV2> {
                     width: double.infinity,
                     height: 96,
                     decoration: BoxDecoration(
-                      color: _dragging ? const Color(0xFFF2F7FF) : const Color(0xFFF8FAFC),
+                      color: _dragging ? const Color(0xFFEFF6FF) : const Color(0xFFF8FCFF),
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: _dragging ? const Color(0xFF2563EB) : const Color(0xFFE2E8F0),
+                        color: _dragging ? const Color(0xFF2D5F92) : const Color(0xFFDCE7F2),
                         width: 1.2,
                       ),
                     ),
@@ -397,7 +402,7 @@ class _UploadCardV2State extends State<UploadCardV2> {
                       child: Text(
                         _dragging ? 'Release to upload' : 'Drop files here',
                         style: const TextStyle(
-                          color: Color(0xFF2563EB),
+                          color: Color(0xFF1E4E7C),
                           fontWeight: FontWeight.w700,
                           fontSize: 13,
                         ),
@@ -415,7 +420,7 @@ class _UploadCardV2State extends State<UploadCardV2> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEAF2FF),
+                    color: const Color(0xFFEDF5FF),
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: const Text(
@@ -423,7 +428,7 @@ class _UploadCardV2State extends State<UploadCardV2> {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF0E3A66),
+                      color: Color(0xFF123A63),
                     ),
                   ),
                 ),

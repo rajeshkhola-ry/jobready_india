@@ -19,7 +19,11 @@ class ProductionFooter extends StatelessWidget {
       width: double.infinity,
       padding: EdgeInsets.all(compact ? 16 : 22),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF0E233A), Color(0xFF102942)],
+        ),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
@@ -101,9 +105,9 @@ class _FooterRouteLink extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E293B),
+          color: const Color(0x1FFFFFFF),
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: const Color(0xFF334155)),
+          border: Border.all(color: const Color(0xFF36506B)),
         ),
         child: Text(
           label,

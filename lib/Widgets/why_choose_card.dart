@@ -108,14 +108,18 @@ class WhyChooseCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFCF8),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFFFEFC), Color(0xFFF8FBFF)],
+        ),
         borderRadius: BorderRadius.circular(_s(24)),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: const Color(0xFFD8E4F0)),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF183A5B).withValues(alpha: 0.06),
-            blurRadius: _s(18),
-            offset: Offset(0, _s(8)),
+            blurRadius: _s(20),
+            offset: Offset(0, _s(10)),
           ),
         ],
       ),

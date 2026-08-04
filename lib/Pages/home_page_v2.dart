@@ -702,17 +702,17 @@ class _HomePageV2State extends State<HomePageV2> {
     final yearlyPriceLine = _planPriceLine('Yearly', ' per year');
     final lifetimePriceLine = _planPriceLine('Lifetime', ' one-time');
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F6FB),
+      backgroundColor: const Color(0xFFF4F7FB),
 
       appBar: AppBar(
-        backgroundColor: const Color(0xFFFCFEFF),
+        backgroundColor: const Color(0xFFF9FCFF),
         foregroundColor: const Color(0xFF0F172A),
         centerTitle: true,
         toolbarHeight: 72,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         shape: const RoundedRectangleBorder(
-          side: BorderSide(color: Color(0xFFDCE7F3), width: 1),
+          side: BorderSide(color: Color(0xFFD7E2EE), width: 1),
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
         ),
         actions: [
@@ -883,13 +883,13 @@ class _HomePageV2State extends State<HomePageV2> {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF2F7FF),
+                    color: const Color(0xFFF6FAFF),
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: const Color(0xFFD8E6FA)),
+                    border: Border.all(color: const Color(0xFFD3E1F2)),
                     boxShadow: const [
                       BoxShadow(
                         color: Color(0x1490A3BE),
-                        blurRadius: 16,
+                        blurRadius: 18,
                         offset: Offset(0, 6),
                       ),
                     ],
@@ -912,9 +912,9 @@ class _HomePageV2State extends State<HomePageV2> {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8FCFF),
+                    color: const Color(0xFFF9FCFF),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFD8E6F7)),
+                    border: Border.all(color: const Color(0xFFD4E3F1)),
                     boxShadow: const [
                       BoxShadow(
                         color: Color(0x1090A3BE),
@@ -3424,11 +3424,15 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFC7D2FE)),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFFFFFF), Color(0xFFF5FAFF)],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFD3DFF0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3498,10 +3502,10 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(10),
+        color: const Color(0xFFF8FBFF),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: statusColor.withValues(alpha: 0.35)),
       ),
       child: Column(
@@ -3535,16 +3539,20 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFF),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFDCE5F4)),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFF9FCFF), Color(0xFFF4F8FF)],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFD5E1F0)),
         boxShadow: const [
           BoxShadow(
             color: Color(0x1A94A3B8),
-            blurRadius: 18,
-            offset: Offset(0, 8),
+            blurRadius: 22,
+            offset: Offset(0, 10),
           ),
         ],
       ),
@@ -3556,7 +3564,7 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
             style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF1E1B4B),
+              color: Color(0xFF16324D),
             ),
           ),
           const SizedBox(height: 8),
@@ -3721,11 +3729,11 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
           if (widget.selectedPlan != 'Basic')
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFE0F2FE),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFF7DD3FC)),
+                color: const Color(0xFFE9F5FF),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFB9DFFF)),
               ),
               child: Text(
                 widget.selectedPlan == '7Days'
@@ -3735,8 +3743,8 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
                         : 'One-time Lifetime plan payment: ${_formatCurrencyAmount(widget.lifetimePlanAmount, _localCurrency)}.',
                 style: const TextStyle(
                   fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF0C4A6E),
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF0C3D63),
                 ),
               ),
             ),
@@ -3758,12 +3766,12 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
                 ),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0B1220),
+                backgroundColor: const Color(0xFF123A63),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                elevation: 4,
-                shadowColor: const Color(0xFF0F172A).withValues(alpha: 0.35),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                elevation: 1,
+                shadowColor: const Color(0xFF123A63).withValues(alpha: 0.28),
               ),
             ),
           ),
@@ -3781,11 +3789,11 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
                 ),
               ),
               style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF0F172A),
-                side: const BorderSide(color: Color(0xFFCBD5E1)),
+                foregroundColor: const Color(0xFF123A63),
+                side: const BorderSide(color: Color(0xFFD0DCEC)),
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                backgroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                backgroundColor: const Color(0xFFFCFEFF),
               ),
             ),
           ),

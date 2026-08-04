@@ -23,14 +23,18 @@ class ToolSelectorV2 extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFFFF),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFFFFFF), Color(0xFFF6FAFF)],
+        ),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.1),
+        border: Border.all(color: const Color(0xFFD8E4F2), width: 1.1),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0F172A).withValues(alpha: 0.04),
-            blurRadius: 22,
-            offset: const Offset(0, 10),
+            color: const Color(0xFF0F172A).withValues(alpha: 0.05),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
@@ -131,7 +135,7 @@ class ToolSelectorV2 extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Text(
-                  "✨ AI Premium Features",
+                  "AI Premium Features",
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
@@ -141,9 +145,9 @@ class ToolSelectorV2 extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  "Professional AI-powered tools for document optimization",
+                  "Professional AI-powered workspace for document optimization",
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 13.5,
                     height: 1.45,
                     color: Color(0xFF475569),
                     fontWeight: FontWeight.w600,
@@ -201,17 +205,21 @@ class ToolSelectorV2 extends StatelessWidget {
           child: Container(
             height: 104,
             decoration: BoxDecoration(
-              color: const Color(0xFFFFFFFF),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFFFFFFF), Color(0xFFF8FCFF)],
+              ),
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
-                color: isFeatured ? accent.withValues(alpha: 0.55) : const Color(0xFFE2E8F0),
+                color: isFeatured ? accent.withValues(alpha: 0.55) : const Color(0xFFD9E5F2),
                 width: isFeatured ? 1.8 : 1.1,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: isFeatured ? accent.withValues(alpha: 0.16) : const Color(0xFF0F172A).withValues(alpha: 0.04),
-                  blurRadius: isFeatured ? 16 : 12,
-                  offset: const Offset(0, 6),
+                  color: isFeatured ? accent.withValues(alpha: 0.16) : const Color(0xFF0F172A).withValues(alpha: 0.05),
+                  blurRadius: isFeatured ? 18 : 14,
+                  offset: const Offset(0, 8),
                 ),
               ],
             ),
