@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../Services/auth_router_service.dart';
 import '../Services/owner_admin_access_service.dart';
@@ -12,7 +13,7 @@ class AdminTwoFactorPage extends StatefulWidget {
 
 class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
   final TextEditingController _codeController = TextEditingController();
-  final TextEditingController _confirmController = TextEditingController();
+  late final TwoFactorSetupData _setupData;
   String? _errorText;
 
   bool get _isSetupMode => !OwnerAdminAccessService.isTwoFactorConfigured;
@@ -20,6 +21,7 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
   @override
   void initState() {
     super.initState();
+    _setupData = OwnerAdminAccessService.initializeTwoFactorSetup();
     if (!OwnerAdminAccessService.isUnlocked) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) {
@@ -33,7 +35,6 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
   @override
   void dispose() {
     _codeController.dispose();
-    _confirmController.dispose();
     super.dispose();
   }
 
@@ -47,28 +48,18 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
 
   Future<void> _handleSetup() async {
     final code = _codeController.text.trim();
-    final confirm = _confirmController.text.trim();
-      final sixDigits = RegExp(r'^\d{6}$');
 
-    if (!sixDigits.hasMatch(code)) {
+    if (!RegExp(r'^\d{6}$').hasMatch(code)) {
       setState(() {
         _errorText = 'Enter a 6-digit authenticator code.';
       });
       return;
     }
 
-    if (code != confirm) {
-      setState(() {
-        _errorText = '2FA codes do not match.';
-      });
-      return;
-    }
-
-    final recoveryCode = OwnerAdminAccessService.configureTwoFactorPin(code);
     final ok = OwnerAdminAccessService.verifyTwoFactorCode(code);
     if (!ok) {
       setState(() {
-        _errorText = 'Unable to enable 2FA right now. Please retry.';
+        _errorText = 'Scan the QR code first, then enter the 6-digit code from your authenticator.';
       });
       return;
     }
@@ -84,7 +75,7 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
       builder: (context) => AlertDialog(
         title: const Text('2FA Enabled'),
         content: Text(
-          'Save this one-time recovery code in a safe place:\n\n$recoveryCode\n\n'
+          'Save this one-time recovery code in a safe place:\n\n${_setupData.recoveryCode}\n\n'
           'You can use it once if you cannot access your 2FA code.',
         ),
         actions: [
@@ -123,6 +114,9 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
 
   @override
   Widget build(BuildContext context) {
+    final setupUri = _setupData.otpauthUri;
+    final recoveryCode = _setupData.recoveryCode;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF7F4EE),
       appBar: AppBar(
@@ -156,7 +150,7 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
                   const SizedBox(height: 10),
                   Text(
                     _isSetupMode
-                        ? 'Create a 6-digit code. This will be required after every admin login before dashboard access.'
+                        ? 'Scan the QR code in Google Authenticator or Microsoft Authenticator, then enter the 6-digit code it generates.'
                         : 'Enter your 6-digit 2FA code. You can also use your one-time recovery code.',
                     style: const TextStyle(
                       fontSize: 13,
@@ -164,12 +158,50 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
                       color: Color(0xFF475569),
                     ),
                   ),
+                  if (_isSetupMode) ...[
+                    const SizedBox(height: 18),
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Column(
+                          children: [
+                            QrImageView(
+                              data: setupUri,
+                              size: 190,
+                              backgroundColor: Colors.white,
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Scan this QR code with your authenticator app.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF0F172A),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SelectableText(
+                      'Manual setup key: ${_setupData.secret}',
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF475569)),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
                   const SizedBox(height: 16),
                   TextField(
                     controller: _codeController,
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
-                      labelText: _isSetupMode ? 'Set 6-digit 2FA code' : '2FA code or recovery code',
+                      labelText: _isSetupMode ? '2FA code from authenticator' : '2FA code or recovery code',
                       errorText: _errorText,
                       filled: true,
                       fillColor: const Color(0xFFF8FAFC),
@@ -185,35 +217,13 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
                       }
                     },
                   ),
-                  if (_isSetupMode) ...[
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _confirmController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Confirm 2FA code',
-                        filled: true,
-                        fillColor: const Color(0xFFF8FAFC),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      onChanged: (_) {
-                        if (_errorText != null) {
-                          setState(() {
-                            _errorText = null;
-                          });
-                        }
-                      },
-                    ),
-                  ],
                   const SizedBox(height: 18),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: _submit,
                       icon: const Icon(Icons.verified_user_rounded),
-                      label: Text(_isSetupMode ? 'Enable 2FA and Continue' : 'Verify and Continue'),
+                      label: Text(_isSetupMode ? 'Verify QR Setup and Continue' : 'Verify and Continue'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF183A5B),
                         foregroundColor: Colors.white,
@@ -224,6 +234,17 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
                       ),
                     ),
                   ),
+                  if (_isSetupMode) ...[
+                    const SizedBox(height: 14),
+                    Text(
+                      'Recovery code: $recoveryCode',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF475569),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
