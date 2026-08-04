@@ -1,4 +1,5 @@
 import 'dart:isolate';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
@@ -75,6 +76,13 @@ class PhotoResizeService {
 
   static const List<String> dpiOptions = ['300', '600'];
   static const List<String> backgroundOptions = ['#FFFFFF', '#E0F2FE'];
+
+  static PhotoSizePreset presetById(String presetId) {
+    return presets.firstWhere(
+      (preset) => preset.id == presetId,
+      orElse: () => presets.first,
+    );
+  }
 
   static ({int width, int height}) resolveOutputDimensions(String presetId, String dpi) {
     final basePreset = presets.firstWhere(
@@ -176,15 +184,15 @@ class PhotoResizeService {
     var encoded = Uint8List.fromList(img.encodeJpg(workingImage, quality: quality));
 
     while (encoded.length > maxTargetBytes) {
-      if (quality > 30) {
-        quality -= 8;
+      if (quality > 42) {
+        quality -= quality > 80 ? 4 : 6;
         encoded = Uint8List.fromList(img.encodeJpg(workingImage, quality: quality));
         continue;
       }
 
-      final nextWidth = (workingImage.width * 0.9).round();
-      final nextHeight = (workingImage.height * 0.9).round();
-      if (nextWidth < 200 || nextHeight < 200) {
+      final nextWidth = (workingImage.width * 0.92).round();
+      final nextHeight = (workingImage.height * 0.92).round();
+      if (nextWidth < 220 || nextHeight < 220) {
         break;
       }
 
@@ -194,7 +202,8 @@ class PhotoResizeService {
         height: nextHeight,
         interpolation: img.Interpolation.cubic,
       );
-      quality = 70;
+      workingImage = _applyUnsharpMask(workingImage, amount: 0.22, radius: 1, threshold: 3);
+      quality = 74;
       encoded = Uint8List.fromList(img.encodeJpg(workingImage, quality: quality));
     }
 
@@ -223,12 +232,14 @@ class PhotoResizeService {
     // synthesis, and no facial feature replacement.
     final boosted = _applyGentleColorBalance(source);
     final safeScale = 1.03;
-    return img.copyResize(
+    final resized = img.copyResize(
       boosted,
       width: (boosted.width * safeScale).round(),
       height: (boosted.height * safeScale).round(),
       interpolation: img.Interpolation.cubic,
     );
+    final contrasted = _applyAutoContrast(resized);
+    return _applyUnsharpMask(contrasted, amount: 0.20, radius: 1, threshold: 4);
   }
 
   img.Image _resizeToFit(img.Image source, int targetWidth, int targetHeight) {
@@ -246,12 +257,14 @@ class PhotoResizeService {
       outputWidth = (targetHeight * sourceRatio).round();
     }
 
-    return img.copyResize(
+    final resized = _progressiveResize(
       source,
       width: outputWidth,
       height: outputHeight,
       interpolation: img.Interpolation.cubic,
     );
+    final contrasted = _applyAutoContrast(resized);
+    return _applyUnsharpMask(contrasted, amount: 0.24, radius: 1, threshold: 3);
   }
 
   img.Image _applyGentleColorBalance(img.Image source) {
@@ -269,6 +282,193 @@ class PhotoResizeService {
         final g = (pixel.g * 1.005).round().clamp(0, 255);
         final b = (pixel.b * 1.005).round().clamp(0, 255);
         result.setPixelRgb(x, y, r, g, b);
+      }
+    }
+
+    return result;
+  }
+
+  img.Image _progressiveResize(
+    img.Image source, {
+    required int width,
+    required int height,
+    required img.Interpolation interpolation,
+  }) {
+    var working = source;
+    while (working.width > width * 2 || working.height > height * 2) {
+      final nextWidth = max(width, (working.width * 0.75).round());
+      final nextHeight = max(height, (working.height * 0.75).round());
+      if (nextWidth == working.width && nextHeight == working.height) {
+        break;
+      }
+      working = img.copyResize(
+        working,
+        width: nextWidth,
+        height: nextHeight,
+        interpolation: interpolation,
+      );
+    }
+
+    return img.copyResize(
+      working,
+      width: width,
+      height: height,
+      interpolation: interpolation,
+    );
+  }
+
+  img.Image _applyAutoContrast(img.Image source) {
+    final histogram = List<int>.filled(256, 0);
+    final result = img.copyResize(
+      source,
+      width: source.width,
+      height: source.height,
+      interpolation: img.Interpolation.nearest,
+    );
+
+    for (var y = 0; y < result.height; y++) {
+      for (var x = 0; x < result.width; x++) {
+        final pixel = result.getPixel(x, y);
+        final luminance = (0.299 * pixel.r + 0.587 * pixel.g + 0.114 * pixel.b)
+            .round()
+            .clamp(0, 255);
+        histogram[luminance]++;
+      }
+    }
+
+    final totalPixels = result.width * result.height;
+    final lowCut = (totalPixels * 0.01).round();
+    final highCut = (totalPixels * 0.99).round();
+
+    var running = 0;
+    var low = 0;
+    for (; low < 255; low++) {
+      running += histogram[low];
+      if (running >= lowCut) {
+        break;
+      }
+    }
+
+    running = 0;
+    var high = 255;
+    for (; high > 0; high--) {
+      running += histogram[high];
+      if (running >= totalPixels - highCut) {
+        break;
+      }
+    }
+
+    if (high <= low + 8) {
+      return result;
+    }
+
+    final span = (high - low).toDouble();
+    final contrastBoost = min(1.10, 255 / span);
+    final adjusted = img.copyResize(
+      result,
+      width: result.width,
+      height: result.height,
+      interpolation: img.Interpolation.nearest,
+    );
+
+    for (var y = 0; y < adjusted.height; y++) {
+      for (var x = 0; x < adjusted.width; x++) {
+        final pixel = adjusted.getPixel(x, y);
+        final r = _stretchChannel(pixel.r, low, high, contrastBoost);
+        final g = _stretchChannel(pixel.g, low, high, contrastBoost);
+        final b = _stretchChannel(pixel.b, low, high, contrastBoost);
+        adjusted.setPixelRgb(x, y, r, g, b);
+      }
+    }
+
+    return adjusted;
+  }
+
+  int _stretchChannel(num value, int low, int high, double contrastBoost) {
+    final clamped = value.clamp(0, 255).toDouble();
+    if (high <= low) {
+      return clamped.round().clamp(0, 255);
+    }
+
+    final normalized = ((clamped - low) / (high - low)).clamp(0.0, 1.0);
+    final centered = (normalized - 0.5) * contrastBoost + 0.5;
+    return (centered * 255).round().clamp(0, 255);
+  }
+
+  img.Image _applyUnsharpMask(
+    img.Image source, {
+    required double amount,
+    required int radius,
+    required int threshold,
+  }) {
+    final blurred = _boxBlur(source, radius: radius);
+    final result = img.copyResize(
+      source,
+      width: source.width,
+      height: source.height,
+      interpolation: img.Interpolation.nearest,
+    );
+
+    for (var y = 0; y < result.height; y++) {
+      for (var x = 0; x < result.width; x++) {
+        final original = source.getPixel(x, y);
+        final blur = blurred.getPixel(x, y);
+
+        final rDiff = original.r - blur.r;
+        final gDiff = original.g - blur.g;
+        final bDiff = original.b - blur.b;
+
+        final diffMagnitude = ((rDiff.abs() + gDiff.abs() + bDiff.abs()) / 3).round();
+        if (diffMagnitude < threshold) {
+          result.setPixelRgb(x, y, original.r.round(), original.g.round(), original.b.round());
+          continue;
+        }
+
+        final r = (original.r + (rDiff * amount)).round().clamp(0, 255);
+        final g = (original.g + (gDiff * amount)).round().clamp(0, 255);
+        final b = (original.b + (bDiff * amount)).round().clamp(0, 255);
+        result.setPixelRgb(x, y, r, g, b);
+      }
+    }
+
+    return result;
+  }
+
+  img.Image _boxBlur(img.Image source, {required int radius}) {
+    final result = img.copyResize(
+      source,
+      width: source.width,
+      height: source.height,
+      interpolation: img.Interpolation.nearest,
+    );
+
+    final diameter = radius * 2 + 1;
+    final sampleCount = diameter * diameter;
+
+    for (var y = 0; y < source.height; y++) {
+      for (var x = 0; x < source.width; x++) {
+        var r = 0.0;
+        var g = 0.0;
+        var b = 0.0;
+
+        for (var oy = -radius; oy <= radius; oy++) {
+          final sy = (y + oy).clamp(0, source.height - 1);
+          for (var ox = -radius; ox <= radius; ox++) {
+            final sx = (x + ox).clamp(0, source.width - 1);
+            final pixel = source.getPixel(sx, sy);
+            r += pixel.r;
+            g += pixel.g;
+            b += pixel.b;
+          }
+        }
+
+        result.setPixelRgb(
+          x,
+          y,
+          (r / sampleCount).round().clamp(0, 255),
+          (g / sampleCount).round().clamp(0, 255),
+          (b / sampleCount).round().clamp(0, 255),
+        );
       }
     }
 

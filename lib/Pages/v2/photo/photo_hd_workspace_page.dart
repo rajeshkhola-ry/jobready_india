@@ -24,6 +24,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
   bool _isDragOver = false;
   bool _hasShownPlanDialog = false;
   String _selectedPlanId = 'pro';
+  String _selectedWorkspacePresetId = 'passport_photo';
 
   PickedFileData? _selectedImage;
   PhotoSizePreset _selectedPreset = PhotoResizeService.presets.first;
@@ -178,6 +179,52 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
     });
 
     Future<void>.microtask(_refreshComparisonPreview);
+  }
+
+  bool get _isCustomWorkspacePreset => _selectedWorkspacePresetId == 'custom';
+
+  _WorkspacePresetOption get _selectedWorkspacePreset => _workspacePresetOptions.firstWhere(
+        (option) => option.id == _selectedWorkspacePresetId,
+        orElse: () => _workspacePresetOptions.first,
+      );
+
+  void _applyWorkspacePreset(String presetId, {bool refreshPreview = true}) {
+    final option = _workspacePresetOptions.firstWhere(
+      (value) => value.id == presetId,
+      orElse: () => _workspacePresetOptions.first,
+    );
+
+    setState(() {
+      _selectedWorkspacePresetId = option.id;
+      if (!option.isCustom) {
+        _selectedPreset = PhotoResizeService.presetById(option.presetId);
+        _selectedAspectPreset = option.aspectPresetId;
+        _selectedDpi = option.dpi;
+      }
+    });
+
+    if (refreshPreview) {
+      Future<void>.microtask(_refreshComparisonPreview);
+    }
+  }
+
+  Widget _lockedSpecChip(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFD8E5F5)),
+      ),
+      child: Text(
+        '$label: $value',
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: Color(0xFF0F172A),
+        ),
+      ),
+    );
   }
 
   Future<void> _refreshComparisonPreview() async {
@@ -915,72 +962,140 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                             ),
                           ),
                           const SizedBox(height: 10),
-                          DropdownButtonFormField<PhotoSizePreset>(
-                            value: _selectedPreset,
-                            items: PhotoResizeService.presets
+                          DropdownButtonFormField<String>(
+                            value: _selectedWorkspacePresetId,
+                            items: _workspacePresetOptions
                                 .map(
-                                  (preset) => DropdownMenuItem<PhotoSizePreset>(
-                                    value: preset,
-                                    child: Text(preset.label),
+                                  (option) => DropdownMenuItem<String>(
+                                    value: option.id,
+                                    child: Text(option.label),
                                   ),
                                 )
                                 .toList(growable: false),
                             onChanged: _isProcessing
                                 ? null
-                                : (preset) {
-                                    if (preset == null) return;
-                                    setState(() {
-                                      _selectedPreset = preset;
-                                    });
+                                : (presetId) {
+                                    if (presetId == null) return;
+                                    _applyWorkspacePreset(presetId);
                                   },
                             decoration: const InputDecoration(
-                              labelText: 'Choose target size',
+                              labelText: 'Workspace preset',
                               border: OutlineInputBorder(),
                             ),
                           ),
                           const SizedBox(height: 12),
-                          DropdownButtonFormField<String>(
-                            value: _selectedDpi,
-                            items: PhotoResizeService.dpiOptions
-                                .map((dpi) => DropdownMenuItem(value: dpi, child: Text('$dpi DPI')))
-                                .toList(growable: false),
-                            onChanged: _isProcessing
-                                ? null
-                                : (value) {
-                                    if (value == null) return;
-                                    setState(() {
-                                      _selectedDpi = value;
-                                    });
-                                    Future<void>.microtask(_refreshComparisonPreview);
-                                  },
-                            decoration: const InputDecoration(
-                              labelText: 'Print DPI',
-                              border: OutlineInputBorder(),
+                          if (_isCustomWorkspacePreset) ...[
+                            DropdownButtonFormField<PhotoSizePreset>(
+                              value: _selectedPreset,
+                              items: PhotoResizeService.presets
+                                  .map(
+                                    (preset) => DropdownMenuItem<PhotoSizePreset>(
+                                      value: preset,
+                                      child: Text(preset.label),
+                                    ),
+                                  )
+                                  .toList(growable: false),
+                              onChanged: _isProcessing
+                                  ? null
+                                  : (preset) {
+                                      if (preset == null) return;
+                                      setState(() {
+                                        _selectedPreset = preset;
+                                        _selectedWorkspacePresetId = 'custom';
+                                      });
+                                      Future<void>.microtask(_refreshComparisonPreview);
+                                    },
+                              decoration: const InputDecoration(
+                                labelText: 'Choose target size',
+                                border: OutlineInputBorder(),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                          DropdownButtonFormField<String>(
-                            value: _selectedAspectPreset,
-                            items: const [
-                              DropdownMenuItem(value: 'passport', child: Text('3.5cm x 4.5cm (Passport)')),
-                              DropdownMenuItem(value: 'visa', child: Text('2 x 2 inch (Visa / Universal)')),
-                              DropdownMenuItem(value: 'square', child: Text('1:1 Square / Stamp')),
-                            ],
-                            onChanged: _isProcessing
-                                ? null
-                                : (value) {
-                                    if (value == null) return;
-                                    setState(() {
-                                      _selectedAspectPreset = value;
-                                    });
-                                    Future<void>.microtask(_refreshComparisonPreview);
-                                  },
-                            decoration: const InputDecoration(
-                              labelText: 'Aspect ratio preset',
-                              border: OutlineInputBorder(),
+                            const SizedBox(height: 12),
+                            DropdownButtonFormField<String>(
+                              value: _selectedDpi,
+                              items: PhotoResizeService.dpiOptions
+                                  .map((dpi) => DropdownMenuItem(value: dpi, child: Text('$dpi DPI')))
+                                  .toList(growable: false),
+                              onChanged: _isProcessing
+                                  ? null
+                                  : (value) {
+                                      if (value == null) return;
+                                      setState(() {
+                                        _selectedDpi = value;
+                                        _selectedWorkspacePresetId = 'custom';
+                                      });
+                                      Future<void>.microtask(_refreshComparisonPreview);
+                                    },
+                              decoration: const InputDecoration(
+                                labelText: 'Print DPI',
+                                border: OutlineInputBorder(),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 12),
+                            const SizedBox(height: 12),
+                            DropdownButtonFormField<String>(
+                              value: _selectedAspectPreset,
+                              items: const [
+                                DropdownMenuItem(value: 'passport', child: Text('3.5cm x 4.5cm (Passport)')),
+                                DropdownMenuItem(value: 'visa', child: Text('2 x 2 inch (Visa / Universal)')),
+                                DropdownMenuItem(value: 'square', child: Text('1:1 Square / Stamp')),
+                              ],
+                              onChanged: _isProcessing
+                                  ? null
+                                  : (value) {
+                                      if (value == null) return;
+                                      setState(() {
+                                        _selectedAspectPreset = value;
+                                        _selectedWorkspacePresetId = 'custom';
+                                      });
+                                      Future<void>.microtask(_refreshComparisonPreview);
+                                    },
+                              decoration: const InputDecoration(
+                                labelText: 'Aspect ratio preset',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                          ] else ...[
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FBFF),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: const Color(0xFFD8E5F5)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _selectedWorkspacePreset.description,
+                                    style: const TextStyle(fontSize: 13, height: 1.45, color: Color(0xFF475569)),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      _lockedSpecChip('Resolution', '${_selectedPreset.width} × ${_selectedPreset.height}px'),
+                                      _lockedSpecChip('Aspect', _selectedWorkspacePreset.aspectLabel),
+                                      _lockedSpecChip('DPI', _selectedWorkspacePreset.dpi),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextButton.icon(
+                              onPressed: _isProcessing
+                                  ? null
+                                  : () {
+                                      _applyWorkspacePreset('custom');
+                                    },
+                              icon: const Icon(Icons.tune_rounded),
+                              label: const Text('Switch to Custom'),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
                           DropdownButtonFormField<String>(
                             value: _selectedBackgroundColor,
                             items: const [
@@ -1272,6 +1387,61 @@ class _PlanOption {
   final Color accent;
   final IconData icon;
 }
+
+class _WorkspacePresetOption {
+  final String id;
+  final String label;
+  final String description;
+  final String presetId;
+  final String aspectPresetId;
+  final String aspectLabel;
+  final String dpi;
+  final bool isCustom;
+
+  const _WorkspacePresetOption({
+    required this.id,
+    required this.label,
+    required this.description,
+    required this.presetId,
+    required this.aspectPresetId,
+    required this.aspectLabel,
+    required this.dpi,
+    required this.isCustom,
+  });
+}
+
+const List<_WorkspacePresetOption> _workspacePresetOptions = [
+  _WorkspacePresetOption(
+    id: 'passport_photo',
+    label: 'Passport Photo (3.5cm x 4.5cm)',
+    description: 'Locks the workspace to 413 × 531 px at 300 DPI with the correct passport aspect ratio.',
+    presetId: 'passport',
+    aspectPresetId: 'passport',
+    aspectLabel: 'Passport 3.5cm × 4.5cm',
+    dpi: '300',
+    isCustom: false,
+  ),
+  _WorkspacePresetOption(
+    id: 'profile_hd',
+    label: 'Profile HD (1080 x 1080)',
+    description: 'Locks the workspace to a square 1080 × 1080 profile output for portal and social use.',
+    presetId: 'profile_hd',
+    aspectPresetId: 'square',
+    aspectLabel: '1:1 Square',
+    dpi: '300',
+    isCustom: false,
+  ),
+  _WorkspacePresetOption(
+    id: 'custom',
+    label: 'Custom',
+    description: 'Unlock manual target size, aspect ratio, and DPI selection.',
+    presetId: 'passport',
+    aspectPresetId: 'passport',
+    aspectLabel: 'Custom',
+    dpi: '300',
+    isCustom: true,
+  ),
+];
 
 enum _StatusType { idle, processing, success, error }
 
