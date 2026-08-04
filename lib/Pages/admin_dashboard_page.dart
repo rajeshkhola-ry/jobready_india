@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../Services/auth_router_service.dart';
@@ -340,10 +339,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   Future<void> _logoutAdmin() async {
     await AuthRouterService.clearAuthentication();
     OwnerAdminAccessService.lock();
-    try {
-      await FirebaseAuth.instance.signOut();
-    } catch (_) {}
-
     if (!mounted) {
       return;
     }
