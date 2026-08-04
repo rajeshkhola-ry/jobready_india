@@ -13,14 +13,14 @@ class AdminTwoFactorPage extends StatefulWidget {
 
 class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
   final TextEditingController _codeController = TextEditingController();
+  late final bool _isSetupMode;
   late final TwoFactorSetupData _setupData;
   String? _errorText;
-
-  bool get _isSetupMode => !OwnerAdminAccessService.isTwoFactorConfigured;
 
   @override
   void initState() {
     super.initState();
+    _isSetupMode = !OwnerAdminAccessService.isTwoFactorConfigured;
     _setupData = OwnerAdminAccessService.initializeTwoFactorSetup();
     if (!OwnerAdminAccessService.isUnlocked) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
