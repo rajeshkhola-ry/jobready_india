@@ -63,6 +63,11 @@ class AuthRouterService {
     }
   }
 
+  static Future<void> clearAuthentication() async {
+    WebSafeBrowser.removeLocalStorage(_roleStorageKey);
+    WebSafeBrowser.removeLocalStorage(_authTokenStorageKey);
+  }
+
   static void redirectAfterLogin(BuildContext context, {String fallbackRoute = '/home'}) {
     final targetRoute = resolveTargetRoute(
       role: getCurrentRole(),

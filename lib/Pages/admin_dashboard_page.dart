@@ -1,8 +1,11 @@
 import 'dart:convert';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../Services/auth_router_service.dart';
 import '../Services/coupon_service.dart';
+import '../Services/owner_admin_access_service.dart';
 import '../Utils/web_safe_browser.dart';
 import '../Services/plan_catalog_service.dart';
 import '../Widgets/brand_logo_button.dart';
@@ -334,6 +337,19 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     );
   }
 
+  Future<void> _logoutAdmin() async {
+    await AuthRouterService.clearAuthentication();
+    OwnerAdminAccessService.lock();
+    try {
+      await FirebaseAuth.instance.signOut();
+    } catch (_) {}
+
+    if (!mounted) {
+      return;
+    }
+    Navigator.of(context).pushNamedAndRemoveUntil('/admin', (route) => false);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -375,6 +391,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
         ),
         actions: [
+          IconButton(
+            tooltip: 'Logout',
+            onPressed: _logoutAdmin,
+            icon: const Icon(Icons.logout_rounded),
+          ),
           IconButton(
             tooltip: 'Back to home',
             onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false),
