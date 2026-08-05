@@ -11,6 +11,7 @@ import '../Pages/micro_canva_utilities_page.dart';
 import '../Pages/poster_banner_studio_page.dart';
 import '../Pages/privacy_masker_page.dart';
 import '../Pages/govt_verifier_page.dart';
+import '../Pages/fraud_seal_page.dart';
 import '../Pages/resume_document_canvas_templates_page.dart';
 import '../Pages/v2/photo/photo_hd_workspace_page.dart';
 
@@ -173,6 +174,14 @@ class ToolSelectorV2 extends StatelessWidget {
                 false,
                 () => _openTool(context, const GovtVerifierPage()),
               ),
+              _tool(
+                context,
+                Icons.shield_moon_rounded,
+                "Fraud Seal",
+                "Purpose watermark, blur/blackout brush, and tamper-proof authenticity seal.",
+                false,
+                () => _openTool(context, const FraudSealPage()),
+              ),
             ];
 
             return Column(
@@ -239,6 +248,7 @@ class ToolSelectorV2 extends StatelessWidget {
       'Poster Studio': const Color(0xFF8A1538),
       'Privacy Masker': const Color(0xFF1A2B45),
       'Govt Verifier': const Color(0xFF0F2D4A),
+      'Fraud Seal': const Color(0xFF0A1F3D),
     };
 
     final accent = colorMap[title] ?? const Color(0xFF1F4E79);
