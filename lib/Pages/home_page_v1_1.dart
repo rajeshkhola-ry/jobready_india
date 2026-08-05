@@ -6385,6 +6385,15 @@ class _MostPopularToolsCard extends StatelessWidget {
                     Navigator.of(context).pushNamed('/micro-canva');
                   },
                 ),
+                _PopularToolRow(
+                  icon: Icons.draw_rounded,
+                  label: 'Resume & Document Canvas',
+                  description: 'Start from local-first templates for resumes, cover letters, and SOP drafts.',
+                  isFlagship: true,
+                  onTap: () {
+                    Navigator.of(context).pushNamed('/canvas-templates');
+                  },
+                ),
               ];
 
               final tools = <Widget>[

@@ -8,6 +8,7 @@ import '../Pages/pdf_tools_page.dart';
 import '../Pages/pdf_edit_page.dart';
 import '../Pages/ai_resume_builder_page.dart';
 import '../Pages/micro_canva_utilities_page.dart';
+import '../Pages/resume_document_canvas_templates_page.dart';
 import '../Pages/v2/photo/photo_hd_workspace_page.dart';
 
 class ToolSelectorV2 extends StatelessWidget {
@@ -137,6 +138,14 @@ class ToolSelectorV2 extends StatelessWidget {
                 true,
                 () => _openTool(context, const MicroCanvaUtilitiesPage()),
               ),
+              _tool(
+                context,
+                Icons.draw_rounded,
+                "Resume Canvas",
+                "Template canvas for resumes, cover letters, and SOP drafts.",
+                true,
+                () => _openTool(context, const ResumeDocumentCanvasTemplatesPage()),
+              ),
             ];
 
             return Column(
@@ -199,6 +208,7 @@ class ToolSelectorV2 extends StatelessWidget {
       'PDF Tools': const Color(0xFF1F4E79),
       'HD Photo Studio': const Color(0xFF7C3AED),
       'Micro-Canva': const Color(0xFF0F766E),
+      'Resume Canvas': const Color(0xFF0B5C4A),
     };
 
     final accent = colorMap[title] ?? const Color(0xFF1F4E79);
