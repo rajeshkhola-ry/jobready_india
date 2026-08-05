@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'dart:typed_data';
 
-import '../Widgets/download_result_dialog.dart';
 import '../Widgets/production_footer.dart';
 import '../Widgets/quota_gate.dart';
 import '../Widgets/tool_guidance_panel.dart';
 import '../Widgets/tool_workspace_shell.dart';
 import '../Services/file_picker_service.dart';
-import '../Services/pdf_merge_service.dart';
 import '../Services/upload_context_service.dart';
+import '../Services/wasm_document_service.dart';
 
 /// Merge Tool Page - Combine multiple PDFs into one
 /// User selects multiple files → Sets merge order → Merges
@@ -20,7 +19,6 @@ class MergeToolPage extends StatefulWidget {
 }
 
 class _MergeToolPageState extends State<MergeToolPage> {
-  final PdfMergeService _mergeService = const PdfMergeService();
   List<String> _selectedFiles = [];
   List<Uint8List> _selectedFileBytes = [];
   List<int> _selectedFileSizes = [];
@@ -656,16 +654,7 @@ class _MergeToolPageState extends State<MergeToolPage> {
     await Future.delayed(const Duration(milliseconds: 60));
 
     try {
-      final pickedFiles = [
-        for (var index = 0; index < _selectedFiles.length; index++)
-          PickedFileData(
-            name: _selectedFiles[index],
-            size: _selectedFileSizes[index],
-            bytes: _selectedFileBytes[index],
-          ),
-      ];
-
-      final mergedPdf = await _mergeService.mergePdfs(pickedFiles);
+      final mergedPdf = await WasmDocumentService.mergePdfDocuments(_selectedFileBytes);
 
       if (!mounted) return;
 
@@ -677,19 +666,16 @@ class _MergeToolPageState extends State<MergeToolPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Merge completed. Download is ready.'),
+            content: Text('Merge completed. Download started.'),
             backgroundColor: Color(0xFF166534),
           ),
         );
       }
 
-      await showDialog(
-        context: context,
-        builder: (_) => DownloadResultDialog(
-          outputFormat: 'Merged PDF',
-          fileName: 'jobready_merged.pdf',
-          outputBytes: Uint8List.fromList(mergedPdf.toList()),
-        ),
+      WasmDocumentService.triggerBrowserDownload(
+        bytes: mergedPdf,
+        fileName: 'jobready_merged.pdf',
+        mimeType: 'application/pdf',
       );
     } catch (e) {
       if (!mounted) return;

@@ -10,8 +10,8 @@ import '../Widgets/tool_guidance_panel.dart';
 import '../Widgets/tool_workspace_shell.dart';
 import '../Services/compression_service.dart';
 import '../Services/file_picker_service.dart';
-import '../Services/remote_compression_service.dart';
 import '../Services/upload_context_service.dart';
+import '../Services/wasm_document_service.dart';
 import 'dart:typed_data';
 
 class _CompressionOutcome {
@@ -43,7 +43,6 @@ class CompressionToolPage extends StatefulWidget {
 
 class _CompressionToolPageState extends State<CompressionToolPage> {
   final _compressionService = const CompressionService();
-  final _remoteCompressionService = const RemoteCompressionService();
 
   int? _targetSizeBytes;
   String? _selectedUnit;
@@ -825,19 +824,15 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('File completed. Download link is ready.'),
+            content: Text('File completed. Download started.'),
             backgroundColor: Colors.green,
           ),
         );
 
-        await showDialog(
-          context: context,
-          builder: (_) => DownloadResultDialog(
-            outputFormat: 'Compressed File Completed',
-            fileName: selected.name,
-            outputBytes: Uint8List.fromList(compressed.toList()),
-            originalFileSizeBytes: selected.size,
-          ),
+        WasmDocumentService.triggerBrowserDownload(
+          bytes: compressed,
+          fileName: selected.name,
+          mimeType: _mimeTypeFromName(selected.name),
         );
         return;
       }
@@ -950,23 +945,19 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Batch completed. Download link is ready.'),
+          content: Text('Batch completed. Download started.'),
           backgroundColor: Colors.green,
         ),
       );
 
-      await showDialog(
-        context: context,
-        builder: (_) => DownloadResultDialog(
-          outputFormat: 'Compressed ZIP Completed',
-          fileName: 'jobready_compressed_files.zip',
-          outputBytes: Uint8List.fromList(zipBytes.toList()),
-          originalFileSizeBytes: totalOriginal,
-        ),
+      WasmDocumentService.triggerBrowserDownload(
+        bytes: Uint8List.fromList(zipBytes),
+        fileName: 'jobready_compressed_files.zip',
+        mimeType: 'application/zip',
       );
     } catch (e) {
       if (!mounted) return;
-      final errorMessage = _cleanCompressionErrorForDisplay(e.toString());
+      final errorMessage = e.toString().replaceFirst('Exception: ', '').trim();
       setState(() {
         _isCompressing = false;
         _statusMessage = '✗ Compression failed: $errorMessage';
@@ -984,39 +975,23 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
   Future<_CompressionOutcome> _compressSingleFile(PickedFileData file) async {
     final lowerName = file.name.toLowerCase();
     if (lowerName.endsWith('.pdf')) {
-      if (kIsWeb) {
-        try {
-          await _yieldToUi();
-          final remote = await _remoteCompressionService.compressPdf(
-            bytes: file.bytes,
-            fileName: file.name,
-            targetBytes: _targetSizeBytes!,
-            mode: _selectedCompressionMode,
-            pipelineMode: _pipelineMode,
-          );
-
-          return _CompressionOutcome(
-            bytes: remote.bytes,
-            aggressiveUsed: _pipelineMode == CompressionPipelineMode.highCompressionImageOnly,
-            reductionPercent: _reductionPercent(file.size, remote.bytes.length),
-            targetMet: remote.targetMet,
-            note: remote.message,
-          );
-        } on RemoteCompressionException catch (error) {
-          return _compressPdfLocallyAfterRemoteFailure(
-            file,
-            reason: error.message,
-          );
-        } catch (error) {
-          return _compressPdfLocallyAfterRemoteFailure(
-            file,
-            reason: '$error',
-          );
-        }
+      await _yieldToUi();
+      final wasmCompressed = await WasmDocumentService.compressPdfDocument(
+        pdfBytes: file.bytes,
+        targetBytes: _targetSizeBytes,
+      );
+      if (wasmCompressed.length <= _targetSizeBytes!) {
+        return _CompressionOutcome(
+          bytes: wasmCompressed,
+          aggressiveUsed: false,
+          reductionPercent: _reductionPercent(file.size, wasmCompressed.length),
+          targetMet: true,
+          note: 'Target achieved with local WASM PDF pipeline.',
+        );
       }
 
       final smart = await _compressionService.compressPdfSmart(
-        file.bytes,
+        wasmCompressed,
         _targetSizeBytes!,
         file.name,
         mode: _selectedCompressionMode,
@@ -1053,7 +1028,12 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
 
     if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg') || lowerName.endsWith('.png')) {
       await _yieldToUi();
-      final primary = _compressionService.compressImage(file.bytes, _targetSizeBytes!, file.name);
+      final primary = await WasmDocumentService.compressImage(
+        imageBytes: file.bytes,
+        quality: 82,
+        maxWidth: 2400,
+        maxHeight: 2400,
+      );
       if (primary.length <= _targetSizeBytes!) {
         return _CompressionOutcome(
           bytes: primary,
@@ -1066,7 +1046,12 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
 
       final aggressiveTarget = (_targetSizeBytes! / 2).round().clamp(1, _targetSizeBytes!);
       await _yieldToUi();
-      final aggressive = _compressionService.compressImage(primary, aggressiveTarget, file.name);
+      final aggressive = await WasmDocumentService.compressImage(
+        imageBytes: primary,
+        quality: 62,
+        maxWidth: 1800,
+        maxHeight: 1800,
+      );
       final best = aggressive.length < primary.length ? aggressive : primary;
       return _CompressionOutcome(
         bytes: best,
@@ -1081,7 +1066,12 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
 
     if (lowerName.endsWith('.webp') || lowerName.endsWith('.bmp')) {
       await _yieldToUi();
-      final primary = _compressionService.compressImage(file.bytes, _targetSizeBytes!, file.name);
+      final primary = await WasmDocumentService.compressImage(
+        imageBytes: file.bytes,
+        quality: 78,
+        maxWidth: 2200,
+        maxHeight: 2200,
+      );
       if (primary.length <= _targetSizeBytes!) {
         return _CompressionOutcome(
           bytes: primary,
@@ -1094,7 +1084,12 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
 
       final aggressiveTarget = (_targetSizeBytes! / 2).round().clamp(1, _targetSizeBytes!);
       await _yieldToUi();
-      final aggressive = _compressionService.compressImage(primary, aggressiveTarget, file.name);
+      final aggressive = await WasmDocumentService.compressImage(
+        imageBytes: primary,
+        quality: 58,
+        maxWidth: 1600,
+        maxHeight: 1600,
+      );
       final best = aggressive.length < primary.length ? aggressive : primary;
       return _CompressionOutcome(
         bytes: best,
@@ -1114,21 +1109,12 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
     final lowerName = file.name.toLowerCase();
 
     if (lowerName.endsWith('.pdf')) {
-      if (kIsWeb) {
-        try {
-          final remote = await _remoteCompressionService.compressPdf(
-            bytes: currentBytes,
-            fileName: file.name,
-            targetBytes: _targetSizeBytes!,
-            mode: PdfCompressionMode.targetSize,
-            pipelineMode: CompressionPipelineMode.highCompressionImageOnly,
-          );
-          if (remote.bytes.length < currentBytes.length) {
-            return remote.bytes;
-          }
-        } catch (_) {
-          // Continue with local force compression when remote service is unavailable.
-        }
+      final wasmForced = await WasmDocumentService.compressPdfDocument(
+        pdfBytes: currentBytes,
+        targetBytes: _targetSizeBytes,
+      );
+      if (wasmForced.length < currentBytes.length) {
+        return wasmForced;
       }
 
       return _compressionService.forceCompressPdfToTarget(
@@ -1143,9 +1129,19 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
         lowerName.endsWith('.webp') || lowerName.endsWith('.bmp')) {
       final tighterTarget = (_targetSizeBytes! * 0.35).round().clamp(1, _targetSizeBytes!);
       await _yieldToUi();
-      final pass1 = _compressionService.compressImage(currentBytes, tighterTarget, file.name);
+      final pass1 = await WasmDocumentService.compressImage(
+        imageBytes: currentBytes,
+        quality: 48,
+        maxWidth: 1440,
+        maxHeight: 1440,
+      );
       await _yieldToUi();
-      final pass2 = _compressionService.compressImage(pass1, tighterTarget, file.name);
+      final pass2 = await WasmDocumentService.compressImage(
+        imageBytes: pass1,
+        quality: 42,
+        maxWidth: 1200,
+        maxHeight: 1200,
+      );
       return pass2.length < pass1.length ? pass2 : pass1;
     }
 
@@ -1154,77 +1150,6 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
 
   Future<void> _yieldToUi([int ms = 16]) async {
     await Future<void>.delayed(Duration(milliseconds: ms));
-  }
-
-  Future<_CompressionOutcome> _compressPdfLocallyAfterRemoteFailure(
-    PickedFileData file, {
-    required String reason,
-  }) async {
-    final targetBytes = _targetSizeBytes;
-    if (targetBytes == null) {
-      throw Exception('Target size is missing for compression.');
-    }
-
-    try {
-      await _yieldToUi();
-      final smart = await _compressionService.compressPdfSmart(
-        file.bytes,
-        targetBytes,
-        file.name,
-        mode: _selectedCompressionMode,
-        pipelineMode: _pipelineMode,
-      );
-
-      var best = smart.bytes;
-      var aggressiveUsed = false;
-      if (best.length > targetBytes) {
-        final forced = await _compressionService.forceCompressPdfToTarget(
-          best,
-          targetBytes,
-          file.name,
-          pipelineMode: _pipelineMode,
-        );
-        if (forced.length < best.length) {
-          best = forced;
-          aggressiveUsed = true;
-        }
-      }
-
-      final metTarget = best.length <= targetBytes;
-      final localFallbackMessage = _isLikelyRemoteTransportFailure(reason)
-          ? 'Remote server busy, completed compression locally using adaptive engine.'
-          : 'Remote compression unavailable, completed compression locally using adaptive engine.';
-
-      return _CompressionOutcome(
-        bytes: best,
-        aggressiveUsed: aggressiveUsed,
-        reductionPercent: _reductionPercent(file.size, best.length),
-        targetMet: metTarget,
-        note: metTarget
-            ? localFallbackMessage
-            : '$localFallbackMessage Exact target could not be reached without heavy quality loss.',
-        usedLocalFallback: true,
-      );
-    } catch (_) {
-      throw Exception('Compression failed on remote and local engines. Please retry.');
-    }
-  }
-
-  bool _isLikelyRemoteTransportFailure(String message) {
-    final lower = message.toLowerCase();
-    return lower.contains('xmlhttprequest') ||
-        lower.contains('network') ||
-        lower.contains('cors') ||
-        lower.contains('timeout') ||
-        lower.contains('socket');
-  }
-
-  String _cleanCompressionErrorForDisplay(String message) {
-    final lower = message.toLowerCase();
-    if (_isLikelyRemoteTransportFailure(lower)) {
-      return 'Remote service unavailable, and local compression could not finish. Please retry.';
-    }
-    return message.replaceFirst('Exception: ', '').trim();
   }
 
   Future<bool> _confirmForceQualityReduction({
@@ -1295,15 +1220,21 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
       return;
     }
 
-    showDialog(
-      context: context,
-      builder: (_) => DownloadResultDialog(
-        outputFormat: 'Compressed File',
-        fileName: _lastOutputName!,
-        outputBytes: Uint8List.fromList(_lastOutputBytes!.toList()),
-        originalFileSizeBytes: _originalFileSize,
-      ),
+    WasmDocumentService.triggerBrowserDownload(
+      bytes: _lastOutputBytes!,
+      fileName: _lastOutputName!,
+      mimeType: _mimeTypeFromName(_lastOutputName!),
     );
+  }
+
+  String _mimeTypeFromName(String fileName) {
+    final lower = fileName.toLowerCase();
+    if (lower.endsWith('.pdf')) return 'application/pdf';
+    if (lower.endsWith('.zip')) return 'application/zip';
+    if (lower.endsWith('.png')) return 'image/png';
+    if (lower.endsWith('.webp')) return 'image/webp';
+    if (lower.endsWith('.bmp')) return 'image/bmp';
+    return 'image/jpeg';
   }
 
   String _formatBytes(int bytes) {

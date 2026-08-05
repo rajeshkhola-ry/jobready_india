@@ -11,7 +11,7 @@ import '../../../Services/file_picker_service.dart';
 import '../../../Services/free_trial_service.dart';
 import '../../../Services/photo_resize_service.dart';
 import '../../../Services/upload_context_service.dart';
-import '../../../Widgets/download_result_dialog.dart';
+import '../../../Services/wasm_document_service.dart';
 import '../../../Widgets/quota_gate.dart';
 
 class PhotoHdWorkspacePage extends StatefulWidget {
@@ -403,6 +403,35 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
     await Future<void>.delayed(const Duration(milliseconds: 50));
 
     try {
+      if (_selectedAspectPreset == 'passport' && _outputFormat != PhotoOutputFormat.pdf) {
+        final bytes = await WasmDocumentService.buildPassportPhoto(
+          imageBytes: selectedImage.bytes,
+          outputWidth: _effectivePreset.width,
+          outputHeight: _effectivePreset.height,
+          quality: _hdMode ? 92 : 84,
+        );
+
+        final outputName = _buildOutputName(selectedImage.name, _outputFormat);
+        if (!mounted) {
+          return;
+        }
+
+        setState(() {
+          _processingProgress = 1.0;
+          _isProcessing = false;
+          _statusType = _StatusType.success;
+          _statusMessage = 'Ready: $outputName — ${_effectivePreset.width} × ${_effectivePreset.height} px. Local WASM passport pipeline complete.';
+        });
+        _stopProcessingPulse();
+
+        WasmDocumentService.triggerBrowserDownload(
+          bytes: bytes,
+          fileName: outputName,
+          mimeType: _mimeTypeForPhotoFormat(_outputFormat),
+        );
+        return;
+      }
+
       final result = await _photoResizeService.upscalePhoto(
         bytes: selectedImage.bytes,
         fileName: selectedImage.name,
@@ -431,15 +460,10 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
       });
       _stopProcessingPulse();
 
-      await showDialog<void>(
-        context: context,
-        builder: (_) => DownloadResultDialog(
-          outputFormat: _outputFormat == PhotoOutputFormat.pdf
-              ? 'Print-Ready PDF'
-              : (_outputFormat == PhotoOutputFormat.png ? 'PNG Export' : 'JPG Export'),
-          fileName: result.outputFileName,
-          outputBytes: result.bytes,
-        ),
+      WasmDocumentService.triggerBrowserDownload(
+        bytes: result.bytes,
+        fileName: result.outputFileName,
+        mimeType: _mimeTypeForPhotoFormat(_outputFormat),
       );
     } catch (error) {
       if (!mounted) {
@@ -468,6 +492,25 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
       return '${(bytes / 1024).toStringAsFixed(1)} KB';
     }
     return '${(bytes / (1024 * 1024)).toStringAsFixed(2)} MB';
+  }
+
+  String _buildOutputName(String originalName, PhotoOutputFormat outputFormat) {
+    final dotIndex = originalName.lastIndexOf('.');
+    final base = dotIndex > 0 ? originalName.substring(0, dotIndex) : originalName;
+    final suffix = switch (outputFormat) {
+      PhotoOutputFormat.png => 'png',
+      PhotoOutputFormat.pdf => 'pdf',
+      PhotoOutputFormat.jpg => 'jpg',
+    };
+    return '${base}_passport.$suffix';
+  }
+
+  String _mimeTypeForPhotoFormat(PhotoOutputFormat outputFormat) {
+    return switch (outputFormat) {
+      PhotoOutputFormat.png => 'image/png',
+      PhotoOutputFormat.pdf => 'application/pdf',
+      PhotoOutputFormat.jpg => 'image/jpeg',
+    };
   }
 
   List<_PlanOption> get _planOptions => [

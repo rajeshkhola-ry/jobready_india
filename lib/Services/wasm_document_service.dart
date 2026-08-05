@@ -2,9 +2,16 @@ import 'dart:ui';
 import 'dart:typed_data';
 
 import 'package:image/image.dart' as img;
+import 'package:pdf/pdf.dart' as pdf;
 import 'package:pdf/widgets.dart' as pw;
 import 'package:syncfusion_flutter_pdf/pdf.dart' as sfpdf;
 import 'package:universal_html/html.dart' as html;
+
+enum WasmImageOutputFormat {
+  jpg,
+  png,
+  bmp,
+}
 
 class WasmDocumentService {
   const WasmDocumentService._();
@@ -88,12 +95,44 @@ class WasmDocumentService {
     }
   }
 
+  static Future<Uint8List> compressPdfDocument({
+    required Uint8List pdfBytes,
+    int? targetBytes,
+  }) async {
+    final source = sfpdf.PdfDocument(inputBytes: pdfBytes);
+    try {
+      final rebuilt = sfpdf.PdfDocument();
+      try {
+        for (var pageIndex = 0; pageIndex < source.pages.count; pageIndex++) {
+          final template = source.pages[pageIndex].createTemplate();
+          final page = rebuilt.pages.add();
+          page.graphics.drawPdfTemplate(template, Offset.zero);
+        }
+
+        final compressed = Uint8List.fromList(rebuilt.saveSync());
+        if (targetBytes == null) {
+          return compressed.length < pdfBytes.length ? compressed : pdfBytes;
+        }
+
+        if (compressed.length <= targetBytes || compressed.length < pdfBytes.length) {
+          return compressed;
+        }
+
+        return pdfBytes;
+      } finally {
+        rebuilt.dispose();
+      }
+    } finally {
+      source.dispose();
+    }
+  }
+
   static Future<Uint8List> compressImage({
     required Uint8List imageBytes,
     int maxWidth = 1920,
     int maxHeight = 1920,
     int quality = 80,
-    img.Format outputFormat = img.Format.jpg,
+    WasmImageOutputFormat outputFormat = WasmImageOutputFormat.jpg,
   }) async {
     final decoded = img.decodeImage(imageBytes);
     if (decoded == null) {
@@ -123,7 +162,7 @@ class WasmDocumentService {
     int outputWidth = 413,
     int outputHeight = 531,
     int quality = 90,
-    img.Format outputFormat = img.Format.jpg,
+    WasmImageOutputFormat outputFormat = WasmImageOutputFormat.jpg,
   }) async {
     final decoded = img.decodeImage(imageBytes);
     if (decoded == null) {
@@ -171,7 +210,7 @@ class WasmDocumentService {
       final provider = pw.MemoryImage(bytes);
       document.addPage(
         pw.Page(
-          pageFormat: pw.PdfPageFormat.a4,
+          pageFormat: pdf.PdfPageFormat.a4,
           build: (context) {
             return pw.Center(
               child: pw.Image(provider, fit: pw.BoxFit.contain),
@@ -200,21 +239,15 @@ class WasmDocumentService {
 
   static List<int> _encodeImage(
     img.Image image, {
-    required img.Format outputFormat,
+    required WasmImageOutputFormat outputFormat,
     required int quality,
   }) {
     switch (outputFormat) {
-      case img.Format.png:
+      case WasmImageOutputFormat.png:
         return img.encodePng(image, level: 6);
-      case img.Format.webp:
-        return img.encodeWebp(image, quality: quality);
-      case img.Format.bmp:
+      case WasmImageOutputFormat.bmp:
         return img.encodeBmp(image);
-      case img.Format.tiff:
-        return img.encodeTiff(image);
-      case img.Format.gif:
-        return img.encodeGif(image);
-      case img.Format.jpg:
+      case WasmImageOutputFormat.jpg:
       default:
         return img.encodeJpg(image, quality: quality);
     }

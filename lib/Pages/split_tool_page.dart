@@ -3,14 +3,13 @@ import 'package:archive/archive.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart' as sfpdf;
 import 'dart:typed_data';
 
-import '../Widgets/download_result_dialog.dart';
 import '../Widgets/production_footer.dart';
 import '../Widgets/quota_gate.dart';
 import '../Widgets/tool_guidance_panel.dart';
 import '../Widgets/tool_workspace_shell.dart';
 import '../Services/file_picker_service.dart';
-import '../Services/pdf_editor_service.dart';
 import '../Services/upload_context_service.dart';
+import '../Services/wasm_document_service.dart';
 
 /// Split Tool Page - Extract pages from PDF or split into multiple files
 /// User selects file → Sets page ranges → Splits
@@ -22,7 +21,6 @@ class SplitToolPage extends StatefulWidget {
 }
 
 class _SplitToolPageState extends State<SplitToolPage> {
-  final PdfEditorService _pdfEditorService = const PdfEditorService();
   List<PickedFileData> _selectedFiles = const [];
   String? _selectedFile;
   Uint8List? _selectedFileBytes;
@@ -656,16 +654,29 @@ class _SplitToolPageState extends State<SplitToolPage> {
     await Future.delayed(const Duration(milliseconds: 60));
 
     try {
+      final normalizedRanges = _normalizePageRanges(_pageRanges, _totalPages);
+      if (normalizedRanges.isEmpty) {
+        throw Exception('No valid ranges were found.');
+      }
+
       final archive = Archive();
       for (final input in _selectedFiles) {
-        final files = await _pdfEditorService.splitPdfByRanges(
-          input.bytes,
-          input.name,
-          _pageRanges,
-        );
-
-        for (final file in files) {
-          archive.addFile(ArchiveFile(file.name, file.bytes.length, file.bytes));
+        for (final range in normalizedRanges) {
+          final bytes = await WasmDocumentService.splitPdfRange(
+            pdfBytes: input.bytes,
+            startPage: range.start,
+            endPage: range.end,
+          );
+          final suffix = range.start == range.end
+              ? 'page_${range.start}'
+              : 'pages_${range.start}_${range.end}';
+          archive.addFile(
+            ArchiveFile(
+              '${_removePdfExtension(input.name)}_$suffix.pdf',
+              bytes.length,
+              bytes,
+            ),
+          );
         }
       }
 
@@ -687,19 +698,16 @@ class _SplitToolPageState extends State<SplitToolPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Split completed. Download is ready.'),
+            content: Text('Split completed. Download started.'),
             backgroundColor: Color(0xFF166534),
           ),
         );
       }
 
-      await showDialog(
-        context: context,
-        builder: (_) => DownloadResultDialog(
-          outputFormat: 'Split PDF Package',
-          fileName: 'jobready_split_files.zip',
-          outputBytes: Uint8List.fromList(zipBytes.toList()),
-        ),
+      WasmDocumentService.triggerBrowserDownload(
+        bytes: Uint8List.fromList(zipBytes),
+        fileName: 'jobready_split_files.zip',
+        mimeType: 'application/zip',
       );
     } catch (e) {
       if (!mounted) return;
@@ -728,9 +736,59 @@ class _SplitToolPageState extends State<SplitToolPage> {
     if (_statusMessage.startsWith('Splitting')) return _StatusType.processing;
     return _StatusType.idle;
   }
+
+  List<_PageRange> _normalizePageRanges(List<String> ranges, int totalPages) {
+    final normalized = <_PageRange>[];
+    for (final raw in ranges) {
+      final value = raw.trim();
+      if (value.isEmpty) {
+        continue;
+      }
+      if (value.contains('-')) {
+        final parts = value.split('-');
+        if (parts.length != 2) {
+          continue;
+        }
+        final start = int.tryParse(parts[0].trim());
+        final end = int.tryParse(parts[1].trim());
+        if (start == null || end == null) {
+          continue;
+        }
+        final boundedStart = start.clamp(1, totalPages);
+        final boundedEnd = end.clamp(1, totalPages);
+        if (boundedStart <= boundedEnd) {
+          normalized.add(_PageRange(start: boundedStart, end: boundedEnd));
+        }
+        continue;
+      }
+
+      final single = int.tryParse(value);
+      if (single == null) {
+        continue;
+      }
+      final page = single.clamp(1, totalPages);
+      normalized.add(_PageRange(start: page, end: page));
+    }
+    return normalized;
+  }
+
+  String _removePdfExtension(String fileName) {
+    final lower = fileName.toLowerCase();
+    if (!lower.endsWith('.pdf')) {
+      return fileName;
+    }
+    return fileName.substring(0, fileName.length - 4);
+  }
 }
 
 enum _StatusType { idle, processing, success, error }
+
+class _PageRange {
+  final int start;
+  final int end;
+
+  const _PageRange({required this.start, required this.end});
+}
 
 class _StatusRow extends StatelessWidget {
   final String message;
