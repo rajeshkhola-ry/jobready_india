@@ -20,9 +20,21 @@
   </url>
   <url>
     <loc>https://www.getreadyjob.com/resume</loc>
-    <lastmod>2026-08-03</lastmod>
+    <lastmod>2026-08-05</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.88</priority>
+  </url>
+  <url>
+    <loc>https://www.getreadyjob.com/photo-hd</loc>
+    <lastmod>2026-08-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.86</priority>
+  </url>
+  <url>
+    <loc>https://www.getreadyjob.com/extract</loc>
+    <lastmod>2026-08-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.84</priority>
   </url>
   <url>
     <loc>https://www.getreadyjob.com/blog</loc>
