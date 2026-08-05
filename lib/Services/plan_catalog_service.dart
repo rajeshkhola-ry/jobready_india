@@ -35,17 +35,17 @@ class PlanCatalogConfig {
     return const PlanCatalogConfig(
       inrPrices: {
         'Free': 0,
-        '7Days': 49,
-        'Monthly': 99,
-        'Yearly': 799,
-        'Lifetime': 1999,
+        '7Days': 99,
+        'Monthly': 149,
+        'Yearly': 999,
+        'Lifetime': 9999,
       },
       usdPrices: {
         'Free': 0,
-        '7Days': 0.99,
-        'Monthly': 1.99,
-        'Yearly': 14.99,
-        'Lifetime': 39,
+        '7Days': 2.99,
+        'Monthly': 4.99,
+        'Yearly': 29.99,
+        'Lifetime': 120,
       },
       enabledToolsByPlan: {
         'Free': ['Compress', 'Convert', 'Merge', 'Split', 'Extract'],
@@ -164,14 +164,14 @@ class PlanCatalogService {
     final usdAmount = config.usdPrices[plan] ?? 0.0;
 
     if (plan == 'Free') {
-      return '₹0 / \$0$suffix';
+      return currencyCode == 'INR' ? '₹0$suffix' : '\$0$suffix';
     }
 
     if (currencyCode == 'INR') {
       return '₹${inrAmount.toStringAsFixed(inrAmount.truncateToDouble() == inrAmount ? 0 : 2)}$suffix';
     }
 
-    return '₹${inrAmount.toStringAsFixed(inrAmount.truncateToDouble() == inrAmount ? 0 : 2)} / \$${usdAmount.toStringAsFixed(usdAmount.truncateToDouble() == usdAmount ? 0 : 2)}$suffix';
+    return '\$${usdAmount.toStringAsFixed(usdAmount.truncateToDouble() == usdAmount ? 0 : 2)}$suffix';
   }
 
   static PlanCatalogConfig load() {

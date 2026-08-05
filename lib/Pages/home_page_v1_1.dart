@@ -45,72 +45,15 @@ import 'terms_conditions_page.dart';
 const Map<String, String> _paymentCurrencyLabels = {
   'USD': 'US Dollar (USD)',
   'INR': 'Indian Rupee (INR)',
-  'EUR': 'Euro (EUR)',
-  'GBP': 'British Pound (GBP)',
-  'AED': 'UAE Dirham (AED)',
-  'SAR': 'Saudi Riyal (SAR)',
-  'CAD': 'Canadian Dollar (CAD)',
-  'AUD': 'Australian Dollar (AUD)',
-  'SGD': 'Singapore Dollar (SGD)',
-  'JPY': 'Japanese Yen (JPY)',
-  'CNY': 'Chinese Yuan (CNY)',
-  'HKD': 'Hong Kong Dollar (HKD)',
-  'NZD': 'New Zealand Dollar (NZD)',
-  'CHF': 'Swiss Franc (CHF)',
-  'ZAR': 'South African Rand (ZAR)',
-  'SEK': 'Swedish Krona (SEK)',
-  'NOK': 'Norwegian Krone (NOK)',
-  'DKK': 'Danish Krone (DKK)',
-  'MYR': 'Malaysian Ringgit (MYR)',
-  'THB': 'Thai Baht (THB)',
-  'OTHER': 'Other countries (USD rates applicable)',
 };
 
 const Map<String, double> _paymentCurrencyRates = {
   'USD': 1.0,
-  'EUR': 0.92,
-  'GBP': 0.78,
-  'AED': 3.67,
-  'SAR': 3.75,
-  'CAD': 1.37,
-  'AUD': 1.52,
-  'SGD': 1.35,
-  'JPY': 158.0,
-  'CNY': 7.26,
-  'HKD': 7.81,
-  'NZD': 1.66,
-  'CHF': 0.89,
-  'ZAR': 18.1,
-  'SEK': 10.5,
-  'NOK': 10.7,
-  'DKK': 6.86,
-  'MYR': 4.7,
-  'THB': 36.3,
-  'OTHER': 1.0,
 };
 
 const Map<String, String> _paymentCurrencySymbols = {
   'USD': '\$',
   'INR': '₹',
-  'EUR': '€',
-  'GBP': '£',
-  'AED': 'AED ',
-  'SAR': 'SAR ',
-  'CAD': 'CA\$',
-  'AUD': 'A\$',
-  'SGD': 'S\$',
-  'JPY': '¥',
-  'CNY': '¥',
-  'HKD': 'HK\$',
-  'NZD': 'NZ\$',
-  'CHF': 'CHF ',
-  'ZAR': 'R ',
-  'SEK': 'SEK ',
-  'NOK': 'NOK ',
-  'DKK': 'DKK ',
-  'MYR': 'RM ',
-  'THB': '฿',
-    'OTHER': '\$',
 };
 
 String _formatCurrencyAmount(double amount, String currencyCode) {
@@ -185,10 +128,13 @@ class HomePageV11 extends StatefulWidget {
 }
 
 class _HomePageV11State extends State<HomePageV11> {
+  static const String _geoCurrencyMigrationKey = 'jobready_geo_currency_migration_v1';
+
   int _pricingDiscountPercent = 0;
   String _activeGateway = ApiService.getActivePaymentGateway();
   String _selectedPlanForPayment = 'Free';
   String _selectedPaymentCurrency = 'USD';
+  String _detectedCountryCode = 'IN';
   String? _selectedUsageType;
   bool _showLiveOfferBanner = false;
   String _liveOfferText = '';
@@ -198,16 +144,16 @@ class _HomePageV11State extends State<HomePageV11> {
 
   // Manual pricing control: update these values any time.
   // INR Pricing
-  static const double _sevenDayPlanInr = 49.0;
-  static const double _monthlyPlanInr = 99.0;
-  static const double _yearlyPlanInr = 799.0;
-  static const double _lifetimePlanInr = 1999.0;
+  static const double _sevenDayPlanInr = 99.0;
+  static const double _monthlyPlanInr = 149.0;
+  static const double _yearlyPlanInr = 999.0;
+  static const double _lifetimePlanInr = 9999.0;
 
   // USD Pricing
-  static const double _sevenDayPlanUsd = 0.99;
-  static const double _monthlyPlanUsd = 1.99;
-  static const double _yearlyPlanUsd = 14.99;
-  static const double _lifetimePlanUsd = 39.0;
+  static const double _sevenDayPlanUsd = 2.99;
+  static const double _monthlyPlanUsd = 4.99;
+  static const double _yearlyPlanUsd = 29.99;
+  static const double _lifetimePlanUsd = 120.0;
 
   static const double _businessIncreaseMultiplier = 1.75;
 
@@ -217,6 +163,7 @@ class _HomePageV11State extends State<HomePageV11> {
     _planCatalog = PlanCatalogService.load();
     _showCookieConsentBanner = !_hasAcceptedCookieConsent();
     _selectedPaymentCurrency = _resolveInitialPaymentCurrency();
+    unawaited(_autoDetectCountryAndCurrency());
   }
 
   String _resolveInitialPaymentCurrency() {
@@ -241,8 +188,108 @@ class _HomePageV11State extends State<HomePageV11> {
     return normalizedValue;
   }
 
+  String _geoCurrencyFromCountryCode(String countryCode) {
+    return countryCode.trim().toUpperCase() == 'IN' ? 'INR' : 'USD';
+  }
+
+  bool _isLegacyCurrencyMigrationDone() {
+    return html.window.localStorage[_geoCurrencyMigrationKey] == 'done';
+  }
+
+  void _markLegacyCurrencyMigrationDone() {
+    html.window.localStorage[_geoCurrencyMigrationKey] = 'done';
+  }
+
+  void _runLegacyCurrencyMigrationIfNeeded(String detectedCurrency) {
+    if (_isLegacyCurrencyMigrationDone()) {
+      return;
+    }
+
+    final storedCurrency = _getStoredPaymentCurrency();
+    final hasLegacyOverride = storedCurrency == 'INR' || storedCurrency == 'USD';
+    if (hasLegacyOverride && storedCurrency != detectedCurrency) {
+      html.window.localStorage.remove('jobready_payment_currency');
+      _persistPaymentCurrency(detectedCurrency);
+    }
+
+    _markLegacyCurrencyMigrationDone();
+  }
+
   void _persistPaymentCurrency(String currency) {
     html.window.localStorage['jobready_payment_currency'] = currency;
+  }
+
+  Future<String> _fetchCountryCodeFromEndpoint(String endpoint) async {
+    final uri = Uri.parse(endpoint);
+    final request = await html.HttpRequest.request(
+      uri.toString(),
+      method: 'GET',
+      requestHeaders: const {'Accept': 'application/json'},
+    );
+
+    final raw = request.responseText ?? '';
+    if (raw.trim().isEmpty) {
+      return '';
+    }
+
+    final decoded = jsonDecode(raw);
+    if (decoded is! Map) {
+      return '';
+    }
+
+    final map = Map<String, dynamic>.from(decoded);
+    final candidate = (map['country_code'] ?? map['country'] ?? '').toString().trim().toUpperCase();
+    if (candidate.length == 2) {
+      return candidate;
+    }
+    return '';
+  }
+
+  Future<String> _detectCountryCode() async {
+    const timeout = Duration(seconds: 4);
+    const endpoints = <String>[
+      'https://ipapi.co/json/',
+      'https://ipinfo.io/json',
+    ];
+
+    for (final endpoint in endpoints) {
+      try {
+        final code = await _fetchCountryCodeFromEndpoint(endpoint).timeout(timeout);
+        if (code.isNotEmpty) {
+          return code;
+        }
+      } catch (_) {
+        // Try the next provider and fallback to IN if both fail.
+      }
+    }
+    return 'IN';
+  }
+
+  Future<void> _autoDetectCountryAndCurrency() async {
+    final countryCode = await _detectCountryCode();
+    if (!mounted) {
+      return;
+    }
+
+    final detectedCurrency = _geoCurrencyFromCountryCode(countryCode);
+    _runLegacyCurrencyMigrationIfNeeded(detectedCurrency);
+    final storedCurrency = _getStoredPaymentCurrency();
+    final hasStoredCurrency = storedCurrency == 'INR' || storedCurrency == 'USD';
+
+    setState(() {
+      _detectedCountryCode = countryCode;
+      _selectedPaymentCurrency = hasStoredCurrency ? storedCurrency : detectedCurrency;
+    });
+  }
+
+  void _setSelectedPaymentCurrency(String currency) {
+    if (currency != 'INR' && currency != 'USD') {
+      return;
+    }
+    setState(() {
+      _selectedPaymentCurrency = currency;
+    });
+    _persistPaymentCurrency(currency);
   }
 
   void _acceptCookieConsent() {
@@ -260,11 +307,6 @@ class _HomePageV11State extends State<HomePageV11> {
   }
 
   double _baseUsdPriceForPlan(String plan) {
-    final configured = _planCatalog.usdPrices[plan];
-    if (configured != null) {
-      return configured;
-    }
-
     switch (plan) {
       case '7Days':
         return _sevenDayPlanUsd;
@@ -280,11 +322,6 @@ class _HomePageV11State extends State<HomePageV11> {
   }
 
   double _baseInrPriceForPlan(String plan) {
-    final configured = _planCatalog.inrPrices[plan];
-    if (configured != null) {
-      return configured;
-    }
-
     switch (plan) {
       case '7Days':
         return _sevenDayPlanInr;
@@ -314,13 +351,12 @@ class _HomePageV11State extends State<HomePageV11> {
   }
 
   String _planPriceLine(String plan, String suffix) {
-    final inrAmount = _displayAmountForPlan(plan, 'INR');
+    final selectedAmount = _displayAmountForPlan(plan, _selectedPaymentCurrency);
     if (_selectedPaymentCurrency == 'INR') {
-      return '${_formatCurrencyAmount(inrAmount, 'INR')}$suffix';
+      return '${_formatCurrencyAmount(selectedAmount, 'INR')}$suffix';
     }
 
-    final converted = _displayAmountForPlan(plan, _selectedPaymentCurrency);
-    return '${_formatCurrencyAmount(inrAmount, 'INR')} / ${_formatCurrencyAmount(converted, _selectedPaymentCurrency)}$suffix';
+    return '${_formatCurrencyAmount(selectedAmount, _selectedPaymentCurrency)}$suffix';
   }
 
   void _openMailComposer({required String subject, required String body}) {
@@ -1014,6 +1050,60 @@ class _HomePageV11State extends State<HomePageV11> {
                 const SizedBox(height: 12),
                 Container(
                   width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFF),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFDCE5F0)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Auto Geo Pricing',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF1F2937),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _detectedCountryCode == 'IN'
+                            ? 'Detected country: IN. India pricing is active by default.'
+                            : 'Detected country: $_detectedCountryCode. Global USD pricing is active by default.',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF475569),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ChoiceChip(
+                              label: const Text('🇮🇳 INR'),
+                              selected: _selectedPaymentCurrency == 'INR',
+                              onSelected: (_) => _setSelectedPaymentCurrency('INR'),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: ChoiceChip(
+                              label: const Text('🌐 USD'),
+                              selected: _selectedPaymentCurrency == 'USD',
+                              onSelected: (_) => _setSelectedPaymentCurrency('USD'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
@@ -1098,9 +1188,7 @@ class _HomePageV11State extends State<HomePageV11> {
                     });
                   },
                   onCurrencyChanged: (currency) {
-                    setState(() {
-                      _selectedPaymentCurrency = currency;
-                    });
+                    _setSelectedPaymentCurrency(currency);
                   },
                   onUsageTypeChanged: (usageType) {
                     setState(() {
@@ -2689,14 +2777,18 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
   @override
   void initState() {
     super.initState();
-    _localCurrency = widget.selectedCurrency;
+    _localCurrency = (widget.selectedCurrency == 'INR' || widget.selectedCurrency == 'USD')
+        ? widget.selectedCurrency
+        : 'USD';
   }
 
   @override
   void didUpdateWidget(covariant _UserPaymentPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.selectedCurrency != widget.selectedCurrency) {
-      _localCurrency = widget.selectedCurrency;
+      _localCurrency = (widget.selectedCurrency == 'INR' || widget.selectedCurrency == 'USD')
+          ? widget.selectedCurrency
+          : 'USD';
     }
   }
 
@@ -3648,7 +3740,7 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
             },
             decoration: InputDecoration(
               labelText: 'Payment currency',
-              helperText: 'USD-based conversion is used for global currencies. Choose "Other countries" when your currency is not listed. INR stays on the India rate card.',
+              helperText: 'Auto geo-detection selects INR for India and USD for other countries. You can switch manually anytime.',
               isDense: true,
               filled: true,
               fillColor: Colors.white,
