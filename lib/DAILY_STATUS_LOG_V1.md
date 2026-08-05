@@ -918,7 +918,35 @@ Prepared For: JOBREADY
   git push origin main
   ```
 - Next up (pending approval to start):
-  1. One-Click Social Media Auto-Resizer (Instagram Post/Story, YouTube Thumbnail, LinkedIn Banner)
+  1. ~~One-Click Social Media Auto-Resizer~~ ✅ DONE — see Checkpoint 2026-08-05-B
   2. Privacy & Utility Masker (Aadhaar/PAN details black-out + QR Generator)
   3. Regional Font Suite (Hindi/Devanagari font rendering)
+- Owner: Founder + Copilot
+
+---
+
+### Checkpoint - 2026-08-05-B (Social Media Auto-Resizer)
+- Overall status: Green (Social Media Auto-Resizer live in Poster Studio)
+- Completed today:
+  - **`Services/photo_resize_service.dart`** ✓
+    - Added 6 social media `PhotoSizePreset` entries: `ig_post` (1080×1080), `ig_story` (1080×1920), `yt_thumb` (1280×720), `li_banner` (1584×396), `fb_cover` (820×312), `tw_header` (1500×500).
+  - **`Pages/v2/photo/photo_hd_workspace_page.dart`** ✓
+    - `_activeSocialPresetId` state variable tracks selected social platform chip.
+    - `_applyWorkspacePreset` updated to search both `_workspacePresetOptions` and `_socialWorkspacePresets` (social presets not shown in dropdown, only via chip UI).
+    - `_applySocialPreset(presetId)`: applies preset → auto-sets screen DPI (150) + PNG format → if image loaded, calls `_generatePhoto()` immediately (true one-click export).
+    - New "Social Media Auto-Resizer" panel inserted between Source Photo and Output Size panels.
+    - Platform chips: Instagram Post, Instagram Story, YouTube Thumb, LinkedIn Banner, Facebook Cover, X/Twitter Header — each with branded color + icon + dimension label.
+    - Active chip highlighted; inline hint shows generation status or "upload image to export" when no image.
+    - `_socialWorkspacePresets` constant list (6 entries) and `_SocialPlatformDef` class + `_socialPlatformDefs` const list added at bottom of file.
+  - **Validation** ✓
+    - `get_errors` on both files: 0 errors.
+- In progress:
+  - Git commit and push.
+- Git command:
+  ```
+  cd C:\JobReadyIndia\jobready_india
+  git add lib/Services/photo_resize_service.dart lib/Pages/v2/photo/photo_hd_workspace_page.dart lib/DAILY_STATUS_LOG_V1.md
+  git commit -m "feat: social media auto-resizer in Poster Studio (IG/YT/LinkedIn/FB/X)"
+  git push origin main
+  ```
 - Owner: Founder + Copilot

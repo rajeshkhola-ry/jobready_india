@@ -39,6 +39,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
   bool _hasShownPlanDialog = false;
   String _selectedPlanId = 'pro';
   String _selectedWorkspacePresetId = 'passport_photo';
+  String? _activeSocialPresetId;
 
   PickedFileData? _selectedImage;
   PhotoSizePreset _selectedPreset = PhotoResizeService.presetById('passport');
@@ -297,7 +298,8 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
   }
 
   void _applyWorkspacePreset(String presetId, {bool refreshPreview = true}) {
-    final option = _workspacePresetOptions.firstWhere(
+    final allPresets = [..._workspacePresetOptions, ..._socialWorkspacePresets];
+    final option = allPresets.firstWhere(
       (value) => value.id == presetId,
       orElse: () => _workspacePresetOptions.first,
     );
@@ -316,6 +318,25 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
 
     if (refreshPreview) {
       Future<void>.microtask(_refreshComparisonPreview);
+    }
+  }
+
+  void _applySocialPreset(String presetId) {
+    _applyWorkspacePreset(presetId, refreshPreview: true);
+    setState(() {
+      _activeSocialPresetId = presetId;
+      // Social output is screen-based — use web DPI and PNG for best quality.
+      _isPrintMode = false;
+      _webModeDpi = '150';
+      _outputFormat = PhotoOutputFormat.png;
+    });
+    if (_selectedImage != null) {
+      Future<void>.microtask(_generatePhoto);
+    } else {
+      setState(() {
+        _statusType = _StatusType.idle;
+        _statusMessage = 'Preset applied. Upload an image to generate.';
+      });
     }
   }
 
@@ -1127,6 +1148,108 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEEF2FF),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(Icons.share_rounded, color: Color(0xFF4F46E5), size: 18),
+                              ),
+                              const SizedBox(width: 10),
+                              const Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Social Media Auto-Resizer',
+                                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                                    ),
+                                    Text(
+                                      'Tap a platform to apply the correct size and export instantly.',
+                                      style: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.4),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: _socialPlatformDefs.map((platform) {
+                              final isActive = _activeSocialPresetId == platform.presetId;
+                              return GestureDetector(
+                                onTap: _isProcessing ? null : () => _applySocialPreset(platform.presetId),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 150),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                                  decoration: BoxDecoration(
+                                    color: isActive ? platform.color.withValues(alpha: 0.12) : Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: isActive ? platform.color : const Color(0xFFD8E5F5),
+                                      width: isActive ? 1.8 : 1.0,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 28,
+                                        height: 28,
+                                        decoration: BoxDecoration(
+                                          color: platform.color.withValues(alpha: 0.15),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Icon(platform.icon, color: platform.color, size: 16),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            platform.label,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w800,
+                                              color: isActive ? platform.color : const Color(0xFF0F172A),
+                                            ),
+                                          ),
+                                          Text(
+                                            platform.dimensions,
+                                            style: const TextStyle(fontSize: 10.5, color: Color(0xFF64748B)),
+                                          ),
+                                        ],
+                                      ),
+                                      if (isActive) ...[const SizedBox(width: 6), Icon(Icons.bolt_rounded, color: platform.color, size: 14)],
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }).toList(growable: false),
+                          ),
+                          if (_activeSocialPresetId != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 10),
+                              child: Text(
+                                _selectedImage != null
+                                    ? 'Generating export for ${_socialPlatformDefs.firstWhere((p) => p.presetId == _activeSocialPresetId, orElse: () => _socialPlatformDefs.first).label}…'
+                                    : 'Preset locked. Upload an image above to export.',
+                                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontStyle: FontStyle.italic),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    _panel(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           const Text(
                             'Output Size',
                             style: TextStyle(
@@ -1763,6 +1886,130 @@ const List<_WorkspacePresetOption> _workspacePresetOptions = [
     aspectLabel: 'Custom',
     dpi: '300',
     isCustom: true,
+  ),
+];
+
+const List<_WorkspacePresetOption> _socialWorkspacePresets = [
+  _WorkspacePresetOption(
+    id: 'ig_post',
+    label: 'Instagram Post (1080 x 1080)',
+    description: 'Square 1:1 format for Instagram feed posts.',
+    presetId: 'ig_post',
+    aspectPresetId: 'square',
+    aspectLabel: '1:1 Square',
+    dpi: '150',
+    isCustom: false,
+  ),
+  _WorkspacePresetOption(
+    id: 'ig_story',
+    label: 'Instagram Story / Reel (1080 x 1920)',
+    description: '9:16 portrait format for Stories and Reels.',
+    presetId: 'ig_story',
+    aspectPresetId: 'poster',
+    aspectLabel: '9:16 Portrait',
+    dpi: '150',
+    isCustom: false,
+  ),
+  _WorkspacePresetOption(
+    id: 'yt_thumb',
+    label: 'YouTube Thumbnail (1280 x 720)',
+    description: '16:9 landscape for YouTube video thumbnails.',
+    presetId: 'yt_thumb',
+    aspectPresetId: 'poster',
+    aspectLabel: '16:9 Landscape',
+    dpi: '150',
+    isCustom: false,
+  ),
+  _WorkspacePresetOption(
+    id: 'li_banner',
+    label: 'LinkedIn Banner (1584 x 396)',
+    description: 'Wide banner for LinkedIn profile background.',
+    presetId: 'li_banner',
+    aspectPresetId: 'poster',
+    aspectLabel: '4:1 Banner',
+    dpi: '150',
+    isCustom: false,
+  ),
+  _WorkspacePresetOption(
+    id: 'fb_cover',
+    label: 'Facebook Cover (820 x 312)',
+    description: 'Facebook page or profile cover photo.',
+    presetId: 'fb_cover',
+    aspectPresetId: 'poster',
+    aspectLabel: 'Cover',
+    dpi: '150',
+    isCustom: false,
+  ),
+  _WorkspacePresetOption(
+    id: 'tw_header',
+    label: 'X / Twitter Header (1500 x 500)',
+    description: '3:1 header banner for X / Twitter profiles.',
+    presetId: 'tw_header',
+    aspectPresetId: 'poster',
+    aspectLabel: '3:1 Banner',
+    dpi: '150',
+    isCustom: false,
+  ),
+];
+
+class _SocialPlatformDef {
+  final String label;
+  final String presetId;
+  final String dimensions;
+  final IconData icon;
+  final Color color;
+
+  const _SocialPlatformDef({
+    required this.label,
+    required this.presetId,
+    required this.dimensions,
+    required this.icon,
+    required this.color,
+  });
+}
+
+const List<_SocialPlatformDef> _socialPlatformDefs = [
+  _SocialPlatformDef(
+    label: 'Instagram Post',
+    presetId: 'ig_post',
+    dimensions: '1080 × 1080',
+    icon: Icons.photo_camera_rounded,
+    color: Color(0xFFE1306C),
+  ),
+  _SocialPlatformDef(
+    label: 'Instagram Story',
+    presetId: 'ig_story',
+    dimensions: '1080 × 1920',
+    icon: Icons.smartphone_rounded,
+    color: Color(0xFFC13584),
+  ),
+  _SocialPlatformDef(
+    label: 'YouTube Thumb',
+    presetId: 'yt_thumb',
+    dimensions: '1280 × 720',
+    icon: Icons.play_circle_filled_rounded,
+    color: Color(0xFFFF0000),
+  ),
+  _SocialPlatformDef(
+    label: 'LinkedIn Banner',
+    presetId: 'li_banner',
+    dimensions: '1584 × 396',
+    icon: Icons.business_center_rounded,
+    color: Color(0xFF0A66C2),
+  ),
+  _SocialPlatformDef(
+    label: 'Facebook Cover',
+    presetId: 'fb_cover',
+    dimensions: '820 × 312',
+    icon: Icons.people_rounded,
+    color: Color(0xFF1877F2),
+  ),
+  _SocialPlatformDef(
+    label: 'X / Twitter',
+    presetId: 'tw_header',
+    dimensions: '1500 × 500',
+    icon: Icons.tag_rounded,
+    color: Color(0xFF14171A),
   ),
 ];
 

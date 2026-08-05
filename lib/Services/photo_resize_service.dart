@@ -175,6 +175,13 @@ class PhotoResizeService {
     PhotoSizePreset(id: 'studio', label: '5 x 7 Print - 1500 x 2100', width: 1500, height: 2100),
     PhotoSizePreset(id: 'profile_hd', label: 'Profile HD - 1080 x 1080', width: 1080, height: 1080),
     PhotoSizePreset(id: 'a4', label: 'A4 Portrait - 2480 x 3508', width: 2480, height: 3508),
+    // Social media sizes
+    PhotoSizePreset(id: 'ig_post', label: 'Instagram Post - 1080 x 1080', width: 1080, height: 1080),
+    PhotoSizePreset(id: 'ig_story', label: 'Instagram Story / Reel - 1080 x 1920', width: 1080, height: 1920),
+    PhotoSizePreset(id: 'yt_thumb', label: 'YouTube Thumbnail - 1280 x 720', width: 1280, height: 720),
+    PhotoSizePreset(id: 'li_banner', label: 'LinkedIn Banner - 1584 x 396', width: 1584, height: 396),
+    PhotoSizePreset(id: 'fb_cover', label: 'Facebook Cover - 820 x 312', width: 820, height: 312),
+    PhotoSizePreset(id: 'tw_header', label: 'X / Twitter Header - 1500 x 500', width: 1500, height: 500),
   ];
 
   static const List<String> dpiOptions = ['300', '600'];
