@@ -870,3 +870,55 @@ Prepared For: JOBREADY
   - Verify logo and favicon display on production site
   - Monitor error logs for any production issues
 - Owner: Founder + Copilot
+
+---
+
+### Checkpoint - 2026-08-05 (Backup Verified + PWA Implementation)
+- Overall status: Green (backup confirmed, PWA fully wired)
+- Completed today:
+  - **Backup Status Confirmed** ✓
+    - Daily backup ran successfully: `jobready_india_full_20260805_145928_9ce239e.zip`
+    - Named copy: `backup_2026-08-05_1457.zip`
+    - SHA256 verified: `3004d87c70fba59598d834948ebd1b7ddf91698f27044ec27842a351a5088ed7` (local + OneDrive match)
+    - Updated `BACKUP_STATUS.md` (both root and lib copies)
+  - **PWA — web/manifest.json upgraded** ✓
+    - Added all 4 PNG icons (192/512, any + maskable) and SVG fallback
+    - Set `id`, `scope`, `lang`, `categories`, `screenshots` fields for full installability
+    - Short name: `GetReadyJob`, display: `standalone`, theme: `#1F4E79`
+  - **PWA — web/sw.js created** ✓
+    - Cache name: `grj-cache-v20260805` (versioned for clean updates)
+    - Pre-caches: `/`, manifest, flutter_bootstrap.js, all icon PNGs/SVG
+    - Network-first for HTML navigation (so updates push instantly)
+    - Cache-first for WASM/JS/fonts/images (zero-latency re-loads)
+    - API calls (`/api/*`) are always network-only (no stale data risk)
+  - **PWA — web/index.html updated** ✓
+    - `cleanupLegacyClientState` updated: skips our `/sw.js` and `grj-cache-v*` caches; unregisters/clears everything else
+    - `registerServiceWorker()` called on every bootstrap (non-blocking)
+    - `beforeinstallprompt` captured → `window._grjInstallPrompt`
+    - `grjCanInstall()` / `grjTriggerInstall()` JS functions exposed for Flutter
+    - `appinstalled` event resets prompt state automatically
+  - **PWA — Install App button in home_page_v1_1.dart** ✓
+    - `_pwaInstallAvailable` bool state added
+    - `_initPwaInstallPrompt()` in `initState`: checks JS flag + listens for `grj-install-ready` custom event
+    - `dispose()` added: removes event listener cleanly
+    - `_triggerPwaInstall()` calls `grjTriggerInstall()` via `dart:js`
+    - Install App icon button (`Icons.install_mobile_rounded`, navy) shown in AppBar when prompt is available
+    - Automatically hides after install or once user dismisses
+  - **Validation** ✓
+    - `get_errors` on `home_page_v1_1.dart`: 0 errors
+- In progress:
+  - Git commit and push to origin/main (terminal unresponsive post-system hang; run manually)
+- Blockers:
+  - Terminal tools unavailable post-hang; manual git push required.
+- Git command to run:
+  ```
+  cd C:\JobReadyIndia\jobready_india
+  git add BACKUP_STATUS.md lib/BACKUP_STATUS.md web/manifest.json web/sw.js web/index.html lib/Pages/home_page_v1_1.dart lib/DAILY_STATUS_LOG_V1.md
+  git commit -m "feat: PWA support + verified backup status 2026-08-05"
+  git push origin main
+  ```
+- Next up (pending approval to start):
+  1. One-Click Social Media Auto-Resizer (Instagram Post/Story, YouTube Thumbnail, LinkedIn Banner)
+  2. Privacy & Utility Masker (Aadhaar/PAN details black-out + QR Generator)
+  3. Regional Font Suite (Hindi/Devanagari font rendering)
+- Owner: Founder + Copilot

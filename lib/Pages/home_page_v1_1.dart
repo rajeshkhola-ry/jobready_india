@@ -139,6 +139,7 @@ class _HomePageV11State extends State<HomePageV11> {
   bool _showLiveOfferBanner = false;
   String _liveOfferText = '';
   bool _showCookieConsentBanner = false;
+  bool _pwaInstallAvailable = false;
   late PlanCatalogConfig _planCatalog;
   bool get _showAdminControls => OwnerAdminAccessService.isUnlocked;
 
@@ -164,6 +165,36 @@ class _HomePageV11State extends State<HomePageV11> {
     _showCookieConsentBanner = !_hasAcceptedCookieConsent();
     _selectedPaymentCurrency = _resolveInitialPaymentCurrency();
     unawaited(_autoDetectCountryAndCurrency());
+    _initPwaInstallPrompt();
+  }
+
+  @override
+  void dispose() {
+    if (_pwaInstallListener != null) {
+      html.window.removeEventListener('grj-install-ready', _pwaInstallListener);
+    }
+    super.dispose();
+  }
+
+  html.EventListener? _pwaInstallListener;
+
+  void _initPwaInstallPrompt() {
+    try {
+      if (js.context.callMethod('grjCanInstall', []) == true) {
+        if (mounted) setState(() => _pwaInstallAvailable = true);
+      }
+    } catch (_) {}
+    _pwaInstallListener = (_) {
+      if (mounted) setState(() => _pwaInstallAvailable = true);
+    };
+    html.window.addEventListener('grj-install-ready', _pwaInstallListener);
+  }
+
+  void _triggerPwaInstall() {
+    try {
+      js.context.callMethod('grjTriggerInstall', []);
+    } catch (_) {}
+    if (mounted) setState(() => _pwaInstallAvailable = false);
   }
 
   String _resolveInitialPaymentCurrency() {
@@ -752,6 +783,13 @@ class _HomePageV11State extends State<HomePageV11> {
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
         ),
         actions: [
+          if (_pwaInstallAvailable)
+            _TopActionIcon(
+              tooltip: 'Install App',
+              icon: Icons.install_mobile_rounded,
+              iconColor: const Color(0xFF1F4E79),
+              onTap: _triggerPwaInstall,
+            ),
           TextButton.icon(
             onPressed: _openUserLoginPanel,
             icon: Icon(UserAuthService.isSignedIn ? Icons.verified_user_rounded : Icons.person_outline_rounded, size: 16),

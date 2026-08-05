@@ -295,6 +295,12 @@
 				"cd /d C:\\JobReadyIndia\\jobready_india && flutter analyze lib\\Pages\\home_page_v1_1.dart"
 			],
 			"isBackground": false
+		},
+		{
+			"label": "Git: Stage, Commit, Push PWA + Backup",
+			"type": "shell",
+			"command": "cd /d C:\\JobReadyIndia\\jobready_india && git add BACKUP_STATUS.md lib/BACKUP_STATUS.md web/manifest.json web/sw.js web/index.html lib/Pages/home_page_v1_1.dart && git commit -m \"feat: PWA support + verified backup status 2026-08-05\\n\\n- Update BACKUP_STATUS.md (SHA256 verified: 3004d87c)\\n- web/manifest.json: full PWA icons (192/512 any+maskable, SVG)\\n- web/sw.js: offline service worker (cache-first WASM/JS, network-first HTML)\\n- web/index.html: register SW, preserve grj-cache-v*, capture beforeinstallprompt\\n- home_page_v1_1.dart: Install App button in AppBar (shows when PWA prompt available)\" && git push origin main",
+			"isBackground": false
 		}
 	]
 }

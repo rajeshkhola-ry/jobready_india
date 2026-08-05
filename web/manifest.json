@@ -1,18 +1,56 @@
 {
-    "name": "GETREADYJOB",
-    "short_name": "GETREADYJOB",
-    "start_url": ".",
+    "name": "Get Ready Job",
+    "short_name": "GetReadyJob",
+    "start_url": "/",
     "display": "standalone",
     "background_color": "#1F4E79",
     "theme_color": "#1F4E79",
-    "description": "GETREADYJOB helps users work faster with resumes, documents, and PDF workflows.",
+    "description": "Free AI Resume Builder, HD Photo Upscaler, PDF OCR and productivity tools. Fast, browser-based, works offline.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
+    "categories": ["productivity", "utilities", "business"],
+    "lang": "en",
+    "scope": "/",
+    "id": "com.getreadyjob.app",
     "icons": [
         {
-            "src": "icons/logo-gold.svg?v=grj-20260727-moon-g-v1",
+            "src": "icons/GRJ-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "icons/GRJ-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/GRJ-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "icons/GRJ-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/logo-gold.svg",
             "sizes": "any",
-            "type": "image/svg+xml"
+            "type": "image/svg+xml",
+            "purpose": "any"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "icons/GRJ-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "Get Ready Job home screen"
         }
     ]
 }

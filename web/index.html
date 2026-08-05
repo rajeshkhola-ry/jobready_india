@@ -378,6 +378,9 @@
         if ('serviceWorker' in navigator) {
           var registrations = await navigator.serviceWorker.getRegistrations();
           await Promise.all(registrations.map(function (registration) {
+            // Keep our current SW; unregister any legacy ones
+            var scriptUrl = (registration.active && registration.active.scriptURL) || '';
+            if (scriptUrl.endsWith('/sw.js')) return Promise.resolve();
             return registration.unregister().catch(function () {
               return false;
             });
@@ -387,6 +390,8 @@
         if ('caches' in window) {
           var cacheKeys = await caches.keys();
           await Promise.all(cacheKeys.map(function (cacheKey) {
+            // Keep our versioned caches; delete any legacy ones
+            if (cacheKey.indexOf('grj-cache-v') === 0) return Promise.resolve();
             return caches.delete(cacheKey).catch(function () {
               return false;
             });
@@ -394,11 +399,47 @@
         }
       }
 
+      async function registerServiceWorker() {
+        if ('serviceWorker' in navigator) {
+          try {
+            await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+          } catch (e) {
+            console.warn('GRJ SW registration failed:', e);
+          }
+        }
+      }
+
+      // Capture PWA install prompt for the in-app Install button
+      window._grjInstallAvailable = false;
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        window._grjInstallPrompt = e;
+        window._grjInstallAvailable = true;
+        window.dispatchEvent(new CustomEvent('grj-install-ready'));
+      });
+      window.addEventListener('appinstalled', function () {
+        window._grjInstallPrompt = null;
+        window._grjInstallAvailable = false;
+      });
+      window.grjCanInstall = function () {
+        return window._grjInstallAvailable === true;
+      };
+      window.grjTriggerInstall = function () {
+        if (window._grjInstallPrompt) {
+          window._grjInstallPrompt.prompt();
+          window._grjInstallPrompt.userChoice.then(function () {
+            window._grjInstallPrompt = null;
+            window._grjInstallAvailable = false;
+          });
+        }
+      };
+
       async function start() {
         try {
           setupAutoFallbackRenderer();
 
           if (window.localStorage && localStorage.getItem(cleanupKey) === 'done') {
+            registerServiceWorker();
             loadFlutter();
             return;
           }
@@ -412,6 +453,7 @@
           console.warn('Bootstrap cleanup failed.', error);
         }
 
+        registerServiceWorker();
         loadFlutter();
       }
 
