@@ -5,6 +5,7 @@ import 'compression_tool_page.dart';
 import 'convert_tool_page.dart';
 import 'merge_tool_page.dart';
 import 'pdf_edit_page.dart';
+import 'smart_pdf_suite_page.dart';
 import 'split_tool_page.dart';
 import '../Widgets/pdf_tool_card.dart';
 import '../Widgets/production_footer.dart';
@@ -285,6 +286,18 @@ class _PdfToolsPageState extends State<PdfToolsPage> {
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(builder: (_) => const PdfEditPage()),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 10),
+
+                  PdfToolCard(
+                    icon: Icons.auto_fix_high_rounded,
+                    title: 'Smart PDF Suite',
+                    subtitle: 'E-Sign, protect/unlock, smart compress, OCR',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const SmartPdfSuitePage()),
                       );
                     },
                   ),

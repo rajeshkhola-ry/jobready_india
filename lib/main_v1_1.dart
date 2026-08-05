@@ -27,6 +27,7 @@ import 'Pages/extract_tool_page.dart' deferred as extractToolPage;
 import 'Pages/merge_tool_page.dart' deferred as mergeToolPage;
 import 'Pages/pdf_edit_page.dart' deferred as pdfEditPage;
 import 'Pages/pdf_tools_page.dart' deferred as pdfToolsPage;
+import 'Pages/smart_pdf_suite_page.dart' deferred as smartPdfSuitePage;
 import 'Pages/split_tool_page.dart' deferred as splitToolPage;
 import 'Pages/v2/history/history_page.dart' deferred as historyPage;
 import 'Pages/v2/photo/photo_hd_workspace_page.dart' deferred as photoHdWorkspacePage;
@@ -268,6 +269,12 @@ class JobReadyV11App extends StatelessWidget {
             await pdfToolsPage.loadLibrary();
           },
           builder: () => pdfToolsPage.PdfToolsPage(),
+        ),
+        '/smart-pdf': (_) => DeferredRoutePage(
+          loader: () async {
+            await smartPdfSuitePage.loadLibrary();
+          },
+          builder: () => smartPdfSuitePage.SmartPdfSuitePage(),
         ),
         '/history': (_) => DeferredRoutePage(
           loader: () async {

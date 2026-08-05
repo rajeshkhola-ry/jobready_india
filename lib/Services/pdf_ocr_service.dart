@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:syncfusion_flutter_pdf/pdf.dart' as sfpdf;
 
 import 'api_config.dart';
+import 'wasm_document_service.dart';
 
 enum PdfExtractionMode { auto, forceOcr, tableAware }
 
@@ -86,6 +87,19 @@ class PdfOcrService {
           usedBackendOcr: false,
         );
       }
+    }
+
+    final localText = await WasmDocumentService.extractTextFromPdfLocally(
+      pdfBytes: pdfBytes,
+    );
+    if (localText.trim().isNotEmpty) {
+      return PdfOcrResult(
+        success: true,
+        text: localText.trim(),
+        message: 'OCR text extracted in local browser mode.',
+        usedEmbeddedText: false,
+        usedBackendOcr: false,
+      );
     }
 
     final backend = await _extractViaBackendOcr(pdfBytes: pdfBytes, fileName: fileName);
