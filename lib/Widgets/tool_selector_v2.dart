@@ -8,6 +8,7 @@ import '../Pages/pdf_tools_page.dart';
 import '../Pages/pdf_edit_page.dart';
 import '../Pages/ai_resume_builder_page.dart';
 import '../Pages/micro_canva_utilities_page.dart';
+import '../Pages/poster_banner_studio_page.dart';
 import '../Pages/resume_document_canvas_templates_page.dart';
 import '../Pages/v2/photo/photo_hd_workspace_page.dart';
 
@@ -146,6 +147,14 @@ class ToolSelectorV2 extends StatelessWidget {
                 true,
                 () => _openTool(context, const ResumeDocumentCanvasTemplatesPage()),
               ),
+              _tool(
+                context,
+                Icons.campaign_rounded,
+                "Poster Studio",
+                "Canvas-based poster, banner, flyer, and local print export workspace.",
+                true,
+                () => _openTool(context, const PosterBannerStudioPage()),
+              ),
             ];
 
             return Column(
@@ -209,6 +218,7 @@ class ToolSelectorV2 extends StatelessWidget {
       'HD Photo Studio': const Color(0xFF7C3AED),
       'Micro-Canva': const Color(0xFF0F766E),
       'Resume Canvas': const Color(0xFF0B5C4A),
+      'Poster Studio': const Color(0xFF8A1538),
     };
 
     final accent = colorMap[title] ?? const Color(0xFF1F4E79);

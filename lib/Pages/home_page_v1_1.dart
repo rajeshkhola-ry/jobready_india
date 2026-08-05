@@ -6394,6 +6394,15 @@ class _MostPopularToolsCard extends StatelessWidget {
                     Navigator.of(context).pushNamed('/canvas-templates');
                   },
                 ),
+                _PopularToolRow(
+                  icon: Icons.campaign_rounded,
+                  label: 'Poster & Banner Studio',
+                  description: 'Design social banners, hiring posters, festive creatives, and event flyers on a local canvas.',
+                  isFlagship: true,
+                  onTap: () {
+                    Navigator.of(context).pushNamed('/poster-banner-studio');
+                  },
+                ),
               ];
 
               final tools = <Widget>[

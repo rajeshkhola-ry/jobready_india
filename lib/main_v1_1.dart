@@ -28,6 +28,7 @@ import 'Pages/merge_tool_page.dart' deferred as mergeToolPage;
 import 'Pages/micro_canva_utilities_page.dart' deferred as microCanvaUtilitiesPage;
 import 'Pages/pdf_edit_page.dart' deferred as pdfEditPage;
 import 'Pages/pdf_tools_page.dart' deferred as pdfToolsPage;
+import 'Pages/poster_banner_studio_page.dart' deferred as posterBannerStudioPage;
 import 'Pages/resume_document_canvas_templates_page.dart' deferred as resumeDocumentCanvasTemplatesPage;
 import 'Pages/smart_pdf_suite_page.dart' deferred as smartPdfSuitePage;
 import 'Pages/split_tool_page.dart' deferred as splitToolPage;
@@ -277,6 +278,12 @@ class JobReadyV11App extends StatelessWidget {
             await microCanvaUtilitiesPage.loadLibrary();
           },
           builder: () => microCanvaUtilitiesPage.MicroCanvaUtilitiesPage(),
+        ),
+        '/poster-banner-studio': (_) => DeferredRoutePage(
+          loader: () async {
+            await posterBannerStudioPage.loadLibrary();
+          },
+          builder: () => posterBannerStudioPage.PosterBannerStudioPage(),
         ),
         '/canvas-templates': (_) => DeferredRoutePage(
           loader: () async {
