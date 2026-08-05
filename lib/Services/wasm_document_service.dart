@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'dart:typed_data';
 import 'dart:convert';
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:image/image.dart' as img;
 import 'package:pdf/pdf.dart' as pdf;
@@ -17,10 +18,17 @@ enum WasmImageOutputFormat {
   bmp,
 }
 
+enum PassportBackgroundColor {
+  white,
+  blue,
+  grey,
+}
+
 class WasmDocumentService {
   const WasmDocumentService._();
 
   static const _ocrWorkerMaxPages = 4;
+  static const _onnxInputSize = 320;
 
   static const _tesseractWorkerScript = '''
 self.onmessage = async (event) => {
@@ -50,6 +58,86 @@ self.onmessage = async (event) => {
     self.postMessage({ ok: false, error: message });
   }
 };
+''';
+
+  static const _onnxBackgroundRemovalWorkerScript = '''
+self.onmessage = async (event) => {
+  const payload = event.data || {};
+  const imageDataUrl = payload.imageDataUrl;
+  const modelUrl = payload.modelUrl;
+  if (!imageDataUrl || !modelUrl) {
+    self.postMessage({ ok: false, error: 'Missing image/model for ONNX hook.' });
+    return;
+  }
+
+  try {
+    importScripts('https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js');
+    const image = await loadImage(imageDataUrl);
+    const canvas = new OffscreenCanvas(320, 320);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(image, 0, 0, 320, 320);
+    const imageData = ctx.getImageData(0, 0, 320, 320);
+    const tensorData = new Float32Array(1 * 3 * 320 * 320);
+
+    for (let i = 0; i < 320 * 320; i++) {
+      const r = imageData.data[i * 4 + 0] / 255;
+      const g = imageData.data[i * 4 + 1] / 255;
+      const b = imageData.data[i * 4 + 2] / 255;
+      tensorData[i] = r;
+      tensorData[320 * 320 + i] = g;
+      tensorData[2 * 320 * 320 + i] = b;
+    }
+
+    const tensor = new ort.Tensor('float32', tensorData, [1, 3, 320, 320]);
+    const session = await ort.InferenceSession.create(modelUrl, {
+      executionProviders: ['webgl', 'wasm']
+    });
+
+    const inputName = session.inputNames[0];
+    const result = await session.run({ [inputName]: tensor });
+    const outputName = session.outputNames[0];
+    const mask = result[outputName];
+    if (!mask || !mask.data) {
+      self.postMessage({ ok: false, error: 'ONNX output mask missing.' });
+      return;
+    }
+
+    const outCanvas = new OffscreenCanvas(image.width, image.height);
+    const outCtx = outCanvas.getContext('2d');
+    outCtx.drawImage(image, 0, 0);
+    const outData = outCtx.getImageData(0, 0, image.width, image.height);
+
+    for (let y = 0; y < image.height; y++) {
+      for (let x = 0; x < image.width; x++) {
+        const mx = Math.floor((x / image.width) * 320);
+        const my = Math.floor((y / image.height) * 320);
+        const mIndex = my * 320 + mx;
+        const alpha = Math.max(0, Math.min(255, Math.round(mask.data[mIndex] * 255)));
+        outData.data[(y * image.width + x) * 4 + 3] = alpha;
+      }
+    }
+
+    outCtx.putImageData(outData, 0, 0);
+    const blob = await outCanvas.convertToBlob({ type: 'image/png' });
+    const reader = new FileReader();
+    reader.onload = () => {
+      self.postMessage({ ok: true, resultDataUrl: reader.result });
+    };
+    reader.readAsDataURL(blob);
+  } catch (error) {
+    const message = error && error.message ? error.message : String(error);
+    self.postMessage({ ok: false, error: message });
+  }
+};
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = src;
+  });
+}
 ''';
 
   static Future<Uint8List> mergePdfDocuments(List<Uint8List> pdfFiles) async {
@@ -246,6 +334,171 @@ self.onmessage = async (event) => {
     );
 
     return Uint8List.fromList(encoded);
+  }
+
+  static Future<Uint8List> removeImageBackgroundClientSide({
+    required Uint8List imageBytes,
+    bool preferOnnxWebGl = true,
+    String onnxModelUrl = 'assets/models/isnet-general-use.onnx',
+  }) async {
+    if (preferOnnxWebGl && kIsWeb) {
+      final onnxOutput = await _removeBackgroundViaOnnxWorker(
+        imageBytes: imageBytes,
+        modelUrl: onnxModelUrl,
+      );
+      if (onnxOutput != null) {
+        return onnxOutput;
+      }
+    }
+
+    final decoded = img.decodeImage(imageBytes);
+    if (decoded == null) {
+      throw StateError('Unable to decode image bytes for background removal.');
+    }
+
+    final rgba = decoded.convert(numChannels: 4);
+    final background = _sampleDominantBorderColor(rgba);
+    final threshold = 52;
+
+    for (var y = 0; y < rgba.height; y++) {
+      for (var x = 0; x < rgba.width; x++) {
+        final pixel = rgba.getPixel(x, y);
+        final distance = _colorDistance(
+          pixel.r.toInt(),
+          pixel.g.toInt(),
+          pixel.b.toInt(),
+          background.$1,
+          background.$2,
+          background.$3,
+        );
+
+        if (distance <= threshold) {
+          rgba.setPixelRgba(x, y, pixel.r.toInt(), pixel.g.toInt(), pixel.b.toInt(), 0);
+        } else {
+          rgba.setPixelRgba(x, y, pixel.r.toInt(), pixel.g.toInt(), pixel.b.toInt(), 255);
+        }
+      }
+    }
+
+    return Uint8List.fromList(img.encodePng(rgba, level: 6));
+  }
+
+  static Future<Uint8List> buildGovtPassportPhoto({
+    required Uint8List imageBytes,
+    PassportBackgroundColor background = PassportBackgroundColor.white,
+    int dpi = 300,
+    int widthMm = 35,
+    int heightMm = 45,
+    bool autoCrop = true,
+    int quality = 92,
+  }) async {
+    final source = img.decodeImage(imageBytes);
+    if (source == null) {
+      throw StateError('Unable to decode image bytes.');
+    }
+
+    final pxWidth = ((widthMm / 25.4) * dpi).round().clamp(120, 3000);
+    final pxHeight = ((heightMm / 25.4) * dpi).round().clamp(160, 3800);
+
+    img.Image working = source;
+    if (autoCrop) {
+      working = _smartCenterCrop(source, pxWidth / pxHeight);
+    }
+
+    final resized = img.copyResize(
+      working,
+      width: pxWidth,
+      height: pxHeight,
+      interpolation: img.Interpolation.cubic,
+    ).convert(numChannels: 4);
+
+    final bg = _passportBgRgb(background);
+    final flattened = img.Image(width: resized.width, height: resized.height, numChannels: 4);
+    img.fill(flattened, color: img.ColorRgba8(bg.$1, bg.$2, bg.$3, 255));
+
+    img.compositeImage(flattened, resized);
+    final cleaned = _applyUnsharpMask(flattened, amount: 0.28, radius: 1, threshold: 3);
+    return Uint8List.fromList(img.encodeJpg(cleaned, quality: quality.clamp(30, 100)));
+  }
+
+  static Future<Uint8List> upscaleAndSharpenImage({
+    required Uint8List imageBytes,
+    double scale = 2.0,
+    int quality = 92,
+  }) async {
+    final source = img.decodeImage(imageBytes);
+    if (source == null) {
+      throw StateError('Unable to decode image bytes for upscaling.');
+    }
+
+    final safeScale = scale.clamp(1.0, 4.0);
+    final width = (source.width * safeScale).round().clamp(source.width, 6400);
+    final height = (source.height * safeScale).round().clamp(source.height, 6400);
+
+    final upscaled = img.copyResize(
+      source,
+      width: width,
+      height: height,
+      interpolation: img.Interpolation.cubic,
+    );
+    final sharpened = _applyUnsharpMask(upscaled, amount: 0.34, radius: 1, threshold: 3);
+    return Uint8List.fromList(img.encodeJpg(sharpened, quality: quality.clamp(30, 100)));
+  }
+
+  static Future<String> convertPngToSimpleSvg({
+    required Uint8List imageBytes,
+    int maxDimension = 220,
+  }) async {
+    final source = img.decodeImage(imageBytes);
+    if (source == null) {
+      throw StateError('Unable to decode image for SVG conversion.');
+    }
+
+    final scale = maxDimension / (source.width > source.height ? source.width : source.height);
+    final targetScale = scale < 1 ? scale : 1.0;
+    final resized = img.copyResize(
+      source,
+      width: (source.width * targetScale).round().clamp(1, maxDimension),
+      height: (source.height * targetScale).round().clamp(1, maxDimension),
+      interpolation: img.Interpolation.average,
+    ).convert(numChannels: 4);
+
+    final sb = StringBuffer();
+    sb.writeln('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${resized.width} ${resized.height}" shape-rendering="crispEdges">');
+
+    for (var y = 0; y < resized.height; y++) {
+      var x = 0;
+      while (x < resized.width) {
+        final px = resized.getPixel(x, y);
+        final r = _quantize(px.r.toInt(), 24);
+        final g = _quantize(px.g.toInt(), 24);
+        final b = _quantize(px.b.toInt(), 24);
+        final a = px.a.toInt();
+
+        var run = 1;
+        while (x + run < resized.width) {
+          final next = resized.getPixel(x + run, y);
+          final nr = _quantize(next.r.toInt(), 24);
+          final ng = _quantize(next.g.toInt(), 24);
+          final nb = _quantize(next.b.toInt(), 24);
+          final na = next.a.toInt();
+          if (nr != r || ng != g || nb != b || na != a) {
+            break;
+          }
+          run++;
+        }
+
+        if (a > 0) {
+          final opacity = (a / 255).toStringAsFixed(3);
+          sb.writeln('<rect x="$x" y="$y" width="$run" height="1" fill="${_rgbToHex(r, g, b)}" fill-opacity="$opacity"/>');
+        }
+
+        x += run;
+      }
+    }
+
+    sb.writeln('</svg>');
+    return sb.toString();
   }
 
   static Future<Uint8List> createPdfFromImages(List<Uint8List> imageFiles) async {
@@ -619,5 +872,167 @@ self.onmessage = async (event) => {
       await sub.cancel();
       worker.terminate();
     }
+  }
+
+  static Future<Uint8List?> _removeBackgroundViaOnnxWorker({
+    required Uint8List imageBytes,
+    required String modelUrl,
+  }) async {
+    if (!kIsWeb) {
+      return null;
+    }
+
+    final dataUrl = 'data:image/png;base64,${base64Encode(imageBytes)}';
+    final scriptBlob = html.Blob(<Object>[_onnxBackgroundRemovalWorkerScript], 'application/javascript');
+    final scriptUrl = html.Url.createObjectUrlFromBlob(scriptBlob);
+    final worker = html.Worker(scriptUrl);
+    html.Url.revokeObjectUrl(scriptUrl);
+
+    final completer = Completer<Uint8List?>();
+    late StreamSubscription<html.MessageEvent> sub;
+    sub = worker.onMessage.listen((event) {
+      final payload = event.data;
+      if (payload is! Map) {
+        return;
+      }
+
+      final ok = payload['ok'] == true;
+      if (ok && payload['resultDataUrl'] != null) {
+        final uri = Uri.parse(payload['resultDataUrl'].toString());
+        final bytes = uri.data?.contentAsBytes();
+        if (!completer.isCompleted) {
+          completer.complete(bytes == null ? null : Uint8List.fromList(bytes));
+        }
+        return;
+      }
+
+      if (!ok && !completer.isCompleted) {
+        completer.complete(null);
+      }
+    });
+
+    worker.postMessage({
+      'imageDataUrl': dataUrl,
+      'modelUrl': modelUrl,
+      'inputSize': _onnxInputSize,
+    });
+
+    try {
+      return await completer.future.timeout(const Duration(seconds: 35));
+    } catch (_) {
+      return null;
+    } finally {
+      await sub.cancel();
+      worker.terminate();
+    }
+  }
+
+  static (int, int, int) _sampleDominantBorderColor(img.Image image) {
+    var red = 0;
+    var green = 0;
+    var blue = 0;
+    var count = 0;
+
+    void take(int x, int y) {
+      final p = image.getPixel(x, y);
+      red += p.r.toInt();
+      green += p.g.toInt();
+      blue += p.b.toInt();
+      count++;
+    }
+
+    for (var x = 0; x < image.width; x++) {
+      take(x, 0);
+      if (image.height > 1) take(x, image.height - 1);
+    }
+    for (var y = 1; y < image.height - 1; y++) {
+      take(0, y);
+      if (image.width > 1) take(image.width - 1, y);
+    }
+
+    if (count == 0) {
+      return (255, 255, 255);
+    }
+    return (red ~/ count, green ~/ count, blue ~/ count);
+  }
+
+  static int _colorDistance(int r1, int g1, int b1, int r2, int g2, int b2) {
+    final dr = r1 - r2;
+    final dg = g1 - g2;
+    final db = b1 - b2;
+    return math.sqrt((dr * dr + dg * dg + db * db).toDouble()).round();
+  }
+
+  static img.Image _smartCenterCrop(img.Image source, double targetRatio) {
+    final sourceRatio = source.width / source.height;
+    if (sourceRatio > targetRatio) {
+      final cropWidth = (source.height * targetRatio).round();
+      final x = ((source.width - cropWidth) / 2).round();
+      return img.copyCrop(source, x: x, y: 0, width: cropWidth, height: source.height);
+    }
+    final cropHeight = (source.width / targetRatio).round();
+    final y = ((source.height - cropHeight) / 2).round();
+    return img.copyCrop(source, x: 0, y: y, width: source.width, height: cropHeight);
+  }
+
+  static (int, int, int) _passportBgRgb(PassportBackgroundColor background) {
+    switch (background) {
+      case PassportBackgroundColor.blue:
+        return (179, 208, 255);
+      case PassportBackgroundColor.grey:
+        return (224, 224, 224);
+      case PassportBackgroundColor.white:
+      default:
+        return (255, 255, 255);
+    }
+  }
+
+  static img.Image _applyUnsharpMask(
+    img.Image source, {
+    double amount = 0.25,
+    int radius = 1,
+    int threshold = 2,
+  }) {
+    final blurred = img.gaussianBlur(source, radius: radius);
+    final out = source.clone();
+
+    for (var y = 0; y < source.height; y++) {
+      for (var x = 0; x < source.width; x++) {
+        final o = source.getPixel(x, y);
+        final b = blurred.getPixel(x, y);
+
+        final dr = o.r.toInt() - b.r.toInt();
+        final dg = o.g.toInt() - b.g.toInt();
+        final db = o.b.toInt() - b.b.toInt();
+
+        final nextR = dr.abs() < threshold
+            ? o.r.toInt()
+            : (o.r.toInt() + (dr * amount)).round().clamp(0, 255);
+        final nextG = dg.abs() < threshold
+            ? o.g.toInt()
+            : (o.g.toInt() + (dg * amount)).round().clamp(0, 255);
+        final nextB = db.abs() < threshold
+            ? o.b.toInt()
+            : (o.b.toInt() + (db * amount)).round().clamp(0, 255);
+
+        out.setPixelRgba(x, y, nextR, nextG, nextB, o.a.toInt());
+      }
+    }
+    return out;
+  }
+
+  static int _quantize(int value, int step) {
+    if (step <= 1) {
+      return value.clamp(0, 255);
+    }
+    final q = (value / step).round() * step;
+    return q.clamp(0, 255);
+  }
+
+  static String _rgbToHex(int r, int g, int b) {
+    final rs = r.toRadixString(16).padLeft(2, '0');
+    final gs = g.toRadixString(16).padLeft(2, '0');
+    final bs = b.toRadixString(16).padLeft(2, '0');
+    return '#$rs$gs$bs';
   }
 }

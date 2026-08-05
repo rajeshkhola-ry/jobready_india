@@ -6376,6 +6376,15 @@ class _MostPopularToolsCard extends StatelessWidget {
                     MaterialPageRoute(builder: (_) => const PdfEditPage()),
                   ),
                 ),
+                _PopularToolRow(
+                  icon: Icons.auto_awesome_motion_rounded,
+                  label: 'Micro-Canva Utilities',
+                  description: 'Background remove, passport resize, HD upscale, and PNG to SVG workflow.',
+                  isFlagship: true,
+                  onTap: () {
+                    Navigator.of(context).pushNamed('/micro-canva');
+                  },
+                ),
               ];
 
               final tools = <Widget>[

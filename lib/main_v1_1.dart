@@ -25,6 +25,7 @@ import 'Pages/compression_tool_page.dart' deferred as compressionToolPage;
 import 'Pages/convert_tool_page.dart' deferred as convertToolPage;
 import 'Pages/extract_tool_page.dart' deferred as extractToolPage;
 import 'Pages/merge_tool_page.dart' deferred as mergeToolPage;
+import 'Pages/micro_canva_utilities_page.dart' deferred as microCanvaUtilitiesPage;
 import 'Pages/pdf_edit_page.dart' deferred as pdfEditPage;
 import 'Pages/pdf_tools_page.dart' deferred as pdfToolsPage;
 import 'Pages/smart_pdf_suite_page.dart' deferred as smartPdfSuitePage;
@@ -269,6 +270,12 @@ class JobReadyV11App extends StatelessWidget {
             await pdfToolsPage.loadLibrary();
           },
           builder: () => pdfToolsPage.PdfToolsPage(),
+        ),
+        '/micro-canva': (_) => DeferredRoutePage(
+          loader: () async {
+            await microCanvaUtilitiesPage.loadLibrary();
+          },
+          builder: () => microCanvaUtilitiesPage.MicroCanvaUtilitiesPage(),
         ),
         '/smart-pdf': (_) => DeferredRoutePage(
           loader: () async {

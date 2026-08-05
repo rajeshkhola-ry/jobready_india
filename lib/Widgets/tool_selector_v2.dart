@@ -7,6 +7,7 @@ import '../Pages/extract_tool_page.dart';
 import '../Pages/pdf_tools_page.dart';
 import '../Pages/pdf_edit_page.dart';
 import '../Pages/ai_resume_builder_page.dart';
+import '../Pages/micro_canva_utilities_page.dart';
 import '../Pages/v2/photo/photo_hd_workspace_page.dart';
 
 class ToolSelectorV2 extends StatelessWidget {
@@ -128,6 +129,14 @@ class ToolSelectorV2 extends StatelessWidget {
                 true,
                 () => _openTool(context, const PhotoHdWorkspacePage()),
               ),
+              _tool(
+                context,
+                Icons.auto_awesome_motion_rounded,
+                "Micro-Canva",
+                "Background remover, passport resize, upscale, PNG to SVG.",
+                true,
+                () => _openTool(context, const MicroCanvaUtilitiesPage()),
+              ),
             ];
 
             return Column(
@@ -189,6 +198,7 @@ class ToolSelectorV2 extends StatelessWidget {
       'Edit PDF': const Color(0xFF0E3A66),
       'PDF Tools': const Color(0xFF1F4E79),
       'HD Photo Studio': const Color(0xFF7C3AED),
+      'Micro-Canva': const Color(0xFF0F766E),
     };
 
     final accent = colorMap[title] ?? const Color(0xFF1F4E79);
