@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:universal_html/html.dart' as html;
 
+import '../Services/draft_persistence_service.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/poster_banner_studio_service.dart';
 
@@ -26,6 +27,9 @@ class _PosterBannerStudioPageState extends State<PosterBannerStudioPage> {
     'Noto Sans Devanagari', 'Baloo 2', 'Hind', 'Mukta', 'Rajdhani', 'Tiro Devanagari',
   ];
   String _selectedFontScript = 'All';
+  Timer? _autoSaveTimer;
+  DateTime? _lastSaved;
+  bool _hasDraft = false;
   final Size _canvasSize = const Size(340, 420);
 
   late PosterStudioTemplate _selectedTemplate;
@@ -42,14 +46,67 @@ class _PosterBannerStudioPageState extends State<PosterBannerStudioPage> {
     _selectedTemplate = PosterBannerStudioService.templates.first;
     _layers = _cloneLayers(_selectedTemplate.layers);
     _syncControllers();
+    _restoreDraft();
   }
 
   @override
   void dispose() {
+    _autoSaveTimer?.cancel();
     _textController.dispose();
     _fontSizeController.dispose();
     super.dispose();
   }
+
+  // ── Draft persistence ──────────────────────────────────────────────────────
+
+  void _scheduleSave() {
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = Timer(const Duration(milliseconds: 900), _saveDraft);
+  }
+
+  void _saveDraft() {
+    DraftPersistenceService.savePosterDraft(
+      templateId: _selectedTemplate.id,
+      layers: _layers,
+      fontFamily: _selectedFontFamily,
+      fontScript: _selectedFontScript,
+      selectedLayerIndex: _selectedLayerIndex,
+    );
+    if (mounted) setState(() { _lastSaved = DateTime.now(); _hasDraft = true; });
+  }
+
+  void _restoreDraft() {
+    final draft = DraftPersistenceService.loadPosterDraft();
+    if (draft == null) return;
+
+    final layers = DraftPersistenceService.parseLayers(draft);
+    if (layers == null || layers.isEmpty) return;
+
+    final templateId = draft['templateId'] as String? ?? '';
+    final template = PosterBannerStudioService.templates.firstWhere(
+      (t) => t.id == templateId,
+      orElse: () => PosterBannerStudioService.templates.first,
+    );
+    final savedAt = DateTime.tryParse(draft['savedAt'] as String? ?? '');
+
+    setState(() {
+      _selectedTemplate = template;
+      _layers = layers;
+      _selectedFontFamily = draft['fontFamily'] as String? ?? 'Trebuchet MS';
+      _selectedFontScript = draft['fontScript'] as String? ?? 'All';
+      _selectedLayerIndex = (draft['selectedLayerIndex'] as int? ?? 0).clamp(0, layers.length - 1);
+      _lastSaved = savedAt;
+      _hasDraft = true;
+    });
+    _syncControllers();
+  }
+
+  void _clearDraft() {
+    DraftPersistenceService.clearPosterDraft();
+    setState(() { _lastSaved = null; _hasDraft = false; });
+  }
+
+  // ── Canvas logic ───────────────────────────────────────────────────────────
 
   List<PosterLayerDraft> _cloneLayers(List<PosterLayerDraft> source) {
     return source
@@ -91,6 +148,7 @@ class _PosterBannerStudioPageState extends State<PosterBannerStudioPage> {
       _selectedFontScript = 'All';
       _syncControllers();
     });
+    _scheduleSave();
   }
 
   void _updateLayer(PosterLayerDraft updated) {
@@ -98,6 +156,7 @@ class _PosterBannerStudioPageState extends State<PosterBannerStudioPage> {
       _layers[_selectedLayerIndex] = updated;
       _syncControllers();
     });
+    _scheduleSave();
   }
 
   void _nudgeLayer(double dx, double dy) {
@@ -362,6 +421,30 @@ class _PosterBannerStudioPageState extends State<PosterBannerStudioPage> {
       appBar: AppBar(
         title: const Text('Poster & Banner Studio'),
         backgroundColor: const Color(0xFF123A63),
+        actions: [
+          if (_lastSaved != null)
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.cloud_done_rounded, size: 14, color: Color(0xFF86EFAC)),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Saved ${DraftPersistenceService.relativeTime(_lastSaved!)}',
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF86EFAC), fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: _clearDraft,
+                      child: const Icon(Icons.delete_outline_rounded, size: 14, color: Color(0xFFCBD5E1)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -796,6 +879,7 @@ class _PosterBannerStudioPageState extends State<PosterBannerStudioPage> {
                             _selectedFontFamily = filtered.first;
                           }
                         });
+                        _scheduleSave();
                       },
                       selectedColor: const Color(0xFF1A2B45),
                       labelStyle: TextStyle(
@@ -831,6 +915,7 @@ class _PosterBannerStudioPageState extends State<PosterBannerStudioPage> {
               onChanged: (value) {
                 if (value == null) return;
                 setState(() => _selectedFontFamily = value);
+                _scheduleSave();
               },
             ),
             const SizedBox(height: 12),

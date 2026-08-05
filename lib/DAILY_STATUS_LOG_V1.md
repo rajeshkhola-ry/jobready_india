@@ -1024,3 +1024,47 @@ Prepared For: JOBREADY
 - Next up (pending approval):
   - ~~Regional Font Suite~~ ✅ DONE — see Checkpoint 2026-08-05-D
 - Owner: Founder + Copilot
+
+---
+
+### Checkpoint - 2026-08-05-E (Auto-Save Drafts & Local Storage History Engine)
+- Overall status: Green (auto-save live in Poster Studio + Privacy Masker — 0 errors)
+- Completed today:
+  - **`Services/draft_persistence_service.dart`** (new) ✓
+    - `DraftPersistenceService` — all-static, uses existing `WebSafeBrowser` read/write/remove
+    - localStorage keys: `grj_poster_draft_v1`, `grj_qr_draft_v1`, `grj_masks_draft_v1`
+    - **Poster:** `savePosterDraft` / `loadPosterDraft` / `parseLayers` / `clearPosterDraft`
+    - **QR:** `saveQrDraft` / `loadQrDraft` / `clearQrDraft`
+    - **Masks:** `saveMaskDraft` (rects as `[[l,t,r,b],...]`) / `loadMaskDraft` / `clearMaskDraft`
+    - Full `PosterLayerDraft` serialization: `_layerToMap` / `_layerFromMap` — handles all fields (IconData codePoint/fontFamily, FontWeight.index, Color.value, enums by `.name`)
+    - `relativeTime(DateTime)` — formats "just now / 23s ago / 4m ago / 2h ago / 1d ago"
+  - **`Pages/poster_banner_studio_page.dart`** ✓
+    - Added: `_autoSaveTimer`, `_lastSaved`, `_hasDraft` state; `DraftPersistenceService` import
+    - `_scheduleSave()`: 900 ms debounce → `_saveDraft()`
+    - `_saveDraft()`: persists template id, all layer data, font family/script, selected layer index
+    - `_restoreDraft()`: called from `initState()` — silently restores full workspace state
+    - `_clearDraft()`: removes localStorage + clears AppBar indicator
+    - `_scheduleSave()` wired into: `_applyTemplate`, `_updateLayer`, font script chip, font dropdown
+    - AppBar trailing: "✓ Saved X ago · 🗑" (green icon + relative time + clear icon) when draft exists
+    - Image bytes intentionally NOT persisted (localStorage size limit)
+  - **`Pages/privacy_masker_page.dart`** ✓
+    - Added: `_qrSaveTimer`, `_maskSaveTimer`, `_qrLastSaved`, `_masksLastSaved` state; import
+    - QR: `_scheduleQrSave()` 800 ms debounce → saves text, scheme, size, color scheme
+      - Wired into: text listener, scheme chip `onSelected`, size slider `onChanged`, color `onTap`
+      - `_restoreQrDraft()` in `initState()` — fills controller + state, updates QR status string
+    - Masks: `_scheduleMaskSave()` 800 ms debounce → saves normalised rect list
+      - Wired into: `_onPanEnd`, `_addPreset`, `_removeLastMask`
+      - `_restoreMaskDraft()` in `initState()` — restores saved rects + shows restore message
+      - Note: source image bytes not stored; user re-uploads image, masks are pre-loaded
+    - `_savedIndicator(DateTime, {onClear})` shared widget: green pill row "Draft saved X ago · Clear"
+    - Indicators shown above status rows in both masker tab and QR tab
+  - **Validation** ✓
+    - `get_errors` on all 3 files: 0 errors; all wiring confirmed via grep
+- Git command:
+  ```
+  cd C:\JobReadyIndia\jobready_india
+  git add lib/Services/draft_persistence_service.dart lib/Pages/poster_banner_studio_page.dart lib/Pages/privacy_masker_page.dart lib/DAILY_STATUS_LOG_V1.md
+  git commit -m "feat: auto-save drafts & local storage history — Poster Studio + Privacy Masker"
+  git push origin main
+  ```
+- Owner: Founder + Copilot

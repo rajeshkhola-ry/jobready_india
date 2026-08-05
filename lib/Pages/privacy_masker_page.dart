@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../Services/draft_persistence_service.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/wasm_document_service.dart';
 
@@ -40,21 +41,94 @@ class _PrivacyMaskerPageState extends State<PrivacyMaskerPage>
   bool _isDownloadingQr = false;
   String _qrStatus = 'Enter a URL, phone number, or text to generate a QR code.';
 
+  // ── Draft persistence ──────────────────────────────────────────────────────
+  Timer? _qrSaveTimer;
+  Timer? _maskSaveTimer;
+  DateTime? _qrLastSaved;
+  DateTime? _masksLastSaved;
+
   @override
   void initState() {
     super.initState();
     _tabs = TabController(length: 2, vsync: this);
+    _restoreQrDraft();
+    _restoreMaskDraft();
     _qrInputCtrl.addListener(() {
       setState(() => _qrContent = _buildQrPayload(_qrInputCtrl.text.trim()));
+      _scheduleQrSave();
     });
   }
 
   @override
   void dispose() {
+    _qrSaveTimer?.cancel();
+    _maskSaveTimer?.cancel();
     _tabs.dispose();
     _qrInputCtrl.dispose();
     _decodedImage?.dispose();
     super.dispose();
+  }
+
+  // ── QR draft ───────────────────────────────────────────────────────────────
+
+  void _scheduleQrSave() {
+    _qrSaveTimer?.cancel();
+    _qrSaveTimer = Timer(const Duration(milliseconds: 800), _saveQrDraft);
+  }
+
+  void _saveQrDraft() {
+    DraftPersistenceService.saveQrDraft(
+      text: _qrInputCtrl.text.trim(),
+      scheme: _qrScheme.name,
+      size: _qrSize,
+      colorScheme: _qrColorScheme.name,
+    );
+    if (mounted) setState(() => _qrLastSaved = DateTime.now());
+  }
+
+  void _restoreQrDraft() {
+    final draft = DraftPersistenceService.loadQrDraft();
+    if (draft == null) return;
+    final text = draft['text'] as String? ?? '';
+    final schemeName = draft['scheme'] as String? ?? _QrScheme.url.name;
+    final size = (draft['size'] as num? ?? 220).toDouble();
+    final colorName = draft['colorScheme'] as String? ?? _QrColorScheme.blackOnWhite.name;
+    final savedAt = DateTime.tryParse(draft['savedAt'] as String? ?? '');
+
+    _qrInputCtrl.text = text;
+    setState(() {
+      _qrScheme = _QrScheme.values.byName(schemeName);
+      _qrSize = size.clamp(160, 400);
+      _qrColorScheme = _QrColorScheme.values.byName(colorName);
+      _qrContent = _buildQrPayload(text);
+      _qrLastSaved = savedAt;
+      if (savedAt != null) _qrStatus = 'Draft restored (saved ${DraftPersistenceService.relativeTime(savedAt)}).';
+    });
+  }
+
+  // ── Mask draft ─────────────────────────────────────────────────────────────
+
+  void _scheduleMaskSave() {
+    _maskSaveTimer?.cancel();
+    _maskSaveTimer = Timer(const Duration(milliseconds: 800), _saveMaskDraft);
+  }
+
+  void _saveMaskDraft() {
+    if (_maskRects.isEmpty) return;
+    DraftPersistenceService.saveMaskDraft(rects: _maskRects);
+    if (mounted) setState(() => _masksLastSaved = DateTime.now());
+  }
+
+  void _restoreMaskDraft() {
+    final saved = DraftPersistenceService.loadMaskDraft();
+    if (saved == null || saved.rects.isEmpty) return;
+    setState(() {
+      _maskRects.addAll(saved.rects);
+      _masksLastSaved = saved.savedAt;
+      _maskerStatus =
+          '${saved.rects.length} mask zone(s) restored from last session (${DraftPersistenceService.relativeTime(saved.savedAt)}). '
+          'Upload your image again to view them on the canvas.';
+    });
   }
 
   // ── Masker: image loading ──────────────────────────────────────────────────
@@ -94,6 +168,7 @@ class _PrivacyMaskerPageState extends State<PrivacyMaskerPage>
         _maskRects.add(_activeDrag!);
         _maskerStatus = '${_maskRects.length} mask zone(s) applied. Add more or download.';
       });
+      _scheduleMaskSave();
     }
     _dragStart = null;
     setState(() => _activeDrag = null);
@@ -106,6 +181,7 @@ class _PrivacyMaskerPageState extends State<PrivacyMaskerPage>
       _maskRects.add(preset.rect);
       _maskerStatus = '"${preset.label}" zone masked. ${_maskRects.length} zone(s) total.';
     });
+    _scheduleMaskSave();
   }
 
   void _removeLastMask() {
@@ -116,6 +192,7 @@ class _PrivacyMaskerPageState extends State<PrivacyMaskerPage>
           ? 'All masks cleared.'
           : '${_maskRects.length} zone(s) remaining.';
     });
+    _scheduleMaskSave();
   }
 
   // ── Masker: export ────────────────────────────────────────────────────────
@@ -471,6 +548,13 @@ class _PrivacyMaskerPageState extends State<PrivacyMaskerPage>
                 const SizedBox(height: 14),
 
                 // Status + export
+                if (_masksLastSaved != null) ...[
+                  _savedIndicator(_masksLastSaved!, onClear: () {
+                    DraftPersistenceService.clearMaskDraft();
+                    setState(() => _masksLastSaved = null);
+                  }),
+                  const SizedBox(height: 8),
+                ],
                 _statusRow(_maskerStatus),
                 const SizedBox(height: 12),
                 SizedBox(
@@ -551,10 +635,13 @@ class _PrivacyMaskerPageState extends State<PrivacyMaskerPage>
                           label: Text(s.label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                           avatar: Icon(s.icon, size: 14),
                           selected: active,
-                          onSelected: (_) => setState(() {
-                            _qrScheme = s;
-                            _qrContent = _buildQrPayload(_qrInputCtrl.text.trim());
-                          }),
+                          onSelected: (_) {
+                            setState(() {
+                              _qrScheme = s;
+                              _qrContent = _buildQrPayload(_qrInputCtrl.text.trim());
+                            });
+                            _scheduleQrSave();
+                          },
                           selectedColor: const Color(0xFF1A2B45),
                           labelStyle: TextStyle(color: active ? Colors.white : const Color(0xFF0F172A)),
                           iconTheme: IconThemeData(color: active ? Colors.white : const Color(0xFF475569)),
@@ -607,7 +694,10 @@ class _PrivacyMaskerPageState extends State<PrivacyMaskerPage>
                       max: 400,
                       divisions: 12,
                       activeColor: const Color(0xFF1A2B45),
-                      onChanged: (v) => setState(() => _qrSize = v),
+                      onChanged: (v) {
+                        setState(() => _qrSize = v);
+                        _scheduleQrSave();
+                      },
                     ),
                     const SizedBox(height: 8),
                     const Text('Colour', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
@@ -618,7 +708,10 @@ class _PrivacyMaskerPageState extends State<PrivacyMaskerPage>
                       children: _QrColorScheme.values.map((cs) {
                         final active = _qrColorScheme == cs;
                         return GestureDetector(
-                          onTap: () => setState(() => _qrColorScheme = cs),
+                          onTap: () {
+                            setState(() => _qrColorScheme = cs);
+                            _scheduleQrSave();
+                          },
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 140),
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -702,6 +795,11 @@ class _PrivacyMaskerPageState extends State<PrivacyMaskerPage>
               ),
               const SizedBox(height: 14),
 
+              if (_qrLastSaved != null) _savedIndicator(_qrLastSaved!, onClear: () {
+                DraftPersistenceService.clearQrDraft();
+                setState(() => _qrLastSaved = null);
+              }),
+              if (_qrLastSaved != null) const SizedBox(height: 8),
               _statusRow(_qrStatus),
               const SizedBox(height: 12),
               SizedBox(
@@ -728,6 +826,33 @@ class _PrivacyMaskerPageState extends State<PrivacyMaskerPage>
   }
 
   // ── Shared UI helpers ──────────────────────────────────────────────────────
+
+  Widget _savedIndicator(DateTime savedAt, {required VoidCallback onClear}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0FDF4),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFF86EFAC)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.cloud_done_rounded, size: 14, color: Color(0xFF16A34A)),
+          const SizedBox(width: 6),
+          Text(
+            'Draft saved ${DraftPersistenceService.relativeTime(savedAt)}',
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF166534)),
+          ),
+          const Spacer(),
+          GestureDetector(
+            onTap: onClear,
+            child: const Text('Clear', style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8), fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _infoCard({required IconData icon, required Color iconColor, required String title, required String body}) {
     return Container(
