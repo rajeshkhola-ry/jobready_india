@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
+import '../Services/analytics_service.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/wasm_document_service.dart';
 
@@ -53,6 +54,7 @@ class _FraudSealPageState extends State<FraudSealPage> {
         '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
     _purposeCtrl.addListener(() => setState(() {}));
     _recipientCtrl.addListener(() => setState(() {}));
+    AnalyticsService.trackToolOpen('fraud_seal');
   }
 
   @override
@@ -127,6 +129,7 @@ class _FraudSealPageState extends State<FraudSealPage> {
         fileName: 'sealed_${purpose.isEmpty ? 'document' : purpose}_$_sealRef.png',
         mimeType: 'image/png',
       );
+      AnalyticsService.trackToolAction('fraud_seal', 'export');
       if (mounted) {
         setState(() => _status = 'Exported with Purpose Seal [$_sealRef]. ✓');
       }

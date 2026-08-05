@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 
+import '../Services/analytics_service.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/wasm_document_service.dart';
 
@@ -145,6 +146,12 @@ class _DocPackagerPageState extends State<DocPackagerPage> {
   bool _isPacking = false;
   String _status = 'Upload documents into each slot. Files are optimised automatically.';
 
+  @override
+  void initState() {
+    super.initState();
+    AnalyticsService.trackToolOpen('doc_packager');
+  }
+
   // ── File pick + auto-process ─────────────────────────────────────────────
 
   Future<void> _pickForSlot(int idx) async {
@@ -270,6 +277,7 @@ class _DocPackagerPageState extends State<DocPackagerPage> {
         fileName: 'JobApplication_Bundle_GRJ_$ts.zip',
         mimeType: 'application/zip',
       );
+      AnalyticsService.trackToolAction('doc_packager', 'zip_pack');
 
       if (mounted) {
         setState(() => _status =

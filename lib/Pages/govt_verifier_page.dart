@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:image/image.dart' as img;
 
+import '../Services/analytics_service.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/wasm_document_service.dart';
 
@@ -58,6 +59,7 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
     _targetKb = _selectedPreset.maxKb;
     _nameCtrl.addListener(() => setState(() {}));
     _dopCtrl.addListener(() => setState(() {}));
+    AnalyticsService.trackToolOpen('govt_verifier');
   }
 
   @override
@@ -151,6 +153,7 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
         fileName: 'govt_photo_${label}_${_targetKb}kb.jpg',
         mimeType: 'image/jpeg',
       );
+      AnalyticsService.trackToolAction('govt_verifier', 'photo_resize');
     } catch (e) {
       if (mounted) setState(() => _resizerStatus = 'Resize failed: $e');
     } finally {
