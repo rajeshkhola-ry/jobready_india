@@ -49,6 +49,17 @@
       <input id="password" type="password" value="Admin@2026!" />
     </div>
     <button id="loginBtn">Sign In</button>
+    <div id="twoFactorStep" class="hidden" style="margin-top:14px;">
+      <div class="field">
+        <label for="twoFactorCode">Authenticator Code (6 digits)</label>
+        <input id="twoFactorCode" type="text" inputmode="numeric" maxlength="6" placeholder="123456" />
+      </div>
+      <div class="field">
+        <label for="recoveryCode">Recovery Code (optional)</label>
+        <input id="recoveryCode" type="text" placeholder="Use only if authenticator unavailable" />
+      </div>
+      <button id="verify2faBtn" type="button">Verify 2FA and Continue</button>
+    </div>
     <div id="loginStatus" class="status"></div>
   </div>
 
@@ -327,8 +338,12 @@
     const loginView = document.getElementById('loginView');
     const dashboardView = document.getElementById('dashboardView');
     const loginBtn = document.getElementById('loginBtn');
+    const verify2faBtn = document.getElementById('verify2faBtn');
     const logoutBtn = document.getElementById('logoutBtn');
     const loginStatus = document.getElementById('loginStatus');
+    const twoFactorStep = document.getElementById('twoFactorStep');
+    const twoFactorCodeInput = document.getElementById('twoFactorCode');
+    const recoveryCodeInput = document.getElementById('recoveryCode');
     const sessionInfo = document.getElementById('sessionInfo');
     const navLinks = Array.from(document.querySelectorAll('.nav a'));
     const panels = Array.from(document.querySelectorAll('.panel'));
@@ -379,6 +394,50 @@
     const validToInput = document.getElementById('validTo');
     const durationPreview = document.getElementById('durationPreview');
     const multiplierPreview = document.getElementById('multiplierPreview');
+    let pendingChallengeToken = '';
+
+    function decodeJwtPayload(token) {
+      try {
+        const parts = String(token || '').split('.');
+        if (parts.length < 2) {
+          return {};
+        }
+        const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        const padded = payload + '='.repeat((4 - (payload.length % 4 || 4)) % 4);
+        return JSON.parse(atob(padded));
+      } catch (err) {
+        return {};
+      }
+    }
+
+    function resetTwoFactorStep() {
+      pendingChallengeToken = '';
+      if (twoFactorStep) {
+        twoFactorStep.classList.add('hidden');
+      }
+      if (twoFactorCodeInput) {
+        twoFactorCodeInput.value = '';
+      }
+      if (recoveryCodeInput) {
+        recoveryCodeInput.value = '';
+      }
+      if (verify2faBtn) {
+        verify2faBtn.disabled = false;
+      }
+      if (loginBtn) {
+        loginBtn.disabled = false;
+      }
+    }
+
+    function showTwoFactorStep(message) {
+      if (twoFactorStep) {
+        twoFactorStep.classList.remove('hidden');
+      }
+      if (twoFactorCodeInput) {
+        twoFactorCodeInput.focus();
+      }
+      loginStatus.textContent = message || 'Enter your 2FA code to continue.';
+    }
 
     function setAuthState(token, payload) {
       localStorage.setItem('adminToken', token);
@@ -395,6 +454,7 @@
       loginView.classList.remove('hidden');
       loginStatus.textContent = '';
       sessionInfo.textContent = '';
+      resetTwoFactorStep();
     }
 
     function setActivePanel(targetId) {
@@ -606,6 +666,7 @@
     }
 
     async function login() {
+      resetTwoFactorStep();
       loginStatus.textContent = 'Signing in...';
       const response = await fetch('/api/admin/login', {
         method: 'POST',
@@ -620,10 +681,73 @@
         loginStatus.textContent = data.error || 'Login failed.';
         return;
       }
-      const payload = JSON.parse(atob(data.token.split('.')[1]));
+
+      if (data.requires2fa) {
+        pendingChallengeToken = data.challengeToken || '';
+        showTwoFactorStep('Password verified. Enter your authenticator code to continue.');
+        return;
+      }
+
+      const payload = decodeJwtPayload(data.token);
       setAuthState(data.token, payload);
       loginStatus.textContent = 'Signed in successfully.';
       loadPlans();
+      loadPromos();
+      loadSettings();
+    }
+
+    async function verifyTwoFactor() {
+      if (!pendingChallengeToken) {
+        loginStatus.textContent = '2FA challenge expired. Please sign in again.';
+        resetTwoFactorStep();
+        return;
+      }
+
+      const code = (twoFactorCodeInput && twoFactorCodeInput.value ? twoFactorCodeInput.value : '').trim();
+      const recoveryCode = (recoveryCodeInput && recoveryCodeInput.value ? recoveryCodeInput.value : '').trim();
+
+      if (!code && !recoveryCode) {
+        loginStatus.textContent = 'Enter authenticator code or recovery code.';
+        return;
+      }
+
+      if (verify2faBtn) {
+        verify2faBtn.disabled = true;
+      }
+      loginStatus.textContent = 'Verifying 2FA...';
+
+      try {
+        const response = await fetch('/api/admin/2fa/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            challengeToken: pendingChallengeToken,
+            code: code,
+            recoveryCode: recoveryCode
+          })
+        });
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          loginStatus.textContent = data.error || '2FA verification failed.';
+          if (verify2faBtn) {
+            verify2faBtn.disabled = false;
+          }
+          return;
+        }
+
+        const payload = decodeJwtPayload(data.token);
+        setAuthState(data.token, payload);
+        loginStatus.textContent = 'Signed in successfully.';
+        loadPlans();
+        loadPromos();
+        loadSettings();
+      } catch (err) {
+        loginStatus.textContent = '2FA verification failed. Please try again.';
+        if (verify2faBtn) {
+          verify2faBtn.disabled = false;
+        }
+      }
     }
 
     navLinks.forEach(function (link) {
@@ -844,6 +968,7 @@
     });
 
     loginBtn.addEventListener('click', login);
+    verify2faBtn.addEventListener('click', verifyTwoFactor);
     logoutBtn.addEventListener('click', clearAuthState);
 
     const storedToken = localStorage.getItem('adminToken');

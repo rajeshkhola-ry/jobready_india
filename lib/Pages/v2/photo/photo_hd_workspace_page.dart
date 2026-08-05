@@ -22,6 +22,17 @@ class PhotoHdWorkspacePage extends StatefulWidget {
 }
 
 class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
+  static const _TargetKbRange _passportTargetRange = _TargetKbRange(
+    min: 50,
+    max: 100,
+    defaultValue: 100,
+  );
+  static const _TargetKbRange _posterTargetRange = _TargetKbRange(
+    min: 500,
+    max: 2000,
+    defaultValue: 1000,
+  );
+
   final PhotoResizeService _photoResizeService = const PhotoResizeService();
   final GlobalKey _dropZoneKey = GlobalKey();
   bool _isDragOver = false;
@@ -207,6 +218,33 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
         orElse: () => _workspacePresetOptions.first,
       );
 
+  bool get _isPosterModeActive {
+    if (_isCustomWorkspacePreset) {
+      return _selectedAspectPreset == 'poster';
+    }
+    return _selectedWorkspacePreset.aspectPresetId == 'poster';
+  }
+
+  _TargetKbRange get _activeTargetRange =>
+      _isPosterModeActive ? _posterTargetRange : _passportTargetRange;
+
+  String get _targetSizeLabel {
+    if (_maxTargetKb >= 1024) {
+      final mb = _maxTargetKb / 1024;
+      final precision = _maxTargetKb % 1024 == 0 ? 0 : 1;
+      return '${mb.toStringAsFixed(precision)}MB';
+    }
+    return '${_maxTargetKb}KB';
+  }
+
+  void _syncTargetSizeRange({required bool resetToDefault}) {
+    final range = _activeTargetRange;
+    final nextValue = resetToDefault
+        ? range.defaultValue
+        : _maxTargetKb.clamp(range.min, range.max).toInt();
+    _maxTargetKb = nextValue;
+  }
+
   PhotoSizePreset get _effectivePreset {
     if (_isCustomWorkspacePreset) {
       return PhotoSizePreset(
@@ -273,6 +311,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
         _selectedAspectPreset = option.aspectPresetId;
         _selectedDpi = option.dpi;
       }
+      _syncTargetSizeRange(resetToDefault: true);
     });
 
     if (refreshPreview) {
@@ -1152,6 +1191,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                                 DropdownMenuItem(value: 'passport', child: Text('3.5cm x 4.5cm (Passport)')),
                                 DropdownMenuItem(value: 'visa', child: Text('2 x 2 inch (Visa / Universal)')),
                                 DropdownMenuItem(value: 'square', child: Text('1:1 Square / Stamp')),
+                                DropdownMenuItem(value: 'poster', child: Text('Poster (A-series / Banner)')),
                               ],
                               onChanged: _isProcessing
                                   ? null
@@ -1160,6 +1200,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                                       setState(() {
                                         _selectedAspectPreset = value;
                                         _selectedWorkspacePresetId = 'custom';
+                                        _syncTargetSizeRange(resetToDefault: true);
                                       });
                                       Future<void>.microtask(_refreshComparisonPreview);
                                     },
@@ -1316,19 +1357,28 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                                 Row(
                                   children: [
                                     const Expanded(child: Text('Target file size')),
-                                    Text('≤ ${_maxTargetKb}KB', style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF0E3A66))),
+                                    Text('≤ $_targetSizeLabel', style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF0E3A66))),
                                   ],
                                 ),
                                 Slider(
                                   value: _maxTargetKb.toDouble(),
-                                  min: 50,
-                                  max: 100,
-                                  divisions: 1,
-                                  label: _maxTargetKb.toString(),
+                                  min: _activeTargetRange.min.toDouble(),
+                                  max: _activeTargetRange.max.toDouble(),
+                                  divisions: ((_activeTargetRange.max - _activeTargetRange.min) ~/ 50).clamp(1, 100),
+                                  label: _targetSizeLabel,
                                   onChanged: _isProcessing ? null : (value) {
                                     setState(() { _maxTargetKb = value.round(); });
                                     Future<void>.microtask(_refreshComparisonPreview);
                                   },
+                                ),
+                                Text(
+                                  _isPosterModeActive
+                                      ? 'Poster mode target range: 500KB to 2MB for better print and text clarity.'
+                                      : 'Passport/compliance target range: 50KB to 100KB for portal-safe uploads.',
+                                  style: const TextStyle(
+                                    fontSize: 11.5,
+                                    color: Color(0xFF64748B),
+                                  ),
                                 ),
                               ],
                             ),
@@ -1564,6 +1614,18 @@ class _PlanOption {
   final List<String> features;
   final Color accent;
   final IconData icon;
+}
+
+class _TargetKbRange {
+  final int min;
+  final int max;
+  final int defaultValue;
+
+  const _TargetKbRange({
+    required this.min,
+    required this.max,
+    required this.defaultValue,
+  });
 }
 
 class _WorkspacePresetOption {
