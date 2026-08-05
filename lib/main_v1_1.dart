@@ -32,6 +32,7 @@ import 'Pages/poster_banner_studio_page.dart' deferred as posterBannerStudioPage
 import 'Pages/privacy_masker_page.dart' deferred as privacyMaskerPage;
 import 'Pages/govt_verifier_page.dart' deferred as govtVerifierPage;
 import 'Pages/fraud_seal_page.dart' deferred as fraudSealPage;
+import 'Pages/doc_packager_page.dart' deferred as docPackagerPage;
 import 'Pages/resume_document_canvas_templates_page.dart' deferred as resumeDocumentCanvasTemplatesPage;
 import 'Pages/smart_pdf_suite_page.dart' deferred as smartPdfSuitePage;
 import 'Pages/split_tool_page.dart' deferred as splitToolPage;
@@ -335,6 +336,12 @@ class JobReadyV11App extends StatelessWidget {
             await fraudSealPage.loadLibrary();
           },
           builder: () => fraudSealPage.FraudSealPage(),
+        ),
+        '/doc-packager': (_) => DeferredRoutePage(
+          loader: () async {
+            await docPackagerPage.loadLibrary();
+          },
+          builder: () => docPackagerPage.DocPackagerPage(),
         ),
         '/admin': (_) => const AdminGatePage(targetRoute: '/admin-dashboard'),
         '/admin-2fa': (_) => const AdminTwoFactorPage(),
