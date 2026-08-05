@@ -28,8 +28,8 @@ import 'Pages/merge_tool_page.dart' deferred as mergeToolPage;
 import 'Pages/pdf_edit_page.dart' deferred as pdfEditPage;
 import 'Pages/pdf_tools_page.dart' deferred as pdfToolsPage;
 import 'Pages/split_tool_page.dart' deferred as splitToolPage;
-import 'Pages/v2/converter/converter_workspace_page.dart' deferred as converterWorkspacePage;
 import 'Pages/v2/history/history_page.dart' deferred as historyPage;
+import 'Pages/v2/photo/photo_hd_workspace_page.dart' deferred as photoHdWorkspacePage;
 import 'Pages/v2/resume/resume_workspace_page.dart' deferred as resumeWorkspacePage;
 import 'Widgets/deferred_route_page.dart';
 
@@ -213,8 +213,8 @@ class JobReadyV11App extends StatelessWidget {
       ),
       initialRoute: '/',
       routes: {
-        '/': (_) => const HomePageV2(),
-        '/home': (_) => const HomePageV2(),
+        '/': (_) => const HomePageV11(),
+        '/home': (_) => const HomePageV11(),
         '/about': (_) => const AboutPage(),
         '/blog': (_) => const BlogPage(),
         '/blog-detail': (_) => const BlogDetailPage(),
@@ -281,11 +281,11 @@ class JobReadyV11App extends StatelessWidget {
           },
           builder: () => resumeWorkspacePage.ResumeWorkspacePage(),
         ),
-        '/converter-workspace': (_) => DeferredRoutePage(
+        '/photo-hd': (_) => DeferredRoutePage(
           loader: () async {
-            await converterWorkspacePage.loadLibrary();
+            await photoHdWorkspacePage.loadLibrary();
           },
-          builder: () => converterWorkspacePage.ConverterWorkspacePage(),
+          builder: () => photoHdWorkspacePage.PhotoHdWorkspacePage(),
         ),
         '/admin': (_) => const AdminGatePage(targetRoute: '/admin-dashboard'),
         '/admin-2fa': (_) => const AdminTwoFactorPage(),
@@ -295,7 +295,7 @@ class JobReadyV11App extends StatelessWidget {
         '/dashboard': (_) => const UserDashboardPage(),
       },
       onUnknownRoute: (_) => MaterialPageRoute<void>(
-        builder: (_) => const HomePageV2(),
+        builder: (_) => const HomePageV11(),
       ),
     );
   }

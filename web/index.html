@@ -183,19 +183,58 @@
         document.body.appendChild(script);
       }
 
+      function restartWithHtmlRenderer(reason, detail) {
+        if (window.__GRJ_RESTARTED_FOR_HTML__) {
+          return;
+        }
+
+        window.__GRJ_RESTARTED_FOR_HTML__ = true;
+
+        try {
+          var nextUrl = new URL(window.location.href);
+          if (nextUrl.searchParams.get('grj_renderer') === 'html') {
+            return;
+          }
+          nextUrl.searchParams.set('grj_renderer', 'html');
+          console.warn(reason, detail || '');
+          window.location.replace(nextUrl.toString());
+        } catch (error) {
+          console.warn('Fallback renderer reload failed.', error);
+        }
+      }
+
       function setupAutoFallbackRenderer() {
         window.__GRJ_FALLBACK_RENDERER__ = 'html';
         window.__GRJ_AUTO_FALLBACK__ = true;
         window.__GRJ_FALLBACK_TRIGGERED__ = false;
 
-        if (window.flutterConfiguration) {
-          window.flutterConfiguration = Object.assign({}, window.flutterConfiguration, {
-            renderer: window.flutterConfiguration.renderer || 'auto'
-          });
+        var forceHtmlRenderer = false;
+        try {
+          var currentUrl = new URL(window.location.href);
+          forceHtmlRenderer = currentUrl.searchParams.get('grj_renderer') === 'html';
+        } catch (_) {
+          forceHtmlRenderer = false;
         }
+
+        if (forceHtmlRenderer) {
+          window.__GRJ_AUTO_FALLBACK__ = false;
+        }
+
+        window.flutterConfiguration = Object.assign({}, window.flutterConfiguration || {}, {
+          renderer: forceHtmlRenderer ? 'html' : ((window.flutterConfiguration && window.flutterConfiguration.renderer) || 'auto')
+        });
 
         window.addEventListener('flutter-first-frame', function () {
           window.__GRJ_RENDERER_READY__ = true;
+          try {
+            var readyUrl = new URL(window.location.href);
+            if (readyUrl.searchParams.get('grj_renderer') === 'html') {
+              readyUrl.searchParams.delete('grj_renderer');
+              window.history.replaceState({}, '', readyUrl.toString());
+            }
+          } catch (_) {
+            // No-op: URL cleanup is best-effort only.
+          }
         });
 
         window.addEventListener('flutter-initialization-error', function (event) {
@@ -203,10 +242,7 @@
             if (window.__GRJ_AUTO_FALLBACK__ && !window.__GRJ_FALLBACK_TRIGGERED__ && event && event.detail && event.detail.error) {
               window.__GRJ_FALLBACK_TRIGGERED__ = true;
               window.__GRJ_FALLBACK_RENDERER__ = 'html';
-              if (window.flutterConfiguration) {
-                window.flutterConfiguration.renderer = 'html';
-              }
-              console.warn('Flutter initialization failed, falling back to HTML renderer.', event.detail.error);
+              restartWithHtmlRenderer('Flutter initialization failed, restarting with HTML renderer.', event.detail.error);
             }
           } catch (error) {
             console.warn('Fallback renderer setup failed.', error);
@@ -218,10 +254,7 @@
             if (!window.__GRJ_RENDERER_READY__ && window.__GRJ_AUTO_FALLBACK__ && !window.__GRJ_FALLBACK_TRIGGERED__) {
               window.__GRJ_FALLBACK_TRIGGERED__ = true;
               window.__GRJ_FALLBACK_RENDERER__ = 'html';
-              if (window.flutterConfiguration) {
-                window.flutterConfiguration.renderer = 'html';
-              }
-              console.warn('Flutter did not start in time, switching to the HTML renderer fallback.');
+              restartWithHtmlRenderer('Flutter did not start in time, restarting with HTML renderer fallback.');
             }
           } catch (error) {
             console.warn('Fallback timer failed.', error);

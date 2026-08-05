@@ -40,7 +40,6 @@ import 'post_launch_control_page.dart';
 import 'split_tool_page.dart';
 import 'system_check_page.dart';
 import 'terms_conditions_page.dart';
-import 'v2/photo/photo_hd_workspace_page.dart';
 
 const Map<String, String> _paymentCurrencyLabels = {
   'USD': 'US Dollar (USD)',
@@ -177,14 +176,14 @@ String resolvePreferredPaymentCurrency({
   return isIndia ? 'INR' : 'USD';
 }
 
-class HomePageV2 extends StatefulWidget {
-  const HomePageV2({super.key});
+class HomePageV11 extends StatefulWidget {
+  const HomePageV11({super.key});
 
   @override
-  State<HomePageV2> createState() => _HomePageV2State();
+  State<HomePageV11> createState() => _HomePageV11State();
 }
 
-class _HomePageV2State extends State<HomePageV2> {
+class _HomePageV11State extends State<HomePageV11> {
   int _pricingDiscountPercent = 0;
   String _activeGateway = ApiService.getActivePaymentGateway();
   String _selectedPlanForPayment = 'Free';
@@ -5675,24 +5674,41 @@ class _WhyChooseSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth < 760) {
-          return const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              WhyChooseCard(),
-              SizedBox(height: 12),
-              _WhyChooseIllustrationPlaceholder(),
-            ],
-          );
-        }
+        final isWide = constraints.maxWidth >= 960;
 
-        return const Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(flex: 3, child: WhyChooseCard()),
-            SizedBox(width: 16),
-            Expanded(flex: 1, child: _WhyChooseIllustrationPlaceholder()),
-          ],
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1180),
+            child: isWide
+                ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: Align(
+                          alignment: Alignment.topLeft,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(maxWidth: 760),
+                            child: WhyChooseCard(scale: 0.88),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 16),
+                      Expanded(
+                        flex: 1,
+                        child: _WhyChooseIllustrationPlaceholder(),
+                      ),
+                    ],
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      WhyChooseCard(scale: 0.92),
+                      SizedBox(height: 12),
+                      _WhyChooseIllustrationPlaceholder(),
+                    ],
+                  ),
+          ),
         );
       },
     );
@@ -5710,213 +5726,347 @@ class _WhyChooseIllustrationPlaceholder extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFEAF2FF), Color(0xFFDCEBFF)],
+          colors: [Color(0xFFEAF2FF), Color(0xFFF7FBFF), Color(0xFFFFF4D6)],
         ),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(28),
         border: Border.all(color: const Color(0xFFBFD4F3)),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0F172A).withValues(alpha: 0.06),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+            color: const Color(0xFF0F172A).withValues(alpha: 0.07),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      padding: const EdgeInsets.all(18),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 380;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0F172A),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: const [
+                  _IllustrationBadge(icon: Icons.star_rounded, label: 'A4 Layout Ready'),
+                  _IllustrationBadge(icon: Icons.speed_rounded, label: 'Instant Processing'),
+                ],
+              ),
+              const SizedBox(height: 14),
+              AspectRatio(
+                aspectRatio: compact ? 0.9 : 0.88,
+                child: Stack(
+                  clipBehavior: Clip.none,
                   children: [
-                    Icon(Icons.verified_rounded, size: 12, color: Color(0xFFFFC72C)),
-                    SizedBox(width: 4),
-                    Text(
-                      'PRO STUDIO SUITE',
-                      style: TextStyle(
-                        fontSize: 9.5,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.6,
-                        color: Colors.white,
+                    Positioned(
+                      left: 8,
+                      top: 54,
+                      child: Transform.rotate(
+                        angle: -0.12,
+                        child: _FlowCard(
+                          width: compact ? 118 : 132,
+                          height: compact ? 138 : 150,
+                          color: const Color(0xFFF3F4F6),
+                          borderColor: const Color(0xFFD1D5DB),
+                          title: 'Blurred\nOriginal',
+                          subtitle: 'Upload',
+                          icon: Icons.image_not_supported_rounded,
+                          muted: true,
+                        ),
+                      ),
+                    ),
+                    Positioned.fill(
+                      child: Center(
+                        child: Transform.translate(
+                          offset: const Offset(0, 8),
+                          child: Transform.rotate(
+                            angle: -0.02,
+                            child: Container(
+                              width: compact ? 156 : 170,
+                              height: compact ? 166 : 180,
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [Color(0xFFDBEAFE), Color(0xFFFDE68A)],
+                                ),
+                                borderRadius: BorderRadius.circular(28),
+                                border: Border.all(color: const Color(0xFF93C5FD), width: 1.2),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF0F172A).withValues(alpha: 0.08),
+                                    blurRadius: 18,
+                                    offset: const Offset(0, 10),
+                                  ),
+                                ],
+                              ),
+                              child: Stack(
+                                children: [
+                                  Positioned(
+                                    top: 16,
+                                    left: 18,
+                                    child: Container(
+                                      width: 36,
+                                      height: 36,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.9),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(Icons.settings_rounded, color: Color(0xFF0F4C81), size: 18),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: 14,
+                                    right: 18,
+                                    child: Container(
+                                      width: 30,
+                                      height: 30,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.92),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(Icons.cloud_queue_rounded, color: Color(0xFF2563EB), size: 16),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    left: 24,
+                                    top: 68,
+                                    right: 24,
+                                    child: Container(
+                                      height: 44,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.95),
+                                        borderRadius: BorderRadius.circular(18),
+                                        border: Border.all(color: const Color(0xFFFBBF24), width: 1.2),
+                                      ),
+                                      child: const Center(
+                                        child: Text(
+                                          'PROCESS',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: 1.2,
+                                            color: Color(0xFF0F172A),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    left: 18,
+                                    bottom: 14,
+                                    child: Container(
+                                      width: 58,
+                                      height: 12,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFFC72C).withValues(alpha: 0.85),
+                                        borderRadius: BorderRadius.circular(999),
+                                      ),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    right: 18,
+                                    bottom: 14,
+                                    child: Container(
+                                      width: 58,
+                                      height: 12,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF60A5FA).withValues(alpha: 0.6),
+                                        borderRadius: BorderRadius.circular(999),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      right: 0,
+                      top: 20,
+                      child: _FlowArrow(angle: 0.32, color: const Color(0xFFF59E0B)),
+                    ),
+                    Positioned(
+                      right: 10,
+                      top: 76,
+                      child: _FlowArrow(angle: 0.18, color: const Color(0xFF60A5FA)),
+                    ),
+                    Positioned(
+                      right: 12,
+                      bottom: 18,
+                      child: _FlowArrow(angle: -0.05, color: const Color(0xFF0EA5E9)),
+                    ),
+                    Positioned(
+                      right: 0,
+                      top: 8,
+                      child: Transform.rotate(
+                        angle: 0.1,
+                        child: _FlowCard(
+                          width: compact ? 128 : 140,
+                          height: compact ? 64 : 70,
+                          color: Colors.white,
+                          borderColor: const Color(0xFFBFDBFE),
+                          title: 'Professional Photo ID',
+                          subtitle: 'Crisp\npassport-ready',
+                          icon: Icons.badge_outlined,
+                          accent: const Color(0xFF2563EB),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      right: 4,
+                      top: 98,
+                      child: Transform.rotate(
+                        angle: -0.02,
+                        child: _FlowCard(
+                          width: compact ? 136 : 148,
+                          height: compact ? 72 : 78,
+                          color: Colors.white,
+                          borderColor: const Color(0xFFFCD34D),
+                          title: 'Job Application Document',
+                          subtitle: 'Neat\nprint-ready',
+                          icon: Icons.description_outlined,
+                          accent: const Color(0xFFCA8A04),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: Transform.rotate(
+                        angle: -0.04,
+                        child: _FlowCard(
+                          width: compact ? 150 : 164,
+                          height: compact ? 86 : 92,
+                          color: Colors.white,
+                          borderColor: const Color(0xFF93C5FD),
+                          title: 'Enhanced 4K A4 Poster Layout',
+                          subtitle: 'Large\nposter output',
+                          icon: Icons.wallpaper_outlined,
+                          accent: const Color(0xFF0EA5E9),
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDCFCE7),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text(
-                  '100% Safe',
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF15803D)),
+              const SizedBox(height: 12),
+              const Text(
+                'Placeholder for the isometric processing illustration asset. Replace this canvas with the final brand artwork when ready.',
+                style: TextStyle(
+                  fontSize: 11.5,
+                  height: 1.45,
+                  color: Color(0xFF475569),
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _FlowArrow extends StatelessWidget {
+  final double angle;
+  final Color color;
+
+  const _FlowArrow({required this.angle, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Transform.rotate(
+      angle: angle,
+      child: Icon(Icons.trending_flat_rounded, size: 26, color: color.withValues(alpha: 0.88)),
+    );
+  }
+}
+
+class _FlowCard extends StatelessWidget {
+  final double width;
+  final double height;
+  final Color color;
+  final Color borderColor;
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color? accent;
+  final bool muted;
+
+  const _FlowCard({
+    required this.width,
+    required this.height,
+    required this.color,
+    required this.borderColor,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    this.accent,
+    this.muted = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: borderColor, width: 1.1),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withValues(alpha: muted ? 0.03 : 0.07),
+            blurRadius: muted ? 8 : 12,
+            offset: const Offset(0, 5),
           ),
-          const SizedBox(height: 18),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
           Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
+            width: 28,
+            height: 28,
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFFFD166)),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF0F172A).withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+              color: (accent ?? const Color(0xFF64748B)).withValues(alpha: muted ? 0.15 : 0.12),
+              borderRadius: BorderRadius.circular(9),
             ),
-            child: Row(
-              children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF7E6),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.auto_awesome_rounded, color: Color(0xFFD97706), size: 20),
-                ),
-                const SizedBox(width: 10),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'AI Resume Builder',
-                        style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'ATS Optimized • 104 Templates',
-                        style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: Color(0xFF65A30D)),
-                      ),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 18),
-              ],
-            ),
+            child: Icon(icon, size: 16, color: accent ?? const Color(0xFF475569)),
           ),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF93C5FD)),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF0F172A).withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF0F9FF),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.photo_camera_outlined, color: Color(0xFF0F172A), size: 20),
-                ),
-                const SizedBox(width: 10),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'HD Photo Studio',
-                        style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        '100KB Passport • Studio Polish',
-                        style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
-                      ),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 18),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF0F172A).withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.picture_as_pdf_outlined, color: Color(0xFF475569), size: 20),
-                ),
-                const SizedBox(width: 10),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Smart Document Engine',
-                        style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Color(0xFF1F2937)),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Compress • Convert • Merge • Split',
-                        style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
-                      ),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.bolt_rounded, color: Color(0xFFD97706), size: 20),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Wrap(
-            spacing: 6,
-            runSpacing: 6,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _IllustrationBadge(icon: Icons.speed_rounded, label: 'Instant Processing'),
-              _IllustrationBadge(icon: Icons.cloud_done_rounded, label: 'Zero Data Storage'),
-              _IllustrationBadge(icon: Icons.star_rounded, label: 'A4 Layout Ready'),
+              Text(
+                title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  height: 1.18,
+                  fontWeight: FontWeight.w900,
+                  color: muted ? const Color(0xFF64748B) : const Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 10,
+                  height: 1.2,
+                  fontWeight: FontWeight.w700,
+                  color: muted ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                ),
+              ),
             ],
           ),
         ],
@@ -6009,10 +6159,17 @@ class _MostPopularToolsCard extends StatelessWidget {
                   isFlagship: true,
                   badgeText: '1 FREE USE',
                   onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => PhotoHdWorkspacePage()),
-                    );
+                    Navigator.of(context).pushNamed('/photo-hd');
+                  },
+                ),
+                _PopularToolRow(
+                  icon: Icons.photo_size_select_large_rounded,
+                  label: 'Poster Workspace',
+                  description: 'Open the poster-size layout and print-ready HD photo workflow.',
+                  isFlagship: true,
+                  badgeText: '1 FREE USE',
+                  onTap: () {
+                    Navigator.of(context).pushNamed('/photo-hd');
                   },
                 ),
                 _PopularToolRow(

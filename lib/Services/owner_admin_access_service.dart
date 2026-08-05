@@ -21,7 +21,10 @@ class OwnerAdminAccessService {
   static const String _adminIdKey = 'jobready_owner_admin_id_v1';
   static const String _adminPasswordKey = 'jobready_owner_admin_password_v1';
   static const String _twoFactorSecretKey = 'jobready_owner_admin_2fa_secret_v1';
+  static const String _twoFactorPendingSecretKey = 'jobready_owner_admin_2fa_pending_secret_v1';
   static const String _twoFactorRecoveryCodeKey = 'jobready_owner_admin_2fa_recovery_v1';
+  static const String _twoFactorPendingRecoveryCodeKey = 'jobready_owner_admin_2fa_pending_recovery_v1';
+  static const String _twoFactorStatusKey = 'jobready_owner_admin_2fa_status_v1';
   static const String _twoFactorSessionVerifiedKey = 'jobready_owner_admin_2fa_verified_session_v1';
   static const String _legacyOwnerCode = 'JR-OWNER-2026';
   static const String _totpIssuer = 'GETREADYJOB';
@@ -38,7 +41,22 @@ class OwnerAdminAccessService {
   static String get adminPassword =>
       (WebSafeBrowser.readLocalStorage(_adminPasswordKey) ?? defaultAdminPassword).trim();
 
-  static bool get isTwoFactorConfigured => twoFactorSecret.isNotEmpty;
+  static bool get isTwoFactorConfigured => isTwoFactorEnabled;
+
+  static bool get isTwoFactorEnabled {
+    final status = (WebSafeBrowser.readLocalStorage(_twoFactorStatusKey) ?? '').toString().trim().toUpperCase();
+    if (status == 'ACTIVE') {
+      return true;
+    }
+
+    // Backward compatibility: older versions only stored the secret.
+    if (twoFactorSecret.isNotEmpty) {
+      WebSafeBrowser.writeLocalStorage(_twoFactorStatusKey, 'ACTIVE');
+      return true;
+    }
+
+    return false;
+  }
 
   static bool get isTwoFactorVerifiedForSession =>
       WebSafeBrowser.readLocalStorage(_twoFactorSessionVerifiedKey) == '1';
@@ -46,11 +64,25 @@ class OwnerAdminAccessService {
   static String get twoFactorSecret =>
       (WebSafeBrowser.readLocalStorage(_twoFactorSecretKey) ?? '').toString().trim();
 
+    static String get _twoFactorPendingSecret =>
+      (WebSafeBrowser.readLocalStorage(_twoFactorPendingSecretKey) ?? '').toString().trim();
+
   static String get twoFactorRecoveryCode =>
       (WebSafeBrowser.readLocalStorage(_twoFactorRecoveryCodeKey) ?? '').toString().trim();
 
+    static String get _twoFactorPendingRecoveryCode =>
+      (WebSafeBrowser.readLocalStorage(_twoFactorPendingRecoveryCodeKey) ?? '').toString().trim();
+
   static String get twoFactorOtpauthUri {
     final secret = twoFactorSecret;
+    if (secret.isEmpty) {
+      return '';
+    }
+
+    return _buildOtpAuthUri(secret);
+  }
+
+  static String _buildOtpAuthUri(String secret) {
     if (secret.isEmpty) {
       return '';
     }
@@ -77,17 +109,71 @@ class OwnerAdminAccessService {
   }
 
   static TwoFactorSetupData initializeTwoFactorSetup() {
-    final secret = twoFactorSecret.isNotEmpty ? twoFactorSecret : _generateSecret();
-    WebSafeBrowser.writeLocalStorage(_twoFactorSecretKey, secret);
+    if (isTwoFactorEnabled) {
+      final activeSecret = twoFactorSecret;
+      final activeRecovery = twoFactorRecoveryCode;
+      return TwoFactorSetupData(
+        secret: activeSecret,
+        otpauthUri: _buildOtpAuthUri(activeSecret),
+        recoveryCode: activeRecovery,
+      );
+    }
 
-    final recoveryCode = twoFactorRecoveryCode.isNotEmpty ? twoFactorRecoveryCode : _generateRecoveryCode();
-    WebSafeBrowser.writeLocalStorage(_twoFactorRecoveryCodeKey, recoveryCode);
+    final pendingSecret = _twoFactorPendingSecret.isNotEmpty ? _twoFactorPendingSecret : _generateSecret();
+    WebSafeBrowser.writeLocalStorage(_twoFactorPendingSecretKey, pendingSecret);
+
+    final pendingRecoveryCode = _twoFactorPendingRecoveryCode.isNotEmpty
+        ? _twoFactorPendingRecoveryCode
+        : _generateRecoveryCode();
+    WebSafeBrowser.writeLocalStorage(_twoFactorPendingRecoveryCodeKey, pendingRecoveryCode);
 
     return TwoFactorSetupData(
-      secret: secret,
-      otpauthUri: twoFactorOtpauthUri,
-      recoveryCode: recoveryCode,
+      secret: pendingSecret,
+      otpauthUri: _buildOtpAuthUri(pendingSecret),
+      recoveryCode: pendingRecoveryCode,
     );
+  }
+
+  static bool verifyTwoFactorSetupCode(String input) {
+    final normalized = input.trim();
+    if (!RegExp(r'^\d{6}$').hasMatch(normalized)) {
+      return false;
+    }
+
+    final secret = _twoFactorPendingSecret;
+    if (secret.isEmpty) {
+      return false;
+    }
+
+    final currentTimeSeconds = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
+    final timeStep = currentTimeSeconds ~/ 30;
+    for (var offset = -1; offset <= 1; offset++) {
+      final expected = _generateTotpCode(secret, timeStep + offset);
+      if (expected == normalized) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  static void completeTwoFactorSetup() {
+    final pendingSecret = _twoFactorPendingSecret;
+    if (pendingSecret.isEmpty) {
+      return;
+    }
+
+    final pendingRecovery = _twoFactorPendingRecoveryCode.isNotEmpty
+        ? _twoFactorPendingRecoveryCode
+        : _generateRecoveryCode();
+
+    WebSafeBrowser.writeLocalStorage(_twoFactorSecretKey, pendingSecret);
+    WebSafeBrowser.writeLocalStorage(_twoFactorRecoveryCodeKey, pendingRecovery);
+    WebSafeBrowser.writeLocalStorage(_twoFactorStatusKey, 'ACTIVE');
+    WebSafeBrowser.writeLocalStorage(_twoFactorSessionVerifiedKey, '1');
+
+    WebSafeBrowser.removeLocalStorage(_twoFactorPendingSecretKey);
+    WebSafeBrowser.removeLocalStorage(_twoFactorPendingRecoveryCodeKey);
   }
 
   static bool verifyTwoFactorCode(String input) {
@@ -119,6 +205,7 @@ class OwnerAdminAccessService {
     for (var offset = -1; offset <= 1; offset++) {
       final expected = _generateTotpCode(secret, timeStep + offset);
       if (expected == normalized) {
+        WebSafeBrowser.writeLocalStorage(_twoFactorStatusKey, 'ACTIVE');
         WebSafeBrowser.writeLocalStorage(_twoFactorSessionVerifiedKey, '1');
         return true;
       }

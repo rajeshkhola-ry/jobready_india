@@ -134,6 +134,11 @@ Future<bool> checkOneTimeToolAccessAndProceed({
   }
 
   if (!UserAuthService.isSignedIn) {
+    // Reuse any existing Google-authenticated local account before showing login UI again.
+    await UserAuthService.signInWithGoogleAuto();
+  }
+
+  if (!UserAuthService.isSignedIn) {
     if (!context.mounted) {
       return false;
     }

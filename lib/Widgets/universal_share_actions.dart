@@ -182,13 +182,35 @@ class UniversalShareActions extends StatelessWidget {
     );
   }
 
+  Future<void> _openWhatsAppShare(BuildContext context) async {
+    final hasPublicUrl = _isValidPublicHttps(publicHttpsUrl);
+    final message = hasPublicUrl
+        ? 'File ready from GETREADYJOB%0A$fileName%0A$publicHttpsUrl'
+        : 'File ready from GETREADYJOB: $fileName. Please open the app and use Download to attach this file.';
+
+    final encoded = Uri.encodeComponent(message);
+    html.window.open('https://wa.me/?text=$encoded', '_blank');
+
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          hasPublicUrl
+              ? 'WhatsApp share opened with secure link.'
+              : 'WhatsApp opened. For private local files, download first then attach in WhatsApp.',
+        ),
+        backgroundColor: const Color(0xFF128C7E),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Share or Save',
+          'Share / Cloud Save',
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
@@ -200,29 +222,40 @@ class UniversalShareActions extends StatelessWidget {
           spacing: 8,
           runSpacing: 8,
           children: [
-            ElevatedButton(
-              onPressed: () => unawaited(_shareFile(context)),
+            ElevatedButton.icon(
+              onPressed: () => unawaited(_openWhatsAppShare(context)),
+              icon: const Icon(Icons.chat_rounded, size: 16),
+              label: const Text('WhatsApp'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF128C7E),
                 foregroundColor: Colors.white,
+                minimumSize: const Size(112, 36),
               ),
-              child: const Text('Share File (Email/WhatsApp)'),
             ),
-            OutlinedButton(
+            OutlinedButton.icon(
               onPressed: () => unawaited(_openGoogleDriveSaver(context)),
+              icon: const Icon(Icons.cloud_upload_rounded, size: 16),
               style: OutlinedButton.styleFrom(
                 foregroundColor: const Color(0xFF0F766E),
                 side: const BorderSide(color: Color(0xFF0F766E)),
+                minimumSize: const Size(112, 36),
               ),
-              child: const Text('Google Drive'),
+              label: const Text('Google Drive'),
             ),
-            OutlinedButton(
+            OutlinedButton.icon(
               onPressed: () => unawaited(_openOneDriveSaver(context)),
+              icon: const Icon(Icons.cloud_done_rounded, size: 16),
               style: OutlinedButton.styleFrom(
                 foregroundColor: const Color(0xFF1D4ED8),
                 side: const BorderSide(color: Color(0xFF1D4ED8)),
+                minimumSize: const Size(112, 36),
               ),
-              child: const Text('OneDrive'),
+              label: const Text('OneDrive'),
+            ),
+            TextButton.icon(
+              onPressed: () => unawaited(_shareFile(context)),
+              icon: const Icon(Icons.share_rounded, size: 16),
+              label: const Text('More Share'),
             ),
           ],
         ),

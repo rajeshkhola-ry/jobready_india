@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:universal_html/html.dart' as html;
 
+import '../../home_page_v2.dart';
 import '../../../Services/file_picker_service.dart';
 import '../../../Services/free_trial_service.dart';
 import '../../../Services/photo_resize_service.dart';
@@ -27,10 +28,13 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
   String _selectedWorkspacePresetId = 'passport_photo';
 
   PickedFileData? _selectedImage;
-  PhotoSizePreset _selectedPreset = PhotoResizeService.presets.first;
+  PhotoSizePreset _selectedPreset = PhotoResizeService.presetById('passport');
   String _selectedDpi = '300';
   String _selectedAspectPreset = 'passport';
   String _selectedBackgroundColor = '#FFFFFF';
+  bool _isPrintMode = true;
+  String _webModeDpi = '150';
+  PhotoOutputFormat _outputFormat = PhotoOutputFormat.jpg;
   int _maxTargetKb = 100;
   bool _enforceFileSizeLimit = true;
   bool _hdMode = true;
@@ -44,7 +48,6 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
   void initState() {
     super.initState();
     _hydrateFromUploadContext();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _enforceAccessGate());
     if (kIsWeb) {
       html.document.body?.addEventListener('dragover', _handleBodyDragOver);
       html.document.body?.addEventListener('dragleave', _handleBodyDragLeave);
@@ -183,6 +186,15 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
 
   bool get _isCustomWorkspacePreset => _selectedWorkspacePresetId == 'custom';
 
+  String get _effectiveDpi => _isPrintMode ? '300' : _webModeDpi;
+
+  PhotoRenderMode get _effectiveRenderMode {
+    if (_isPrintMode) {
+      return PhotoRenderMode.print300;
+    }
+    return _webModeDpi == '72' ? PhotoRenderMode.web72 : PhotoRenderMode.web150;
+  }
+
   _WorkspacePresetOption get _selectedWorkspacePreset => _workspacePresetOptions.firstWhere(
         (option) => option.id == _selectedWorkspacePresetId,
         orElse: () => _workspacePresetOptions.first,
@@ -245,10 +257,12 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
         fileName: selectedImage.name,
         preset: _selectedPreset,
         enableHdMode: _hdMode,
-        dpi: _selectedDpi,
+        dpi: _effectiveDpi,
         backgroundColor: _selectedBackgroundColor,
         maxTargetKb: _maxTargetKb,
         aspectPresetId: _selectedAspectPreset,
+        renderMode: _effectiveRenderMode,
+        outputFormat: _outputFormat,
         enforceFileSizeLimit: _enforceFileSizeLimit,
         previewOnly: true,
       );
@@ -293,10 +307,12 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
         fileName: selectedImage.name,
         preset: _selectedPreset,
         enableHdMode: _hdMode,
-        dpi: _selectedDpi,
+        dpi: _effectiveDpi,
         backgroundColor: _selectedBackgroundColor,
         maxTargetKb: _maxTargetKb,
         aspectPresetId: _selectedAspectPreset,
+        renderMode: _effectiveRenderMode,
+        outputFormat: _outputFormat,
         enforceFileSizeLimit: _enforceFileSizeLimit,
         previewOnly: false,
       );
@@ -315,7 +331,9 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
       await showDialog<void>(
         context: context,
         builder: (_) => DownloadResultDialog(
-          outputFormat: _hdMode ? 'HD Photo Resize' : 'Photo Resize',
+          outputFormat: _outputFormat == PhotoOutputFormat.pdf
+              ? 'Print-Ready PDF'
+              : (_outputFormat == PhotoOutputFormat.png ? 'PNG Export' : 'JPG Export'),
           fileName: result.outputFileName,
           outputBytes: result.bytes,
         ),
@@ -706,7 +724,17 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Photo HD Workspace'),
+        leading: IconButton(
+          tooltip: 'Back to Home',
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const HomePageV11()),
+              (route) => false,
+            );
+          },
+        ),
+        title: const Text('Photo HD Workspace + Poster Generator'),
         backgroundColor: const Color(0xFF0E3A66),
         foregroundColor: const Color(0xFFF8FAFC),
         elevation: 0,
@@ -756,7 +784,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Identity-Preserving HD Photo Studio',
+                                  'Identity-Preserving HD Photo & Poster Studio',
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w800,
@@ -766,7 +794,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                                 ),
                                 SizedBox(height: 6),
                                 Text(
-                                  'Upload a photo, choose a target size, and generate a conservative HD export without changing facial identity.',
+                                  'Upload a photo, choose a poster or photo preset, and generate a conservative HD export without changing facial identity.',
                                   style: TextStyle(
                                     fontSize: 13.5,
                                     height: 1.55,
@@ -781,59 +809,57 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                     ),
                     const SizedBox(height: 14),
                     _panel(
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            width: 42,
-                            height: 42,
-                            decoration: BoxDecoration(
-                              color: _getSelectedPlan(_selectedPlanId).accent.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(
-                              _getSelectedPlan(_selectedPlanId).icon,
-                              color: _getSelectedPlan(_selectedPlanId).accent,
-                              size: 20,
+                          const Text(
+                            'Choose Enhancement Mode',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF0F172A),
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Selected plan: ${_getSelectedPlan(_selectedPlanId).label}',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w800,
-                                    color: Color(0xFF0F172A),
+                          const SizedBox(height: 10),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: _planOptions.map((plan) {
+                                final isSelected = _selectedPlanId == plan.id;
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 10),
+                                  child: OutlinedButton.icon(
+                                    onPressed: _isProcessing
+                                        ? null
+                                        : () {
+                                            setState(() {
+                                              _selectedPlanId = plan.id;
+                                              _statusType = _StatusType.idle;
+                                              _statusMessage = 'Selected ${plan.label}. Continue with your enhancement workflow.';
+                                            });
+                                          },
+                                    icon: Icon(plan.icon, size: 18),
+                                    label: Text(plan.label),
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                                      foregroundColor: isSelected ? Colors.white : plan.accent,
+                                      backgroundColor: isSelected ? plan.accent : Colors.white,
+                                      side: BorderSide(color: plan.accent, width: isSelected ? 2 : 1.2),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 3),
-                                Text(
-                                  _getSelectedPlan(_selectedPlanId).description,
-                                  style: const TextStyle(
-                                    fontSize: 12.5,
-                                    height: 1.45,
-                                    color: Color(0xFF64748B),
-                                  ),
-                                ),
-                              ],
+                                );
+                              }).toList(),
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: _getSelectedPlan(_selectedPlanId).accent.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Text(
-                              _getSelectedPlan(_selectedPlanId).priceTag,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                color: _getSelectedPlan(_selectedPlanId).accent,
-                              ),
+                          const SizedBox(height: 10),
+                          Text(
+                            _getSelectedPlan(_selectedPlanId).description,
+                            style: const TextStyle(
+                              fontSize: 12.5,
+                              height: 1.45,
+                              color: Color(0xFF64748B),
                             ),
                           ),
                         ],
@@ -1012,27 +1038,6 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                             ),
                             const SizedBox(height: 12),
                             DropdownButtonFormField<String>(
-                              value: _selectedDpi,
-                              items: PhotoResizeService.dpiOptions
-                                  .map((dpi) => DropdownMenuItem(value: dpi, child: Text('$dpi DPI')))
-                                  .toList(growable: false),
-                              onChanged: _isProcessing
-                                  ? null
-                                  : (value) {
-                                      if (value == null) return;
-                                      setState(() {
-                                        _selectedDpi = value;
-                                        _selectedWorkspacePresetId = 'custom';
-                                      });
-                                      Future<void>.microtask(_refreshComparisonPreview);
-                                    },
-                              decoration: const InputDecoration(
-                                labelText: 'Print DPI',
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            DropdownButtonFormField<String>(
                               value: _selectedAspectPreset,
                               items: const [
                                 DropdownMenuItem(value: 'passport', child: Text('3.5cm x 4.5cm (Passport)')),
@@ -1078,7 +1083,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                                     children: [
                                       _lockedSpecChip('Resolution', '${_selectedPreset.width} × ${_selectedPreset.height}px'),
                                       _lockedSpecChip('Aspect', _selectedWorkspacePreset.aspectLabel),
-                                      _lockedSpecChip('DPI', _selectedWorkspacePreset.dpi),
+                                      _lockedSpecChip('DPI', _effectiveDpi),
                                     ],
                                   ),
                                 ],
@@ -1096,6 +1101,69 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                             ),
                             const SizedBox(height: 12),
                           ],
+                          SwitchListTile.adaptive(
+                            value: _isPrintMode,
+                            onChanged: _isProcessing
+                                ? null
+                                : (value) {
+                                    setState(() {
+                                      _isPrintMode = value;
+                                    });
+                                    Future<void>.microtask(_refreshComparisonPreview);
+                                  },
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('Print Mode (300 DPI)'),
+                            subtitle: Text(
+                              _isPrintMode
+                                  ? 'Enabled for high-resolution print output.'
+                                  : 'Web mode enabled for browser-friendly output.',
+                            ),
+                          ),
+                          if (!_isPrintMode) ...[
+                            const SizedBox(height: 10),
+                            DropdownButtonFormField<String>(
+                              value: _webModeDpi,
+                              items: PhotoResizeService.webDpiOptions
+                                  .map((dpi) => DropdownMenuItem(value: dpi, child: Text('Web $dpi DPI')))
+                                  .toList(growable: false),
+                              onChanged: _isProcessing
+                                  ? null
+                                  : (value) {
+                                      if (value == null) return;
+                                      setState(() {
+                                        _webModeDpi = value;
+                                      });
+                                      Future<void>.microtask(_refreshComparisonPreview);
+                                    },
+                              decoration: const InputDecoration(
+                                labelText: 'Web Mode DPI',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<PhotoOutputFormat>(
+                            value: _outputFormat,
+                            items: const [
+                              DropdownMenuItem(value: PhotoOutputFormat.jpg, child: Text('JPG Export')),
+                              DropdownMenuItem(value: PhotoOutputFormat.png, child: Text('PNG Export')),
+                              DropdownMenuItem(value: PhotoOutputFormat.pdf, child: Text('Print-Ready PDF Export')),
+                            ],
+                            onChanged: _isProcessing
+                                ? null
+                                : (value) {
+                                    if (value == null) return;
+                                    setState(() {
+                                      _outputFormat = value;
+                                    });
+                                    Future<void>.microtask(_refreshComparisonPreview);
+                                  },
+                            decoration: const InputDecoration(
+                              labelText: 'Output format',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
                           DropdownButtonFormField<String>(
                             value: _selectedBackgroundColor,
                             items: const [
@@ -1183,7 +1251,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                               border: Border.all(color: const Color(0xFFD8E5F5)),
                             ),
                             child: Text(
-                              'Selected output: ${_selectedPreset.width} \u00d7 ${_selectedPreset.height} px  \u00b7  Identity-preserving enhancement only, no facial feature changes.',
+                              'Selected output: ${_selectedPreset.width} \u00d7 ${_selectedPreset.height} px  \u00b7  ${_isPrintMode ? 'Print 300 DPI' : 'Web ${_webModeDpi} DPI'}  \u00b7  Format: ${_outputFormat.name.toUpperCase()}',
                               style: const TextStyle(
                                 fontSize: 13,
                                 height: 1.45,
@@ -1310,7 +1378,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                                     vertical: 14),
                               ),
                               icon: Icon(_isProcessing ? Icons.hourglass_top_rounded : Icons.high_quality_rounded),
-                              label: Text(_isProcessing ? 'Processing...' : 'Generate Identity-Safe HD Photo'),
+                              label: Text(_isProcessing ? 'Processing...' : 'Generate Poster / Photo Output'),
                             ),
                           ),
                           if (_isProcessing) ...[
@@ -1411,6 +1479,46 @@ class _WorkspacePresetOption {
 }
 
 const List<_WorkspacePresetOption> _workspacePresetOptions = [
+  _WorkspacePresetOption(
+    id: 'poster_a2',
+    label: 'Very Big Size (Banner/A2) - 4960 x 7016',
+    description: 'Poster generator preset for large-format A2 banner output at print resolution.',
+    presetId: 'poster_a2',
+    aspectPresetId: 'poster',
+    aspectLabel: 'A2 Poster',
+    dpi: '300',
+    isCustom: false,
+  ),
+  _WorkspacePresetOption(
+    id: 'poster_a3',
+    label: 'Medium Size (Standard Poster/A3) - 3508 x 4960',
+    description: 'Poster generator preset for A3 medium print composition.',
+    presetId: 'poster_a3',
+    aspectPresetId: 'poster',
+    aspectLabel: 'A3 Poster',
+    dpi: '300',
+    isCustom: false,
+  ),
+  _WorkspacePresetOption(
+    id: 'poster_a4',
+    label: 'Small Size (Flyer/A4) - 2480 x 3508',
+    description: 'Poster generator preset for A4 flyer-ready output.',
+    presetId: 'poster_a4',
+    aspectPresetId: 'poster',
+    aspectLabel: 'A4 Flyer',
+    dpi: '300',
+    isCustom: false,
+  ),
+  _WorkspacePresetOption(
+    id: 'poster_passport',
+    label: 'Very Small Size (Passport/ID) - 413 x 531',
+    description: 'Compact passport/ID output with the approved 413 x 531 dimensions.',
+    presetId: 'passport',
+    aspectPresetId: 'passport',
+    aspectLabel: 'Passport / ID',
+    dpi: '300',
+    isCustom: false,
+  ),
   _WorkspacePresetOption(
     id: 'passport_photo',
     label: 'Passport Photo (3.5cm x 4.5cm)',

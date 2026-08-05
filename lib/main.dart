@@ -175,8 +175,8 @@ theme: ThemeData(
 ),
 initialRoute: '/',
 routes: {
-  '/': (_) => const HomePageV2(),
-  '/home': (_) => const HomePageV2(),
+  '/': (_) => const HomePageV11(),
+  '/home': (_) => const HomePageV11(),
   '/admin': (_) => const AdminGatePage(targetRoute: '/admin-dashboard'),
   '/admin-2fa': (_) => const AdminTwoFactorPage(),
   '/admin-dashboard': (_) => const AdminDashboardPage(),

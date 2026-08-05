@@ -4,6 +4,46 @@ import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+
+enum PhotoRenderMode {
+  print300,
+  web150,
+  web72,
+}
+
+extension PhotoRenderModeX on PhotoRenderMode {
+  String get dpiLabel {
+    switch (this) {
+      case PhotoRenderMode.print300:
+        return '300';
+      case PhotoRenderMode.web150:
+        return '150';
+      case PhotoRenderMode.web72:
+        return '72';
+    }
+  }
+}
+
+enum PhotoOutputFormat {
+  jpg,
+  png,
+  pdf,
+}
+
+extension PhotoOutputFormatX on PhotoOutputFormat {
+  String get extension {
+    switch (this) {
+      case PhotoOutputFormat.jpg:
+        return 'jpg';
+      case PhotoOutputFormat.png:
+        return 'png';
+      case PhotoOutputFormat.pdf:
+        return 'pdf';
+    }
+  }
+}
 
 class PhotoSizePreset {
   final String id;
@@ -17,6 +57,24 @@ class PhotoSizePreset {
     required this.width,
     required this.height,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'label': label,
+      'width': width,
+      'height': height,
+    };
+  }
+
+  static PhotoSizePreset fromMap(Map<String, dynamic> map) {
+    return PhotoSizePreset(
+      id: map['id'] as String,
+      label: map['label'] as String,
+      width: map['width'] as int,
+      height: map['height'] as int,
+    );
+  }
 }
 
 class PhotoResizeResult {
@@ -46,6 +104,8 @@ class PhotoRenderRequest {
   final String aspectPresetId;
   final bool enforceFileSizeLimit;
   final bool previewOnly;
+  final PhotoRenderMode renderMode;
+  final PhotoOutputFormat outputFormat;
 
   const PhotoRenderRequest({
     required this.bytes,
@@ -58,13 +118,55 @@ class PhotoRenderRequest {
     required this.aspectPresetId,
     required this.enforceFileSizeLimit,
     required this.previewOnly,
+    required this.renderMode,
+    required this.outputFormat,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'bytes': bytes,
+      'fileName': fileName,
+      'preset': preset.toMap(),
+      'enableHdMode': enableHdMode,
+      'dpi': dpi,
+      'backgroundColor': backgroundColor,
+      'maxTargetKb': maxTargetKb,
+      'aspectPresetId': aspectPresetId,
+      'enforceFileSizeLimit': enforceFileSizeLimit,
+      'previewOnly': previewOnly,
+      'renderMode': renderMode.name,
+      'outputFormat': outputFormat.name,
+    };
+  }
+
+  static PhotoRenderRequest fromMap(Map<String, dynamic> map) {
+    return PhotoRenderRequest(
+      bytes: map['bytes'] as Uint8List,
+      fileName: map['fileName'] as String,
+      preset: PhotoSizePreset.fromMap(map['preset'] as Map<String, dynamic>),
+      enableHdMode: map['enableHdMode'] as bool,
+      dpi: map['dpi'] as String,
+      backgroundColor: map['backgroundColor'] as String,
+      maxTargetKb: map['maxTargetKb'] as int,
+      aspectPresetId: map['aspectPresetId'] as String,
+      enforceFileSizeLimit: map['enforceFileSizeLimit'] as bool,
+      previewOnly: map['previewOnly'] as bool,
+      renderMode: PhotoRenderMode.values.byName(map['renderMode'] as String),
+      outputFormat: PhotoOutputFormat.values.byName(map['outputFormat'] as String),
+    );
+  }
 }
 
 class PhotoResizeService {
   const PhotoResizeService();
 
+  static const int _maxCanvasPixels = 36000000;
+  static const int _maxSourcePixels = 30000000;
+
   static const List<PhotoSizePreset> presets = [
+    PhotoSizePreset(id: 'poster_a2', label: 'Very Big Banner (A2) - 4960 x 7016', width: 4960, height: 7016),
+    PhotoSizePreset(id: 'poster_a3', label: 'Medium Poster (A3) - 3508 x 4960', width: 3508, height: 4960),
+    PhotoSizePreset(id: 'poster_a4', label: 'Small Flyer (A4) - 2480 x 3508', width: 2480, height: 3508),
     PhotoSizePreset(id: 'passport', label: 'Passport Size - 413 x 531', width: 413, height: 531),
     PhotoSizePreset(id: 'visa', label: 'US Visa / Universal - 2 x 2 in', width: 1200, height: 1200),
     PhotoSizePreset(id: 'card', label: 'Card Size - 1050 x 675', width: 1050, height: 675),
@@ -75,6 +177,7 @@ class PhotoResizeService {
   ];
 
   static const List<String> dpiOptions = ['300', '600'];
+  static const List<String> webDpiOptions = ['150', '72'];
   static const List<String> backgroundOptions = ['#FFFFFF', '#E0F2FE'];
 
   static PhotoSizePreset presetById(String presetId) {
@@ -90,10 +193,11 @@ class PhotoResizeService {
       orElse: () => presets.first,
     );
 
-    final multiplier = dpi == '600' ? 2 : 1;
+    final parsedDpi = int.tryParse(dpi) ?? 300;
+    final scale = (parsedDpi / 300).clamp(0.24, 2.0);
     return (
-      width: basePreset.width * multiplier,
-      height: basePreset.height * multiplier,
+      width: (basePreset.width * scale).round(),
+      height: (basePreset.height * scale).round(),
     );
   }
 
@@ -138,6 +242,8 @@ class PhotoResizeService {
     required String backgroundColor,
     required int maxTargetKb,
     required String aspectPresetId,
+    PhotoRenderMode renderMode = PhotoRenderMode.print300,
+    PhotoOutputFormat outputFormat = PhotoOutputFormat.jpg,
     bool enforceFileSizeLimit = true,
     bool previewOnly = false,
   }) async {
@@ -152,19 +258,22 @@ class PhotoResizeService {
       aspectPresetId: aspectPresetId,
       enforceFileSizeLimit: enforceFileSizeLimit,
       previewOnly: previewOnly,
+      renderMode: renderMode,
+      outputFormat: outputFormat,
     );
 
-    // Flutter web does not support the isolate primitives used by Isolate.run
-    // (RawReceivePort). Run processing inline on web and keep isolate offload
-    // for native targets.
     if (kIsWeb) {
-      return _renderPhotoInIsolate(request);
+      try {
+        return await compute(_renderPhotoInWorker, request.toMap());
+      } catch (_) {
+        return await _renderPhotoInIsolate(request);
+      }
     }
 
     try {
       return await Isolate.run(() => _renderPhotoInIsolate(request));
     } on UnsupportedError {
-      return _renderPhotoInIsolate(request);
+      return await _renderPhotoInIsolate(request);
     }
   }
 
@@ -497,16 +606,26 @@ class PhotoResizeService {
   }
 }
 
-PhotoResizeResult _renderPhotoInIsolate(PhotoRenderRequest request) {
+Future<PhotoResizeResult> _renderPhotoInWorker(Map<String, dynamic> payload) async {
+  return await _renderPhotoInIsolate(PhotoRenderRequest.fromMap(payload));
+}
+
+Future<PhotoResizeResult> _renderPhotoInIsolate(PhotoRenderRequest request) async {
   final source = img.decodeImage(request.bytes);
   if (source == null) {
     throw StateError('Unsupported image format. Please use JPG, PNG, WEBP, or BMP.');
   }
 
-  final prepared = _prepareSourceInIsolate(source, enableHdMode: request.enableHdMode);
-  final targetDimensions = request.previewOnly
+  final normalizedSource = _downscaleSourceForMemoryInIsolate(source, maxPixels: PhotoResizeService._maxSourcePixels);
+  final prepared = _prepareSourceInIsolate(normalizedSource, enableHdMode: request.enableHdMode);
+  final targetDimensionsRaw = request.previewOnly
       ? PhotoResizeService.resolvePreviewTargetDimensions(request.preset, request.aspectPresetId, request.dpi)
       : _resolveTargetDimensions(request.preset, request.aspectPresetId, request.dpi);
+  final targetDimensions = _constrainDimensionsForMemoryInIsolate(
+    targetDimensionsRaw.width,
+    targetDimensionsRaw.height,
+    maxPixels: PhotoResizeService._maxCanvasPixels,
+  );
   final fitted = _resizeToFitInIsolate(prepared, targetDimensions.width, targetDimensions.height);
   final canvas = img.Image(width: targetDimensions.width, height: targetDimensions.height);
   final bg = _parseBackgroundColorInIsolate(request.backgroundColor);
@@ -519,18 +638,36 @@ PhotoResizeResult _renderPhotoInIsolate(PhotoRenderRequest request) {
   final baseName = request.fileName.contains('.')
       ? request.fileName.substring(0, request.fileName.lastIndexOf('.'))
       : request.fileName;
-  final outputName = '${baseName}_${request.preset.id}_${request.dpi}dpi_${request.maxTargetKb}kb${request.enableHdMode ? '_hd' : ''}.jpg';
+  final outputName =
+      '${baseName}_${request.preset.id}_${request.dpi}dpi_${request.maxTargetKb}kb${request.enableHdMode ? '_hd' : ''}.${request.outputFormat.extension}';
 
   final safeCanvas = _sanitizeCanvasInIsolate(canvas);
-  final encoded = _encodeToTargetSizeInIsolate(
-    safeCanvas,
-    enableHdMode: request.enableHdMode,
-    maxTargetKb: request.maxTargetKb,
-    enforceFileSizeLimit: request.enforceFileSizeLimit,
-    previewOnly: request.previewOnly,
-  );
+  late final Uint8List encoded;
+  if (request.previewOnly || request.outputFormat == PhotoOutputFormat.jpg) {
+    encoded = _encodeToTargetSizeInIsolate(
+      safeCanvas,
+      enableHdMode: request.enableHdMode,
+      maxTargetKb: request.maxTargetKb,
+      enforceFileSizeLimit: request.enforceFileSizeLimit,
+      previewOnly: request.previewOnly,
+    );
+  } else if (request.outputFormat == PhotoOutputFormat.png) {
+    encoded = _encodePngToTargetSizeInIsolate(
+      safeCanvas,
+      maxTargetKb: request.maxTargetKb,
+      enforceFileSizeLimit: request.enforceFileSizeLimit,
+    );
+  } else {
+    encoded = await _encodePrintReadyPdfInIsolate(
+      safeCanvas,
+      dpi: int.tryParse(request.dpi) ?? 300,
+      maxTargetKb: request.maxTargetKb,
+      enforceFileSizeLimit: request.enforceFileSizeLimit,
+    );
+  }
 
-  final outputLabel = '${request.aspectPresetId.toUpperCase()} • ${request.dpi} DPI • ≤ ${request.maxTargetKb}KB';
+  final outputLabel =
+      '${request.aspectPresetId.toUpperCase()} • ${request.dpi} DPI • ${request.outputFormat.name.toUpperCase()}';
 
   return PhotoResizeResult(
     bytes: encoded,
@@ -542,17 +679,52 @@ PhotoResizeResult _renderPhotoInIsolate(PhotoRenderRequest request) {
 }
 
 ({int width, int height}) _resolveTargetDimensions(PhotoSizePreset preset, String aspectPresetId, String dpi) {
-  final multiplier = dpi == '600' ? 2 : 1;
+  final parsedDpi = int.tryParse(dpi) ?? 300;
+  final scale = (parsedDpi / 300).clamp(0.24, 2.0);
   switch (aspectPresetId) {
     case 'passport':
-      return (width: 413 * multiplier, height: 531 * multiplier);
+      return (width: (413 * scale).round(), height: (531 * scale).round());
     case 'visa':
-      return (width: 1200, height: 1200);
+      return (width: (1200 * scale).round(), height: (1200 * scale).round());
     case 'square':
-      return (width: preset.width * multiplier, height: preset.width * multiplier);
+      return (width: (preset.width * scale).round(), height: (preset.width * scale).round());
     default:
-      return (width: preset.width * multiplier, height: preset.height * multiplier);
+      return (width: (preset.width * scale).round(), height: (preset.height * scale).round());
   }
+}
+
+img.Image _downscaleSourceForMemoryInIsolate(img.Image source, {required int maxPixels}) {
+  final pixels = source.width * source.height;
+  if (pixels <= maxPixels) {
+    return source;
+  }
+
+  final scale = sqrt(maxPixels / pixels);
+  final targetWidth = max(320, (source.width * scale).round());
+  final targetHeight = max(320, (source.height * scale).round());
+  return img.copyResize(
+    source,
+    width: targetWidth,
+    height: targetHeight,
+    interpolation: img.Interpolation.cubic,
+  );
+}
+
+({int width, int height}) _constrainDimensionsForMemoryInIsolate(
+  int width,
+  int height, {
+  required int maxPixels,
+}) {
+  final total = width * height;
+  if (total <= maxPixels) {
+    return (width: width, height: height);
+  }
+
+  final scale = sqrt(maxPixels / total);
+  return (
+    width: max(240, (width * scale).round()),
+    height: max(240, (height * scale).round()),
+  );
 }
 
 img.Image _prepareSourceInIsolate(img.Image source, {required bool enableHdMode}) {
@@ -691,4 +863,68 @@ Uint8List _encodeToTargetSizeInIsolate(
   }
 
   return encoded;
+}
+
+Uint8List _encodePngToTargetSizeInIsolate(
+  img.Image image, {
+  required int maxTargetKb,
+  required bool enforceFileSizeLimit,
+}) {
+  final maxTargetBytes = enforceFileSizeLimit ? maxTargetKb * 1024 : null;
+  var workingImage = image;
+  var encoded = Uint8List.fromList(img.encodePng(workingImage, level: 6));
+
+  if (maxTargetBytes == null) {
+    return encoded;
+  }
+
+  while (encoded.length > maxTargetBytes) {
+    final nextWidth = (workingImage.width * 0.92).round();
+    final nextHeight = (workingImage.height * 0.92).round();
+    if (nextWidth < 220 || nextHeight < 220) {
+      break;
+    }
+    workingImage = img.copyResize(
+      workingImage,
+      width: nextWidth,
+      height: nextHeight,
+      interpolation: img.Interpolation.cubic,
+    );
+    encoded = Uint8List.fromList(img.encodePng(workingImage, level: 9));
+  }
+
+  return encoded;
+}
+
+Future<Uint8List> _encodePrintReadyPdfInIsolate(
+  img.Image image, {
+  required int dpi,
+  required int maxTargetKb,
+  required bool enforceFileSizeLimit,
+}) async {
+  final png = _encodePngToTargetSizeInIsolate(
+    image,
+    maxTargetKb: maxTargetKb,
+    enforceFileSizeLimit: enforceFileSizeLimit,
+  );
+
+  final document = pw.Document();
+  final pageWidthPoints = (image.width / dpi) * PdfPageFormat.inch;
+  final pageHeightPoints = (image.height / dpi) * PdfPageFormat.inch;
+  final pageFormat = PdfPageFormat(pageWidthPoints, pageHeightPoints);
+  final imageProvider = pw.MemoryImage(png);
+
+  document.addPage(
+    pw.Page(
+      pageFormat: pageFormat,
+      build: (context) {
+        return pw.SizedBox.expand(
+          child: pw.Image(imageProvider, fit: pw.BoxFit.fill),
+        );
+      },
+    ),
+  );
+
+  final bytes = await document.save();
+  return Uint8List.fromList(bytes);
 }

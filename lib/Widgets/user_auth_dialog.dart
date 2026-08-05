@@ -230,6 +230,40 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
     });
 
     try {
+      final autoSession = await UserAuthService.signInWithGoogleAuto(
+        selectedPlan: widget.preselectedPlan,
+      );
+      if (autoSession != null) {
+        if (!mounted) {
+          return;
+        }
+        await AuthRouterService.markUserAuthenticated(authToken: 'user-session');
+        Navigator.of(context).pop();
+        if (widget.onAuthenticated != null) {
+          widget.onAuthenticated!(
+            widget.preselectedPlan,
+            widget.selectedCurrency,
+          );
+          return;
+        }
+        if (widget.stayOnHomeAfterAuth) {
+          return;
+        }
+        if (widget.preselectedPlan != null &&
+            widget.preselectedPlan!.trim().isNotEmpty) {
+          Navigator.of(context).pushNamed(
+            '/dashboard',
+            arguments: {'plan': widget.preselectedPlan},
+          );
+        } else {
+          AuthRouterService.redirectAfterLogin(
+            context,
+            fallbackRoute: '/dashboard',
+          );
+        }
+        return;
+      }
+
       final email = _emailController.text.trim();
       final name = _nameController.text.trim();
       final country = _countryController.text.trim();
@@ -237,7 +271,7 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
 
       if (email.isEmpty) {
         setState(() {
-          _errorText = 'Enter your Google email to continue.';
+          _errorText = 'No active Google session found. Enter your Google details to continue.';
           _isSubmitting = false;
         });
         return;

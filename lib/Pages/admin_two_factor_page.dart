@@ -14,14 +14,16 @@ class AdminTwoFactorPage extends StatefulWidget {
 class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
   final TextEditingController _codeController = TextEditingController();
   late final bool _isSetupMode;
-  late final TwoFactorSetupData _setupData;
+  TwoFactorSetupData? _setupData;
   String? _errorText;
 
   @override
   void initState() {
     super.initState();
-    _isSetupMode = !OwnerAdminAccessService.isTwoFactorConfigured;
-    _setupData = OwnerAdminAccessService.initializeTwoFactorSetup();
+    _isSetupMode = !OwnerAdminAccessService.isTwoFactorEnabled;
+    if (_isSetupMode) {
+      _setupData = OwnerAdminAccessService.initializeTwoFactorSetup();
+    }
     if (!OwnerAdminAccessService.isUnlocked) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) {
@@ -56,13 +58,15 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
       return;
     }
 
-    final ok = OwnerAdminAccessService.verifyTwoFactorCode(code);
+    final ok = OwnerAdminAccessService.verifyTwoFactorSetupCode(code);
     if (!ok) {
       setState(() {
         _errorText = 'Scan the QR code first, then enter the 6-digit code from your authenticator.';
       });
       return;
     }
+
+    OwnerAdminAccessService.completeTwoFactorSetup();
 
     await AuthRouterService.markAdminAuthenticated(authToken: 'admin-session');
 
@@ -75,7 +79,7 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
       builder: (context) => AlertDialog(
         title: const Text('2FA Enabled'),
         content: Text(
-          'Save this one-time recovery code in a safe place:\n\n${_setupData.recoveryCode}\n\n'
+          'Save this one-time recovery code in a safe place:\n\n${OwnerAdminAccessService.twoFactorRecoveryCode}\n\n'
           'You can use it once if you cannot access your 2FA code.',
         ),
         actions: [
@@ -114,8 +118,9 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
 
   @override
   Widget build(BuildContext context) {
-    final setupUri = _setupData.otpauthUri;
-    final recoveryCode = _setupData.recoveryCode;
+    final setupData = _setupData;
+    final setupUri = setupData?.otpauthUri ?? '';
+    final recoveryCode = setupData?.recoveryCode ?? '';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F4EE),
@@ -191,7 +196,7 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
                     ),
                     const SizedBox(height: 12),
                     SelectableText(
-                      'Manual setup key: ${_setupData.secret}',
+                      'Manual setup key: ${setupData?.secret ?? ''}',
                       style: const TextStyle(fontSize: 12, color: Color(0xFF475569)),
                     ),
                     const SizedBox(height: 14),

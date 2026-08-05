@@ -227,13 +227,26 @@ class UserAuthService {
       await _enforceLifetimeDeviceLimit(email: normalizedEmail, selectedPlan: effectivePlan);
     }
 
+    final existingDisplayName = existing is Map ? existing['display_name']?.toString().trim() ?? '' : '';
+    final existingCountry = existing is Map ? existing['country']?.toString().trim() ?? '' : '';
+    final existingCountryCode = existing is Map ? existing['country_code']?.toString().trim() ?? '' : '';
+    final existingMobile = existing is Map ? existing['mobile_number']?.toString().trim() ?? '' : '';
+
     final session = UserAuthSession(
       uid: existing is Map ? existing['uid']?.toString() ?? 'local-${DateTime.now().microsecondsSinceEpoch}' : 'local-${DateTime.now().microsecondsSinceEpoch}',
-      displayName: displayName?.trim().isNotEmpty == true ? displayName!.trim() : 'Google User',
+      displayName: displayName?.trim().isNotEmpty == true
+        ? displayName!.trim()
+        : (existingDisplayName.isNotEmpty ? existingDisplayName : 'Google User'),
       email: normalizedEmail,
-      country: country?.trim().isNotEmpty == true ? country! : 'India',
-      countryCode: countryCode?.trim().isNotEmpty == true ? countryCode! : '+91',
-      mobileNumber: mobileNumber?.trim() ?? '',
+      country: country?.trim().isNotEmpty == true
+        ? country!
+        : (existingCountry.isNotEmpty ? existingCountry : 'India'),
+      countryCode: countryCode?.trim().isNotEmpty == true
+        ? countryCode!
+        : (existingCountryCode.isNotEmpty ? existingCountryCode : '+91'),
+      mobileNumber: mobileNumber?.trim().isNotEmpty == true
+        ? mobileNumber!.trim()
+        : existingMobile,
       authMethod: 'google',
       isEmailVerified: true,
       createdAt: existing is Map ? DateTime.tryParse(existing['created_at']?.toString() ?? '') ?? DateTime.now() : DateTime.now(),
@@ -259,6 +272,50 @@ class UserAuthService {
     await _persistSession(session);
     await _updateProfileFromSession(session, activePlan: effectivePlan);
     return session;
+  }
+
+  static Future<UserAuthSession?> signInWithGoogleAuto({
+    String? selectedPlan,
+  }) async {
+    // Try to reuse browser/local account context before asking user for manual fields.
+    final profile = UserAccountService.getProfile();
+    final accounts = _readAccounts();
+
+    final profileEmail = _normalizeEmail(profile.email);
+    if (profileEmail.isNotEmpty) {
+      final account = accounts[profileEmail];
+      if (account is Map && account['auth_method']?.toString() == 'google') {
+        return signInWithGoogle(
+          email: profileEmail,
+          displayName: profile.displayName,
+          country: profile.country,
+          countryCode: profile.countryCode,
+          mobileNumber: profile.mobileNumber,
+          selectedPlan: selectedPlan,
+        );
+      }
+    }
+
+    for (final entry in accounts.entries) {
+      final value = entry.value;
+      if (value is! Map) {
+        continue;
+      }
+      if (value['auth_method']?.toString() != 'google') {
+        continue;
+      }
+
+      return signInWithGoogle(
+        email: entry.key,
+        displayName: value['display_name']?.toString(),
+        country: value['country']?.toString(),
+        countryCode: value['country_code']?.toString(),
+        mobileNumber: value['mobile_number']?.toString(),
+        selectedPlan: selectedPlan,
+      );
+    }
+
+    return null;
   }
 
   static Future<bool> requestPasswordReset(String email) async {
