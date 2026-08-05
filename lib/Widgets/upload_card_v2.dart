@@ -7,9 +7,11 @@ import 'package:universal_html/html.dart' as html;
 
 import '../Services/file_picker_service.dart';
 import '../Services/file_storage_service.dart';
+import '../Services/plan_catalog_service.dart';
 import '../Services/upload_context_service.dart';
+import '../Services/user_account_service.dart';
 
-const int _maxUploadBytes = 500 * 1024 * 1024; // 500 MB
+const int _maxUploadBytes = 500 * 1024 * 1024; // Hard safety cap.
 
 class UploadCardV2 extends StatefulWidget {
   const UploadCardV2({super.key});
@@ -40,6 +42,81 @@ class _UploadCardV2State extends State<UploadCardV2> {
     'webp',
     'bmp',
   ];
+
+  String _resolvedActivePlan() {
+    final rawPlan = UserAccountService.getProfile().activePlan.trim();
+    switch (rawPlan) {
+      case '7Days':
+      case 'Monthly':
+      case 'Yearly':
+      case 'Lifetime':
+        return rawPlan;
+      default:
+        return 'Free';
+    }
+  }
+
+  int _planMaxUploadBytes() {
+    final activePlan = _resolvedActivePlan();
+    return PlanCatalogConfig.maxFileSizeMbForPlan(activePlan) * 1024 * 1024;
+  }
+
+  String _planLimitText() {
+    final activePlan = _resolvedActivePlan();
+    final maxMb = PlanCatalogConfig.maxFileSizeMbForPlan(activePlan);
+    final suffix = PlanCatalogConfig.isPaidPlan(activePlan)
+        ? 'Paid plan active'
+        : 'Free plan active';
+    return 'Maximum file size: $maxMb MB ($suffix)';
+  }
+
+  Future<void> _showUpgradePromptForLargeFile({
+    required int maxAllowedMb,
+    required String rejectedFileName,
+  }) async {
+    if (!mounted) {
+      return;
+    }
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Upgrade for larger files'),
+          content: Text(
+            '$rejectedFileName is above the Free plan limit of $maxAllowedMb MB. '
+            'Upgrade to any paid plan to process files up to ${PlanCatalogConfig.paidTierMaxFileSizeMb} MB.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Later'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('View Plans'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  _PlanFileFilterOutcome _filterFilesByPlanLimit(List<PickedFileData> files) {
+    final planMaxBytes = _planMaxUploadBytes();
+    final accepted = <PickedFileData>[];
+    final rejected = <PickedFileData>[];
+
+    for (final file in files) {
+      if (file.bytes.length > planMaxBytes) {
+        rejected.add(file);
+      } else {
+        accepted.add(file);
+      }
+    }
+
+    return _PlanFileFilterOutcome(accepted: accepted, rejected: rejected);
+  }
 
   @override
   void initState() {
@@ -95,6 +172,8 @@ class _UploadCardV2State extends State<UploadCardV2> {
       }
 
       final accepted = <PickedFileData>[];
+      final rejectedByPlan = <PickedFileData>[];
+      final planMaxBytes = _planMaxUploadBytes();
       for (final file in fileList) {
         final name = file.name;
         if (!_isAllowedFile(name)) {
@@ -115,7 +194,29 @@ class _UploadCardV2State extends State<UploadCardV2> {
           continue;
         }
 
+        if (bytes.length > planMaxBytes) {
+          rejectedByPlan.add(PickedFileData(name: name, size: bytes.length, bytes: bytes));
+          continue;
+        }
+
         accepted.add(PickedFileData(name: name, size: bytes.length, bytes: bytes));
+      }
+
+      if (rejectedByPlan.isNotEmpty && mounted) {
+        final activePlan = _resolvedActivePlan();
+        final maxMb = PlanCatalogConfig.maxFileSizeMbForPlan(activePlan);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${rejectedByPlan.length} file(s) exceeded your current $maxMb MB plan limit.'),
+            backgroundColor: const Color(0xFFB45309),
+          ),
+        );
+        if (!PlanCatalogConfig.isPaidPlan(activePlan)) {
+          await _showUpgradePromptForLargeFile(
+            maxAllowedMb: maxMb,
+            rejectedFileName: rejectedByPlan.first.name,
+          );
+        }
       }
 
       if (accepted.isEmpty) {
@@ -246,7 +347,29 @@ class _UploadCardV2State extends State<UploadCardV2> {
         return;
       }
 
-      _applyUploadedFiles(files);
+      final filtered = _filterFilesByPlanLimit(files);
+      if (filtered.rejected.isNotEmpty && mounted) {
+        final activePlan = _resolvedActivePlan();
+        final maxMb = PlanCatalogConfig.maxFileSizeMbForPlan(activePlan);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${filtered.rejected.length} file(s) exceeded your current $maxMb MB plan limit and were skipped.'),
+            backgroundColor: const Color(0xFFB45309),
+          ),
+        );
+        if (!PlanCatalogConfig.isPaidPlan(activePlan)) {
+          await _showUpgradePromptForLargeFile(
+            maxAllowedMb: maxMb,
+            rejectedFileName: filtered.rejected.first.name,
+          );
+        }
+      }
+
+      if (filtered.accepted.isEmpty) {
+        return;
+      }
+
+      _applyUploadedFiles(filtered.accepted);
 
       if (report.hasFilteredFiles && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -439,8 +562,8 @@ class _UploadCardV2State extends State<UploadCardV2> {
                   style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
                 ),
                 const SizedBox(height: 14),
-                const Text(
-                  'Maximum file size: 100 MB',
+                Text(
+                  _planLimitText(),
                   style: TextStyle(color: Color(0xFF6B7280), fontSize: 13),
                 ),
                 const SizedBox(height: 12),
@@ -572,4 +695,14 @@ class _UploadCardV2State extends State<UploadCardV2> {
       ),
     );
   }
+}
+
+class _PlanFileFilterOutcome {
+  final List<PickedFileData> accepted;
+  final List<PickedFileData> rejected;
+
+  const _PlanFileFilterOutcome({
+    required this.accepted,
+    required this.rejected,
+  });
 }

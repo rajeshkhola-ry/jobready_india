@@ -5,6 +5,17 @@ import '../Utils/web_safe_browser.dart';
 class PlanCatalogConfig {
   static const String resumeBuilderToolName = 'AI Resume Builder';
   static const String legacyResumeBuilderToolName = 'Resume Builder';
+  static const int freeTierMaxFileSizeMb = 25;
+  static const int paidTierMaxFileSizeMb = 250;
+  static const int freeTierDailyConversionLimit = 5;
+  static const int unlimitedConversions = -1;
+
+  static const Set<String> _paidPlans = <String>{
+    '7Days',
+    'Monthly',
+    'Yearly',
+    'Lifetime',
+  };
 
   static const List<String> registeredToolNames = <String>[
     'Compress',
@@ -18,6 +29,16 @@ class PlanCatalogConfig {
     'HD Photo Studio',
     resumeBuilderToolName,
   ];
+
+  static bool isPaidPlan(String plan) => _paidPlans.contains(plan);
+
+  static int maxFileSizeMbForPlan(String plan) {
+    return isPaidPlan(plan) ? paidTierMaxFileSizeMb : freeTierMaxFileSizeMb;
+  }
+
+  static int dailyConversionLimitForPlan(String plan) {
+    return isPaidPlan(plan) ? unlimitedConversions : freeTierDailyConversionLimit;
+  }
 
   final Map<String, double> inrPrices;
   final Map<String, double> usdPrices;
@@ -55,10 +76,10 @@ class PlanCatalogConfig {
         'Lifetime': ['Compress', 'Convert', 'Merge', 'Split', 'Extract', 'Edit PDF', 'OCR', 'History', 'HD Photo Studio', 'AI Resume Builder'],
       },
       userQuotasByPlan: {
-        'Free': '2',
-        '7Days': '50',
-        'Monthly': '200',
-        'Yearly': '1000',
+        'Free': '5/day',
+        '7Days': 'Unlimited',
+        'Monthly': 'Unlimited',
+        'Yearly': 'Unlimited',
         'Lifetime': 'Unlimited',
       },
     );
