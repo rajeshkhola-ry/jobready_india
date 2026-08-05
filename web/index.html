@@ -309,15 +309,45 @@
     })();
   </script>
 
-  <!-- Google Analytics 4 -->
+  <!-- Google Analytics 4 — privacy-respecting config: no ads, no signals, anonymised IP -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-2ZPF7K5JX6"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-    gtag('config', 'G-2ZPF7K5JX6');
+    gtag('config', 'G-2ZPF7K5JX6', {
+      'anonymize_ip': true,
+      'allow_google_signals': false,
+      'allow_ad_personalization_signals': false,
+      'restricted_data_processing': true
+    });
+
+    // Privacy-safe tool event tracker — fires anonymous tool_open/tool_action events.
+    // No user data, no PII. tool_id is a plain string (e.g. 'govt_verifier').
+    window.grjTrackTool = function(toolId, action) {
+      var eventName = action ? 'tool_action' : 'tool_open';
+      var params = { tool_id: toolId, non_interaction: !action };
+      if (action) { params.action = action; }
+      try { if (typeof gtag === 'function') { gtag('event', eventName, params); } } catch (_) {}
+    };
+
+    // Route-change tracker for SPA navigation (fires on hash/popstate)
+    function grjTrackPageView() {
+      try {
+        var path = (window.location.hash || '').replace(/^#/, '') || window.location.pathname || '/';
+        if (typeof gtag === 'function') {
+          gtag('event', 'page_view', { page_path: path.split('?')[0] });
+        }
+      } catch (_) {}
+    }
+    window.addEventListener('hashchange', grjTrackPageView);
+    window.addEventListener('popstate', grjTrackPageView);
   </script>
 
+  <!-- Cloudflare Web Analytics — cookie-less, no PII, aggregated only, SPA-aware.
+       SETUP: Replace YOUR_CF_BEACON_TOKEN with your token from dash.cloudflare.com → Web Analytics → Sites. -->
+  <script defer src="https://static.cloudflareinsights.com/beacon.min.js"
+    data-cf-beacon='{"token":"YOUR_CF_BEACON_TOKEN","spa":true}'></script>
 
 <!-- Microsoft Clarity -->
 <script type="text/javascript">
