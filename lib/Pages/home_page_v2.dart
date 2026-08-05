@@ -5755,7 +5755,7 @@ class _WhyChooseSection extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: const [
-                            Expanded(child: _WhyChooseIllustrationPlaceholder()),
+                            _WhyChooseIllustrationPlaceholder(),
                             SizedBox(height: 10),
                             _WhyChooseSupportTile(),
                           ],
