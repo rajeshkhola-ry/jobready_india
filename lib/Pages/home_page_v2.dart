@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:js' as js;
 import 'dart:js_util' as js_util;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:universal_html/html.dart' as html;
 
@@ -2060,13 +2061,23 @@ class _FixedAdSpaceState extends State<_FixedAdSpace> {
   String _title = 'Sponsored';
   String _subtitle = 'Loading ad slot...';
   String _provider = 'admob';
+  String _ctaLabel = 'Learn More';
 
   @override
   void initState() {
     super.initState();
-    _title = 'Sponsored';
-    _subtitle = 'Partner offer space (fixed slot).';
-    _provider = 'admob';
+    if (kIsWeb) {
+      _title = 'Sponsored';
+      _subtitle =
+          'Ad space is served via web-safe fallback. Explore premium tools and launch offers.';
+      _provider = 'adsense';
+      _ctaLabel = 'Explore Plans';
+    } else {
+      _title = 'Sponsored';
+      _subtitle = 'Partner offer space (fixed slot).';
+      _provider = 'admob';
+      _ctaLabel = 'Learn More';
+    }
   }
 
   Future<void> _loadAdPayload() async {
@@ -2075,6 +2086,14 @@ class _FixedAdSpaceState extends State<_FixedAdSpace> {
 
   Future<void> _onTapAd() async {
     if (!mounted) {
+      return;
+    }
+
+    if (kIsWeb) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const PlanFeaturesPage()),
+      );
       return;
     }
 
@@ -2087,11 +2106,18 @@ class _FixedAdSpaceState extends State<_FixedAdSpace> {
 
   @override
   Widget build(BuildContext context) {
+    if (_title.trim().isEmpty && _subtitle.trim().isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     return GestureDetector(
       onTap: _onTapAd,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: kIsWeb ? 10 : 12,
+        ),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             colors: [Color(0xFFECFEFF), Color(0xFFEFF6FF)],
@@ -2135,6 +2161,19 @@ class _FixedAdSpaceState extends State<_FixedAdSpace> {
                       height: 1.3,
                     ),
                   ),
+                  if (kIsWeb) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      '$_ctaLabel →',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF1D4ED8),
+                        decoration: TextDecoration.underline,
+                        decorationColor: Color(0xFF1D4ED8),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
