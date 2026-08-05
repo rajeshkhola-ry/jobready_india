@@ -58,7 +58,7 @@ try {
     "main_v1_1.dart",
     "Pages/admin_gate_page.dart",
     "Pages/coming_soon_page.dart",
-    "Pages/home_page_v2.dart",
+    "Pages/home_page_v1_1.dart",
     "Pages/v2/converter/converter_workspace_page.dart",
     "Pages/system_check_page.dart"
   )

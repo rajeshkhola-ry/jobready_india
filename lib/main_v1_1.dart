@@ -13,7 +13,7 @@ import 'Pages/contact_page.dart';
 import 'Pages/cookie_policy_page.dart';
 import 'Pages/disclaimer_page.dart';
 import 'Pages/faq_page.dart';
-import 'Pages/home_page_v2.dart';
+import 'Pages/home_page_v1_1.dart';
 import 'Pages/pricing_page.dart';
 import 'Pages/privacy_policy_page.dart';
 import 'Pages/support_page.dart';

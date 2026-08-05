@@ -5,7 +5,7 @@ import 'Widgets/pricing_card.dart';
 import 'Widgets/pdf_tool_card.dart';
 import 'Services/public_brand_config.dart';
 import 'Pages/coming_soon_page.dart';
-import 'Pages/home_page_v2.dart';
+import 'Pages/home_page_v1_1.dart';
 import 'Pages/admin_dashboard_page.dart';
 import 'Pages/admin_gate_page.dart';
 import 'Pages/admin_two_factor_page.dart';

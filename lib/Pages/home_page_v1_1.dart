@@ -5737,7 +5737,9 @@ class _WhyChooseSection extends StatelessWidget {
             constraints: const BoxConstraints(maxWidth: 1180),
             child: isWide
                 ? Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    // In a scrollable column, Row may receive unconstrained height;
+                    // `stretch` can force infinite-height constraints and break painting.
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         flex: 2,
