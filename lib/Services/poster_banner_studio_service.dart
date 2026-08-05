@@ -383,10 +383,10 @@ class PosterBannerStudioService {
   }
 
   static pw.FontWeight _pdfFontWeight(FontWeight weight) {
-    if (weight >= FontWeight.w800) {
-      return pw.FontWeight.bold;
-    }
-    if (weight >= FontWeight.w600) {
+    if (weight == FontWeight.w900 ||
+        weight == FontWeight.w800 ||
+        weight == FontWeight.w700 ||
+        weight == FontWeight.w600) {
       return pw.FontWeight.bold;
     }
     return pw.FontWeight.normal;

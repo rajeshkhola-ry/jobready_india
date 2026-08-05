@@ -1,10 +1,10 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:image/image.dart' as img;
 import 'package:universal_html/html.dart' as html;
 
 import '../Services/file_picker_service.dart';
@@ -252,11 +252,11 @@ class _PosterBannerStudioPageState extends State<PosterBannerStudioPage> {
       Uint8List outputBytes = pngBytes;
       String mime = 'image/png';
       if (extension == 'webp') {
-        final decoded = img.decodePng(pngBytes);
-        if (decoded == null) {
+        final webpBytes = await _convertPngToWebpInBrowser(pngBytes);
+        if (webpBytes == null || webpBytes.isEmpty) {
           throw StateError('Unable to convert poster to WebP');
         }
-        outputBytes = Uint8List.fromList(img.encodeWebp(decoded, quality: 96));
+        outputBytes = webpBytes;
         mime = 'image/webp';
       }
       _downloadBytes('${_selectedTemplate.id}_studio.$extension', outputBytes, mime: mime);
@@ -302,6 +302,44 @@ class _PosterBannerStudioPageState extends State<PosterBannerStudioPage> {
     anchor.click();
     anchor.remove();
     html.Url.revokeObjectUrl(url);
+  }
+
+  Future<Uint8List?> _convertPngToWebpInBrowser(Uint8List pngBytes) async {
+    final sourceBlob = html.Blob(<dynamic>[pngBytes], 'image/png');
+    final sourceUrl = html.Url.createObjectUrlFromBlob(sourceBlob);
+    final image = html.ImageElement(src: sourceUrl);
+
+    await image.onLoad.first;
+    html.Url.revokeObjectUrl(sourceUrl);
+
+    final width = image.width ?? 0;
+    final height = image.height ?? 0;
+    if (width <= 0 || height <= 0) {
+      return null;
+    }
+
+    final canvas = html.CanvasElement(width: width, height: height);
+    final context = canvas.context2D;
+    context.drawImage(image, 0, 0);
+
+    final webpBlob = await canvas.toBlob('image/webp', 0.96);
+    if (webpBlob == null) {
+      return null;
+    }
+
+    final completer = Completer<Uint8List?>();
+    final reader = html.FileReader();
+    reader.onLoadEnd.listen((_) {
+      final result = reader.result;
+      if (result is ByteBuffer) {
+        completer.complete(result.asUint8List());
+        return;
+      }
+      completer.complete(null);
+    });
+    reader.readAsArrayBuffer(webpBlob);
+
+    return completer.future;
   }
 
   List<PosterStudioTemplate> get _visibleTemplates {

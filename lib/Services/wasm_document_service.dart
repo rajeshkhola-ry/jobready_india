@@ -601,7 +601,9 @@ function loadImage(src) {
           allowed.add(sfpdf.PdfPermissionsFlags.print);
         }
 
-        output.security.permissions.add(allowed);
+        for (final permission in allowed) {
+          output.security.permissions.add(permission);
+        }
         return Uint8List.fromList(output.saveSync());
       } finally {
         output.dispose();
@@ -767,7 +769,7 @@ function loadImage(src) {
                 );
                 rendered.dispose();
               } finally {
-                page.dispose();
+                // pdf_render pages are managed by the document lifecycle in this version.
               }
             }
 
@@ -826,7 +828,7 @@ function loadImage(src) {
           output.add('data:image/png;base64,${base64Encode(png)}');
           rendered.dispose();
         } finally {
-          page.dispose();
+          // pdf_render pages are managed by the document lifecycle in this version.
         }
       }
       return output;
