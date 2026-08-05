@@ -953,7 +953,39 @@ Prepared For: JOBREADY
 
 ---
 
-### Checkpoint - 2026-08-05-C (Privacy & Utility Masker Suite)
+### Checkpoint - 2026-08-05-D (Regional Font Suite — Hindi/Devanagari)
+- Overall status: Green (Hindi/Devanagari fonts live in Poster Studio)
+- Completed today:
+  - **`web/index.html`** ✓
+    - Added Google Fonts `preconnect` hints for `fonts.googleapis.com` and `fonts.gstatic.com`.
+    - Added `display=swap` stylesheet link loading 7 regional/extended fonts:
+      - **Noto Sans Devanagari** (wght 400–900) — Unicode-complete Devanagari, versatile and neutral
+      - **Baloo 2** (wght 400–800) — friendly rounded Devanagari + Latin, great for headings
+      - **Hind** (wght 400–700) — open-source, screen-optimised Devanagari + Latin
+      - **Mukta** (wght 400–800) — clean neutral Devanagari for body and display text
+      - **Rajdhani** (wght 400–700) — bold impactful Devanagari display font
+      - **Tiro Devanagari** (400) — elegant traditional Devanagari for formal/cultural content
+      - **Poppins** (wght 400–800) — modern geometric Latin (bonus extended-Latin addition)
+    - Fonts load via CSS; Flutter web resolves them automatically from `fontFamily:` in `TextStyle`.
+  - **`Pages/poster_banner_studio_page.dart`** ✓
+    - `_fontFamilies` expanded to 11 fonts (5 Latin + 6 Hindi/Devanagari).
+    - `_selectedFontScript` state added (`'All'` / `'Latin'` / `'Hindi'`); resets to `'All'` on template apply.
+    - `_fontsForScript(script)` helper method: returns the correct subset from `_kLatinFonts` / `_kHindiFonts`.
+    - `_kLatinFonts` and `_kHindiFonts` top-level const lists defined.
+    - Font inspector UI replaced with:
+      - **Script filter chips** (`All | हि | Latin`) — switching auto-corrects selected font if not in new script
+      - **Dropdown** filtered by active script; each Devanagari item appends `• नमस्ते` preview rendered in that font's `fontFamily`, so users can see the script before selecting
+    - Font rendering: both canvas text layers (`TextStyle(fontFamily: _selectedFontFamily)`) automatically use the selected Hindi font.
+  - **Validation** ✓
+    - `get_errors` on both files: 0 errors
+- Git command:
+  ```
+  cd C:\JobReadyIndia\jobready_india
+  git add web/index.html lib/Pages/poster_banner_studio_page.dart lib/DAILY_STATUS_LOG_V1.md
+  git commit -m "feat: regional font suite — Hindi/Devanagari in Poster Studio (Noto, Baloo 2, Hind, Mukta, Rajdhani, Tiro)"
+  git push origin main
+  ```
+- Owner: Founder + Copilot
 - Overall status: Green (Privacy Masker + QR Generator live)
 - Completed today:
   - **`Pages/privacy_masker_page.dart`** (new file) ✓
@@ -990,5 +1022,5 @@ Prepared For: JOBREADY
   git push origin main
   ```
 - Next up (pending approval):
-  - Regional Font Suite (Hindi/Devanagari font rendering)
+  - ~~Regional Font Suite~~ ✅ DONE — see Checkpoint 2026-08-05-D
 - Owner: Founder + Copilot

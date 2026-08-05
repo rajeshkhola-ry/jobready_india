@@ -21,7 +21,11 @@ class _PosterBannerStudioPageState extends State<PosterBannerStudioPage> {
   final GlobalKey _canvasKey = GlobalKey();
   final TextEditingController _textController = TextEditingController();
   final TextEditingController _fontSizeController = TextEditingController(text: '24');
-  final List<String> _fontFamilies = <String>['Trebuchet MS', 'Georgia', 'Courier New', 'Verdana'];
+  final List<String> _fontFamilies = const <String>[
+    'Trebuchet MS', 'Georgia', 'Courier New', 'Verdana', 'Poppins',
+    'Noto Sans Devanagari', 'Baloo 2', 'Hind', 'Mukta', 'Rajdhani', 'Tiro Devanagari',
+  ];
+  String _selectedFontScript = 'All';
   final Size _canvasSize = const Size(340, 420);
 
   late PosterStudioTemplate _selectedTemplate;
@@ -84,6 +88,7 @@ class _PosterBannerStudioPageState extends State<PosterBannerStudioPage> {
       _selectedLayerIndex = 0;
       _uploadedImageBytes = null;
       _selectedFontFamily = 'Trebuchet MS';
+      _selectedFontScript = 'All';
       _syncControllers();
     });
   }
@@ -771,17 +776,61 @@ class _PosterBannerStudioPageState extends State<PosterBannerStudioPage> {
               },
             ),
             const SizedBox(height: 12),
+            // Script filter + font family picker
+            Row(
+              children: [
+                const Text('Font', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
+                const Spacer(),
+                ...['All', 'Latin', 'Hindi'].map((script) {
+                  final active = _selectedFontScript == script;
+                  return Padding(
+                    padding: const EdgeInsets.only(left: 4),
+                    child: ChoiceChip(
+                      label: Text(script == 'Hindi' ? '\u0939\u093f' : script),
+                      selected: active,
+                      onSelected: (_) {
+                        final filtered = _fontsForScript(script);
+                        setState(() {
+                          _selectedFontScript = script;
+                          if (!filtered.contains(_selectedFontFamily)) {
+                            _selectedFontFamily = filtered.first;
+                          }
+                        });
+                      },
+                      selectedColor: const Color(0xFF1A2B45),
+                      labelStyle: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: active ? Colors.white : const Color(0xFF334155),
+                      ),
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
+                    ),
+                  );
+                }),
+              ],
+            ),
+            const SizedBox(height: 6),
             DropdownButtonFormField<String>(
-              value: _selectedFontFamily,
-              decoration: const InputDecoration(labelText: 'Font Family'),
-              items: _fontFamilies.map((font) => DropdownMenuItem<String>(value: font, child: Text(font))).toList(),
+              value: _fontsForScript(_selectedFontScript).contains(_selectedFontFamily)
+                  ? _selectedFontFamily
+                  : _fontsForScript(_selectedFontScript).first,
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: 'Font Family', isDense: true, border: OutlineInputBorder()),
+              items: _fontsForScript(_selectedFontScript).map((font) {
+                final isDevanagari = _kHindiFonts.contains(font);
+                return DropdownMenuItem<String>(
+                  value: font,
+                  child: Text(
+                    isDevanagari ? '$font  \u2022  \u0928\u092e\u0938\u094d\u0924\u0947' : font,
+                    style: TextStyle(fontFamily: font, fontSize: 13),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                );
+              }).toList(),
               onChanged: (value) {
-                if (value == null) {
-                  return;
-                }
-                setState(() {
-                  _selectedFontFamily = value;
-                });
+                if (value == null) return;
+                setState(() => _selectedFontFamily = value);
               },
             ),
             const SizedBox(height: 12),
@@ -945,4 +994,23 @@ class _PosterBannerStudioPageState extends State<PosterBannerStudioPage> {
           .toList(),
     );
   }
+
+  List<String> _fontsForScript(String script) {
+    if (script == 'Hindi') return _kHindiFonts;
+    if (script == 'Latin') return _kLatinFonts;
+    return _fontFamilies;
+  }
 }
+
+const List<String> _kLatinFonts = [
+  'Trebuchet MS', 'Georgia', 'Courier New', 'Verdana', 'Poppins',
+];
+
+const List<String> _kHindiFonts = [
+  'Noto Sans Devanagari',
+  'Baloo 2',
+  'Hind',
+  'Mukta',
+  'Rajdhani',
+  'Tiro Devanagari',
+];
