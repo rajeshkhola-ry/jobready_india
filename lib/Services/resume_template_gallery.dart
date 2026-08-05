@@ -15,6 +15,16 @@ enum ResumeLayoutStyle {
   timeline,
   compact,
   executive,
+  modernTwoColumn,
+  creativeSidebar,
+  techMinimalist,
+  compactAts,
+  academic,
+  boldProfessional,
+  cleanDivider,
+  modernBand,
+  elegantMono,
+  strategicLeader,
 }
 
 class ResumeColorTheme {
@@ -94,24 +104,59 @@ class ResumeTemplateGallery {
     ResumeLayoutStyle.timeline: 'Timeline',
     ResumeLayoutStyle.compact: 'Compact',
     ResumeLayoutStyle.executive: 'Executive',
+    ResumeLayoutStyle.modernTwoColumn: 'Modern Two-Column',
+    ResumeLayoutStyle.creativeSidebar: 'Creative Sidebar',
+    ResumeLayoutStyle.techMinimalist: 'Tech Minimalist',
+    ResumeLayoutStyle.compactAts: 'Compact ATS',
+    ResumeLayoutStyle.academic: 'Academic Research',
+    ResumeLayoutStyle.boldProfessional: 'Bold Professional',
+    ResumeLayoutStyle.cleanDivider: 'Clean Divider',
+    ResumeLayoutStyle.modernBand: 'Modern Band Header',
+    ResumeLayoutStyle.elegantMono: 'Elegant Mono',
+    ResumeLayoutStyle.strategicLeader: 'Strategic Leader',
   };
 
   static List<ResumeTemplateOption> buildCatalog() {
-    final options = <ResumeTemplateOption>[];
-    for (final layout in ResumeLayoutStyle.values) {
-      final label = layoutLabels[layout]!;
-      for (final theme in colorThemes) {
-        options.add(
-          ResumeTemplateOption(
-            id: '${layout.name}_${theme.name.toLowerCase().replaceAll(' ', '_')}',
-            layoutLabel: label,
-            layout: layout,
-            theme: theme,
-          ),
-        );
-      }
+    ResumeColorTheme theme(String name) {
+      return colorThemes.firstWhere(
+        (value) => value.name == name,
+        orElse: () => colorThemes.first,
+      );
     }
-    return options;
+
+    ResumeTemplateOption option({
+      required String id,
+      required ResumeLayoutStyle layout,
+      required String themeName,
+    }) {
+      return ResumeTemplateOption(
+        id: id,
+        layoutLabel: layoutLabels[layout]!,
+        layout: layout,
+        theme: theme(themeName),
+      );
+    }
+
+    return [
+      option(id: 'classic_navy', layout: ResumeLayoutStyle.classic, themeName: 'Navy Blue'),
+      option(id: 'modern_header_ocean', layout: ResumeLayoutStyle.modern, themeName: 'Ocean Blue'),
+      option(id: 'minimal_graphite', layout: ResumeLayoutStyle.minimal, themeName: 'Graphite Black'),
+      option(id: 'two_column_emerald', layout: ResumeLayoutStyle.twoColumn, themeName: 'Emerald Green'),
+      option(id: 'sidebar_indigo', layout: ResumeLayoutStyle.sidebar, themeName: 'Indigo'),
+      option(id: 'timeline_royal', layout: ResumeLayoutStyle.timeline, themeName: 'Royal Purple'),
+      option(id: 'compact_charcoal', layout: ResumeLayoutStyle.compact, themeName: 'Charcoal Gray'),
+      option(id: 'executive_crimson', layout: ResumeLayoutStyle.executive, themeName: 'Crimson Red'),
+      option(id: 'modern_two_column_teal', layout: ResumeLayoutStyle.modernTwoColumn, themeName: 'Slate Teal'),
+      option(id: 'creative_sidebar_rose', layout: ResumeLayoutStyle.creativeSidebar, themeName: 'Rose Pink'),
+      option(id: 'tech_minimal_navy', layout: ResumeLayoutStyle.techMinimalist, themeName: 'Navy Blue'),
+      option(id: 'compact_ats_graphite', layout: ResumeLayoutStyle.compactAts, themeName: 'Graphite Black'),
+      option(id: 'academic_forest', layout: ResumeLayoutStyle.academic, themeName: 'Forest Green'),
+      option(id: 'bold_professional_amber', layout: ResumeLayoutStyle.boldProfessional, themeName: 'Amber Gold'),
+      option(id: 'clean_divider_ocean', layout: ResumeLayoutStyle.cleanDivider, themeName: 'Ocean Blue'),
+      option(id: 'modern_band_sunset', layout: ResumeLayoutStyle.modernBand, themeName: 'Sunset Orange'),
+      option(id: 'elegant_mono_black', layout: ResumeLayoutStyle.elegantMono, themeName: 'Graphite Black'),
+      option(id: 'strategic_leader_royal', layout: ResumeLayoutStyle.strategicLeader, themeName: 'Royal Purple'),
+    ];
   }
 
   static Future<Uint8List> buildResumePdf({
@@ -146,6 +191,36 @@ class ResumeTemplateGallery {
         break;
       case ResumeLayoutStyle.executive:
         doc.addPage(_executiveLayout(fields, template.theme, photo));
+        break;
+      case ResumeLayoutStyle.modernTwoColumn:
+        doc.addPage(_modernTwoColumnLayout(fields, template.theme, photo));
+        break;
+      case ResumeLayoutStyle.creativeSidebar:
+        doc.addPage(_creativeSidebarLayout(fields, template.theme, photo));
+        break;
+      case ResumeLayoutStyle.techMinimalist:
+        doc.addPage(_techMinimalistLayout(fields, template.theme, photo));
+        break;
+      case ResumeLayoutStyle.compactAts:
+        doc.addPage(_compactAtsLayout(fields, template.theme, photo));
+        break;
+      case ResumeLayoutStyle.academic:
+        doc.addPage(_academicLayout(fields, template.theme, photo));
+        break;
+      case ResumeLayoutStyle.boldProfessional:
+        doc.addPage(_boldProfessionalLayout(fields, template.theme, photo));
+        break;
+      case ResumeLayoutStyle.cleanDivider:
+        doc.addPage(_cleanDividerLayout(fields, template.theme, photo));
+        break;
+      case ResumeLayoutStyle.modernBand:
+        doc.addPage(_modernBandLayout(fields, template.theme, photo));
+        break;
+      case ResumeLayoutStyle.elegantMono:
+        doc.addPage(_elegantMonoLayout(fields, template.theme, photo));
+        break;
+      case ResumeLayoutStyle.strategicLeader:
+        doc.addPage(_strategicLeaderLayout(fields, template.theme, photo));
         break;
     }
 
@@ -494,6 +569,368 @@ class ResumeTemplateGallery {
         ..._section('Education', f.education, theme.primary),
         ..._section('Skills', f.skills, theme.primary),
         ..._bulletSection('Projects / Achievements', f.projects, theme.primary),
+      ],
+    );
+  }
+
+  static pw.Page _modernTwoColumnLayout(ResumeFields f, ResumeColorTheme theme, pw.MemoryImage? photo) {
+    final photoWidget = _photoWidget(photo, size: 74);
+    return pw.MultiPage(
+      pageFormat: pdf.PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(28),
+      build: (context) => [
+        pw.Container(
+          width: double.infinity,
+          padding: const pw.EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: pw.BoxDecoration(
+            color: theme.primary,
+            borderRadius: pw.BorderRadius.circular(12),
+          ),
+          child: pw.Row(
+            children: [
+              pw.Expanded(
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(f.fullName.trim(), style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: pdf.PdfColors.white)),
+                    if (f.targetRole.trim().isNotEmpty)
+                      pw.Text(f.targetRole.trim(), style: const pw.TextStyle(fontSize: 11, color: pdf.PdfColors.white)),
+                    if (_contactLine(f).isNotEmpty)
+                      pw.Text(_contactLine(f), style: const pw.TextStyle(fontSize: 9, color: pdf.PdfColors.white)),
+                  ],
+                ),
+              ),
+              if (photoWidget != null) photoWidget,
+            ],
+          ),
+        ),
+        pw.SizedBox(height: 14),
+        pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Expanded(
+              flex: 3,
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  ..._bulletSection('Experience', f.experience, theme.primary),
+                  ..._bulletSection('Projects / Achievements', f.projects, theme.primary),
+                ],
+              ),
+            ),
+            pw.SizedBox(width: 14),
+            pw.Expanded(
+              flex: 2,
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  ..._section('Profile', f.summary, theme.primary, gap: 0),
+                  ..._section('Education', f.education, theme.primary),
+                  ..._section('Skills', f.skills, theme.primary),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  static pw.Page _creativeSidebarLayout(ResumeFields f, ResumeColorTheme theme, pw.MemoryImage? photo) {
+    final photoWidget = _photoWidget(photo, size: 80);
+    return pw.MultiPage(
+      pageFormat: pdf.PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(26),
+      build: (context) => [
+        pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Expanded(
+              flex: 2,
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(f.fullName.trim(), style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: theme.primary)),
+                  if (f.targetRole.trim().isNotEmpty)
+                    pw.Text(f.targetRole.trim(), style: const pw.TextStyle(fontSize: 11, color: pdf.PdfColors.grey700)),
+                  pw.SizedBox(height: 10),
+                  ..._section('Profile', f.summary, theme.primary, gap: 0),
+                  ..._bulletSection('Experience', f.experience, theme.primary),
+                  ..._bulletSection('Projects / Achievements', f.projects, theme.primary),
+                ],
+              ),
+            ),
+            pw.SizedBox(width: 14),
+            pw.Expanded(
+              flex: 1,
+              child: pw.Container(
+                padding: const pw.EdgeInsets.all(14),
+                decoration: pw.BoxDecoration(color: theme.tint, borderRadius: pw.BorderRadius.circular(12)),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    if (photoWidget != null) ...[
+                      pw.Center(child: photoWidget),
+                      pw.SizedBox(height: 10),
+                    ],
+                    if (_contactLine(f).isNotEmpty) pw.Text(_contactLine(f), style: const pw.TextStyle(fontSize: 9.5)),
+                    ..._section('Education', f.education, theme.primary),
+                    ..._section('Skills', f.skills, theme.primary),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  static pw.Page _techMinimalistLayout(ResumeFields f, ResumeColorTheme theme, pw.MemoryImage? photo) {
+    final photoWidget = _photoWidget(photo, size: 58);
+    return pw.MultiPage(
+      pageFormat: pdf.PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.symmetric(horizontal: 42, vertical: 36),
+      build: (context) => [
+        pw.Container(height: 3, width: double.infinity, color: theme.primary),
+        pw.SizedBox(height: 10),
+        pw.Row(
+          children: [
+            pw.Expanded(
+              child: pw.Text(f.fullName.trim(), style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
+            ),
+            if (photoWidget != null) photoWidget,
+          ],
+        ),
+        if (f.targetRole.trim().isNotEmpty)
+          pw.Padding(
+            padding: const pw.EdgeInsets.only(top: 2),
+            child: pw.Text(f.targetRole.trim(), style: pw.TextStyle(fontSize: 10, color: theme.primary)),
+          ),
+        if (_contactLine(f).isNotEmpty)
+          pw.Padding(
+            padding: const pw.EdgeInsets.only(top: 4),
+            child: pw.Text(_contactLine(f), style: const pw.TextStyle(fontSize: 9.2, color: pdf.PdfColors.grey700)),
+          ),
+        ..._section('Summary', f.summary, theme.primary, fontSize: 9.4),
+        ..._section('Experience', f.experience, theme.primary, fontSize: 9.4),
+        ..._section('Projects', f.projects, theme.primary, fontSize: 9.4),
+        ..._section('Skills', f.skills, theme.primary, fontSize: 9.4),
+        ..._section('Education', f.education, theme.primary, fontSize: 9.4),
+      ],
+    );
+  }
+
+  static pw.Page _compactAtsLayout(ResumeFields f, ResumeColorTheme theme, pw.MemoryImage? photo) {
+    return pw.MultiPage(
+      pageFormat: pdf.PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.symmetric(horizontal: 34, vertical: 30),
+      build: (context) => [
+        pw.Text(f.fullName.trim(), style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: theme.primary)),
+        if (f.targetRole.trim().isNotEmpty)
+          pw.Text(f.targetRole.trim(), style: const pw.TextStyle(fontSize: 9.5, color: pdf.PdfColors.grey700)),
+        if (_contactLine(f).isNotEmpty)
+          pw.Text(_contactLine(f), style: const pw.TextStyle(fontSize: 8.5, color: pdf.PdfColors.grey600)),
+        pw.SizedBox(height: 8),
+        pw.Divider(color: pdf.PdfColors.grey400, thickness: 0.8),
+        ..._section('Profile', f.summary, theme.primary, fontSize: 8.5, gap: 6),
+        ..._section('Skills', f.skills, theme.primary, fontSize: 8.5, gap: 6),
+        ..._section('Experience', f.experience, theme.primary, fontSize: 8.5, gap: 6),
+        ..._section('Education', f.education, theme.primary, fontSize: 8.5, gap: 6),
+        ..._section('Projects / Achievements', f.projects, theme.primary, fontSize: 8.5, gap: 6),
+      ],
+    );
+  }
+
+  static pw.Page _academicLayout(ResumeFields f, ResumeColorTheme theme, pw.MemoryImage? photo) {
+    return pw.MultiPage(
+      pageFormat: pdf.PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.symmetric(horizontal: 54, vertical: 44),
+      build: (context) => [
+        pw.Center(
+          child: pw.Column(
+            children: [
+              pw.Text(f.fullName.trim(), style: pw.TextStyle(fontSize: 23, fontWeight: pw.FontWeight.bold, color: theme.primary)),
+              if (f.targetRole.trim().isNotEmpty)
+                pw.Text(f.targetRole.trim(), style: const pw.TextStyle(fontSize: 11, color: pdf.PdfColors.grey700)),
+              if (_contactLine(f).isNotEmpty)
+                pw.Text(_contactLine(f), style: const pw.TextStyle(fontSize: 9.5, color: pdf.PdfColors.grey600)),
+            ],
+          ),
+        ),
+        pw.SizedBox(height: 12),
+        pw.Divider(color: theme.primary, thickness: 1.1),
+        ..._section('Research Summary', f.summary, theme.primary),
+        ..._section('Education', f.education, theme.primary),
+        ..._section('Experience', f.experience, theme.primary),
+        ..._section('Projects / Publications', f.projects, theme.primary),
+        ..._section('Skills', f.skills, theme.primary),
+      ],
+    );
+  }
+
+  static pw.Page _boldProfessionalLayout(ResumeFields f, ResumeColorTheme theme, pw.MemoryImage? photo) {
+    final photoWidget = _photoWidget(photo, size: 70);
+    return pw.MultiPage(
+      pageFormat: pdf.PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(26),
+      build: (context) => [
+        pw.Container(
+          width: double.infinity,
+          color: theme.primary,
+          padding: const pw.EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: pw.Row(
+            children: [
+              pw.Expanded(
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(f.fullName.trim().toUpperCase(), style: pw.TextStyle(fontSize: 21, fontWeight: pw.FontWeight.bold, color: pdf.PdfColors.white)),
+                    if (f.targetRole.trim().isNotEmpty)
+                      pw.Text(f.targetRole.trim(), style: const pw.TextStyle(fontSize: 10, color: pdf.PdfColors.white)),
+                    if (_contactLine(f).isNotEmpty)
+                      pw.Text(_contactLine(f), style: const pw.TextStyle(fontSize: 9, color: pdf.PdfColors.white)),
+                  ],
+                ),
+              ),
+              if (photoWidget != null) photoWidget,
+            ],
+          ),
+        ),
+        pw.SizedBox(height: 10),
+        ..._bulletSection('Experience', f.experience, theme.primary),
+        ..._section('Skills', f.skills, theme.primary),
+        ..._section('Education', f.education, theme.primary),
+        ..._bulletSection('Projects / Achievements', f.projects, theme.primary),
+        ..._section('Profile', f.summary, theme.primary),
+      ],
+    );
+  }
+
+  static pw.Page _cleanDividerLayout(ResumeFields f, ResumeColorTheme theme, pw.MemoryImage? photo) {
+    return pw.MultiPage(
+      pageFormat: pdf.PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.symmetric(horizontal: 48, vertical: 42),
+      build: (context) => [
+        pw.Text(f.fullName.trim(), style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold)),
+        if (f.targetRole.trim().isNotEmpty)
+          pw.Text(f.targetRole.trim(), style: pw.TextStyle(fontSize: 10.5, color: theme.primary)),
+        if (_contactLine(f).isNotEmpty)
+          pw.Text(_contactLine(f), style: const pw.TextStyle(fontSize: 9.5, color: pdf.PdfColors.grey700)),
+        pw.SizedBox(height: 10),
+        pw.Container(height: 1.2, width: double.infinity, color: theme.primary),
+        ..._section('Profile', f.summary, theme.primary),
+        pw.Divider(color: pdf.PdfColors.grey300),
+        ..._section('Experience', f.experience, theme.primary),
+        pw.Divider(color: pdf.PdfColors.grey300),
+        ..._section('Education', f.education, theme.primary),
+        pw.Divider(color: pdf.PdfColors.grey300),
+        ..._section('Skills', f.skills, theme.primary),
+        ..._section('Projects / Achievements', f.projects, theme.primary),
+      ],
+    );
+  }
+
+  static pw.Page _modernBandLayout(ResumeFields f, ResumeColorTheme theme, pw.MemoryImage? photo) {
+    final photoWidget = _photoWidget(photo, size: 66);
+    return pw.MultiPage(
+      pageFormat: pdf.PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(26),
+      build: (context) => [
+        pw.Container(
+          width: double.infinity,
+          padding: const pw.EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: pw.BoxDecoration(
+            color: theme.tint,
+            borderRadius: pw.BorderRadius.circular(10),
+            border: pw.Border.all(color: theme.primary, width: 1.1),
+          ),
+          child: pw.Row(
+            children: [
+              pw.Expanded(
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(f.fullName.trim(), style: pw.TextStyle(fontSize: 21, fontWeight: pw.FontWeight.bold, color: theme.primary)),
+                    if (f.targetRole.trim().isNotEmpty)
+                      pw.Text(f.targetRole.trim(), style: const pw.TextStyle(fontSize: 10.5)),
+                  ],
+                ),
+              ),
+              if (photoWidget != null) photoWidget,
+            ],
+          ),
+        ),
+        pw.SizedBox(height: 8),
+        if (_contactLine(f).isNotEmpty)
+          pw.Text(_contactLine(f), style: const pw.TextStyle(fontSize: 9.5, color: pdf.PdfColors.grey700)),
+        ..._bulletSection('Experience', f.experience, theme.primary),
+        ..._section('Projects / Achievements', f.projects, theme.primary),
+        ..._section('Skills', f.skills, theme.primary),
+        ..._section('Education', f.education, theme.primary),
+        ..._section('Profile', f.summary, theme.primary),
+      ],
+    );
+  }
+
+  static pw.Page _elegantMonoLayout(ResumeFields f, ResumeColorTheme theme, pw.MemoryImage? photo) {
+    return pw.MultiPage(
+      pageFormat: pdf.PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.symmetric(horizontal: 58, vertical: 52),
+      build: (context) => [
+        pw.Text(f.fullName.trim().toUpperCase(), style: const pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, letterSpacing: 1.3)),
+        if (f.targetRole.trim().isNotEmpty)
+          pw.Padding(
+            padding: const pw.EdgeInsets.only(top: 3),
+            child: pw.Text(f.targetRole.trim(), style: const pw.TextStyle(fontSize: 10, color: pdf.PdfColors.grey700)),
+          ),
+        if (_contactLine(f).isNotEmpty)
+          pw.Padding(
+            padding: const pw.EdgeInsets.only(top: 4),
+            child: pw.Text(_contactLine(f), style: const pw.TextStyle(fontSize: 9, color: pdf.PdfColors.grey600)),
+          ),
+        pw.SizedBox(height: 12),
+        pw.Divider(color: pdf.PdfColors.grey700, thickness: 0.8),
+        ..._section('Profile', f.summary, pdf.PdfColors.black),
+        ..._section('Experience', f.experience, pdf.PdfColors.black),
+        ..._section('Education', f.education, pdf.PdfColors.black),
+        ..._section('Skills', f.skills, pdf.PdfColors.black),
+        ..._section('Projects / Achievements', f.projects, pdf.PdfColors.black),
+      ],
+    );
+  }
+
+  static pw.Page _strategicLeaderLayout(ResumeFields f, ResumeColorTheme theme, pw.MemoryImage? photo) {
+    final photoWidget = _photoWidget(photo, size: 72);
+    return pw.MultiPage(
+      pageFormat: pdf.PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(30),
+      build: (context) => [
+        pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Expanded(
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(f.fullName.trim(), style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: theme.primary)),
+                  if (f.targetRole.trim().isNotEmpty)
+                    pw.Text(f.targetRole.trim().toUpperCase(), style: pw.TextStyle(fontSize: 10.5, color: theme.primary, letterSpacing: 1.1)),
+                  if (_contactLine(f).isNotEmpty)
+                    pw.Text(_contactLine(f), style: const pw.TextStyle(fontSize: 9.2, color: pdf.PdfColors.grey700)),
+                ],
+              ),
+            ),
+            if (photoWidget != null) photoWidget,
+          ],
+        ),
+        pw.SizedBox(height: 10),
+        pw.Container(height: 4, width: 120, color: theme.primary),
+        ..._section('Leadership Summary', f.summary, theme.primary),
+        ..._bulletSection('Key Experience', f.experience, theme.primary),
+        ..._section('Strategic Projects', f.projects, theme.primary),
+        ..._section('Education', f.education, theme.primary),
+        ..._section('Core Skills', f.skills, theme.primary),
       ],
     );
   }

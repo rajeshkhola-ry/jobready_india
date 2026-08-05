@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:universal_html/html.dart' as html;
 
 import '../../home_page_v2.dart';
@@ -39,8 +41,12 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
   bool _enforceFileSizeLimit = true;
   bool _hdMode = true;
   bool _isProcessing = false;
+  double _processingProgress = 0.0;
+  Timer? _processingPulseTimer;
   double _comparisonPosition = 0.5;
   Uint8List? _comparisonPreviewBytes;
+  int _customWidth = 1080;
+  int _customHeight = 1080;
   _StatusType _statusType = _StatusType.idle;
   String _statusMessage = 'Upload a passport photo or other image to start.';
 
@@ -57,6 +63,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
 
   @override
   void dispose() {
+    _processingPulseTimer?.cancel();
     if (kIsWeb) {
       html.document.body?.removeEventListener('dragover', _handleBodyDragOver);
       html.document.body?.removeEventListener('dragleave', _handleBodyDragLeave);
@@ -200,6 +207,57 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
         orElse: () => _workspacePresetOptions.first,
       );
 
+  PhotoSizePreset get _effectivePreset {
+    if (_isCustomWorkspacePreset) {
+      return PhotoSizePreset(
+        id: 'custom_${_customWidth}x$_customHeight',
+        label: 'Custom $_customWidth x $_customHeight',
+        width: _customWidth,
+        height: _customHeight,
+      );
+    }
+    return _selectedPreset;
+  }
+
+  void _startProcessingPulse() {
+    _processingPulseTimer?.cancel();
+    _processingPulseTimer = Timer.periodic(const Duration(milliseconds: 180), (timer) {
+      if (!mounted || !_isProcessing) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        _processingProgress = (_processingProgress + 0.06).clamp(0.12, 0.92);
+      });
+    });
+  }
+
+  void _stopProcessingPulse() {
+    _processingPulseTimer?.cancel();
+    _processingPulseTimer = null;
+  }
+
+  void _applyCustomDimensionSeed(PhotoSizePreset preset) {
+    setState(() {
+      _customWidth = preset.width;
+      _customHeight = preset.height;
+      _selectedPreset = preset;
+    });
+  }
+
+  void _updateCustomDimension({int? width, int? height}) {
+    final nextWidth = width ?? _customWidth;
+    final nextHeight = height ?? _customHeight;
+    if (nextWidth < 100 || nextHeight < 100) {
+      return;
+    }
+    setState(() {
+      _customWidth = nextWidth;
+      _customHeight = nextHeight;
+    });
+    Future<void>.microtask(_refreshComparisonPreview);
+  }
+
   void _applyWorkspacePreset(String presetId, {bool refreshPreview = true}) {
     final option = _workspacePresetOptions.firstWhere(
       (value) => value.id == presetId,
@@ -210,6 +268,8 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
       _selectedWorkspacePresetId = option.id;
       if (!option.isCustom) {
         _selectedPreset = PhotoResizeService.presetById(option.presetId);
+        _customWidth = _selectedPreset.width;
+        _customHeight = _selectedPreset.height;
         _selectedAspectPreset = option.aspectPresetId;
         _selectedDpi = option.dpi;
       }
@@ -255,7 +315,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
       final preview = await _photoResizeService.upscalePhoto(
         bytes: selectedImage.bytes,
         fileName: selectedImage.name,
-        preset: _selectedPreset,
+        preset: _effectivePreset,
         enableHdMode: _hdMode,
         dpi: _effectiveDpi,
         backgroundColor: _selectedBackgroundColor,
@@ -294,9 +354,11 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
 
     setState(() {
       _isProcessing = true;
+      _processingProgress = 0.12;
       _statusType = _StatusType.processing;
-      _statusMessage = 'Preparing ${_hdMode ? 'identity-safe HD ' : ''}photo for ${_selectedPreset.label}...';
+      _statusMessage = 'Preparing ${_hdMode ? 'identity-safe HD ' : ''}photo for ${_effectivePreset.label}...';
     });
+    _startProcessingPulse();
 
     // Let the progress indicator render before heavy image work starts.
     await Future<void>.delayed(const Duration(milliseconds: 50));
@@ -305,7 +367,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
       final result = await _photoResizeService.upscalePhoto(
         bytes: selectedImage.bytes,
         fileName: selectedImage.name,
-        preset: _selectedPreset,
+        preset: _effectivePreset,
         enableHdMode: _hdMode,
         dpi: _effectiveDpi,
         backgroundColor: _selectedBackgroundColor,
@@ -322,11 +384,13 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
       }
 
       setState(() {
+        _processingProgress = 1.0;
         _isProcessing = false;
         _statusType = _StatusType.success;
         _statusMessage =
             'Ready: ${result.outputFileName} — ${result.width} × ${result.height} px. ${result.outputLabel}';
       });
+      _stopProcessingPulse();
 
       await showDialog<void>(
         context: context,
@@ -344,10 +408,12 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
       }
 
       setState(() {
+        _processingProgress = 0.0;
         _isProcessing = false;
         _statusType = _StatusType.error;
         _statusMessage = 'Unable to prepare image. Please try another file.';
       });
+      _stopProcessingPulse();
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Photo processing failed: $error')),
@@ -1011,30 +1077,73 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                           ),
                           const SizedBox(height: 12),
                           if (_isCustomWorkspacePreset) ...[
-                            DropdownButtonFormField<PhotoSizePreset>(
-                              value: _selectedPreset,
-                              items: PhotoResizeService.presets
-                                  .map(
-                                    (preset) => DropdownMenuItem<PhotoSizePreset>(
-                                      value: preset,
-                                      child: Text(preset.label),
-                                    ),
-                                  )
-                                  .toList(growable: false),
-                              onChanged: _isProcessing
-                                  ? null
-                                  : (preset) {
-                                      if (preset == null) return;
-                                      setState(() {
-                                        _selectedPreset = preset;
-                                        _selectedWorkspacePresetId = 'custom';
-                                      });
-                                      Future<void>.microtask(_refreshComparisonPreview);
-                                    },
-                              decoration: const InputDecoration(
-                                labelText: 'Choose target size',
-                                border: OutlineInputBorder(),
+                            const Text(
+                              'Custom Dimensions (px)',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF0F172A),
                               ),
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextFormField(
+                                    key: ValueKey('custom-width-$_customWidth'),
+                                    initialValue: _customWidth.toString(),
+                                    enabled: !_isProcessing,
+                                    keyboardType: TextInputType.number,
+                                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                    decoration: const InputDecoration(
+                                      labelText: 'Width',
+                                      border: OutlineInputBorder(),
+                                    ),
+                                    onChanged: (value) {
+                                      final parsed = int.tryParse(value);
+                                      if (parsed != null) {
+                                        _updateCustomDimension(width: parsed);
+                                      }
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: TextFormField(
+                                    key: ValueKey('custom-height-$_customHeight'),
+                                    initialValue: _customHeight.toString(),
+                                    enabled: !_isProcessing,
+                                    keyboardType: TextInputType.number,
+                                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                    decoration: const InputDecoration(
+                                      labelText: 'Height',
+                                      border: OutlineInputBorder(),
+                                    ),
+                                    onChanged: (value) {
+                                      final parsed = int.tryParse(value);
+                                      if (parsed != null) {
+                                        _updateCustomDimension(height: parsed);
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: PhotoResizeService.presets.take(6).map((preset) {
+                                return OutlinedButton(
+                                  onPressed: _isProcessing
+                                      ? null
+                                      : () {
+                                          _applyCustomDimensionSeed(preset);
+                                          Future<void>.microtask(_refreshComparisonPreview);
+                                        },
+                                  child: Text('${preset.width}x${preset.height}'),
+                                );
+                              }).toList(growable: false),
                             ),
                             const SizedBox(height: 12),
                             DropdownButtonFormField<String>(
@@ -1251,7 +1360,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                               border: Border.all(color: const Color(0xFFD8E5F5)),
                             ),
                             child: Text(
-                              'Selected output: ${_selectedPreset.width} \u00d7 ${_selectedPreset.height} px  \u00b7  ${_isPrintMode ? 'Print 300 DPI' : 'Web ${_webModeDpi} DPI'}  \u00b7  Format: ${_outputFormat.name.toUpperCase()}',
+                              'Selected output: ${_effectivePreset.width} \u00d7 ${_effectivePreset.height} px  \u00b7  ${_isPrintMode ? 'Print 300 DPI' : 'Web ${_webModeDpi} DPI'}  \u00b7  Format: ${_outputFormat.name.toUpperCase()}  \u00b7  Live preview max side: 1920px',
                               style: const TextStyle(
                                 fontSize: 13,
                                 height: 1.45,
@@ -1383,7 +1492,8 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                           ),
                           if (_isProcessing) ...[
                             const SizedBox(height: 10),
-                            const LinearProgressIndicator(
+                            LinearProgressIndicator(
+                              value: _processingProgress <= 0 ? null : _processingProgress,
                               backgroundColor: Color(0xFFD8E5F5),
                               color: Color(0xFF0E3A66),
                             ),

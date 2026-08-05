@@ -160,6 +160,7 @@ class PhotoRenderRequest {
 class PhotoResizeService {
   const PhotoResizeService();
 
+  static const int _interactivePreviewMaxDimension = 1920;
   static const int _maxCanvasPixels = 36000000;
   static const int _maxSourcePixels = 30000000;
 
@@ -211,26 +212,14 @@ class PhotoResizeService {
     String dpi,
   ) {
     final fullDimensions = resolveOutputDimensions(preset.id, dpi);
-    final scale = fullDimensions.width > 1200 || fullDimensions.height > 1200 ? 0.4 : 0.7;
-    final previewWidth = (fullDimensions.width * scale).round().clamp(240, fullDimensions.width);
-    final previewHeight = (fullDimensions.height * scale).round().clamp(240, fullDimensions.height);
-
-    final aspectRatio = previewWidth / previewHeight;
-    final targetRatio = aspectPresetId == 'square'
+    final maxDimension = max(fullDimensions.width, fullDimensions.height);
+    final scale = maxDimension <= _interactivePreviewMaxDimension
         ? 1.0
-        : (preset.width / preset.height);
+        : (_interactivePreviewMaxDimension / maxDimension);
+    final previewWidth = max(240, (fullDimensions.width * scale).round());
+    final previewHeight = max(240, (fullDimensions.height * scale).round());
 
-    if (aspectRatio.abs() > 0.001) {
-      return (
-        width: previewWidth,
-        height: previewHeight,
-      );
-    }
-
-    return (
-      width: previewWidth,
-      height: previewHeight,
-    );
+    return (width: previewWidth, height: previewHeight);
   }
 
   Future<PhotoResizeResult> upscalePhoto({
@@ -611,71 +600,77 @@ Future<PhotoResizeResult> _renderPhotoInWorker(Map<String, dynamic> payload) asy
 }
 
 Future<PhotoResizeResult> _renderPhotoInIsolate(PhotoRenderRequest request) async {
-  final source = img.decodeImage(request.bytes);
+  img.Image? source = img.decodeImage(request.bytes);
   if (source == null) {
     throw StateError('Unsupported image format. Please use JPG, PNG, WEBP, or BMP.');
   }
 
-  final normalizedSource = _downscaleSourceForMemoryInIsolate(source, maxPixels: PhotoResizeService._maxSourcePixels);
-  final prepared = _prepareSourceInIsolate(normalizedSource, enableHdMode: request.enableHdMode);
-  final targetDimensionsRaw = request.previewOnly
-      ? PhotoResizeService.resolvePreviewTargetDimensions(request.preset, request.aspectPresetId, request.dpi)
-      : _resolveTargetDimensions(request.preset, request.aspectPresetId, request.dpi);
-  final targetDimensions = _constrainDimensionsForMemoryInIsolate(
-    targetDimensionsRaw.width,
-    targetDimensionsRaw.height,
-    maxPixels: PhotoResizeService._maxCanvasPixels,
-  );
-  final fitted = _resizeToFitInIsolate(prepared, targetDimensions.width, targetDimensions.height);
-  final canvas = img.Image(width: targetDimensions.width, height: targetDimensions.height);
-  final bg = _parseBackgroundColorInIsolate(request.backgroundColor);
-  img.fill(canvas, color: bg);
-
-  final offsetX = ((targetDimensions.width - fitted.width) / 2).round();
-  final offsetY = ((targetDimensions.height - fitted.height) / 2).round();
-  img.compositeImage(canvas, fitted, dstX: offsetX, dstY: offsetY);
-
-  final baseName = request.fileName.contains('.')
-      ? request.fileName.substring(0, request.fileName.lastIndexOf('.'))
-      : request.fileName;
-  final outputName =
-      '${baseName}_${request.preset.id}_${request.dpi}dpi_${request.maxTargetKb}kb${request.enableHdMode ? '_hd' : ''}.${request.outputFormat.extension}';
-
-  final safeCanvas = _sanitizeCanvasInIsolate(canvas);
-  late final Uint8List encoded;
-  if (request.previewOnly || request.outputFormat == PhotoOutputFormat.jpg) {
-    encoded = _encodeToTargetSizeInIsolate(
-      safeCanvas,
-      enableHdMode: request.enableHdMode,
-      maxTargetKb: request.maxTargetKb,
-      enforceFileSizeLimit: request.enforceFileSizeLimit,
-      previewOnly: request.previewOnly,
+  try {
+    final normalizedSource =
+        _downscaleSourceForMemoryInIsolate(source, maxPixels: PhotoResizeService._maxSourcePixels);
+    source = null;
+    final prepared = _prepareSourceInIsolate(normalizedSource, enableHdMode: request.enableHdMode);
+    final targetDimensionsRaw = request.previewOnly
+        ? PhotoResizeService.resolvePreviewTargetDimensions(request.preset, request.aspectPresetId, request.dpi)
+        : _resolveTargetDimensions(request.preset, request.aspectPresetId, request.dpi);
+    final targetDimensions = _constrainDimensionsForMemoryInIsolate(
+      targetDimensionsRaw.width,
+      targetDimensionsRaw.height,
+      maxPixels: PhotoResizeService._maxCanvasPixels,
     );
-  } else if (request.outputFormat == PhotoOutputFormat.png) {
-    encoded = _encodePngToTargetSizeInIsolate(
-      safeCanvas,
-      maxTargetKb: request.maxTargetKb,
-      enforceFileSizeLimit: request.enforceFileSizeLimit,
+    final fitted = _resizeToFitInIsolate(prepared, targetDimensions.width, targetDimensions.height);
+    final canvas = img.Image(width: targetDimensions.width, height: targetDimensions.height);
+    final bg = _parseBackgroundColorInIsolate(request.backgroundColor);
+    img.fill(canvas, color: bg);
+
+    final offsetX = ((targetDimensions.width - fitted.width) / 2).round();
+    final offsetY = ((targetDimensions.height - fitted.height) / 2).round();
+    img.compositeImage(canvas, fitted, dstX: offsetX, dstY: offsetY);
+
+    final baseName = request.fileName.contains('.')
+        ? request.fileName.substring(0, request.fileName.lastIndexOf('.'))
+        : request.fileName;
+    final outputName =
+        '${baseName}_${request.preset.id}_${request.dpi}dpi_${request.maxTargetKb}kb${request.enableHdMode ? '_hd' : ''}.${request.outputFormat.extension}';
+
+    final safeCanvas = _sanitizeCanvasInIsolate(canvas);
+    late final Uint8List encoded;
+    if (request.previewOnly || request.outputFormat == PhotoOutputFormat.jpg) {
+      encoded = _encodeToTargetSizeInIsolate(
+        safeCanvas,
+        enableHdMode: request.enableHdMode,
+        maxTargetKb: request.maxTargetKb,
+        enforceFileSizeLimit: request.enforceFileSizeLimit,
+        previewOnly: request.previewOnly,
+      );
+    } else if (request.outputFormat == PhotoOutputFormat.png) {
+      encoded = _encodePngToTargetSizeInIsolate(
+        safeCanvas,
+        maxTargetKb: request.maxTargetKb,
+        enforceFileSizeLimit: request.enforceFileSizeLimit,
+      );
+    } else {
+      encoded = await _encodePrintReadyPdfInIsolate(
+        safeCanvas,
+        dpi: int.tryParse(request.dpi) ?? 300,
+        maxTargetKb: request.maxTargetKb,
+        enforceFileSizeLimit: request.enforceFileSizeLimit,
+      );
+    }
+
+    final outputLabel =
+        '${request.aspectPresetId.toUpperCase()} • ${request.dpi} DPI • ${request.outputFormat.name.toUpperCase()}';
+
+    return PhotoResizeResult(
+      bytes: encoded,
+      outputFileName: outputName,
+      width: targetDimensions.width,
+      height: targetDimensions.height,
+      outputLabel: outputLabel,
     );
-  } else {
-    encoded = await _encodePrintReadyPdfInIsolate(
-      safeCanvas,
-      dpi: int.tryParse(request.dpi) ?? 300,
-      maxTargetKb: request.maxTargetKb,
-      enforceFileSizeLimit: request.enforceFileSizeLimit,
-    );
+  } finally {
+    source = null;
   }
-
-  final outputLabel =
-      '${request.aspectPresetId.toUpperCase()} • ${request.dpi} DPI • ${request.outputFormat.name.toUpperCase()}';
-
-  return PhotoResizeResult(
-    bytes: encoded,
-    outputFileName: outputName,
-    width: targetDimensions.width,
-    height: targetDimensions.height,
-    outputLabel: outputLabel,
-  );
 }
 
 ({int width, int height}) _resolveTargetDimensions(PhotoSizePreset preset, String aspectPresetId, String dpi) {

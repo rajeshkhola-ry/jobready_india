@@ -5681,7 +5681,7 @@ class _WhyChooseSection extends StatelessWidget {
             constraints: const BoxConstraints(maxWidth: 1180),
             child: isWide
                 ? Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Expanded(
                         flex: 2,
@@ -5696,7 +5696,14 @@ class _WhyChooseSection extends StatelessWidget {
                       SizedBox(width: 16),
                       Expanded(
                         flex: 1,
-                        child: _WhyChooseIllustrationPlaceholder(),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: const [
+                            Expanded(child: _WhyChooseIllustrationPlaceholder()),
+                            SizedBox(height: 10),
+                            _WhyChooseSupportTile(),
+                          ],
+                        ),
                       ),
                     ],
                   )
@@ -5706,6 +5713,8 @@ class _WhyChooseSection extends StatelessWidget {
                       WhyChooseCard(scale: 0.92),
                       SizedBox(height: 12),
                       _WhyChooseIllustrationPlaceholder(),
+                      SizedBox(height: 10),
+                      _WhyChooseSupportTile(),
                     ],
                   ),
           ),
@@ -5967,6 +5976,41 @@ class _WhyChooseIllustrationPlaceholder extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _WhyChooseSupportTile extends StatelessWidget {
+  const _WhyChooseSupportTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FBFF),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFBFDBFE)),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.workspace_premium_rounded, size: 18, color: Color(0xFF0F4C81)),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Quality-first output with instant preview, secure workflow, and production-ready export controls.',
+              style: TextStyle(
+                fontSize: 11.5,
+                height: 1.4,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF334155),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -6270,14 +6314,16 @@ class _MostPopularToolsCard extends StatelessWidget {
               }
 
               final flagshipRow = constraints.maxWidth >= 900
-                  ? Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (var i = 0; i < flagshipTools.length; i++) ...[
-                          if (i > 0) const SizedBox(width: 10),
-                          Expanded(child: flagshipTools[i]),
+                  ? IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          for (var i = 0; i < flagshipTools.length; i++) ...[
+                            if (i > 0) const SizedBox(width: 10),
+                            Expanded(child: flagshipTools[i]),
+                          ],
                         ],
-                      ],
+                      ),
                     )
                   : SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
@@ -6340,6 +6386,7 @@ class _PopularToolRow extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       onTap: onTap,
       child: Container(
+        constraints: BoxConstraints(minHeight: isFlagship ? 108 : 0),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
         decoration: BoxDecoration(
           color: isFlagship ? const Color(0xFFFFF7E6) : Colors.white,

@@ -255,7 +255,7 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Paste a job description or upload a text file to match it against your resume.'),
+                const Text('Paste a job description or upload a JD file to match it against your resume.'),
                 const SizedBox(height: 12),
                 TextField(
                   controller: _jdController,
@@ -269,7 +269,7 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
                 OutlinedButton.icon(
                   onPressed: () {
                     final uploadInput = html.FileUploadInputElement();
-                    uploadInput.accept = '.txt,.md,.json';
+                    uploadInput.accept = '.pdf,.doc,.docx,.txt';
                     uploadInput.click();
                     uploadInput.onChange.listen((_) {
                       final files = uploadInput.files;
@@ -291,7 +291,7 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
                     });
                   },
                   icon: const Icon(Icons.upload_file_rounded),
-                  label: const Text('Upload text file'),
+                  label: const Text('Upload PDF/DOCX/TXT'),
                 ),
               ],
             ),
@@ -948,6 +948,37 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
             ),
             const SizedBox(height: 12),
             _buildField(label: 'JD Matcher', controller: _jdController, isMultiline: true),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: _showJdInputDialog,
+                  icon: const Icon(Icons.upload_file_rounded),
+                  label: const Text('Upload / Match JD'),
+                ),
+                if (_jdController.text.trim().isNotEmpty)
+                  Text(
+                    'JD ready for matching',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF15803D),
+                    ),
+                  )
+                else
+                  Text(
+                    'Add JD via upload or paste to improve matching',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF64748B),
+                    ),
+                  ),
+              ],
+            ),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -1015,18 +1046,13 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
                     onPressed: _generateCoverLetter,
                   ),
                   _ActionChipButton(
-                    icon: Icons.upload_file_rounded,
-                    label: 'Upload / Match JD',
-                    onPressed: _showJdInputDialog,
-                  ),
-                  _ActionChipButton(
                     icon: Icons.auto_awesome_rounded,
                     label: 'Yellow AI Assist',
                     onPressed: _applyAiAssistToFocusedField,
                   ),
                   _ActionChipButton(
                     icon: Icons.library_books_rounded,
-                    label: _selectedTemplate == null ? 'Select Resume Template (100+ styles)' : 'Template: ${_selectedTemplate!.displayName}',
+                    label: _selectedTemplate == null ? 'Select Resume Template (18 distinct layouts)' : 'Template: ${_selectedTemplate!.displayName}',
                     onPressed: _openTemplateGallery,
                   ),
                   _ActionChipButton(
