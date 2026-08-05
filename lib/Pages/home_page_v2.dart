@@ -907,31 +907,48 @@ class _HomePageV11State extends State<HomePageV11> {
                 const SizedBox(height: 10),
                 AiResumeFeatureBanner(activePlan: _selectedPlanForPayment),
                 const SizedBox(height: 10),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF9FCFF),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFD4E3F1)),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x1090A3BE),
-                        blurRadius: 12,
-                        offset: Offset(0, 4),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isCompact = constraints.maxWidth < 600;
+                    final bannerMaxWidth = isCompact ? constraints.maxWidth : 560.0;
+                    final bannerPadding = EdgeInsets.symmetric(
+                      horizontal: isCompact ? 18 : 24,
+                      vertical: isCompact ? 12 : 16,
+                    );
+                    final titleFontSize = isCompact ? 20.0 : 24.0;
+
+                    return Center(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: bannerMaxWidth),
+                        child: Container(
+                          width: double.infinity,
+                          padding: bannerPadding,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF9FCFF),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: const Color(0xFFD4E3F1)),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x1090A3BE),
+                                blurRadius: 12,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            'Welcome to GETREADYJOB!',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: const Color(0xFF244466),
+                              fontSize: titleFontSize,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ),
                       ),
-                    ],
-                  ),
-                  child: const Text(
-                    'Welcome to GETREADYJOB!',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Color(0xFF244466),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 10),
                 const _V2Column(),
