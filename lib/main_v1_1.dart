@@ -29,6 +29,7 @@ import 'Pages/micro_canva_utilities_page.dart' deferred as microCanvaUtilitiesPa
 import 'Pages/pdf_edit_page.dart' deferred as pdfEditPage;
 import 'Pages/pdf_tools_page.dart' deferred as pdfToolsPage;
 import 'Pages/poster_banner_studio_page.dart' deferred as posterBannerStudioPage;
+import 'Pages/privacy_masker_page.dart' deferred as privacyMaskerPage;
 import 'Pages/resume_document_canvas_templates_page.dart' deferred as resumeDocumentCanvasTemplatesPage;
 import 'Pages/smart_pdf_suite_page.dart' deferred as smartPdfSuitePage;
 import 'Pages/split_tool_page.dart' deferred as splitToolPage;
@@ -314,6 +315,12 @@ class JobReadyV11App extends StatelessWidget {
             await photoHdWorkspacePage.loadLibrary();
           },
           builder: () => photoHdWorkspacePage.PhotoHdWorkspacePage(),
+        ),
+        '/privacy-masker': (_) => DeferredRoutePage(
+          loader: () async {
+            await privacyMaskerPage.loadLibrary();
+          },
+          builder: () => privacyMaskerPage.PrivacyMaskerPage(),
         ),
         '/admin': (_) => const AdminGatePage(targetRoute: '/admin-dashboard'),
         '/admin-2fa': (_) => const AdminTwoFactorPage(),

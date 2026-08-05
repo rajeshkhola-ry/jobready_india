@@ -9,6 +9,7 @@ import '../Pages/pdf_edit_page.dart';
 import '../Pages/ai_resume_builder_page.dart';
 import '../Pages/micro_canva_utilities_page.dart';
 import '../Pages/poster_banner_studio_page.dart';
+import '../Pages/privacy_masker_page.dart';
 import '../Pages/resume_document_canvas_templates_page.dart';
 import '../Pages/v2/photo/photo_hd_workspace_page.dart';
 
@@ -155,6 +156,14 @@ class ToolSelectorV2 extends StatelessWidget {
                 true,
                 () => _openTool(context, const PosterBannerStudioPage()),
               ),
+              _tool(
+                context,
+                Icons.shield_rounded,
+                "Privacy Masker",
+                "Black-out sensitive data (Aadhaar, PAN) and generate QR codes locally.",
+                false,
+                () => _openTool(context, const PrivacyMaskerPage()),
+              ),
             ];
 
             return Column(
@@ -219,6 +228,7 @@ class ToolSelectorV2 extends StatelessWidget {
       'Micro-Canva': const Color(0xFF0F766E),
       'Resume Canvas': const Color(0xFF0B5C4A),
       'Poster Studio': const Color(0xFF8A1538),
+      'Privacy Masker': const Color(0xFF1A2B45),
     };
 
     final accent = colorMap[title] ?? const Color(0xFF1F4E79);

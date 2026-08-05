@@ -919,7 +919,7 @@ Prepared For: JOBREADY
   ```
 - Next up (pending approval to start):
   1. ~~One-Click Social Media Auto-Resizer~~ ✅ DONE — see Checkpoint 2026-08-05-B
-  2. Privacy & Utility Masker (Aadhaar/PAN details black-out + QR Generator)
+  2. ~~Privacy & Utility Masker~~ ✅ DONE — see Checkpoint 2026-08-05-C
   3. Regional Font Suite (Hindi/Devanagari font rendering)
 - Owner: Founder + Copilot
 
@@ -949,4 +949,46 @@ Prepared For: JOBREADY
   git commit -m "feat: social media auto-resizer in Poster Studio (IG/YT/LinkedIn/FB/X)"
   git push origin main
   ```
+- Owner: Founder + Copilot
+
+---
+
+### Checkpoint - 2026-08-05-C (Privacy & Utility Masker Suite)
+- Overall status: Green (Privacy Masker + QR Generator live)
+- Completed today:
+  - **`Pages/privacy_masker_page.dart`** (new file) ✓
+    - Two-tab page: "Privacy Masker" and "QR Generator"
+    - **Privacy Masker tab:**
+      - Upload any JPG/PNG/WEBP document image
+      - Freehand drag-to-draw black mask boxes (normalised coordinates, GestureDetector + CustomPainter)
+      - Quick preset zones for Aadhaar card (4 zones: number, photo, DOB, address) and PAN card (4 zones: number, name, father, DOB) and 4 general zones (corners, strips)
+      - Undo Last / Clear All controls
+      - `RepaintBoundary` → `RenderRepaintBoundary.toImage()` → PNG download via `WasmDocumentService.triggerBrowserDownload`
+      - All processing is local (browser-only, no upload)
+    - **QR Generator tab:**
+      - 5 scheme presets: URL (auto-prefixes `https://`), Phone (`tel:`), Email (`mailto:`), WhatsApp (`wa.me/`), Plain Text
+      - QR preview via `qr_flutter` `QrImageView` with live update on every keystroke
+      - Size slider (160–400 px)
+      - 4 colour schemes: Black/White, Navy/White, White/Navy, Black/Amber
+      - High-res PNG download (3× pixel ratio) via same `RepaintBoundary` → toImage path
+  - **`main_v1_1.dart`** ✓
+    - Added `import 'Pages/privacy_masker_page.dart' deferred as privacyMaskerPage`
+    - Added `/privacy-masker` route with `DeferredRoutePage` loader
+  - **`Widgets/tool_selector_v2.dart`** ✓
+    - Imported `PrivacyMaskerPage`
+    - Added "Privacy Masker" tile to the tools grid (`Icons.shield_rounded`, navy `#1A2B45`)
+    - Added colour entry to `colorMap`
+  - **Validation** ✓
+    - `get_errors` on all 3 modified/created files: 0 errors
+- In progress:
+  - Git commit and push.
+- Git command:
+  ```
+  cd C:\JobReadyIndia\jobready_india
+  git add lib/Pages/privacy_masker_page.dart lib/main_v1_1.dart lib/Widgets/tool_selector_v2.dart lib/DAILY_STATUS_LOG_V1.md
+  git commit -m "feat: Privacy & Utility Masker Suite (redaction + QR generator)"
+  git push origin main
+  ```
+- Next up (pending approval):
+  - Regional Font Suite (Hindi/Devanagari font rendering)
 - Owner: Founder + Copilot
