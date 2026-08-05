@@ -23,58 +23,70 @@ class AiResumeFeatureBanner extends StatelessWidget {
         : canTryFree
             ? '🎁 New here? Get 1 FREE use of the AI Resume Builder — create your free account and try it now!'
             : 'Upgrade to a 1-Year or Lifetime plan to unlock the AI Resume Builder, Cover Letter Generator, and Company Insights.';
+    final ctaLabel = isEligible ? 'Try Resume Builder Now' : canTryFree ? 'Try Free Once' : 'View Plans';
+
+    void onTapAction() {
+      if (isEligible || canTryFree) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const AiResumeBuilderPage()),
+        );
+      } else {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const PlanFeaturesPage()),
+        );
+      }
+    }
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: const Color(0xFF183A5B),
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 18),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  message,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    height: 1.35,
-                  ),
-                ),
-              ),
-            ],
+          const Padding(
+            padding: EdgeInsets.only(top: 1),
+            child: Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 16),
           ),
-          const SizedBox(height: 8),
-          TextButton.icon(
-            onPressed: () {
-              if (isEligible || canTryFree) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AiResumeBuilderPage()),
-                );
-              } else {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const PlanFeaturesPage()),
-                );
-              }
-            },
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-              backgroundColor: Colors.black.withValues(alpha: 0.12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(text: '$message  '),
+                  WidgetSpan(
+                    alignment: PlaceholderAlignment.middle,
+                    child: InkWell(
+                      onTap: onTapAction,
+                      borderRadius: BorderRadius.circular(6),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
+                        child: Text(
+                          '$ctaLabel →',
+                          style: const TextStyle(
+                            color: Color(0xFFFFD166),
+                            fontWeight: FontWeight.w800,
+                            decoration: TextDecoration.underline,
+                            decorationColor: Color(0xFFFFD166),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                height: 1.25,
+              ),
             ),
-            icon: const Icon(Icons.arrow_forward_rounded, size: 16),
-            label: Text(isEligible ? 'Try Resume Builder Now' : canTryFree ? 'Try Free Once' : 'View Plans'),
           ),
         ],
       ),
