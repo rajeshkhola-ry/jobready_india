@@ -1120,3 +1120,26 @@ Prepared For: JOBREADY
 - Decisions needed:
   - None.
 - Owner: Founder + Copilot
+
+### Checkpoint - 2026-08-04 (Admin Logout Live Verification + Release Freeze)
+- Overall status: Green (logout fix deployed live and verified)
+- Completed today:
+  - **Production deploy unblock and fix** ✓
+    - Identified and fixed GitHub Pages build blocker by removing direct `firebase_auth` dependency usage from `lib/Pages/admin_dashboard_page.dart` logout flow.
+    - Kept admin logout UX visible and functional through in-page Logout button and route reset flow.
+  - **Release commit** ✓
+    - Commit hash: `9fad889`
+    - Commit message: `fix_admin_logout_build`
+  - **CI/CD verification** ✓
+    - GitHub Pages workflow run `#186` completed with **Success** for commit `9fad889`.
+    - Deploy workflow: `Deploy Flutter Web Preview (GitHub Pages)`
+  - **Production behavior verification** ✓
+    - Confirmed on live site that Logout button is visible.
+    - Confirmed admin logout action works and returns to admin login route.
+- In progress:
+  - Release freeze artifacts generation (tag + zip + bundle + manifest).
+- Blockers:
+  - None.
+- Decisions needed:
+  - None.
+- Owner: Founder + Copilot

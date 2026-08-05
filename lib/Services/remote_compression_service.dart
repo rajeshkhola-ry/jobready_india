@@ -75,11 +75,21 @@ class RemoteCompressionService {
       );
     } on TimeoutException {
       throw const RemoteCompressionException(
-        'Remote compression timed out. Please retry.',
+        'Remote compression timed out. The service may be busy or unreachable.',
       );
     } on RemoteCompressionException {
       rethrow;
     } catch (error) {
+      final normalized = '$error'.toLowerCase();
+      if (normalized.contains('xmlhttprequest') ||
+          normalized.contains('network') ||
+          normalized.contains('cors') ||
+          normalized.contains('timeout') ||
+          normalized.contains('socket')) {
+        throw const RemoteCompressionException(
+          'Remote compression request failed due to network/CORS transport issues.',
+        );
+      }
       throw RemoteCompressionException(
         'Remote compression failed: $error',
       );

@@ -1,0 +1,6 @@
+﻿GETREADYJOB V1.1 Release Snapshot
+Generated: 2026-08-05 13:32:51
+Commit: abf87de0fbc9f2a9826fb0d8dcef328ab2ad90ff
+Branch: main
+Zip: C:\JobReadyIndia\jobready_india\backups\release_snapshots\V1.1-2026-08-05_133227-abf87de\jobready_V1.1_abf87de.zip
+Bundle: C:\JobReadyIndia\jobready_india\backups\release_snapshots\V1.1-2026-08-05_133227-abf87de\jobready_V1.1_abf87de.bundle

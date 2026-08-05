@@ -1,0 +1,21 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Client apps must never read/write admin_secrets directly.
+    // Access is restricted to trusted backend code (Admin SDK / Cloud Functions).
+    match /admin_secrets/{adminUid} {
+      allow read, write: if false;
+    }
+
+    // Admin profile can be read only by the currently signed-in admin account.
+    match /admins/{adminUid} {
+      allow read: if request.auth != null && request.auth.uid == adminUid;
+      allow write: if false;
+    }
+
+    // Default deny for all other client-side access unless explicitly allowed.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

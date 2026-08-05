@@ -1,0 +1,8 @@
+﻿GETREADYJOB V1.1 Release Snapshot
+Generated: 2026-08-04 16:52:01
+Commit: 9fad88996c1b689aa4662983a710502afef8489e
+Short Commit: 9fad889
+Tag: prod/v1.1-logout-live-20260804-9fad889
+Release Branch: release/v1.1-logout-live-20260804
+Bundle: C:\JobReadyIndia\jobready_india\backups\release_snapshots\2026-08-04_165141\jobready_v1_1_9fad889.bundle
+Zip: C:\JobReadyIndia\jobready_india\backups\release_snapshots\2026-08-04_165141\jobready_v1_1_9fad889.zip

@@ -50,10 +50,10 @@ class ToolSelectorV2 extends StatelessWidget {
                     ? 2
                     : 1;
             final childAspectRatio = width >= 980
-                ? 1.8
+              ? 3.2
                 : width >= 680
-                    ? 1.9
-                    : 2.1;
+                ? 2.9
+                : 2.45;
 
             final tools = <Widget>[
               _tool(
@@ -153,13 +153,13 @@ class ToolSelectorV2 extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 GridView.count(
                   crossAxisCount: crossAxisCount,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
+                  mainAxisSpacing: 10,
                   childAspectRatio: childAspectRatio,
                   children: tools,
                 ),
@@ -203,7 +203,6 @@ class ToolSelectorV2 extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
           onTap: onTap,
           child: Container(
-            height: 104,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
@@ -223,25 +222,26 @@ class ToolSelectorV2 extends StatelessWidget {
                 ),
               ],
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
                   children: [
                     CircleAvatar(
-                      radius: 14,
+                      radius: 11,
                       backgroundColor: accent.withValues(alpha: 0.13),
                       child: Icon(
                         icon,
-                        size: 16,
+                        size: 13,
                         color: accent,
                       ),
                     ),
                     const Spacer(),
                     if (isFeatured)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: accent.withValues(alpha: 0.16),
                           borderRadius: BorderRadius.circular(999),
@@ -249,47 +249,42 @@ class ToolSelectorV2 extends StatelessWidget {
                         child: Text(
                           'Featured',
                           style: TextStyle(
-                            fontSize: 9.5,
+                            fontSize: 9,
                             fontWeight: FontWeight.w800,
                             color: accent,
                           ),
                         ),
                       ),
+                    if (!isFeatured)
+                      Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 10,
+                        color: accent.withValues(alpha: 0.85),
+                      ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 5),
                 Text(
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontWeight: FontWeight.w800,
-                    fontSize: 12,
+                    fontSize: 11.5,
                     color: Color(0xFF0F172A),
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 1),
                 Text(
                   subtitle,
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 10,
-                    height: 1.35,
+                    fontSize: 9.6,
+                    height: 1.2,
                     color: Color(0xFF64748B),
                     fontWeight: FontWeight.w600,
                   ),
-                ),
-                const Spacer(),
-                Row(
-                  children: [
-                    const Spacer(),
-                    Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      size: 12,
-                      color: accent.withValues(alpha: 0.85),
-                    ),
-                  ],
                 ),
               ],
             ),

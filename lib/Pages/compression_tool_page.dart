@@ -20,6 +20,7 @@ class _CompressionOutcome {
   final double reductionPercent;
   final bool targetMet;
   final String note;
+  final bool usedLocalFallback;
 
   const _CompressionOutcome({
     required this.bytes,
@@ -27,6 +28,7 @@ class _CompressionOutcome {
     required this.reductionPercent,
     required this.targetMet,
     required this.note,
+    this.usedLocalFallback = false,
   });
 }
 
@@ -790,6 +792,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
                 note: forced.length <= _targetSizeBytes!
                     ? 'Target achieved after force compression.'
                     : 'Requested target could not be reached without unacceptable quality loss. Returning best possible output.',
+                usedLocalFallback: outcome.usedLocalFallback,
               );
             }
           }
@@ -810,7 +813,9 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
               ? ['${selected.name}: quality may reduce by about ${outcome.reductionPercent.toStringAsFixed(0)}% to reach ${_formatBytes(_targetSizeBytes!)}']
               : const [];
           _isCompressing = false;
-          _statusMessage = compressed.length <= _targetSizeBytes!
+            _statusMessage = outcome.usedLocalFallback
+              ? '✓ ${outcome.note}'
+              : compressed.length <= _targetSizeBytes!
               ? (outcome.aggressiveUsed
                   ? '✓ Compressed to ${_formatBytes(compressed.length)} (target met with quality reduction)'
                   : '✓ Compressed to ${_formatBytes(compressed.length)} (target met)')
@@ -842,6 +847,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
       int totalCompressed = 0;
       final aboveTarget = <String>[];
       final qualityNotes = <String>[];
+      var fallbackCount = 0;
       final compressedByName = <String, Uint8List>{};
       final originalByName = <String, PickedFileData>{};
       var currentIndex = 0;
@@ -865,6 +871,9 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
           aboveTarget.add('${file.name}: max reduced to ${_formatBytes(compressed.length)} only');
         } else if (outcome.aggressiveUsed) {
           qualityNotes.add('${file.name}: quality may reduce by about ${outcome.reductionPercent.toStringAsFixed(0)}% to reach ${_formatBytes(_targetSizeBytes!)}');
+        }
+        if (outcome.usedLocalFallback) {
+          fallbackCount += 1;
         }
       }
 
@@ -929,11 +938,13 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
         _filesAboveTarget = aboveTarget;
         _qualityImpactNotes = qualityNotes;
         _isCompressing = false;
-        _statusMessage = aboveTarget.isNotEmpty
-          ? '⚠ Best effort only: one or more files could not be reduced to the requested size in the browser.'
-          : (qualityNotes.isNotEmpty
-            ? '✓ ${_selectedFiles.length} files compressed (target met, quality reduced for ${qualityNotes.length} file(s))'
-            : '✓ ${_selectedFiles.length} files compressed (each met ${_formatBytes(_targetSizeBytes!)})');
+        _statusMessage = fallbackCount > 0
+          ? '✓ Remote server busy, completed compression locally using adaptive engine for $fallbackCount file(s).'
+          : aboveTarget.isNotEmpty
+            ? '⚠ Best effort only: one or more files could not be reduced to the requested size in the browser.'
+            : (qualityNotes.isNotEmpty
+              ? '✓ ${_selectedFiles.length} files compressed (target met, quality reduced for ${qualityNotes.length} file(s))'
+              : '✓ ${_selectedFiles.length} files compressed (each met ${_formatBytes(_targetSizeBytes!)})');
       });
 
       if (!mounted) return;
@@ -955,7 +966,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
       );
     } catch (e) {
       if (!mounted) return;
-      final errorMessage = e.toString();
+      final errorMessage = _cleanCompressionErrorForDisplay(e.toString());
       setState(() {
         _isCompressing = false;
         _statusMessage = '✗ Compression failed: $errorMessage';
@@ -974,22 +985,34 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
     final lowerName = file.name.toLowerCase();
     if (lowerName.endsWith('.pdf')) {
       if (kIsWeb) {
-        await _yieldToUi();
-        final remote = await _remoteCompressionService.compressPdf(
-          bytes: file.bytes,
-          fileName: file.name,
-          targetBytes: _targetSizeBytes!,
-          mode: _selectedCompressionMode,
-          pipelineMode: _pipelineMode,
-        );
+        try {
+          await _yieldToUi();
+          final remote = await _remoteCompressionService.compressPdf(
+            bytes: file.bytes,
+            fileName: file.name,
+            targetBytes: _targetSizeBytes!,
+            mode: _selectedCompressionMode,
+            pipelineMode: _pipelineMode,
+          );
 
-        return _CompressionOutcome(
-          bytes: remote.bytes,
-          aggressiveUsed: _pipelineMode == CompressionPipelineMode.highCompressionImageOnly,
-          reductionPercent: _reductionPercent(file.size, remote.bytes.length),
-          targetMet: remote.targetMet,
-          note: remote.message,
-        );
+          return _CompressionOutcome(
+            bytes: remote.bytes,
+            aggressiveUsed: _pipelineMode == CompressionPipelineMode.highCompressionImageOnly,
+            reductionPercent: _reductionPercent(file.size, remote.bytes.length),
+            targetMet: remote.targetMet,
+            note: remote.message,
+          );
+        } on RemoteCompressionException catch (error) {
+          return _compressPdfLocallyAfterRemoteFailure(
+            file,
+            reason: error.message,
+          );
+        } catch (error) {
+          return _compressPdfLocallyAfterRemoteFailure(
+            file,
+            reason: '$error',
+          );
+        }
       }
 
       final smart = await _compressionService.compressPdfSmart(
@@ -1092,15 +1115,19 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
 
     if (lowerName.endsWith('.pdf')) {
       if (kIsWeb) {
-        final remote = await _remoteCompressionService.compressPdf(
-          bytes: currentBytes,
-          fileName: file.name,
-          targetBytes: _targetSizeBytes!,
-          mode: PdfCompressionMode.targetSize,
-          pipelineMode: CompressionPipelineMode.highCompressionImageOnly,
-        );
-        if (remote.bytes.length < currentBytes.length) {
-          return remote.bytes;
+        try {
+          final remote = await _remoteCompressionService.compressPdf(
+            bytes: currentBytes,
+            fileName: file.name,
+            targetBytes: _targetSizeBytes!,
+            mode: PdfCompressionMode.targetSize,
+            pipelineMode: CompressionPipelineMode.highCompressionImageOnly,
+          );
+          if (remote.bytes.length < currentBytes.length) {
+            return remote.bytes;
+          }
+        } catch (_) {
+          // Continue with local force compression when remote service is unavailable.
         }
       }
 
@@ -1127,6 +1154,77 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
 
   Future<void> _yieldToUi([int ms = 16]) async {
     await Future<void>.delayed(Duration(milliseconds: ms));
+  }
+
+  Future<_CompressionOutcome> _compressPdfLocallyAfterRemoteFailure(
+    PickedFileData file, {
+    required String reason,
+  }) async {
+    final targetBytes = _targetSizeBytes;
+    if (targetBytes == null) {
+      throw Exception('Target size is missing for compression.');
+    }
+
+    try {
+      await _yieldToUi();
+      final smart = await _compressionService.compressPdfSmart(
+        file.bytes,
+        targetBytes,
+        file.name,
+        mode: _selectedCompressionMode,
+        pipelineMode: _pipelineMode,
+      );
+
+      var best = smart.bytes;
+      var aggressiveUsed = false;
+      if (best.length > targetBytes) {
+        final forced = await _compressionService.forceCompressPdfToTarget(
+          best,
+          targetBytes,
+          file.name,
+          pipelineMode: _pipelineMode,
+        );
+        if (forced.length < best.length) {
+          best = forced;
+          aggressiveUsed = true;
+        }
+      }
+
+      final metTarget = best.length <= targetBytes;
+      final localFallbackMessage = _isLikelyRemoteTransportFailure(reason)
+          ? 'Remote server busy, completed compression locally using adaptive engine.'
+          : 'Remote compression unavailable, completed compression locally using adaptive engine.';
+
+      return _CompressionOutcome(
+        bytes: best,
+        aggressiveUsed: aggressiveUsed,
+        reductionPercent: _reductionPercent(file.size, best.length),
+        targetMet: metTarget,
+        note: metTarget
+            ? localFallbackMessage
+            : '$localFallbackMessage Exact target could not be reached without heavy quality loss.',
+        usedLocalFallback: true,
+      );
+    } catch (_) {
+      throw Exception('Compression failed on remote and local engines. Please retry.');
+    }
+  }
+
+  bool _isLikelyRemoteTransportFailure(String message) {
+    final lower = message.toLowerCase();
+    return lower.contains('xmlhttprequest') ||
+        lower.contains('network') ||
+        lower.contains('cors') ||
+        lower.contains('timeout') ||
+        lower.contains('socket');
+  }
+
+  String _cleanCompressionErrorForDisplay(String message) {
+    final lower = message.toLowerCase();
+    if (_isLikelyRemoteTransportFailure(lower)) {
+      return 'Remote service unavailable, and local compression could not finish. Please retry.';
+    }
+    return message.replaceFirst('Exception: ', '').trim();
   }
 
   Future<bool> _confirmForceQualityReduction({

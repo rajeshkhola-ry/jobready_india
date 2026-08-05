@@ -551,6 +551,28 @@
 			],
 			"isBackground": false,
 			"problemMatcher": []
+		},
+		{
+			"label": "Temp: Commit logout fix now",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/d",
+				"/c",
+				"cd /d C:\\JobReadyIndia\\jobready_india && del /q tmp_firebase_functions_retry_err.txt tmp_firebase_functions_retry_out.txt 2>nul && git add lib/Pages/admin_dashboard_page.dart lib/Services/auth_router_service.dart && git commit -m \"fix(admin): add visible logout button and clear admin session\""
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Temp: Commit and Push Logout Button Fix",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/d",
+				"/c",
+				"cd /d C:\\JobReadyIndia\\jobready_india && del /q tmp_firebase_functions_retry_err.txt tmp_firebase_functions_retry_out.txt 2>nul && git add lib/Pages/admin_dashboard_page.dart lib/Services/auth_router_service.dart && git commit -m \"fix(admin): add logout button on admin dashboard\" && git checkout main && git cherry-pick feature/admin-2fa-authenticator && git push origin main && git checkout feature/admin-2fa-authenticator"
+			],
+			"isBackground": false
 		}
 	]
 }
