@@ -78,3 +78,9 @@ Thumbs.db
 *.zip
 
 lib/backups/
+
+# Firebase local cache
+.firebase/
+
+# Accidental nested local build log
+lib/build_release_log.txt
