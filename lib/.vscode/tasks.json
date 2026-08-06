@@ -307,6 +307,18 @@
 			"type": "shell",
 			"command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Set-Location 'C:\\JobReadyIndia\\jobready_india'; $env:Path = 'C:\\flutter\\flutter_windows_3.44.2-stable\\flutter\\bin;' + $env:Path; flutter build web --release -t lib/main_v1_1.dart --base-href '/' 2>&1 | Tee-Object -FilePath 'build_release_log.txt'; Write-Host 'EXIT_CODE:' $LASTEXITCODE\"",
 			"isBackground": false
+		},
+		{
+			"label": "Backup: Create Git Bundle to OneDrive",
+			"type": "shell",
+			"command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Set-Location 'C:\\JobReadyIndia\\jobready_india'; $ts = Get-Date -Format 'yyyyMMdd_HHmmss'; $commitHash = (git rev-parse --short HEAD 2>$null); $bundleName = \\\"jobready_india_full_${ts}_${commitHash}.bundle\\\"; $bundlePath = \\\"C:\\\\Users\\\\Avita\\\\OneDrive\\\\JobReadyIndia_Backups\\\\$bundleName\\\"; Write-Host \\\"Creating git bundle: $bundleName\\\"; git bundle create $bundlePath --all; if ($LASTEXITCODE -eq 0) { $sha256 = (Get-FileHash $bundlePath -Algorithm SHA256).Hash; Write-Host \\\"BUNDLE_OK: $bundlePath\\\"; Write-Host \\\"SHA256: $sha256\\\"; Write-Host \\\"SIZE_KB: $([math]::Round((Get-Item $bundlePath).Length / 1024, 1)) KB\\\" } else { Write-Host 'BUNDLE_FAILED' }\"",
+			"isBackground": false
+		},
+		{
+			"label": "Backup: Full ZIP + Git Bundle to OneDrive (2026-08-05)",
+			"type": "shell",
+			"command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$log = 'C:\\JobReadyIndia\\jobready_india\\backup_run_log.txt'; $ts = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'; $tsFile = Get-Date -Format 'yyyyMMdd_HHmmss'; '=== BACKUP RUN $ts ===' | Set-Content $log; try { $repoRoot = 'C:\\JobReadyIndia\\jobready_india'; Set-Location $repoRoot; $commitHash = (git rev-parse --short HEAD 2>&1); $oneDriveDir = 'C:\\Users\\Avita\\OneDrive\\JobReadyIndia_Backups'; if (-not (Test-Path $oneDriveDir)) { New-Item -Path $oneDriveDir -ItemType Directory | Out-Null }; $zipName = \\\"jobready_india_full_${tsFile}_${commitHash}.zip\\\"; $zipPath = Join-Path $oneDriveDir $zipName; $localZipDir = Join-Path $repoRoot 'lib\\backups'; if (-not (Test-Path $localZipDir)) { New-Item -Path $localZipDir -ItemType Directory | Out-Null }; $localZipPath = Join-Path $localZipDir $zipName; Write-Host 'Creating ZIP backup...'; Compress-Archive -Path @('lib','web','pubspec.yaml','pubspec.lock','analysis_options.yaml') -DestinationPath $localZipPath -CompressionLevel Optimal -Force; Copy-Item $localZipPath $zipPath -Force; $zipHash = (Get-FileHash $zipPath -Algorithm SHA256).Hash; $zipKb = [math]::Round((Get-Item $zipPath).Length/1024,1); \\\"ZIP_OK: $zipPath\\\" | Add-Content $log; \\\"ZIP_SHA256: $zipHash\\\" | Add-Content $log; \\\"ZIP_SIZE_KB: $zipKb\\\" | Add-Content $log; Write-Host 'Creating git bundle...'; $bundleName = \\\"jobready_india_bundle_${tsFile}_${commitHash}.bundle\\\"; $bundlePath = Join-Path $oneDriveDir $bundleName; $localBundlePath = Join-Path $localZipDir $bundleName; git bundle create $bundlePath --all 2>&1 | Add-Content $log; Copy-Item $bundlePath $localBundlePath -Force; $bundleHash = (Get-FileHash $bundlePath -Algorithm SHA256).Hash; $bundleKb = [math]::Round((Get-Item $bundlePath).Length/1024,1); \\\"BUNDLE_OK: $bundlePath\\\" | Add-Content $log; \\\"BUNDLE_SHA256: $bundleHash\\\" | Add-Content $log; \\\"BUNDLE_SIZE_KB: $bundleKb\\\" | Add-Content $log; \\\"COMMIT: $commitHash\\\" | Add-Content $log; \\\"=== DONE $ts ===\\\" | Add-Content $log } catch { \\\"ERROR: $_\\\" | Add-Content $log }; Get-Content $log\"",
+			"isBackground": false
 		}
 	]
 }

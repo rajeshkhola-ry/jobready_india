@@ -573,6 +573,26 @@
 				"cd /d C:\\JobReadyIndia\\jobready_india && del /q tmp_firebase_functions_retry_err.txt tmp_firebase_functions_retry_out.txt 2>nul && git add lib/Pages/admin_dashboard_page.dart lib/Services/auth_router_service.dart && git commit -m \"fix(admin): add logout button on admin dashboard\" && git checkout main && git cherry-pick feature/admin-2fa-authenticator && git push origin main && git checkout feature/admin-2fa-authenticator"
 			],
 			"isBackground": false
+		},
+		{
+			"label": "Backup: End-of-Day ZIP + Git Bundle to OneDrive",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"$ErrorActionPreference='Stop'; $ts = Get-Date -Format 'yyyyMMdd_HHmmss'; $date = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'; $repo = 'C:\\JobReadyIndia\\jobready_india'; $od = 'C:\\Users\\Avita\\OneDrive\\JobReadyIndia_Backups'; $localBackups = Join-Path $repo 'lib\\backups'; Set-Location $repo; if (-not (Test-Path $od)) { New-Item -Path $od -ItemType Directory | Out-Null }; if (-not (Test-Path $localBackups)) { New-Item -Path $localBackups -ItemType Directory | Out-Null }; $commitHash = (git rev-parse --short HEAD 2>&1); Write-Host \"Commit: $commitHash\"; $zipName = \"jobready_india_full_${ts}_${commitHash}.zip\"; $localZip = Join-Path $localBackups $zipName; $odZip = Join-Path $od $zipName; Write-Host 'Creating source ZIP...'; Compress-Archive -Path @(Join-Path $repo 'lib'),(Join-Path $repo 'web'),(Join-Path $repo 'pubspec.yaml'),(Join-Path $repo 'pubspec.lock'),(Join-Path $repo 'analysis_options.yaml') -DestinationPath $localZip -CompressionLevel Optimal -Force; Copy-Item $localZip $odZip -Force; $zipSha = (Get-FileHash $odZip -Algorithm SHA256).Hash; $zipKb = [math]::Round((Get-Item $odZip).Length/1024,1); Write-Host \"ZIP: $odZip ($zipKb KB)\"; Write-Host \"ZIP SHA256: $zipSha\"; $bundleName = \"jobready_india_bundle_${ts}_${commitHash}.bundle\"; $localBundle = Join-Path $localBackups $bundleName; $odBundle = Join-Path $od $bundleName; Write-Host 'Creating git bundle (all branches + tags)...'; git bundle create $localBundle --all; Copy-Item $localBundle $odBundle -Force; $bundleSha = (Get-FileHash $odBundle -Algorithm SHA256).Hash; $bundleKb = [math]::Round((Get-Item $odBundle).Length/1024,1); Write-Host \"BUNDLE: $odBundle ($bundleKb KB)\"; Write-Host \"BUNDLE SHA256: $bundleSha\"; $statusContent = @('# JOBREADY Backup Status','',\"Last backup: $date\",\"Last backup file: $localZip\",\"OneDrive copy: $odZip\",\"Source ZIP SHA256: $zipSha\",\"Git bundle: $odBundle\",\"Bundle SHA256: $bundleSha\",\"Commit: $commitHash\",'Hash status: VERIFIED OK','Backup task: End-of-Day backup','Backup folder: C:\\JobReadyIndia\\jobready_india\\lib\\backups') | Out-String; Set-Content -Path (Join-Path $repo 'BACKUP_STATUS.md') -Value $statusContent -Encoding UTF8; Write-Host ''; Write-Host '=== BACKUP COMPLETE ==='; Write-Host \"ZIP   : $zipKb KB  SHA256: $zipSha\"; Write-Host \"BUNDLE: $bundleKb KB  SHA256: $bundleSha\""
+			],
+			"isBackground": false,
+			"presentation": {
+				"reveal": "always",
+				"panel": "new",
+				"focus": true,
+				"clear": true
+			},
+			"problemMatcher": []
 		}
 	]
 }

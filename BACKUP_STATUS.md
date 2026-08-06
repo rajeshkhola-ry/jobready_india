@@ -1,16 +1,17 @@
 ﻿# JOBREADY Backup Status
 
-Last backup: 2026-08-05 14:59:28
-Last backup file: C:\JobReadyIndia\jobready_india\lib\backups\backup_2026-08-05_1457.zip
-OneDrive copy: C:\Users\Avita\OneDrive\JobReadyIndia_Backups\backup_2026-08-05_1457.zip
-Source archive: jobready_india_full_20260805_145928_9ce239e.zip
-SHA256 (verified): 3004d87c70fba59598d834948ebd1b7ddf91698f27044ec27842a351a5088ed7
-Hash status: VERIFIED OK (local + OneDrive match)
+Last backup: 2026-08-05 (end-of-day — run commands below to confirm)
+Last backup file: C:\JobReadyIndia\jobready_india\lib\backups\[auto-named by backup script]
+OneDrive copy: C:\Users\Avita\OneDrive\JobReadyIndia_Backups\
+SHA256 (verified): Run backup commands below to generate fresh hash
+Hash status: PENDING — run backup manually (see commands below)
 Backup task: JOBREADY_Daily_Backup (daily at 21:00)
 Backup folder: C:\JobReadyIndia\jobready_india\lib\backups
 
-Previous backup: 2026-07-31 18:15:00
-Previous file: C:\Users\Avita\OneDrive\GETREADYJOB\JOBREADY_Backups\jobready_india_2026-07-31_ai_assist
+Previous verified backup: 2026-08-05 14:59:28
+Previous file: backup_2026-08-05_1457.zip
+Previous SHA256: 3004d87c70fba59598d834948ebd1b7ddf91698f27044ec27842a351a5088ed7
+Previous hash status: VERIFIED OK
 
 Git checkpoint:
 - Commit: abdf309
