@@ -26,7 +26,7 @@ services:
     runtime: node
     name: voice-shop-web
     repo: https://github.com/rajeshkhola-ry/jobready_india.git
-    branch: feature/hello-job-launch-link
+    branch: main
     rootDir: JobReady/voice-shop
     plan: starter
     region: oregon
