@@ -2,24 +2,25 @@ import Database from "better-sqlite3";
 import fs from "node:fs";
 import path from "node:path";
 
-const databaseFilename = path.basename(process.env.DATABASE_PATH || "voice-shop.db");
-const databaseDirectory = process.env.DATABASE_DIR
-  ? path.resolve(process.env.DATABASE_DIR)
-  : path.join(process.cwd(), "data");
-const databasePath = path.join(databaseDirectory, databaseFilename);
-fs.mkdirSync(path.dirname(databasePath), { recursive: true });
-
 const globalForDatabase = globalThis as unknown as { voiceShopDatabase?: Database.Database };
 
-export const db = globalForDatabase.voiceShopDatabase ?? new Database(databasePath);
+function initializeDatabase() {
+  const existing = globalForDatabase.voiceShopDatabase;
+  if (existing) {
+    return existing;
+  }
 
-if (process.env.NODE_ENV !== "production") {
-  globalForDatabase.voiceShopDatabase = db;
-}
+  const databaseFilename = path.basename(process.env.DATABASE_PATH || "voice-shop.db");
+  const databaseDirectory = process.env.DATABASE_DIR
+    ? path.resolve(process.env.DATABASE_DIR)
+    : path.join(process.cwd(), "data");
+  const databasePath = path.join(databaseDirectory, databaseFilename);
+  fs.mkdirSync(path.dirname(databasePath), { recursive: true });
 
-db.pragma("journal_mode = WAL");
-db.pragma("foreign_keys = ON");
-db.exec(`
+  const database = new Database(databasePath);
+  database.pragma("journal_mode = WAL");
+  database.pragma("foreign_keys = ON");
+  database.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     full_name TEXT NOT NULL,
@@ -94,3 +95,15 @@ db.exec(`
   INSERT OR IGNORE INTO platform_settings(setting_key, setting_value)
   VALUES ('wallet_rate_business_inr', '12.5');
 `);
+
+  globalForDatabase.voiceShopDatabase = database;
+  return database;
+}
+
+export const db = new Proxy({} as Database.Database, {
+  get(_target, property) {
+    const database = initializeDatabase();
+    const value = Reflect.get(database, property);
+    return typeof value === "function" ? value.bind(database) : value;
+  },
+});
