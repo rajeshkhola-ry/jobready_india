@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { db } from "@/lib/db";
-import { WALLET_TOP_UPS_INR } from "@/lib/pricing";
+import { convertInrPrice, type CurrencyCode, WALLET_TOP_UPS_INR } from "@/lib/pricing";
 
 type RazorpayOrder = { id: string; amount: number; currency: string; status: string };
 type TopUpOrderRow = {
@@ -9,6 +9,18 @@ type TopUpOrderRow = {
   currency: string;
   status: "created" | "paid";
   razorpay_payment_id: string | null;
+  wallet_credit_paise: number;
+};
+
+export type WalletTaxQuote = {
+  currency: CurrencyCode;
+  totalMinor: number;
+  baseMinor: number;
+  gstMinor: number;
+  taxRatePercent: 0 | 18;
+  taxTreatment: "gst_inclusive_domestic" | "export_of_services";
+  walletCreditPaise: number;
+  exchangeRate: number | null;
 };
 
 function razorpayCredentials() {
@@ -22,9 +34,38 @@ export function isAllowedWalletTopUp(amountInr: number) {
   return (WALLET_TOP_UPS_INR as readonly number[]).includes(amountInr);
 }
 
-export async function createWalletTopUpOrder(userId: number, amountInr: number) {
+export function buildWalletTaxQuote(amountInr: number, currency: CurrencyCode, usdInrRate: number): WalletTaxQuote {
+  const walletCreditPaise = amountInr * 100;
+  const chargedAmount = convertInrPrice(amountInr, currency, usdInrRate);
+  const totalMinor = chargedAmount * 100;
+  if (currency === "INR") {
+    const baseMinor = Math.round(totalMinor / 1.18);
+    return {
+      currency,
+      totalMinor,
+      baseMinor,
+      gstMinor: totalMinor - baseMinor,
+      taxRatePercent: 18,
+      taxTreatment: "gst_inclusive_domestic",
+      walletCreditPaise,
+      exchangeRate: null,
+    };
+  }
+  return {
+    currency,
+    totalMinor,
+    baseMinor: totalMinor,
+    gstMinor: 0,
+    taxRatePercent: 0,
+    taxTreatment: "export_of_services",
+    walletCreditPaise,
+    exchangeRate: usdInrRate,
+  };
+}
+
+export async function createWalletTopUpOrder(userId: number, amountInr: number, currency: CurrencyCode, usdInrRate: number) {
   const { keyId, keySecret } = razorpayCredentials();
-  const amountPaise = amountInr * 100;
+  const quote = buildWalletTaxQuote(amountInr, currency, usdInrRate);
   const receipt = `vs_${userId}_${Date.now()}`.slice(0, 40);
   const response = await fetch("https://api.razorpay.com/v1/orders", {
     method: "POST",
@@ -32,19 +73,41 @@ export async function createWalletTopUpOrder(userId: number, amountInr: number) 
       authorization: `Basic ${Buffer.from(`${keyId}:${keySecret}`).toString("base64")}`,
       "content-type": "application/json",
     },
-    body: JSON.stringify({ amount: amountPaise, currency: "INR", receipt, notes: { product: "voice-shop-wallet", userId: String(userId) } }),
+    body: JSON.stringify({ amount: quote.totalMinor, currency: quote.currency, receipt, notes: { product: "voice-shop-wallet", userId: String(userId), taxTreatment: quote.taxTreatment } }),
     cache: "no-store",
   });
   const order = await response.json().catch(() => null) as RazorpayOrder | null;
-  if (!response.ok || !order?.id || order.amount !== amountPaise || order.currency !== "INR") {
+  if (!response.ok || !order?.id || order.amount !== quote.totalMinor || order.currency !== quote.currency) {
     throw new Error("Unable to create Razorpay wallet order.");
   }
 
-  db.prepare(`
-    INSERT INTO wallet_topup_orders(user_id, razorpay_order_id, amount_paise, currency)
-    VALUES (?, ?, ?, 'INR')
-  `).run(userId, order.id, amountPaise);
-  return { keyId, orderId: order.id, amount: amountPaise, currency: "INR" as const };
+  db.transaction(() => {
+    const result = db.prepare(`
+      INSERT INTO wallet_topup_orders(user_id, razorpay_order_id, amount_paise, currency)
+      VALUES (?, ?, ?, ?)
+    `).run(userId, order.id, quote.totalMinor, quote.currency);
+    db.prepare(`
+      INSERT INTO wallet_topup_tax_records(
+        order_id, tax_treatment, tax_rate_bps, total_minor, base_minor, gst_minor, wallet_credit_paise, exchange_rate
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      Number(result.lastInsertRowid), quote.taxTreatment, quote.taxRatePercent * 100,
+      quote.totalMinor, quote.baseMinor, quote.gstMinor, quote.walletCreditPaise, quote.exchangeRate,
+    );
+  })();
+  return {
+    keyId,
+    orderId: order.id,
+    amount: quote.totalMinor,
+    currency: quote.currency,
+    tax: {
+      treatment: quote.taxTreatment,
+      ratePercent: quote.taxRatePercent,
+      total: quote.totalMinor / 100,
+      base: quote.baseMinor / 100,
+      gst: quote.gstMinor / 100,
+    },
+  };
 }
 
 function signaturesMatch(orderId: string, paymentId: string, suppliedSignature: string) {
@@ -60,11 +123,13 @@ export function verifyAndCreditWallet(userId: number, orderId: string, paymentId
 
   return db.transaction(() => {
     const order = db.prepare(`
-      SELECT user_id, amount_paise, currency, status, razorpay_payment_id
-      FROM wallet_topup_orders WHERE razorpay_order_id = ?
+      SELECT o.user_id, o.amount_paise, o.currency, o.status, o.razorpay_payment_id,
+             t.wallet_credit_paise
+      FROM wallet_topup_orders o
+      JOIN wallet_topup_tax_records t ON t.order_id = o.id
+      WHERE o.razorpay_order_id = ?
     `).get(orderId) as TopUpOrderRow | undefined;
     if (!order || order.user_id !== userId) throw new Error("Wallet order was not found for this account.");
-    if (order.currency !== "INR") throw new Error("Wallet order currency is invalid.");
 
     if (order.status === "paid" && order.razorpay_payment_id !== paymentId) {
       throw new Error("Wallet order was already completed with another payment.");
@@ -81,7 +146,7 @@ export function verifyAndCreditWallet(userId: number, orderId: string, paymentId
         UPDATE wallets
         SET balance_paise = balance_paise + ?, updated_at = CURRENT_TIMESTAMP
         WHERE user_id = ?
-      `).run(order.amount_paise, userId);
+      `).run(order.wallet_credit_paise, userId);
     }
 
     const wallet = db.prepare("SELECT balance_paise FROM wallets WHERE user_id = ?").get(userId) as { balance_paise: number };

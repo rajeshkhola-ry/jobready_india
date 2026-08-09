@@ -20,10 +20,15 @@ test("verified wallet payment credits exactly once", async () => {
   `).run();
   const userId = Number(user.lastInsertRowid);
   db.prepare("INSERT INTO wallets(user_id) VALUES (?)").run(userId);
-  db.prepare(`
+  const order = db.prepare(`
     INSERT INTO wallet_topup_orders(user_id, razorpay_order_id, amount_paise, currency)
     VALUES (?, 'order_wallet_test', 10000, 'INR')
   `).run(userId);
+  db.prepare(`
+    INSERT INTO wallet_topup_tax_records(
+      order_id, tax_treatment, tax_rate_bps, total_minor, base_minor, gst_minor, wallet_credit_paise
+    ) VALUES (?, 'gst_inclusive_domestic', 1800, 10000, 8475, 1525, 10000)
+  `).run(Number(order.lastInsertRowid));
 
   const paymentId = "pay_wallet_test";
   const signature = crypto.createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!).update(`order_wallet_test|${paymentId}`).digest("hex");
@@ -34,6 +39,34 @@ test("verified wallet payment credits exactly once", async () => {
   assert.deepEqual(retry, { credited: false, balancePaise: 10000 });
   const wallet = db.prepare("SELECT balance_paise FROM wallets WHERE user_id = ?").get(userId) as { balance_paise: number };
   assert.equal(wallet.balance_paise, 10000);
+});
+
+test("domestic INR top-up splits GST inclusively", async () => {
+  const { buildWalletTaxQuote } = await import("@/lib/wallet-payments");
+  assert.deepEqual(buildWalletTaxQuote(100, "INR", 84), {
+    currency: "INR",
+    totalMinor: 10000,
+    baseMinor: 8475,
+    gstMinor: 1525,
+    taxRatePercent: 18,
+    taxTreatment: "gst_inclusive_domestic",
+    walletCreditPaise: 10000,
+    exchangeRate: null,
+  });
+});
+
+test("international USD top-up is export of services at zero GST", async () => {
+  const { buildWalletTaxQuote } = await import("@/lib/wallet-payments");
+  assert.deepEqual(buildWalletTaxQuote(100, "USD", 84), {
+    currency: "USD",
+    totalMinor: 100,
+    baseMinor: 100,
+    gstMinor: 0,
+    taxRatePercent: 0,
+    taxTreatment: "export_of_services",
+    walletCreditPaise: 10000,
+    exchangeRate: 84,
+  });
 });
 
 test("completed order rejects another payment id", async () => {

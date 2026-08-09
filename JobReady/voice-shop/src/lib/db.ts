@@ -99,6 +99,20 @@ function initializeDatabase() {
   CREATE INDEX IF NOT EXISTS idx_wallet_topup_orders_user
   ON wallet_topup_orders(user_id, created_at DESC);
 
+  CREATE TABLE IF NOT EXISTS wallet_topup_tax_records (
+    order_id INTEGER PRIMARY KEY,
+    tax_treatment TEXT NOT NULL CHECK(tax_treatment IN ('gst_inclusive_domestic', 'export_of_services')),
+    tax_rate_bps INTEGER NOT NULL CHECK(tax_rate_bps IN (0, 1800)),
+    total_minor INTEGER NOT NULL CHECK(total_minor > 0),
+    base_minor INTEGER NOT NULL CHECK(base_minor > 0),
+    gst_minor INTEGER NOT NULL CHECK(gst_minor >= 0),
+    wallet_credit_paise INTEGER NOT NULL CHECK(wallet_credit_paise > 0),
+    exchange_rate REAL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES wallet_topup_orders(id) ON DELETE CASCADE,
+    CHECK(total_minor = base_minor + gst_minor)
+  );
+
   CREATE TABLE IF NOT EXISTS free_trial_claims (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL UNIQUE,

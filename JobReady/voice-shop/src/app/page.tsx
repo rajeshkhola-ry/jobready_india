@@ -159,7 +159,7 @@ export default function Home() {
       currency: order.currency,
       order_id: order.orderId,
       name: "GETREADYJOB Voice Shop",
-      description: `₹${selectedTopUp} wallet top-up`,
+      description: `${order.currency} ${Number(order.amount / 100).toFixed(2)} wallet top-up`,
       prefill: { name: user.fullName, email: user.email },
       theme: { color: "#0c6b4e" },
       modal: { ondismiss: () => { setPaymentBusy(false); setStatus("Payment cancelled. Your wallet was not charged."); } },
@@ -244,7 +244,7 @@ export default function Home() {
         <div className="rate-grid">
           <article className="rate-panel personal"><div className="rate-icon"><UserRound /></div><p>Personal</p><strong>{catalog ? `${catalog.symbol}${catalog.walletRates.personal}` : "..."}<small>/min</small></strong><span>Voice projects for individual use</span></article>
           <article className="rate-panel business"><div className="rate-icon"><CircleDollarSign /></div><p>Business</p><strong>{catalog ? `${catalog.symbol}${catalog.walletRates.business}` : "..."}<small>/min</small></strong><span>Commercial and client-facing production</span></article>
-          <div className="topup-panel"><div><WalletCards size={22} /><h3>Wallet top-ups</h3></div><div className="topup-options">{(catalog?.walletTopUpsInr || []).map((amount) => <button type="button" className={selectedTopUp === amount ? "selected" : ""} aria-pressed={selectedTopUp === amount} onClick={() => setSelectedTopUp(amount)} key={amount}>₹{amount}</button>)}</div>{selectedTopUp && <button className="primary-button topup-pay-button" type="button" disabled={paymentBusy} onClick={proceedToWalletPayment}>💳 {paymentBusy ? "Opening secure checkout..." : `Proceed to Pay ₹${selectedTopUp}`}</button>}<p>Balance alerts appear before funds run low. Payments are securely processed by Razorpay.</p></div>
+          <div className="topup-panel"><div><WalletCards size={22} /><h3>Wallet top-ups</h3></div><div className="topup-options">{(catalog?.walletTopUpsInr || []).map((amount, index) => <button type="button" className={selectedTopUp === amount ? "selected" : ""} aria-pressed={selectedTopUp === amount} onClick={() => setSelectedTopUp(amount)} key={amount}>{catalog?.symbol}{catalog?.walletTopUps[index]}</button>)}</div>{selectedTopUp && <button className="primary-button topup-pay-button" type="button" disabled={paymentBusy} onClick={proceedToWalletPayment}>💳 {paymentBusy ? "Opening secure checkout..." : `Proceed to Pay ${catalog?.symbol}${catalog?.walletTopUps[catalog.walletTopUpsInr.indexOf(selectedTopUp)]}`}</button>}<p>{catalog?.currency === "INR" ? "Displayed recharge totals include 18% GST." : "International recharge is treated as export of services at 0% GST."} Payments are securely processed by Razorpay.</p></div>
         </div>
       </section>
 
