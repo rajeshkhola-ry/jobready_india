@@ -36,6 +36,18 @@ const universalFeatures = ["AI Voice Shop & Calling", "AI Mock Interview Practic
 const planColumns = ["1-Day Pass", "7-Days Pass", "30-Days Pass", "1-Year Pass"] as const;
 const indianLanguages = ["Hindi", "Tamil", "Telugu", "Bengali", "Marathi", "Gujarati", "Kannada", "Malayalam", "Punjabi", "Odia", "Assamese", "Urdu"] as const;
 const internationalLanguages = ["English (US/UK/IN)", "Spanish", "French", "German", "Mandarin Chinese", "Japanese", "Korean", "Arabic", "Russian", "Portuguese", "Italian", "Dutch", "Turkish", "Vietnamese", "Indonesian"] as const;
+const footerLinks = [
+  { label: "About Us", href: "https://getreadyjob.com/#/about" },
+  { label: "Contact", href: "https://getreadyjob.com/#/contact" },
+  { label: "Pricing", href: "#pricing" },
+  { label: "FAQ", href: "#faq" },
+  { label: "Help Center / Support", href: "https://getreadyjob.com/#/support" },
+  { label: "Privacy Policy", href: "https://getreadyjob.com/#/privacy" },
+  { label: "Terms & Conditions", href: "https://getreadyjob.com/#/terms" },
+  { label: "Cookie Policy", href: "https://getreadyjob.com/#/cookie-policy" },
+  { label: "Disclaimer", href: "https://getreadyjob.com/#/disclaimer" },
+  { label: "Customer Reviews / Testimonials", href: "https://getreadyjob.com/#/testimonials" },
+] as const;
 const faqs = [
   {
     question: "How does the AI Mock Interviewer help me practise?",
@@ -272,7 +284,25 @@ export default function Home() {
         <p className="language-upcoming-note"><strong>🚀 Rest of the World:</strong> We are actively expanding our AI speech models for all remaining global languages and dialects. Rolling out soon!</p>
       </section>
 
-      <footer><span>CADDADDY Voice Shop</span><span>Secure voice access for global customers</span></footer>
+      <footer className="production-footer">
+        <div className="footer-brand">
+          <strong>GETREADYJOB</strong>
+          <p>Professional tools for resumes, documents, PDF workflows, and AI voice tasks.</p>
+        </div>
+        <nav className="footer-links" aria-label="Footer navigation">
+          {footerLinks.map((link) => <a href={link.href} key={link.label}>{link.label}</a>)}
+        </nav>
+        <div className="footer-details">
+          <div>
+            <a href="mailto:hello@getreadyjob.com">Business email: hello@getreadyjob.com</a>
+            <p>Social: LinkedIn (Coming Soon) • X/Twitter (Coming Soon) • YouTube (Coming Soon)</p>
+          </div>
+          <div>
+            <a href="https://getreadyjob.com/">Website: getreadyjob.com</a>
+            <p>Copyright 2026 GETREADYJOB. All rights reserved.</p>
+          </div>
+        </div>
+      </footer>
 
       {authOpen && <AuthDialog mode={authMode} status={status} trialEnabled={catalog?.trialEnabled === true} onModeChange={setAuthMode} onClose={() => setAuthOpen(false)} onAuthenticated={(authenticatedUser) => { setUser(authenticatedUser); setAuthOpen(false); setStatus(catalog?.trialEnabled === true ? "Account verified. Your trial is ready to activate." : "Account verified. You are signed in securely."); }} onStatus={setStatus} />}
     </main>
