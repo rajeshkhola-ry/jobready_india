@@ -7,6 +7,7 @@ import Link from "next/link";
 
 type AuthMode = "login" | "signup" | "forgot";
 type SessionUser = { id: number; email: string; fullName: string };
+type OAuthProviders = { google: boolean; microsoft: boolean };
 type PriceCatalog = {
   currency: "INR" | "USD";
   symbol: string;
@@ -72,10 +73,11 @@ export default function Home() {
   const [busy, setBusy] = useState(false);
   const [selectedTopUp, setSelectedTopUp] = useState<number | null>(null);
   const [paymentBusy, setPaymentBusy] = useState(false);
+  const [oauthProviders, setOAuthProviders] = useState<OAuthProviders>({ google: false, microsoft: false });
 
   useEffect(() => {
     Promise.all([fetch("/api/auth/me").then((response) => response.json()), fetch("/api/pricing").then((response) => response.json())])
-      .then(([session, pricing]) => { setUser(session.user || null); setCatalog(pricing); });
+      .then(([session, pricing]) => { setUser(session.user || null); setOAuthProviders(session.oauthProviders || { google: false, microsoft: false }); setCatalog(pricing); });
   }, []);
 
   async function claimTrial() {
@@ -304,13 +306,14 @@ export default function Home() {
         </div>
       </footer>
 
-      {authOpen && <AuthDialog mode={authMode} status={status} trialEnabled={catalog?.trialEnabled === true} onModeChange={setAuthMode} onClose={() => setAuthOpen(false)} onAuthenticated={(authenticatedUser) => { setUser(authenticatedUser); setAuthOpen(false); setStatus(catalog?.trialEnabled === true ? "Account verified. Your trial is ready to activate." : "Account verified. You are signed in securely."); }} onStatus={setStatus} />}
+      {authOpen && <AuthDialog key={authMode} mode={authMode} status={status} trialEnabled={catalog?.trialEnabled === true} oauthProviders={oauthProviders} onModeChange={setAuthMode} onClose={() => setAuthOpen(false)} onAuthenticated={(authenticatedUser) => { setUser(authenticatedUser); setAuthOpen(false); setStatus(catalog?.trialEnabled === true ? "Account verified. Your trial is ready to activate." : "Account verified. You are signed in securely."); }} onStatus={setStatus} />}
     </main>
   );
 }
 
-function AuthDialog({ mode, status, trialEnabled, onModeChange, onClose, onAuthenticated, onStatus }: { mode: AuthMode; status: string; trialEnabled: boolean; onModeChange: (mode: AuthMode) => void; onClose: () => void; onAuthenticated: (user: SessionUser) => void; onStatus: (message: string) => void; }) {
+function AuthDialog({ mode, status, trialEnabled, oauthProviders, onModeChange, onClose, onAuthenticated, onStatus }: { mode: AuthMode; status: string; trialEnabled: boolean; oauthProviders: OAuthProviders; onModeChange: (mode: AuthMode) => void; onClose: () => void; onAuthenticated: (user: SessionUser) => void; onStatus: (message: string) => void; }) {
   const [busy, setBusy] = useState(false);
+  const [email, setEmail] = useState("");
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
@@ -329,11 +332,11 @@ function AuthDialog({ mode, status, trialEnabled, onModeChange, onClose, onAuthe
         <button className="dialog-close" onClick={onClose} aria-label="Close"><X /></button><p className="eyebrow">Caddaddy account</p>
         <h2 id="auth-title">{mode === "signup" ? "Create your account" : mode === "forgot" ? "Reset your password" : "Welcome back"}</h2>
         <p>{mode === "signup" ? (trialEnabled ? "Your account protects trial access, wallet balance, and active passes." : "Your account protects wallet balance and active passes.") : mode === "forgot" ? "Enter your registered email to prepare a secure reset link." : "Sign in to continue to Voice Shop."}</p>
-        {mode !== "forgot" && <div className="social-grid"><Link href="/api/auth/oauth/google" className="social-button"><span className="google-g">G</span> Continue with Google</Link><Link href="/api/auth/oauth/microsoft" className="social-button"><span className="ms-mark"><i /><i /><i /><i /></span> Continue with Microsoft</Link></div>}
-        {mode !== "forgot" && <div className="or-divider"><span>or use email</span></div>}
+        {mode !== "forgot" && (oauthProviders.google || oauthProviders.microsoft) && <div className="social-grid">{oauthProviders.google && <Link href="/api/auth/oauth/google" className="social-button"><span className="google-g">G</span> Continue with Google</Link>}{oauthProviders.microsoft && <Link href="/api/auth/oauth/microsoft" className="social-button"><span className="ms-mark"><i /><i /><i /><i /></span> Continue with Microsoft</Link>}</div>}
+        {mode !== "forgot" && (oauthProviders.google || oauthProviders.microsoft) && <div className="or-divider"><span>or use email</span></div>}
         <form onSubmit={submit} className="auth-form">
           {mode === "signup" && <><label>Full name<input name="fullName" required minLength={2} autoComplete="name" /></label><div className="field-pair"><label>Mobile number<input name="mobile" required minLength={7} autoComplete="tel" /></label><label>Country<input name="country" required minLength={2} autoComplete="country-name" /></label></div></>}
-          <label>Email ID<input name="email" type="email" required autoComplete="email" /></label>
+          <label>Email ID<input name="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required autoComplete="off" data-1p-ignore data-lpignore="true" /></label>
           {mode !== "forgot" && <label>Password<input name="password" type="password" required minLength={8} autoComplete={mode === "signup" ? "new-password" : "current-password"} /></label>}
           <button className="primary-button form-submit" disabled={busy}>{busy ? "Please wait..." : mode === "signup" ? "Create account" : mode === "forgot" ? "Prepare reset link" : "Sign in"}<ArrowRight size={17} /></button>
         </form>

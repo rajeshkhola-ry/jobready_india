@@ -83,6 +83,14 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
         return;
       }
 
+      if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) {
+        setState(() {
+          _errorText = 'Please enter a valid email address.';
+          _isSubmitting = false;
+        });
+        return;
+      }
+
       if (_mode == UserAuthMode.createAccount) {
         if (_nameController.text.trim().isEmpty) {
           setState(() {
@@ -222,142 +230,6 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
     }
   }
 
-  Future<void> _continueWithGoogle() async {
-    setState(() {
-      _isSubmitting = true;
-      _errorText = null;
-      _successText = null;
-    });
-
-    try {
-      final autoSession = await UserAuthService.signInWithGoogleAuto(
-        selectedPlan: widget.preselectedPlan,
-      );
-      if (autoSession != null) {
-        if (!mounted) {
-          return;
-        }
-        await AuthRouterService.markUserAuthenticated(authToken: 'user-session');
-        Navigator.of(context).pop();
-        if (widget.onAuthenticated != null) {
-          widget.onAuthenticated!(
-            widget.preselectedPlan,
-            widget.selectedCurrency,
-          );
-          return;
-        }
-        if (widget.stayOnHomeAfterAuth) {
-          return;
-        }
-        if (widget.preselectedPlan != null &&
-            widget.preselectedPlan!.trim().isNotEmpty) {
-          Navigator.of(context).pushNamed(
-            '/dashboard',
-            arguments: {'plan': widget.preselectedPlan},
-          );
-        } else {
-          AuthRouterService.redirectAfterLogin(
-            context,
-            fallbackRoute: '/dashboard',
-          );
-        }
-        return;
-      }
-
-      final email = _emailController.text.trim();
-      final name = _nameController.text.trim();
-      final country = _countryController.text.trim();
-      final mobile = _mobileController.text.trim();
-
-      if (email.isEmpty) {
-        setState(() {
-          _errorText = 'No active Google session found. Enter your Google details to continue.';
-          _isSubmitting = false;
-        });
-        return;
-      }
-      if (name.isEmpty) {
-        setState(() {
-          _errorText = 'Enter your full name to continue with Google.';
-          _isSubmitting = false;
-        });
-        return;
-      }
-      if (country.isEmpty) {
-        setState(() {
-          _errorText = 'Please enter your country.';
-          _isSubmitting = false;
-        });
-        return;
-      }
-      if (!_isValidMobile(mobile)) {
-        setState(() {
-          _errorText = 'Enter a valid mobile number (minimum 10 digits) to continue with Google.';
-          _isSubmitting = false;
-        });
-        return;
-      }
-
-      final session = await UserAuthService.signInWithGoogle(
-        email: email,
-        displayName: name,
-        country: country,
-        countryCode: '+91',
-        mobileNumber: mobile,
-        selectedPlan: widget.preselectedPlan,
-      );
-
-      if (session == null) {
-        setState(() {
-          _errorText = 'Google sign-in could not be completed.';
-          _isSubmitting = false;
-        });
-        return;
-      }
-
-      if (!mounted) {
-        return;
-      }
-      await AuthRouterService.markUserAuthenticated(authToken: 'user-session');
-      Navigator.of(context).pop();
-      if (widget.onAuthenticated != null) {
-        widget.onAuthenticated!(
-          widget.preselectedPlan,
-          widget.selectedCurrency,
-        );
-        return;
-      }
-      if (widget.stayOnHomeAfterAuth) {
-        return;
-      }
-      if (widget.preselectedPlan != null &&
-          widget.preselectedPlan!.trim().isNotEmpty) {
-        Navigator.of(
-          context,
-        ).pushNamed('/dashboard', arguments: {'plan': widget.preselectedPlan});
-      } else {
-        AuthRouterService.redirectAfterLogin(
-          context,
-          fallbackRoute: '/dashboard',
-        );
-      }
-    } on AuthRestrictionException catch (exception) {
-      if (mounted) {
-        setState(() {
-          _errorText = exception.message;
-          _isSubmitting = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _errorText = 'Google sign-in failed. Please try again.';
-          _isSubmitting = false;
-        });
-      }
-    }
-  }
-
   Future<void> _forgotPassword() async {
     final email = _emailController.text.trim();
     if (email.isEmpty) {
@@ -415,6 +287,8 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
                           _mode = isCreateAccount
                               ? UserAuthMode.signIn
                               : UserAuthMode.createAccount;
+                            _emailController.clear();
+                            _passwordController.clear();
                           _errorText = null;
                           _successText = null;
                         });
@@ -450,6 +324,9 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
                 TextField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
+                  autofillHints: const <String>[],
+                  autocorrect: false,
+                  enableSuggestions: false,
                   decoration: const InputDecoration(
                     labelText: 'Email ID',
                     border: OutlineInputBorder(),
@@ -470,33 +347,6 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
                     keyboardType: TextInputType.phone,
                     decoration: const InputDecoration(
                       labelText: 'Mobile Number',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                if (!isCreateAccount) ...[
-                  TextField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Full Name (required for Google sign-in)',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _countryController,
-                    decoration: const InputDecoration(
-                      labelText: 'Country (required for Google sign-in)',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _mobileController,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                      labelText: 'Mobile Number (required for Google sign-in)',
                       border: OutlineInputBorder(),
                     ),
                   ),
@@ -582,23 +432,6 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       backgroundColor: const Color(0xFF2563EB),
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: _isSubmitting ? null : _continueWithGoogle,
-                    icon: const Icon(Icons.g_mobiledata_rounded),
-                    label: const Text('Continue with Google'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: const BorderSide(color: Color(0xFFC7D2FE)),
-                      foregroundColor: const Color(0xFF1E3A8A),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),

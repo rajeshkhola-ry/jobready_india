@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
+import { getOAuthConfig } from "@/lib/oauth-config";
 
 type Provider = "google" | "microsoft";
 
@@ -8,9 +9,8 @@ export async function GET(_: Request, context: RouteContext<"/api/auth/oauth/[pr
   if (provider !== "google" && provider !== "microsoft") return NextResponse.json({ error: "Unsupported OAuth provider." }, { status: 404 });
 
   const normalizedProvider = provider as Provider;
-  const clientId = normalizedProvider === "google" ? process.env.GOOGLE_CLIENT_ID : process.env.MICROSOFT_CLIENT_ID;
-  const redirectUri = normalizedProvider === "google" ? process.env.GOOGLE_REDIRECT_URI : process.env.MICROSOFT_REDIRECT_URI;
-  if (!clientId || !redirectUri) {
+  const { clientId, clientSecret, redirectUri } = getOAuthConfig(normalizedProvider);
+  if (!clientId || !clientSecret || !redirectUri) {
     return NextResponse.json({
       error: `${normalizedProvider === "google" ? "Google" : "Microsoft"} OAuth is ready for credentials. Add the client ID, client secret, and redirect URI environment variables.`,
     }, { status: 503 });

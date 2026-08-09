@@ -2,6 +2,7 @@ import { cookies, headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { setSession } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { getOAuthConfig } from "@/lib/oauth-config";
 
 type Provider = "google" | "microsoft";
 type SocialProfile = { subject: string; email: string; fullName: string };
@@ -34,9 +35,7 @@ export async function GET(request: Request, context: RouteContext<"/api/auth/oau
 
 async function exchangeCode(provider: Provider, code: string) {
   const isGoogle = provider === "google";
-  const clientId = isGoogle ? process.env.GOOGLE_CLIENT_ID : process.env.MICROSOFT_CLIENT_ID;
-  const clientSecret = isGoogle ? process.env.GOOGLE_CLIENT_SECRET : process.env.MICROSOFT_CLIENT_SECRET;
-  const redirectUri = isGoogle ? process.env.GOOGLE_REDIRECT_URI : process.env.MICROSOFT_REDIRECT_URI;
+  const { clientId, clientSecret, redirectUri } = getOAuthConfig(provider);
   if (!clientId || !clientSecret || !redirectUri) throw new Error("OAuth credentials are incomplete");
 
   const tenant = process.env.MICROSOFT_TENANT_ID || "common";

@@ -7387,7 +7387,6 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
 
   String _selectedCountry = 'India';
   String _selectedCountryCode = '+91';
-  bool _googleLoginPreferred = false;
 
   String _detectCountryByLocale() {
     final language = html.window.navigator.language?.toUpperCase() ?? '';
@@ -7410,7 +7409,6 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
     _selectedCountryCode = profile.countryCode.isNotEmpty
       ? profile.countryCode
       : (_countryDialCodeMap[_selectedCountry] ?? '+91');
-    _googleLoginPreferred = profile.googleLoginPreferred;
   }
 
   @override
@@ -7455,7 +7453,7 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
       countryCode: _selectedCountryCode,
       mobileNumber: mobile,
       historyEnabled: true,
-      googleLoginPreferred: _googleLoginPreferred,
+      googleLoginPreferred: previousProfile.googleLoginPreferred,
     );
 
     await UserAccountService.saveProfile(profile);
@@ -7465,17 +7463,6 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Account details saved.')),
-    );
-  }
-
-  void _loginWithGoogle() {
-    html.window.open('https://accounts.google.com/signin', '_blank');
-    setState(() {
-      _googleLoginPreferred = true;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Google sign-in page opened.')),
     );
   }
 
@@ -7542,6 +7529,9 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
           TextField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
+            autofillHints: const <String>[],
+            autocorrect: false,
+            enableSuggestions: false,
             decoration: InputDecoration(
               labelText: 'Email ID',
               hintText: 'name@example.com',
@@ -7665,20 +7655,6 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
             ],
           ),
           const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: _loginWithGoogle,
-              icon: const Icon(Icons.g_mobiledata_rounded, size: 20),
-              label: const Text('Login with Google'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF0F172A),
-                side: const BorderSide(color: Color(0xFFBFDBFE)),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              ),
-            ),
-          ),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
