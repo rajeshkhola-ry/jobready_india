@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { ArrowLeft, Eye, EyeOff, Gauge, Save, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
@@ -16,6 +16,38 @@ export default function VoiceShopAdminPage() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [status, setStatus] = useState("Enter the Voice Shop control key to load settings.");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const fragment = new URLSearchParams(window.location.hash.slice(1));
+    const token = fragment.get("sso");
+    if (!token) return;
+
+    window.history.replaceState(null, "", window.location.pathname);
+    void (async () => {
+      const exchange = await fetch("/api/admin/sso", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+      if (!exchange.ok) {
+        const data = await exchange.json().catch(() => null);
+        setStatus(data?.error || "Unable to verify your main admin session.");
+        return;
+      }
+
+      setBusy(true);
+      setStatus("GETREADYJOB admin verified. Loading Voice Shop controls...");
+      const response = await fetch("/api/admin/voice-shop");
+      const data = await response.json();
+      setBusy(false);
+      if (!response.ok) {
+        setStatus(data.error || "Unable to load Voice Shop settings.");
+        return;
+      }
+      setSettings(data.settings);
+      setStatus("Secure admin gateway connected. Voice Shop controls loaded.");
+    })();
+  }, []);
 
   async function loadSettings(event: FormEvent) {
     event.preventDefault();

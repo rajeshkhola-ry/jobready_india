@@ -153,6 +153,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     } catch (_) {}
   }
 
+  void _openVoiceShopAdmin() {
+    final token = AuthRouterService.authToken;
+    final destination = token.isEmpty
+        ? 'https://voice.getreadyjob.com/admin'
+        : 'https://voice.getreadyjob.com/admin#sso=${Uri.encodeComponent(token)}';
+    _storeAuditEntry('Voice Shop admin opened');
+    WebSafeBrowser.openWindow(destination, target: '_self');
+  }
+
   void _openPricingDialog(BuildContext context) {
     showDialog<void>(
       context: context,
@@ -533,6 +542,13 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       description: 'Enable the builder and set the default resume experience.',
                       icon: Icons.article_outlined,
                       onTap: () => _openResumeDialog(context),
+                    ),
+                    _AdminCard(
+                      title: '🎙️ AI Voice Shop Settings',
+                      description:
+                          'Manage per-minute rates (e.g. ₹5 - ₹7/min), adjust user talk-time minutes, control trial rules, and view voice shop logs.',
+                      icon: Icons.settings_voice_outlined,
+                      onTap: _openVoiceShopAdmin,
                     ),
                   ],
                 ),

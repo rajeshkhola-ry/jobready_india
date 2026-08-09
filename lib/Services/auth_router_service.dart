@@ -10,6 +10,9 @@ class AuthRouterService {
   static const String _roleStorageKey = 'jobready_auth_role_v1';
   static const String _authTokenStorageKey = 'jobready_auth_token_v1';
 
+  static String get authToken =>
+      WebSafeBrowser.readLocalStorage(_authTokenStorageKey)?.toString().trim() ?? '';
+
   static String getCurrentRole({String fallback = 'guest'}) {
     final storedRole = WebSafeBrowser.readLocalStorage(_roleStorageKey)?.toString().trim().toLowerCase();
     if (storedRole == 'admin') {
