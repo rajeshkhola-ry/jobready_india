@@ -17,10 +17,22 @@ export default function VoiceShopAdminPage() {
   const [status, setStatus] = useState("Enter the Voice Shop control key to load settings.");
   const [busy, setBusy] = useState(false);
 
+  async function fetchSettings() {
+    const response = await fetch("/api/admin/voice-shop");
+    const data = await response.json();
+    if (!response.ok) return false;
+    setSettings(data.settings);
+    setStatus("Secure admin session connected. Voice Shop controls loaded.");
+    return true;
+  }
+
   useEffect(() => {
     const fragment = new URLSearchParams(window.location.hash.slice(1));
     const token = fragment.get("sso");
-    if (!token) return;
+    if (!token) {
+      queueMicrotask(() => void fetchSettings());
+      return;
+    }
 
     window.history.replaceState(null, "", window.location.pathname);
     void (async () => {
@@ -31,37 +43,38 @@ export default function VoiceShopAdminPage() {
       });
       if (!exchange.ok) {
         const data = await exchange.json().catch(() => null);
-        setStatus(data?.error || "Unable to verify your main admin session.");
+        if (!await fetchSettings()) {
+          setStatus(data?.error || "Unable to verify your main admin session.");
+        }
         return;
       }
 
       setBusy(true);
       setStatus("GETREADYJOB admin verified. Loading Voice Shop controls...");
-      const response = await fetch("/api/admin/voice-shop");
-      const data = await response.json();
+      const loaded = await fetchSettings();
       setBusy(false);
-      if (!response.ok) {
-        setStatus(data.error || "Unable to load Voice Shop settings.");
-        return;
-      }
-      setSettings(data.settings);
-      setStatus("Secure admin gateway connected. Voice Shop controls loaded.");
+      if (!loaded) setStatus("Unable to load Voice Shop settings.");
     })();
   }, []);
 
   async function loadSettings(event: FormEvent) {
     event.preventDefault();
     setBusy(true);
-    const response = await fetch("/api/admin/voice-shop", { headers: { "x-voice-shop-admin-key": adminKey } });
+    const response = await fetch("/api/admin/session", {
+      method: "POST",
+      headers: { "x-voice-shop-admin-key": adminKey },
+    });
     const data = await response.json();
-    setBusy(false);
     if (!response.ok) {
+      setBusy(false);
       setSettings(null);
       setStatus(data.error || "Unable to load Voice Shop settings.");
       return;
     }
-    setSettings(data.settings);
-    setStatus("Voice Shop controls loaded.");
+    setAdminKey("");
+    const loaded = await fetchSettings();
+    setBusy(false);
+    if (!loaded) setStatus("Admin verified, but Voice Shop settings could not be loaded.");
   }
 
   async function saveSettings(event: FormEvent) {
