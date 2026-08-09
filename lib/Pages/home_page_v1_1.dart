@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:js' as js;
-import 'dart:js_util' as js_util;
+import 'dart:js_interop' as js_interop;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -396,6 +396,10 @@ class _HomePageV11State extends State<HomePageV11> {
     html.window.open(mailto, '_blank');
   }
 
+  void _openHelloJobTranslator() {
+    html.window.open('https://hello.getreadyjob.com', '_blank');
+  }
+
   void _showSuggestionDialog() {
     final suggestionController = TextEditingController();
     String selectedType = 'Suggestion';
@@ -768,6 +772,7 @@ class _HomePageV11State extends State<HomePageV11> {
     final monthlyPriceLine = _planPriceLine('Monthly', ' per month');
     final yearlyPriceLine = _planPriceLine('Yearly', ' per year');
     final lifetimePriceLine = _planPriceLine('Lifetime', ' one-time');
+    final useCompactHeaderActions = MediaQuery.sizeOf(context).width < 1100;
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7FB),
 
@@ -789,6 +794,34 @@ class _HomePageV11State extends State<HomePageV11> {
               icon: Icons.install_mobile_rounded,
               iconColor: const Color(0xFF1F4E79),
               onTap: _triggerPwaInstall,
+            ),
+          if (useCompactHeaderActions)
+            _TopActionIcon(
+              tooltip: 'Open Hello Job AI Live Voice Translator',
+              icon: Icons.headset_mic_rounded,
+              iconColor: const Color(0xFF0891B2),
+              onTap: _openHelloJobTranslator,
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+              child: FilledButton.icon(
+                onPressed: _openHelloJobTranslator,
+                icon: const Badge(
+                  backgroundColor: Color(0xFF22D3EE),
+                  smallSize: 7,
+                  child: Icon(Icons.headset_mic_rounded, size: 18),
+                ),
+                label: const Text('Hello Job AI'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF0F172A),
+                  foregroundColor: Colors.white,
+                  textStyle: const TextStyle(fontWeight: FontWeight.w800),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
             ),
           TextButton.icon(
             onPressed: _openUserLoginPanel,
@@ -985,10 +1018,10 @@ class _HomePageV11State extends State<HomePageV11> {
                 LayoutBuilder(
                   builder: (context, constraints) {
                     final isCompact = constraints.maxWidth < 600;
-                    final bannerMaxWidth = isCompact ? constraints.maxWidth : 760.0;
+                    final bannerMaxWidth = isCompact ? constraints.maxWidth : 900.0;
                     final bannerPadding = EdgeInsets.symmetric(
-                      horizontal: isCompact ? 18 : 30,
-                      vertical: isCompact ? 20 : 28,
+                      horizontal: isCompact ? 14 : 20,
+                      vertical: isCompact ? 12 : 14,
                     );
 
                     return Center(
@@ -1013,49 +1046,54 @@ class _HomePageV11State extends State<HomePageV11> {
                               ),
                             ],
                           ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFE1F5ED),
-                                  borderRadius: BorderRadius.circular(999),
-                                  border: Border.all(color: const Color(0xFFA7D7C4)),
-                                ),
-                                child: const Text(
-                                  '✨ Premium Feature | AI Voice & Career Tools',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: Color(0xFF075A43),
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.w800,
-                                  ),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFE1F5ED),
+                                        borderRadius: BorderRadius.circular(999),
+                                        border: Border.all(color: const Color(0xFFA7D7C4)),
+                                      ),
+                                      child: const Text(
+                                        '✨ Premium | AI Voice & Career Tools',
+                                        style: TextStyle(
+                                          color: Color(0xFF075A43),
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 5),
+                                    Text(
+                                      'Next-Gen AI Voice & Career Tools 🎙️',
+                                      style: TextStyle(
+                                        color: const Color(0xFF102A24),
+                                        fontSize: isCompact ? 15 : 19,
+                                        height: 1.15,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      'AI Mock Interviews • Voice Translator • Study Assistant • ATS Resume',
+                                      style: TextStyle(
+                                        color: const Color(0xFF48645B),
+                                        fontSize: isCompact ? 11.5 : 13,
+                                        height: 1.4,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              SizedBox(height: isCompact ? 14 : 18),
-                              Text(
-                                'Experience Next-Gen AI Voice & Career Tools 🎙️',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: const Color(0xFF102A24),
-                                  fontSize: isCompact ? 23 : 30,
-                                  height: 1.12,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                'Practice AI Mock Interviews • Real-time Voice Translator • AI Study Assistant • ATS Resume Builder',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: const Color(0xFF48645B),
-                                  fontSize: isCompact ? 12.5 : 14,
-                                  height: 1.5,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              SizedBox(height: isCompact ? 18 : 22),
+                              SizedBox(width: isCompact ? 12 : 16),
                               FilledButton(
                                 onPressed: () {
                                   html.window.open('https://voice.getreadyjob.com', '_self');
@@ -1064,15 +1102,15 @@ class _HomePageV11State extends State<HomePageV11> {
                                   backgroundColor: const Color(0xFF0C6B4E),
                                   foregroundColor: Colors.white,
                                   padding: EdgeInsets.symmetric(
-                                    horizontal: isCompact ? 20 : 28,
-                                    vertical: isCompact ? 13 : 15,
+                                    horizontal: isCompact ? 14 : 20,
+                                    vertical: isCompact ? 10 : 12,
                                   ),
-                                  textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  elevation: 4,
-                                  shadowColor: const Color(0xFF0C6B4E).withValues(alpha: 0.32),
+                                  textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  elevation: 3,
+                                  shadowColor: const Color(0xFF0C6B4E).withValues(alpha: 0.28),
                                 ),
-                                child: const Text('🚀 Explore Voice Shop →'),
+                                child: const Text('🚀 Explore →'),
                               ),
                             ],
                           ),
@@ -2031,6 +2069,38 @@ class _PlanCardTile extends StatefulWidget {
 class _PlanCardTileState extends State<_PlanCardTile> {
   bool _hovered = false;
 
+  String _getFormattedEnabledTools(String title, List<String> rawTools) {
+    final upperTitle = title.toUpperCase();
+    if (upperTitle.contains('MONTHLY')) {
+      return 'All Core & PDF tools, Edit PDF & OCR, Batch Compress, Micro-Canva, Resume Canvas, Poster Studio, HD Photo, AI Resume';
+    }
+    if (upperTitle.contains('YEARLY')) {
+      return 'All Monthly tools + History, Priority Processing & Full Suite Access';
+    }
+    if (upperTitle.contains('LIFETIME')) {
+      return 'All Yearly tools + Lifetime Unlimited Access (1 PC + 1 Mobile)';
+    }
+    if (upperTitle.contains('7 DAYS') || upperTitle.contains('7DAYS')) {
+      return 'Compress, Convert, Merge, Split, Extract, Edit PDF, OCR, Target KB Compress, HD Photo, AI Resume';
+    }
+    if (upperTitle.contains('FREE')) {
+      return 'Compress, Convert, Merge, Split, Extract, Target KB Compress, HD Photo, AI Resume';
+    }
+
+    final cleaned = <String>[];
+    for (final t in rawTools) {
+      String name = t;
+      if (name.contains('(')) {
+        name = name.split('(').first.trim();
+      }
+      if (name.isEmpty) continue;
+      if (!cleaned.contains(name)) {
+        cleaned.add(name);
+      }
+    }
+    return cleaned.join(', ');
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isPro = widget.title == 'Pro';
@@ -2181,7 +2251,7 @@ class _PlanCardTileState extends State<_PlanCardTile> {
                 if (widget.enabledTools.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(
-                    'Enabled tools: ${widget.enabledTools.join(', ')}',
+                    'Enabled tools: ${_getFormattedEnabledTools(widget.title, widget.enabledTools)}',
                     style: const TextStyle(
                       fontSize: 11,
                       color: Color(0xFF475569),
@@ -3162,7 +3232,7 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
     }
 
     try {
-      final dartified = js_util.dartify(normalized);
+      final dartified = (normalized as js_interop.JSAny?).dartify();
       if (dartified is Map) {
         return Map<String, dynamic>.from(dartified);
       }
