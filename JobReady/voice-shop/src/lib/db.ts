@@ -1,8 +1,38 @@
-import Database from "better-sqlite3";
 import fs from "node:fs";
 import path from "node:path";
+import { DatabaseSync } from "node:sqlite";
 
-const globalForDatabase = globalThis as unknown as { voiceShopDatabase?: Database.Database };
+class VoiceShopDatabase {
+  constructor(private readonly database: DatabaseSync) {}
+
+  exec(sql: string) {
+    return this.database.exec(sql);
+  }
+
+  prepare(sql: string) {
+    return this.database.prepare(sql);
+  }
+
+  pragma(statement: string) {
+    return this.database.exec(`PRAGMA ${statement}`);
+  }
+
+  transaction<T>(callback: () => T) {
+    return () => {
+      this.database.exec("BEGIN IMMEDIATE");
+      try {
+        const result = callback();
+        this.database.exec("COMMIT");
+        return result;
+      } catch (error) {
+        this.database.exec("ROLLBACK");
+        throw error;
+      }
+    };
+  }
+}
+
+const globalForDatabase = globalThis as unknown as { voiceShopDatabase?: VoiceShopDatabase };
 
 function initializeDatabase() {
   const existing = globalForDatabase.voiceShopDatabase;
@@ -17,7 +47,7 @@ function initializeDatabase() {
   const databasePath = path.join(databaseDirectory, databaseFilename);
   fs.mkdirSync(path.dirname(databasePath), { recursive: true });
 
-  const database = new Database(databasePath);
+  const database = new VoiceShopDatabase(new DatabaseSync(databasePath));
   database.pragma("journal_mode = WAL");
   database.pragma("foreign_keys = ON");
   database.exec(`
@@ -100,7 +130,7 @@ function initializeDatabase() {
   return database;
 }
 
-export const db = new Proxy({} as Database.Database, {
+export const db = new Proxy({} as VoiceShopDatabase, {
   get(_target, property) {
     const database = initializeDatabase();
     const value = Reflect.get(database, property);

@@ -45,7 +45,7 @@ services:
       sizeGB: 1
     envVars:
       - key: NODE_VERSION
-        value: 20.18.0
+        value: 22.14.0
       - key: NEXT_PUBLIC_APP_URL
         value: https://voice.getreadyjob.com
       - key: DATABASE_DIR
