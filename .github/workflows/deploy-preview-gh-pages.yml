@@ -29,7 +29,7 @@ jobs:
         run: flutter pub get
 
       - name: Build Web (Custom domain root path)
-        run: flutter build web --release -t lib/main_v1_1.dart --base-href "/"
+        run: flutter build web --release -t lib/main_v1_1.dart --base-href "/" --no-tree-shake-icons
 
       - name: Add SPA 404 fallback
         run: cp web/404.html build/web/404.html
