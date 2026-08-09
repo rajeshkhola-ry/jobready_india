@@ -985,12 +985,11 @@ class _HomePageV11State extends State<HomePageV11> {
                 LayoutBuilder(
                   builder: (context, constraints) {
                     final isCompact = constraints.maxWidth < 600;
-                    final bannerMaxWidth = isCompact ? constraints.maxWidth : 560.0;
+                    final bannerMaxWidth = isCompact ? constraints.maxWidth : 760.0;
                     final bannerPadding = EdgeInsets.symmetric(
-                      horizontal: isCompact ? 18 : 24,
-                      vertical: isCompact ? 12 : 16,
+                      horizontal: isCompact ? 18 : 30,
+                      vertical: isCompact ? 20 : 28,
                     );
-                    final titleFontSize = isCompact ? 20.0 : 24.0;
 
                     return Center(
                       child: ConstrainedBox(
@@ -999,26 +998,83 @@ class _HomePageV11State extends State<HomePageV11> {
                           width: double.infinity,
                           padding: bannerPadding,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF9FCFF),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFFD4E3F1)),
-                            boxShadow: const [
+                            gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Color(0xFFF7FFFC), Color(0xFFF1F7FF)],
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFFBFDCD2), width: 1.2),
+                            boxShadow: [
                               BoxShadow(
-                                color: Color(0x1090A3BE),
-                                blurRadius: 12,
-                                offset: Offset(0, 4),
+                                color: const Color(0xFF0C6B4E).withValues(alpha: 0.12),
+                                blurRadius: 28,
+                                offset: const Offset(0, 12),
                               ),
                             ],
                           ),
-                          child: Text(
-                            'Welcome to GETREADYJOB!',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: const Color(0xFF244466),
-                              fontSize: titleFontSize,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.2,
-                            ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFE1F5ED),
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(color: const Color(0xFFA7D7C4)),
+                                ),
+                                child: const Text(
+                                  '✨ Premium Feature | AI Voice & Career Tools',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Color(0xFF075A43),
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                              SizedBox(height: isCompact ? 14 : 18),
+                              Text(
+                                'Experience Next-Gen AI Voice & Career Tools 🎙️',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: const Color(0xFF102A24),
+                                  fontSize: isCompact ? 23 : 30,
+                                  height: 1.12,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'Practice AI Mock Interviews • Real-time Voice Translator • AI Study Assistant • ATS Resume Builder',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: const Color(0xFF48645B),
+                                  fontSize: isCompact ? 12.5 : 14,
+                                  height: 1.5,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              SizedBox(height: isCompact ? 18 : 22),
+                              FilledButton(
+                                onPressed: () {
+                                  html.window.open('https://voice.getreadyjob.com', '_self');
+                                },
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: const Color(0xFF0C6B4E),
+                                  foregroundColor: Colors.white,
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: isCompact ? 20 : 28,
+                                    vertical: isCompact ? 13 : 15,
+                                  ),
+                                  textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  elevation: 4,
+                                  shadowColor: const Color(0xFF0C6B4E).withValues(alpha: 0.32),
+                                ),
+                                child: const Text('🚀 Explore Voice Shop →'),
+                              ),
+                            ],
                           ),
                         ),
                       ),
