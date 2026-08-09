@@ -422,7 +422,7 @@
     (function () {
       var bootstrapVersion = 'grj-20260802b-' + Date.now();
       var fallbackVersion = 'grj-render-fallback-20260802b';
-      var cleanupKey = 'grj-bootstrap-cleanup-' + bootstrapVersion;
+      var cleanupKey = 'grj-sw-retirement-20260809';
 
       function cacheBustedUrl(path) {
         if (!path) {
@@ -552,9 +552,6 @@
         if ('serviceWorker' in navigator) {
           var registrations = await navigator.serviceWorker.getRegistrations();
           await Promise.all(registrations.map(function (registration) {
-            // Keep our current SW; unregister any legacy ones
-            var scriptUrl = (registration.active && registration.active.scriptURL) || '';
-            if (scriptUrl.endsWith('/sw.js')) return Promise.resolve();
             return registration.unregister().catch(function () {
               return false;
             });
@@ -564,22 +561,10 @@
         if ('caches' in window) {
           var cacheKeys = await caches.keys();
           await Promise.all(cacheKeys.map(function (cacheKey) {
-            // Keep our versioned caches; delete any legacy ones
-            if (cacheKey.indexOf('grj-cache-v') === 0) return Promise.resolve();
             return caches.delete(cacheKey).catch(function () {
               return false;
             });
           }));
-        }
-      }
-
-      async function registerServiceWorker() {
-        if ('serviceWorker' in navigator) {
-          try {
-            await navigator.serviceWorker.register('/sw.js', { scope: '/' });
-          } catch (e) {
-            console.warn('GRJ SW registration failed:', e);
-          }
         }
       }
 
@@ -613,7 +598,6 @@
           setupAutoFallbackRenderer();
 
           if (window.localStorage && localStorage.getItem(cleanupKey) === 'done') {
-            registerServiceWorker();
             loadFlutter();
             return;
           }
@@ -627,7 +611,6 @@
           console.warn('Bootstrap cleanup failed.', error);
         }
 
-        registerServiceWorker();
         loadFlutter();
       }
 
