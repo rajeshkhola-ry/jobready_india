@@ -35,6 +35,7 @@ export async function setSession(user: SessionUser) {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
+    domain: process.env.NODE_ENV === "production" ? ".getreadyjob.com" : undefined,
     path: "/",
     maxAge: 60 * 60 * 24 * 7,
   });
@@ -42,7 +43,14 @@ export async function setSession(user: SessionUser) {
 
 export async function clearSession() {
   const cookieStore = await cookies();
-  cookieStore.delete(SESSION_COOKIE);
+  cookieStore.set(SESSION_COOKIE, "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    domain: process.env.NODE_ENV === "production" ? ".getreadyjob.com" : undefined,
+    path: "/",
+    maxAge: 0,
+  });
 }
 
 export async function getSession(): Promise<SessionUser | null> {

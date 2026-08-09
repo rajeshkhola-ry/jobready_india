@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../Services/auth_router_service.dart';
+import '../Services/shared_user_auth_service.dart';
 import '../Services/user_auth_service.dart';
 
 enum UserAuthMode { signIn, createAccount }
@@ -121,15 +122,30 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
           return;
         }
 
-        final session = await UserAuthService.signUpWithEmailPassword(
-          displayName: _nameController.text.trim(),
+        final shared = await SharedUserAuthService.signup(
+          fullName: _nameController.text.trim(),
           email: email,
-          password: password,
           country: _countryController.text.trim().isNotEmpty
               ? _countryController.text.trim()
               : 'India',
-          countryCode: '+91',
-          mobileNumber: _mobileController.text.trim(),
+          mobile: _mobileController.text.trim(),
+          password: password,
+        );
+        if (!shared.success) {
+          setState(() {
+            _errorText = shared.error ?? 'Shared account creation failed.';
+            _isSubmitting = false;
+          });
+          return;
+        }
+        final profile = shared.profile!;
+        final session = await UserAuthService.signUpWithEmailPassword(
+          displayName: profile.fullName,
+          email: profile.email,
+          password: password,
+          country: profile.country,
+          countryCode: profile.country.toLowerCase() == 'india' ? '+91' : '',
+          mobileNumber: profile.mobile,
           selectedPlan: widget.preselectedPlan,
         );
 
@@ -173,9 +189,23 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
         return;
       }
 
-      final session = await UserAuthService.signInWithEmailPassword(
-        email,
-        password,
+      final shared = await SharedUserAuthService.login(email, password);
+      if (!shared.success) {
+        setState(() {
+          _errorText = shared.error ?? 'Shared account sign-in failed.';
+          _isSubmitting = false;
+        });
+        return;
+      }
+      final profile = shared.profile!;
+      var session = await UserAuthService.signInWithEmailPassword(email, password, selectedPlan: widget.preselectedPlan);
+      session ??= await UserAuthService.signUpWithEmailPassword(
+        displayName: profile.fullName,
+        email: profile.email,
+        password: password,
+        country: profile.country,
+        countryCode: profile.country.toLowerCase() == 'india' ? '+91' : '',
+        mobileNumber: profile.mobile,
         selectedPlan: widget.preselectedPlan,
       );
       if (session == null) {

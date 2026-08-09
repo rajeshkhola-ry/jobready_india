@@ -2,7 +2,7 @@
 {{flutter_build_config}}
 
 (function () {
-  var entrypointVersion = 'grj-auth-fallback-a7c3bf4';
+  var entrypointVersion = 'grj-shared-sso-20260809';
   var builds = (_flutter.buildConfig && _flutter.buildConfig.builds) || [];
 
   builds.forEach(function (build) {

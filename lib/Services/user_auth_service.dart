@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../Utils/lifetime_device_limit_utils.dart';
 import '../Utils/web_safe_browser.dart';
+import 'shared_user_auth_service.dart';
 import 'user_account_service.dart';
 
 class UserAuthSession {
@@ -371,6 +372,7 @@ class UserAuthService {
   }
 
   static Future<void> signOut() async {
+    await SharedUserAuthService.logout();
     WebSafeBrowser.removeLocalStorage(_sessionStorageKey);
     WebSafeBrowser.removeLocalStorage(_authRoleStorageKey);
     WebSafeBrowser.removeLocalStorage(_authTokenStorageKey);
