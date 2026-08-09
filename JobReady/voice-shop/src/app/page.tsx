@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 type AuthMode = "login" | "signup" | "forgot";
-type SessionUser = { id: number; email: string; fullName: string };
+type SessionUser = { id: number; email: string; fullName: string; role?: "user" | "admin" };
 type OAuthProviders = { google: boolean; microsoft: boolean };
 type PassCode = "1-day" | "7-day" | "30-day" | "1-year";
 type CustomerType = "personal" | "business";
@@ -78,6 +78,7 @@ export default function Home() {
   const [oauthProviders, setOAuthProviders] = useState<OAuthProviders>({ google: false, microsoft: false });
   const [selectedPassCode, setSelectedPassCode] = useState<PassCode | null>(null);
   const [passPaymentBusy, setPassPaymentBusy] = useState(false);
+  const isAdmin = user?.role === "admin";
 
   useEffect(() => {
     Promise.all([fetch("/api/auth/me").then((response) => response.json()), fetch("/api/pricing").then((response) => response.json())])
@@ -85,6 +86,10 @@ export default function Home() {
   }, []);
 
   async function claimTrial() {
+    if (isAdmin) {
+      setStatus("Admin unlimited access is already active.");
+      return;
+    }
     if (!user) {
       setAuthMode("signup");
       setStatus("Create your verified account before activating the free trial.");
@@ -124,6 +129,11 @@ export default function Home() {
 
   async function proceedToWalletPayment() {
     if (!selectedTopUp) return;
+    if (isAdmin) {
+      setStatus("Admin unlimited access does not require wallet funds.");
+      setSelectedTopUp(null);
+      return;
+    }
     if (!user) {
       setAuthMode("login");
       setStatus("Sign in before adding funds to your Voice Shop wallet.");
@@ -193,6 +203,11 @@ export default function Home() {
 
   async function proceedToPassPayment(customerType: CustomerType) {
     if (!selectedPassCode) return;
+    if (isAdmin) {
+      setStatus("Admin unlimited access includes every Voice Shop pass and tool.");
+      setSelectedPassCode(null);
+      return;
+    }
     if (!user) {
       setAuthMode("login");
       setStatus("Sign in before purchasing a Voice Shop pass.");
@@ -264,7 +279,7 @@ export default function Home() {
         <nav className="topnav" aria-label="Primary navigation"><a className="main-site-link" href="https://getreadyjob.com/">← Home</a><a href="#workspace">Voice Studio</a><a href="#pricing">Pricing</a><a href="#passes">Passes</a></nav>
         <div className="account-actions">
           <span className="currency-pill"><Globe2 size={15} /> {catalog?.currency || "..."}</span>
-          {user ? <><span className="user-name"><UserRound size={16} /> {user.fullName}</span><button className="icon-button" onClick={logout} title="Sign out" aria-label="Sign out"><LogOut size={18} /></button></> : <button className="text-button" onClick={() => { setAuthMode("login"); setAuthOpen(true); }}>Sign in</button>}
+          {user ? <><span className={`user-name ${isAdmin ? "admin-user" : ""}`}><UserRound size={16} /> {isAdmin ? "Admin · Unlimited" : user.fullName}</span><button className="icon-button" onClick={logout} title="Sign out" aria-label="Sign out"><LogOut size={18} /></button></> : <button className="text-button" onClick={() => { setAuthMode("login"); setAuthOpen(true); }}>Sign in</button>}
         </div>
       </header>
 
@@ -273,7 +288,8 @@ export default function Home() {
           <p className="eyebrow"><Sparkles size={15} /> Account-protected voice access</p>
           <h1>Voice Shop</h1>
           <p className="lead">A secure voice workspace for personal projects and business production, priced by the minute or by pass.</p>
-          {catalog?.trialEnabled === true && <div className="workspace-actions">
+          {isAdmin && <div className="admin-unlimited-note"><ShieldCheck size={17} /> Unlimited admin access active across all Voice Shop tools</div>}
+          {!isAdmin && catalog?.trialEnabled === true && <div className="workspace-actions">
             <button className="primary-button" onClick={claimTrial} disabled={busy}>{busy ? "Activating..." : "Claim 2 free minutes"}<ArrowRight size={18} /></button>
             <span className="secure-note"><LockKeyhole size={15} /> Login required. One trial per account.</span>
           </div>}
@@ -314,13 +330,13 @@ export default function Home() {
         <div className="rate-grid">
           <article className="rate-panel personal"><div className="rate-icon"><UserRound /></div><p>Personal</p><strong>{catalog ? `${catalog.symbol}${catalog.walletRates.personal}` : "..."}<small>/min</small></strong><span>Voice projects for individual use</span></article>
           <article className="rate-panel business"><div className="rate-icon"><CircleDollarSign /></div><p>Business</p><strong>{catalog ? `${catalog.symbol}${catalog.walletRates.business}` : "..."}<small>/min</small></strong><span>Commercial and client-facing production</span></article>
-          <div className="topup-panel"><div><WalletCards size={22} /><h3>Wallet top-ups</h3></div><div className="topup-options">{(catalog?.walletTopUpsInr || []).map((amount, index) => <button type="button" className={selectedTopUp === amount ? "selected" : ""} aria-pressed={selectedTopUp === amount} onClick={() => setSelectedTopUp(amount)} key={amount}>{catalog?.symbol}{catalog?.walletTopUps[index]}</button>)}</div>{selectedTopUp && <button className="primary-button topup-pay-button" type="button" disabled={paymentBusy} onClick={proceedToWalletPayment}>💳 {paymentBusy ? "Opening secure checkout..." : `Proceed to Pay ${catalog?.symbol}${catalog?.walletTopUps[catalog.walletTopUpsInr.indexOf(selectedTopUp)]}`}</button>}<p>{catalog?.currency === "INR" ? "Displayed recharge totals include 18% GST." : "International recharge is treated as export of services at 0% GST."} Payments are securely processed by Razorpay.</p></div>
+          <div className="topup-panel"><div><WalletCards size={22} /><h3>Wallet top-ups</h3></div>{isAdmin ? <div className="admin-payment-bypass"><ShieldCheck /><b>No top-up required</b><span>Your admin session has unlimited voice and tool access.</span></div> : <><div className="topup-options">{(catalog?.walletTopUpsInr || []).map((amount, index) => <button type="button" className={selectedTopUp === amount ? "selected" : ""} aria-pressed={selectedTopUp === amount} onClick={() => setSelectedTopUp(amount)} key={amount}>{catalog?.symbol}{catalog?.walletTopUps[index]}</button>)}</div>{selectedTopUp && <button className="primary-button topup-pay-button" type="button" disabled={paymentBusy} onClick={proceedToWalletPayment}>💳 {paymentBusy ? "Opening secure checkout..." : `Proceed to Pay ${catalog?.symbol}${catalog?.walletTopUps[catalog.walletTopUpsInr.indexOf(selectedTopUp)]}`}</button>}<p>{catalog?.currency === "INR" ? "Displayed recharge totals include 18% GST." : "International recharge is treated as export of services at 0% GST."} Payments are securely processed by Razorpay.</p></>}</div>
         </div>
       </section>
 
       <section className="passes-section" id="passes">
         <div className="section-heading"><div><p className="eyebrow">Fixed access windows</p><h2>Package passes</h2></div><p>Choose a duration, then select Personal or Business at checkout.</p></div>
-        <div className="pass-table"><div className="pass-row pass-header"><span>Duration</span><span>Personal</span><span>Business</span><span /></div>{(catalog?.passes || []).map((pass) => <div className="pass-row" key={pass.code}><strong>{passLabels[pass.code]}</strong><span>{catalog?.symbol}{pass.personal}</span><span>{catalog?.symbol}{pass.business}</span><button className="icon-button" type="button" onClick={() => setSelectedPassCode(pass.code as PassCode)} title={`Choose ${passLabels[pass.code]}`} aria-label={`Choose ${passLabels[pass.code]}`}><ArrowRight size={18} /></button></div>)}</div>
+        <div className="pass-table"><div className="pass-row pass-header"><span>Duration</span><span>Personal</span><span>Business</span><span /></div>{(catalog?.passes || []).map((pass) => <div className="pass-row" key={pass.code}><strong>{passLabels[pass.code]}</strong><span>{isAdmin ? "Included" : `${catalog?.symbol}${pass.personal}`}</span><span>{isAdmin ? "Included" : `${catalog?.symbol}${pass.business}`}</span><button className="icon-button" type="button" onClick={() => isAdmin ? setStatus("Admin unlimited access includes every Voice Shop pass and tool.") : setSelectedPassCode(pass.code as PassCode)} title={isAdmin ? "Included with admin access" : `Choose ${passLabels[pass.code]}`} aria-label={isAdmin ? `${passLabels[pass.code]} included with admin access` : `Choose ${passLabels[pass.code]}`}><ArrowRight size={18} /></button></div>)}</div>
       </section>
 
       <section className="faq-section" id="faq">

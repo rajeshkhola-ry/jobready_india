@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 
 const adminSessionCookie = "voice_shop_admin_session";
-const adminSessionLifetimeSeconds = 30 * 60;
+const adminSessionLifetimeSeconds = 12 * 60 * 60;
 
 function sessionSecret() {
   return process.env.AUTH_SECRET || "";

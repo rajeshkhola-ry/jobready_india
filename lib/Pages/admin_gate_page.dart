@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../Services/auth_router_service.dart';
+import '../Services/admin_remote_auth_service.dart';
 import '../Services/owner_admin_access_service.dart';
 import '../Widgets/brand_logo_button.dart';
 
@@ -17,9 +18,7 @@ class AdminGatePage extends StatefulWidget {
 }
 
 class _AdminGatePageState extends State<AdminGatePage> {
-  final TextEditingController _adminIdController = TextEditingController(
-    text: OwnerAdminAccessService.adminId,
-  );
+  final TextEditingController _adminIdController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   String? _errorText;
   bool _isPasswordVisible = false;
@@ -55,18 +54,27 @@ class _AdminGatePageState extends State<AdminGatePage> {
   }
 
   Future<void> _unlock() async {
+    final remote = await AdminRemoteAuthService.login(_adminIdController.text, _passwordController.text);
+    if (remote.success) {
+      OwnerAdminAccessService.markRemoteAdminUnlocked();
+      await AuthRouterService.clearAuthentication();
+      if (!mounted) return;
+      Navigator.of(context).pushNamedAndRemoveUntil('/admin-2fa', (route) => false);
+      return;
+    }
     final ok = OwnerAdminAccessService.unlockWithCredentials(
       _adminIdController.text,
       _passwordController.text,
     );
     if (ok) {
       await AuthRouterService.clearAuthentication();
+      if (!mounted) return;
       Navigator.of(context).pushNamedAndRemoveUntil('/admin-2fa', (route) => false);
       return;
     }
 
     setState(() {
-      _errorText = 'Invalid admin login credentials';
+      _errorText = remote.error ?? 'Invalid admin login credentials';
     });
   }
 
@@ -158,7 +166,7 @@ class _AdminGatePageState extends State<AdminGatePage> {
                     ),
                     const SizedBox(height: 10),
                     const Text(
-                      'Enter your admin credentials to continue into the system check and release tools. Use Admin / Admin@2026! by default.',
+                      'Enter the production admin email and password. Successful verification creates a secure session for the main site and Voice Shop.',
                       style: TextStyle(
                         fontSize: 13,
                         height: 1.5,
@@ -176,7 +184,7 @@ class _AdminGatePageState extends State<AdminGatePage> {
                         }
                       },
                       decoration: InputDecoration(
-                        labelText: 'Admin ID',
+                        labelText: 'Admin Email',
                         filled: true,
                         fillColor: const Color(0xFFF8FAFC),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),

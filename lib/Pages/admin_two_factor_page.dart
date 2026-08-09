@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../Services/auth_router_service.dart';
+import '../Services/admin_remote_auth_service.dart';
 import '../Services/owner_admin_access_service.dart';
 
 class AdminTwoFactorPage extends StatefulWidget {
@@ -20,8 +23,10 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
   @override
   void initState() {
     super.initState();
-    _isSetupMode = !OwnerAdminAccessService.isTwoFactorEnabled;
-    if (_isSetupMode) {
+    _isSetupMode = AdminRemoteAuthService.hasPendingChallenge
+        ? AdminRemoteAuthService.showQr
+        : !OwnerAdminAccessService.isTwoFactorEnabled;
+    if (_isSetupMode && !AdminRemoteAuthService.hasPendingChallenge) {
       _setupData = OwnerAdminAccessService.initializeTwoFactorSetup();
     }
     if (!OwnerAdminAccessService.isUnlocked) {
@@ -41,6 +46,18 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
   }
 
   Future<void> _submit() async {
+    if (AdminRemoteAuthService.hasPendingChallenge) {
+      final token = await AdminRemoteAuthService.verify(_codeController.text);
+      if (token == null) {
+        setState(() => _errorText = 'Invalid or expired production 2FA code.');
+        return;
+      }
+      OwnerAdminAccessService.markTwoFactorVerifiedForSession();
+      await AuthRouterService.markAdminAuthenticated(authToken: token);
+      if (!mounted) return;
+      Navigator.of(context).pushNamedAndRemoveUntil('/admin-dashboard', (route) => false);
+      return;
+    }
     if (_isSetupMode) {
       await _handleSetup();
       return;
@@ -121,6 +138,10 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
     final setupData = _setupData;
     final setupUri = setupData?.otpauthUri ?? '';
     final recoveryCode = setupData?.recoveryCode ?? '';
+    final remoteQrUrl = AdminRemoteAuthService.qrCodeUrl;
+    final remoteQrBytes = remoteQrUrl.startsWith('data:image') && remoteQrUrl.contains(',')
+        ? base64Decode(remoteQrUrl.split(',').last)
+        : null;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F4EE),
@@ -175,11 +196,14 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
                         ),
                         child: Column(
                           children: [
-                            QrImageView(
-                              data: setupUri,
-                              size: 190,
-                              backgroundColor: Colors.white,
-                            ),
+                            if (remoteQrBytes != null)
+                              Image.memory(remoteQrBytes, width: 190, height: 190)
+                            else
+                              QrImageView(
+                                data: setupUri,
+                                size: 190,
+                                backgroundColor: Colors.white,
+                              ),
                             const SizedBox(height: 12),
                             const Text(
                               'Scan this QR code with your authenticator app.',
@@ -195,11 +219,13 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    SelectableText(
-                      'Manual setup key: ${setupData?.secret ?? ''}',
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF475569)),
-                    ),
-                    const SizedBox(height: 14),
+                    if (!AdminRemoteAuthService.hasPendingChallenge) ...[
+                      SelectableText(
+                        'Manual setup key: ${setupData?.secret ?? ''}',
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF475569)),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
                   ],
                   const SizedBox(height: 16),
                   TextField(
@@ -239,7 +265,7 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
                       ),
                     ),
                   ),
-                  if (_isSetupMode) ...[
+                  if (_isSetupMode && !AdminRemoteAuthService.hasPendingChallenge) ...[
                     const SizedBox(height: 14),
                     Text(
                       'Recovery code: $recoveryCode',

@@ -108,6 +108,15 @@ class OwnerAdminAccessService {
     return ok;
   }
 
+  static void markRemoteAdminUnlocked() {
+    WebSafeBrowser.writeLocalStorage(_storageKey, '1');
+    WebSafeBrowser.removeLocalStorage(_twoFactorSessionVerifiedKey);
+  }
+
+  static void markTwoFactorVerifiedForSession() {
+    WebSafeBrowser.writeLocalStorage(_twoFactorSessionVerifiedKey, '1');
+  }
+
   static TwoFactorSetupData initializeTwoFactorSetup() {
     if (isTwoFactorEnabled) {
       final activeSecret = twoFactorSecret;
