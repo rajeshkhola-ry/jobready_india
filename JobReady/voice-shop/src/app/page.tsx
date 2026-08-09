@@ -25,6 +25,8 @@ const showcaseTools = [
 ] as const;
 const universalFeatures = ["AI Voice Shop & Calling", "AI Mock Interview Practice", "Real-time Voice Translator", "AI Study & Learning Partner", "AI Resume & Career Builder", "Unlimited Tool Switching", "24/7 Customer Support"] as const;
 const planColumns = ["1-Day Pass", "7-Days Pass", "30-Days Pass", "1-Year Pass"] as const;
+const indianLanguages = ["Hindi", "Tamil", "Telugu", "Bengali", "Marathi", "Gujarati", "Kannada", "Malayalam", "Punjabi", "Odia", "Assamese", "Urdu"] as const;
+const internationalLanguages = ["English (US/UK/IN)", "Spanish", "French", "German", "Mandarin Chinese", "Japanese", "Korean", "Arabic", "Russian", "Portuguese", "Italian", "Dutch", "Turkish", "Vietnamese", "Indonesian"] as const;
 const faqs = [
   {
     question: "How does the AI Mock Interviewer help me practise?",
@@ -147,6 +149,29 @@ export default function Home() {
             <p>{faq.answer}</p>
           </details>)}
         </div>
+      </section>
+
+      <section className="supported-languages-section" aria-labelledby="supported-languages-heading">
+        <div className="languages-heading">
+          <p className="eyebrow">Multilingual career preparation</p>
+          <h2 id="supported-languages-heading">🌍 Supported Languages &amp; Global Reach</h2>
+          <p>Practice AI mock interviews and real-time voice translation seamlessly in your preferred language.</p>
+        </div>
+        <div className="language-groups">
+          <article className="language-group">
+            <h3>🇮🇳 Indian Regional Languages</h3>
+            <div className="language-chips" aria-label="Indian regional languages">
+              {indianLanguages.map((language) => <span key={language}>{language}</span>)}
+            </div>
+          </article>
+          <article className="language-group">
+            <h3>🌐 International Languages</h3>
+            <div className="language-chips" aria-label="International languages">
+              {internationalLanguages.map((language) => <span key={language}>{language}</span>)}
+            </div>
+          </article>
+        </div>
+        <p className="language-upcoming-note"><strong>🚀 Rest of the World:</strong> We are actively expanding our AI speech models for all remaining global languages and dialects. Rolling out soon!</p>
       </section>
 
       <footer><span>CADDADDY Voice Shop</span><span>Secure voice access for global customers</span></footer>
