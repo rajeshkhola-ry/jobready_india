@@ -21,3 +21,56 @@ services:
     startCommand: gunicorn app:app
     healthCheckPath: /healthz
     autoDeploy: true
+
+  - type: web
+    runtime: node
+    name: voice-shop-web
+    repo: https://github.com/rajeshkhola-ry/jobready_india.git
+    branch: feature/hello-job-launch-link
+    rootDir: JobReady/voice-shop
+    plan: starter
+    region: oregon
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    domains:
+      - voice.getreadyjob.com
+    buildFilter:
+      paths:
+        - JobReady/voice-shop/**
+    disk:
+      name: voice-shop-data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: 20.18.0
+      - key: NEXT_PUBLIC_APP_URL
+        value: https://voice.getreadyjob.com
+      - key: DATABASE_DIR
+        value: /opt/render/project/src/data
+      - key: DATABASE_PATH
+        value: voice-shop.db
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: VOICE_SHOP_ADMIN_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        value: https://voice.getreadyjob.com/api/auth/oauth/google/callback
+      - key: MICROSOFT_CLIENT_ID
+        sync: false
+      - key: MICROSOFT_CLIENT_SECRET
+        sync: false
+      - key: MICROSOFT_TENANT_ID
+        value: common
+      - key: MICROSOFT_REDIRECT_URI
+        value: https://voice.getreadyjob.com/api/auth/oauth/microsoft/callback
+      - key: EXCHANGE_RATE_API_URL
+        value: https://api.frankfurter.app
+      - key: USD_INR_FALLBACK_RATE
+        value: '84'
