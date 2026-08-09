@@ -133,6 +133,21 @@ function initializeDatabase() {
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   );
 
+  CREATE TABLE IF NOT EXISTS package_pass_orders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    razorpay_order_id TEXT NOT NULL UNIQUE,
+    razorpay_payment_id TEXT UNIQUE,
+    pass_code TEXT NOT NULL,
+    customer_type TEXT NOT NULL CHECK(customer_type IN ('personal', 'business')),
+    amount_minor INTEGER NOT NULL CHECK(amount_minor > 0),
+    currency TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'created' CHECK(status IN ('created', 'paid')),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    paid_at TEXT,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+
   CREATE TABLE IF NOT EXISTS platform_settings (
     setting_key TEXT PRIMARY KEY,
     setting_value TEXT NOT NULL,

@@ -8,6 +8,8 @@ import Link from "next/link";
 type AuthMode = "login" | "signup" | "forgot";
 type SessionUser = { id: number; email: string; fullName: string };
 type OAuthProviders = { google: boolean; microsoft: boolean };
+type PassCode = "1-day" | "7-day" | "30-day" | "1-year";
+type CustomerType = "personal" | "business";
 type PriceCatalog = {
   currency: "INR" | "USD";
   symbol: string;
@@ -74,6 +76,8 @@ export default function Home() {
   const [selectedTopUp, setSelectedTopUp] = useState<number | null>(null);
   const [paymentBusy, setPaymentBusy] = useState(false);
   const [oauthProviders, setOAuthProviders] = useState<OAuthProviders>({ google: false, microsoft: false });
+  const [selectedPassCode, setSelectedPassCode] = useState<PassCode | null>(null);
+  const [passPaymentBusy, setPassPaymentBusy] = useState(false);
 
   useEffect(() => {
     Promise.all([fetch("/api/auth/me").then((response) => response.json()), fetch("/api/pricing").then((response) => response.json())])
@@ -187,11 +191,77 @@ export default function Home() {
     checkout.open();
   }
 
+  async function proceedToPassPayment(customerType: CustomerType) {
+    if (!selectedPassCode) return;
+    if (!user) {
+      setAuthMode("login");
+      setStatus("Sign in before purchasing a Voice Shop pass.");
+      setAuthOpen(true);
+      return;
+    }
+    setPassPaymentBusy(true);
+    setStatus("Creating your secure pass order...");
+    const sdkReady = await loadRazorpayCheckout();
+    if (!sdkReady || !window.Razorpay) {
+      setPassPaymentBusy(false);
+      setStatus("Razorpay Checkout could not load. Check your connection and try again.");
+      return;
+    }
+    const response = await fetch("/api/payments/pass/order", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ passCode: selectedPassCode, customerType }),
+    }).catch(() => null);
+    if (!response) {
+      setPassPaymentBusy(false);
+      setStatus("Unable to reach the payment service. Please try again.");
+      return;
+    }
+    const order = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setPassPaymentBusy(false);
+      setStatus(order.error || "Unable to create pass order.");
+      return;
+    }
+    const passLabel = passLabels[selectedPassCode];
+    new window.Razorpay({
+      key: order.keyId,
+      amount: order.amount,
+      currency: order.currency,
+      order_id: order.orderId,
+      name: "GETREADYJOB Voice Shop",
+      description: `${passLabel} ${customerType === "personal" ? "Personal" : "Business"} pass`,
+      prefill: { name: user.fullName, email: user.email },
+      theme: { color: "#0c6b4e" },
+      modal: { ondismiss: () => { setPassPaymentBusy(false); setStatus("Pass payment cancelled. No charge was made."); } },
+      handler: async (payment: RazorpayResult) => {
+        const verification = await fetch("/api/payments/pass/verify", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(payment),
+        }).catch(() => null);
+        if (!verification) {
+          setPassPaymentBusy(false);
+          setStatus("Payment response could not be verified. Contact support before retrying.");
+          return;
+        }
+        const result = await verification.json().catch(() => ({}));
+        setPassPaymentBusy(false);
+        if (!verification.ok) {
+          setStatus(result.error || "Pass payment verification failed.");
+          return;
+        }
+        setSelectedPassCode(null);
+        setStatus(`${passLabel} ${customerType} pass activated successfully.`);
+      },
+    }).open();
+  }
+
   return (
     <main className="app-shell">
       <header className="topbar">
-        <a className="brand" href="#workspace" aria-label="Caddaddy Voice Shop home"><span className="brand-mark"><Mic2 size={20} /></span><span>CADDADDY <b>VOICE SHOP</b></span></a>
-        <nav className="topnav" aria-label="Primary navigation"><a href="#workspace">Voice Studio</a><a href="#pricing">Pricing</a><a href="#passes">Passes</a></nav>
+        <a className="brand" href="https://getreadyjob.com/" aria-label="Back to GETREADYJOB main site"><span className="brand-mark"><Mic2 size={20} /></span><span>CADDADDY <b>VOICE SHOP</b></span></a>
+        <nav className="topnav" aria-label="Primary navigation"><a className="main-site-link" href="https://getreadyjob.com/">← Home</a><a href="#workspace">Voice Studio</a><a href="#pricing">Pricing</a><a href="#passes">Passes</a></nav>
         <div className="account-actions">
           <span className="currency-pill"><Globe2 size={15} /> {catalog?.currency || "..."}</span>
           {user ? <><span className="user-name"><UserRound size={16} /> {user.fullName}</span><button className="icon-button" onClick={logout} title="Sign out" aria-label="Sign out"><LogOut size={18} /></button></> : <button className="text-button" onClick={() => { setAuthMode("login"); setAuthOpen(true); }}>Sign in</button>}
@@ -250,7 +320,7 @@ export default function Home() {
 
       <section className="passes-section" id="passes">
         <div className="section-heading"><div><p className="eyebrow">Fixed access windows</p><h2>Package passes</h2></div><p>Choose a duration, then select Personal or Business at checkout.</p></div>
-        <div className="pass-table"><div className="pass-row pass-header"><span>Duration</span><span>Personal</span><span>Business</span><span /></div>{(catalog?.passes || []).map((pass) => <div className="pass-row" key={pass.code}><strong>{passLabels[pass.code]}</strong><span>{catalog?.symbol}{pass.personal}</span><span>{catalog?.symbol}{pass.business}</span><button className="icon-button" title={`Choose ${passLabels[pass.code]}`} aria-label={`Choose ${passLabels[pass.code]}`}><ArrowRight size={18} /></button></div>)}</div>
+        <div className="pass-table"><div className="pass-row pass-header"><span>Duration</span><span>Personal</span><span>Business</span><span /></div>{(catalog?.passes || []).map((pass) => <div className="pass-row" key={pass.code}><strong>{passLabels[pass.code]}</strong><span>{catalog?.symbol}{pass.personal}</span><span>{catalog?.symbol}{pass.business}</span><button className="icon-button" type="button" onClick={() => setSelectedPassCode(pass.code as PassCode)} title={`Choose ${passLabels[pass.code]}`} aria-label={`Choose ${passLabels[pass.code]}`}><ArrowRight size={18} /></button></div>)}</div>
       </section>
 
       <section className="faq-section" id="faq">
@@ -307,6 +377,19 @@ export default function Home() {
       </footer>
 
       {authOpen && <AuthDialog key={authMode} mode={authMode} status={status} trialEnabled={catalog?.trialEnabled === true} oauthProviders={oauthProviders} onModeChange={setAuthMode} onClose={() => setAuthOpen(false)} onAuthenticated={(authenticatedUser) => { setUser(authenticatedUser); setAuthOpen(false); setStatus(catalog?.trialEnabled === true ? "Account verified. Your trial is ready to activate." : "Account verified. You are signed in securely."); }} onStatus={setStatus} />}
+      {selectedPassCode && catalog && <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !passPaymentBusy) setSelectedPassCode(null); }}>
+        <div className="pass-picker" role="dialog" aria-modal="true" aria-labelledby="pass-picker-title">
+          <button className="dialog-close" type="button" disabled={passPaymentBusy} onClick={() => setSelectedPassCode(null)} aria-label="Close pass chooser"><X /></button>
+          <p className="eyebrow">Secure Razorpay checkout</p>
+          <h2 id="pass-picker-title">Choose {passLabels[selectedPassCode]} access</h2>
+          <p>Select how you will use Voice Shop. Both options include every listed tool.</p>
+          <div className="pass-choice-grid">
+            <button type="button" disabled={passPaymentBusy} onClick={() => proceedToPassPayment("personal")}><UserRound /><span><b>Personal</b><small>{catalog.symbol}{catalog.passes.find((pass) => pass.code === selectedPassCode)?.personal}</small></span><ArrowRight /></button>
+            <button type="button" disabled={passPaymentBusy} onClick={() => proceedToPassPayment("business")}><CircleDollarSign /><span><b>Business</b><small>{catalog.symbol}{catalog.passes.find((pass) => pass.code === selectedPassCode)?.business}</small></span><ArrowRight /></button>
+          </div>
+          {passPaymentBusy && <p className="pass-picker-status">Opening secure checkout...</p>}
+        </div>
+      </div>}
     </main>
   );
 }
@@ -341,7 +424,7 @@ function AuthDialog({ mode, status, trialEnabled, oauthProviders, onModeChange, 
           <button className="primary-button form-submit" disabled={busy}>{busy ? "Please wait..." : mode === "signup" ? "Create account" : mode === "forgot" ? "Prepare reset link" : "Sign in"}<ArrowRight size={17} /></button>
         </form>
         {status && <p className="dialog-status" role="status">{status}</p>}
-        <div className="auth-switches">{mode !== "login" && <button onClick={() => onModeChange("login")}>Sign in</button>}{mode !== "signup" && <button onClick={() => onModeChange("signup")}>Create account</button>}{mode !== "forgot" && <button onClick={() => onModeChange("forgot")}><Mail size={14} /> Forgot password</button>}</div>
+        <div className="auth-switches"><a href="https://getreadyjob.com/">← Home</a>{mode !== "login" && <button onClick={() => onModeChange("login")}>Sign in</button>}{mode !== "signup" && <button onClick={() => onModeChange("signup")}>Create account</button>}{mode !== "forgot" && <button onClick={() => onModeChange("forgot")}><Mail size={14} /> Forgot password</button>}</div>
       </div>
     </div>
   );
