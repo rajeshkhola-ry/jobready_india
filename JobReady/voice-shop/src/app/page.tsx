@@ -13,8 +13,17 @@ type PriceCatalog = {
   trialEnabled: boolean;
   walletRates: { personal: number; business: number };
   walletTopUps: number[];
+  walletTopUpsInr: number[];
   passes: Array<{ code: string; personal: number; business: number }>;
 };
+
+type RazorpayResult = { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string };
+type RazorpayCheckout = { open: () => void };
+type RazorpayConstructor = new (options: Record<string, unknown>) => RazorpayCheckout;
+
+declare global {
+  interface Window { Razorpay?: RazorpayConstructor }
+}
 
 const passLabels: Record<string, string> = { "1-day": "1 Day", "7-day": "7 Days", "30-day": "30 Days", "1-year": "1 Year" };
 const showcaseTools = [
@@ -49,6 +58,8 @@ export default function Home() {
   const [authMode, setAuthMode] = useState<AuthMode>("login");
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
+  const [selectedTopUp, setSelectedTopUp] = useState<number | null>(null);
+  const [paymentBusy, setPaymentBusy] = useState(false);
 
   useEffect(() => {
     Promise.all([fetch("/api/auth/me").then((response) => response.json()), fetch("/api/pricing").then((response) => response.json())])
@@ -73,6 +84,93 @@ export default function Home() {
     await fetch("/api/auth/logout", { method: "POST" });
     setUser(null);
     setStatus("Signed out securely.");
+  }
+
+  async function loadRazorpayCheckout() {
+    if (window.Razorpay) return true;
+    return new Promise<boolean>((resolve) => {
+      const existing = document.querySelector<HTMLScriptElement>('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
+      if (existing) {
+        existing.addEventListener("load", () => resolve(Boolean(window.Razorpay)), { once: true });
+        existing.addEventListener("error", () => resolve(false), { once: true });
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.async = true;
+      script.onload = () => resolve(Boolean(window.Razorpay));
+      script.onerror = () => resolve(false);
+      document.head.appendChild(script);
+    });
+  }
+
+  async function proceedToWalletPayment() {
+    if (!selectedTopUp) return;
+    if (!user) {
+      setAuthMode("login");
+      setStatus("Sign in before adding funds to your Voice Shop wallet.");
+      setAuthOpen(true);
+      return;
+    }
+
+    setPaymentBusy(true);
+    setStatus("Creating your secure Razorpay order...");
+    const sdkReady = await loadRazorpayCheckout();
+    if (!sdkReady || !window.Razorpay) {
+      setPaymentBusy(false);
+      setStatus("Razorpay Checkout could not load. Check your connection and try again.");
+      return;
+    }
+
+    const response = await fetch("/api/payments/wallet/order", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ amountInr: selectedTopUp }),
+    }).catch(() => null);
+    if (!response) {
+      setPaymentBusy(false);
+      setStatus("Unable to reach the payment service. Please try again.");
+      return;
+    }
+    const order = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setPaymentBusy(false);
+      setStatus(order.error || "Unable to create wallet order.");
+      return;
+    }
+
+    const checkout = new window.Razorpay({
+      key: order.keyId,
+      amount: order.amount,
+      currency: order.currency,
+      order_id: order.orderId,
+      name: "GETREADYJOB Voice Shop",
+      description: `₹${selectedTopUp} wallet top-up`,
+      prefill: { name: user.fullName, email: user.email },
+      theme: { color: "#0c6b4e" },
+      modal: { ondismiss: () => { setPaymentBusy(false); setStatus("Payment cancelled. Your wallet was not charged."); } },
+      handler: async (payment: RazorpayResult) => {
+        const verification = await fetch("/api/payments/wallet/verify", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(payment),
+        }).catch(() => null);
+        if (!verification) {
+          setPaymentBusy(false);
+          setStatus("Payment response could not be verified. Contact support before retrying.");
+          return;
+        }
+        const result = await verification.json().catch(() => ({}));
+        setPaymentBusy(false);
+        if (!verification.ok) {
+          setStatus(result.error || "Payment verification failed. Your wallet was not credited.");
+          return;
+        }
+        setStatus(`Payment verified. ₹${selectedTopUp} added successfully. Wallet balance: ₹${result.balanceInr}.`);
+        setSelectedTopUp(null);
+      },
+    });
+    checkout.open();
   }
 
   return (
@@ -132,7 +230,7 @@ export default function Home() {
         <div className="rate-grid">
           <article className="rate-panel personal"><div className="rate-icon"><UserRound /></div><p>Personal</p><strong>{catalog ? `${catalog.symbol}${catalog.walletRates.personal}` : "..."}<small>/min</small></strong><span>Voice projects for individual use</span></article>
           <article className="rate-panel business"><div className="rate-icon"><CircleDollarSign /></div><p>Business</p><strong>{catalog ? `${catalog.symbol}${catalog.walletRates.business}` : "..."}<small>/min</small></strong><span>Commercial and client-facing production</span></article>
-          <div className="topup-panel"><div><WalletCards size={22} /><h3>Wallet top-ups</h3></div><div className="topup-options">{(catalog?.walletTopUps || []).map((amount) => <button key={amount}>{catalog?.symbol}{amount}</button>)}</div><p>Balance alerts appear before funds run low.</p></div>
+          <div className="topup-panel"><div><WalletCards size={22} /><h3>Wallet top-ups</h3></div><div className="topup-options">{(catalog?.walletTopUpsInr || []).map((amount) => <button type="button" className={selectedTopUp === amount ? "selected" : ""} aria-pressed={selectedTopUp === amount} onClick={() => setSelectedTopUp(amount)} key={amount}>₹{amount}</button>)}</div>{selectedTopUp && <button className="primary-button topup-pay-button" type="button" disabled={paymentBusy} onClick={proceedToWalletPayment}>💳 {paymentBusy ? "Opening secure checkout..." : `Proceed to Pay ₹${selectedTopUp}`}</button>}<p>Balance alerts appear before funds run low. Payments are securely processed by Razorpay.</p></div>
         </div>
       </section>
 

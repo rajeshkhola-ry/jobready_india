@@ -45,6 +45,7 @@ export function buildPriceCatalog(
       business: convertWalletRate(walletRatesInr.business, currency, usdInrRate),
     },
     walletTopUps: WALLET_TOP_UPS_INR.map((amount) => convertInrPrice(amount, currency, usdInrRate)),
+    walletTopUpsInr: [...WALLET_TOP_UPS_INR],
     passes: Object.entries(PASS_PRICES_INR).map(([code, prices]) => ({
       code,
       personal: convertInrPrice(prices.personal, currency, usdInrRate),

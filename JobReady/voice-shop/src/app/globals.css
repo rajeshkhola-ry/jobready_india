@@ -123,6 +123,8 @@ h1 { font-size: clamp(58px, 7vw, 104px); line-height: .9; margin: 0; font-weight
 .topup-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 34px 0 20px; }
 .topup-options button { min-height: 42px; border: 1px solid var(--line); background: #f8faf7; border-radius: 4px; font-weight: 800; cursor: pointer; transition: transform .2s ease, border-color .2s ease, color .2s ease, box-shadow .2s ease; }
 .topup-options button:hover { border-color: var(--green); color: var(--green); transform: translateY(-2px) scale(1.025); box-shadow: 0 8px 18px rgba(12,107,78,.12); }
+.topup-options button.selected { border-color: var(--green); background: var(--mint); color: var(--green-dark); box-shadow: inset 0 0 0 1px var(--green), 0 8px 18px rgba(12,107,78,.12); }
+.topup-pay-button { width: 100%; min-height: 44px; margin: -6px 0 14px; }
 .pass-table { border-top: 1px solid #bbc8c0; }
 .pass-row { min-height: 76px; display: grid; grid-template-columns: 1.2fr 1fr 1fr 48px; gap: 20px; align-items: center; border-bottom: 1px solid #cdd7d0; transition: background-color .22s ease, transform .22s ease; }
 .pass-row:not(.pass-header):hover { background: rgba(255,255,255,.7); transform: translateX(4px); }
