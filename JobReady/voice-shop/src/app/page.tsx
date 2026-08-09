@@ -25,6 +25,20 @@ const showcaseTools = [
 ] as const;
 const universalFeatures = ["AI Voice Shop & Calling", "AI Mock Interview Practice", "Real-time Voice Translator", "AI Study & Learning Partner", "AI Resume & Career Builder", "Unlimited Tool Switching", "24/7 Customer Support"] as const;
 const planColumns = ["1-Day Pass", "7-Days Pass", "30-Days Pass", "1-Year Pass"] as const;
+const faqs = [
+  {
+    question: "How does the AI Mock Interviewer help me practise?",
+    answer: "The Voice Shop mock interview workspace presents realistic interview practice and is designed to help users improve confidence, communication and career preparation.",
+  },
+  {
+    question: "Can I use Voice Shop without a monthly subscription?",
+    answer: "Yes. Voice Shop offers pay-as-you-go wallet rates and fixed 1-Day, 7-Day, 30-Day and 1-Year passes without requiring a monthly subscription.",
+  },
+  {
+    question: "Is there a free trial available?",
+    answer: "When the trial program is enabled, a signed-in account can claim one 2-minute Voice Shop trial, subject to the global trial allocation.",
+  },
+] as const;
 
 export default function Home() {
   const [user, setUser] = useState<SessionUser | null>(null);
@@ -123,6 +137,16 @@ export default function Home() {
       <section className="passes-section" id="passes">
         <div className="section-heading"><div><p className="eyebrow">Fixed access windows</p><h2>Package passes</h2></div><p>Choose a duration, then select Personal or Business at checkout.</p></div>
         <div className="pass-table"><div className="pass-row pass-header"><span>Duration</span><span>Personal</span><span>Business</span><span /></div>{(catalog?.passes || []).map((pass) => <div className="pass-row" key={pass.code}><strong>{passLabels[pass.code]}</strong><span>{catalog?.symbol}{pass.personal}</span><span>{catalog?.symbol}{pass.business}</span><button className="icon-button" title={`Choose ${passLabels[pass.code]}`} aria-label={`Choose ${passLabels[pass.code]}`}><ArrowRight size={18} /></button></div>)}</div>
+      </section>
+
+      <section className="faq-section" id="faq">
+        <div className="section-heading"><div><p className="eyebrow">Voice Shop answers</p><h2>Frequently asked questions</h2></div><p>Clear details about interview practice, flexible access, and the account-based trial.</p></div>
+        <div className="faq-list">
+          {faqs.map((faq, index) => <details key={faq.question} open={index === 0}>
+            <summary>{faq.question}<span aria-hidden="true">+</span></summary>
+            <p>{faq.answer}</p>
+          </details>)}
+        </div>
       </section>
 
       <footer><span>CADDADDY Voice Shop</span><span>Secure voice access for global customers</span></footer>
