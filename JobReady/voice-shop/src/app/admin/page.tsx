@@ -99,7 +99,7 @@ export default function VoiceShopAdminPage() {
   return (
     <main className="admin-shell">
       <header className="admin-topbar">
-        <div><span className="brand-mark"><Gauge size={20} /></span><div><small>Caddaddy operations</small><strong>Admin Dashboard</strong></div></div>
+        <div><span className="brand-mark"><Gauge size={20} /></span><div><small>GETREADYJOB operations</small><strong>Admin Dashboard</strong></div></div>
         <Link href="/" className="admin-back"><ArrowLeft size={17} /> Voice Shop</Link>
       </header>
 

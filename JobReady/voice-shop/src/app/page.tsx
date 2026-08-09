@@ -275,7 +275,7 @@ export default function Home() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <a className="brand" href="https://getreadyjob.com/" aria-label="Back to GETREADYJOB main site"><span className="brand-mark"><Mic2 size={20} /></span><span>CADDADDY <b>VOICE SHOP</b></span></a>
+        <a className="brand" href="https://getreadyjob.com/" aria-label="Back to GETREADYJOB main site"><span className="brand-mark"><Mic2 size={20} /></span><span>GETREADYJOB <b>VOICE SHOP</b></span></a>
         <nav className="topnav" aria-label="Primary navigation"><a className="main-site-link" href="https://getreadyjob.com/">← Home</a><a href="#workspace">Voice Studio</a><a href="#pricing">Pricing</a><a href="#passes">Passes</a></nav>
         <div className="account-actions">
           <span className="currency-pill"><Globe2 size={15} /> {catalog?.currency || "..."}</span>
@@ -428,7 +428,7 @@ function AuthDialog({ mode, status, trialEnabled, oauthProviders, onModeChange, 
   return (
     <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <div className="auth-dialog" role="dialog" aria-modal="true" aria-labelledby="auth-title">
-        <button className="dialog-close" onClick={onClose} aria-label="Close"><X /></button><p className="eyebrow">Caddaddy account</p>
+        <button className="dialog-close" onClick={onClose} aria-label="Close"><X /></button><p className="eyebrow">GETREADYJOB account</p>
         <h2 id="auth-title">{mode === "signup" ? "Create your account" : mode === "forgot" ? "Reset your password" : "Welcome back"}</h2>
         <p>{mode === "signup" ? (trialEnabled ? "Your account protects trial access, wallet balance, and active passes." : "Your account protects wallet balance and active passes.") : mode === "forgot" ? "Enter your registered email to prepare a secure reset link." : "Sign in to continue to Voice Shop."}</p>
         {mode !== "forgot" && (oauthProviders.google || oauthProviders.microsoft) && <div className="social-grid">{oauthProviders.google && <Link href="/api/auth/oauth/google" className="social-button"><span className="google-g">G</span> Continue with Google</Link>}{oauthProviders.microsoft && <Link href="/api/auth/oauth/microsoft" className="social-button"><span className="ms-mark"><i /><i /><i /><i /></span> Continue with Microsoft</Link>}</div>}
