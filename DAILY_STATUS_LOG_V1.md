@@ -27,6 +27,34 @@ Owner:
 - Tomorrow plan: Build baseline benchmark set, run first compression pass, and log measurable before/after quality-size results.
 - Owner: Founder + Copilot
 
+### Checkpoint - 2026-08-10 (Admin OTP Recovery + Live Validation)
+- Overall status: Green (admin login and OTP flow stable in production)
+- Completed today:
+  - **Admin OTP flow hardening** ✓
+    - Updated `lib/Pages/admin_gate_page.dart` to avoid stale auto-redirect into OTP page when no pending challenge exists.
+    - Updated `lib/Pages/admin_two_factor_page.dart` to recover back to `/admin` when challenge is missing/invalid.
+    - Added resend safety so failed resend locks session and resets stale challenge state.
+  - **Resend UX stability improvement** ✓
+    - Added 30-second resend cooldown timer on OTP screen to prevent rapid repeated resend attempts.
+    - Resend button now shows live countdown (`Resend OTP in Ns`) during cooldown.
+  - **Release + deploy validation** ✓
+    - Hotfix committed and pushed to main: `42df426`.
+    - Built Flutter web using production entrypoint: `flutter build web --release -t lib/main_v1_1.dart --base-href '/'`.
+    - Firebase hosting deploy completed successfully for project `getreadyjob-india-1cb34`.
+  - **Production smoke test evidence** ✓
+    - Password login accepted.
+    - OTP received automatically on configured admin email.
+    - Admin access opened successfully after OTP verification.
+- In progress:
+  - None.
+- Blockers:
+  - None.
+- Decisions needed:
+  - None.
+- Tomorrow plan:
+  - Monitor admin OTP flow for 24 hours and keep V1.1 baseline frozen unless emergency fix is required.
+- Owner: Founder + Copilot
+
 ### Day 2 - 2026-07-12
 - Overall status: Green (AHEAD OF SCHEDULE)
 - Completed today:
@@ -362,7 +390,25 @@ Owner:
   - Add conversion history mini-panel and quick presets in V2 converter module.
 - Owner: Founder + Copilot
 
-### Day 13 - 2026-07-16 (V2 Converter Workspace Upgrade)
+### Day 28 - 2026-08-07 (Header Contrast & Pricing Card Cleanup)
+- Overall status: Green (Header contrast fixed & pricing card descriptions cleaned)
+- Completed today:
+  - Fixed Micro-Canva Utilities header contrast (`Pages/micro_canva_utilities_page.dart`):
+    - Ensured AppBar title text and back arrow icon color are explicitly set to `Colors.white` over dark header.
+    - Updated background remover header action icon and button icon to `Colors.white` with primary accent background.
+  - Simplified main page pricing cards (`Pages/home_page_v1_1.dart`):
+    - Reverted/cleaned "Enabled tools:" descriptions inside Free, 7 Days, Monthly, Yearly, and Lifetime plan cards back to clean, high-level summary text.
+    - Kept exact card layout and structure intact while ensuring full tool details remain in the matrix.
+- In progress:
+  - Monitoring deployment readiness.
+- Blockers:
+  - None.
+- Decisions needed:
+  - None.
+- Tomorrow plan:
+  - Maintain stable production baseline and perform routine backups as needed.
+- Owner: Founder + Copilot
+
 - Overall status: Green (converter workspace expanded)
 - Completed today:
   - Added quick preset actions in `Pages/v2/converter/converter_workspace_page.dart`:
