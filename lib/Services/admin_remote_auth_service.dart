@@ -25,10 +25,12 @@ class AdminRemoteAuthService {
   static const _challengeKey = 'jobready_admin_remote_challenge_v1';
   static const _showQrKey = 'jobready_admin_remote_show_qr_v1';
   static const _qrUrlKey = 'jobready_admin_remote_qr_url_v1';
+  static const _deliveryEmailKey = 'jobready_admin_remote_delivery_email_v1';
 
   static bool get hasPendingChallenge => (WebSafeBrowser.readLocalStorage(_challengeKey) ?? '').isNotEmpty;
   static bool get showQr => WebSafeBrowser.readLocalStorage(_showQrKey) == '1';
   static String get qrCodeUrl => WebSafeBrowser.readLocalStorage(_qrUrlKey) ?? '';
+  static String get deliveryEmail => WebSafeBrowser.readLocalStorage(_deliveryEmailKey) ?? '';
 
   static Future<AdminRemoteLoginResult> login(String email, String password) async {
     try {
@@ -52,12 +54,39 @@ class AdminRemoteAuthService {
       if (challenge.isEmpty) return const AdminRemoteLoginResult(success: false, error: 'Admin challenge was not created.');
       final displayQr = data['showQR'] == true;
       final qrUrl = data['qrCodeUrl']?.toString() ?? '';
+      final maskedEmail = data['deliveryEmail']?.toString() ?? '';
       WebSafeBrowser.writeLocalStorage(_challengeKey, challenge);
       WebSafeBrowser.writeLocalStorage(_showQrKey, displayQr ? '1' : '0');
       WebSafeBrowser.writeLocalStorage(_qrUrlKey, qrUrl);
+      WebSafeBrowser.writeLocalStorage(_deliveryEmailKey, maskedEmail);
       return AdminRemoteLoginResult(success: true, showQr: displayQr, qrCodeUrl: qrUrl);
     } catch (_) {
       return const AdminRemoteLoginResult(success: false, error: 'Unable to reach the production admin service.');
+    }
+  }
+
+  static Future<bool> resendOtp() async {
+    final challenge = WebSafeBrowser.readLocalStorage(_challengeKey) ?? '';
+    if (challenge.isEmpty) {
+      return false;
+    }
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConfig.renderCompressionApiUrl}/api/admin/2fa/resend'),
+        headers: const {'Content-Type': 'application/json'},
+        body: jsonEncode({'challengeToken': challenge}),
+      ).timeout(const Duration(seconds: 30));
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode < 200 || response.statusCode >= 300 || data['success'] != true) {
+        return false;
+      }
+      final maskedEmail = data['deliveryEmail']?.toString() ?? '';
+      if (maskedEmail.isNotEmpty) {
+        WebSafeBrowser.writeLocalStorage(_deliveryEmailKey, maskedEmail);
+      }
+      return true;
+    } catch (_) {
+      return false;
     }
   }
 
@@ -92,5 +121,6 @@ class AdminRemoteAuthService {
     WebSafeBrowser.removeLocalStorage(_challengeKey);
     WebSafeBrowser.removeLocalStorage(_showQrKey);
     WebSafeBrowser.removeLocalStorage(_qrUrlKey);
+    WebSafeBrowser.removeLocalStorage(_deliveryEmailKey);
   }
 }
