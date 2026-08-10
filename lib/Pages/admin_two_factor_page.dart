@@ -1,7 +1,4 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 
 import '../Services/auth_router_service.dart';
 import '../Services/admin_remote_auth_service.dart';
@@ -16,20 +13,23 @@ class AdminTwoFactorPage extends StatefulWidget {
 
 class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
   final TextEditingController _codeController = TextEditingController();
-  late final bool _isSetupMode;
-  TwoFactorSetupData? _setupData;
   String? _errorText;
+  bool _isSubmitting = false;
+  bool _isResending = false;
 
   @override
   void initState() {
     super.initState();
-    _isSetupMode = AdminRemoteAuthService.hasPendingChallenge
-        ? AdminRemoteAuthService.showQr
-        : !OwnerAdminAccessService.isTwoFactorEnabled;
-    if (_isSetupMode && !AdminRemoteAuthService.hasPendingChallenge) {
-      _setupData = OwnerAdminAccessService.initializeTwoFactorSetup();
-    }
     if (!OwnerAdminAccessService.isUnlocked) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        Navigator.of(context).pushNamedAndRemoveUntil('/admin', (route) => false);
+      });
+      return;
+    }
+    if (!AdminRemoteAuthService.hasPendingChallenge) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) {
           return;
@@ -46,102 +46,72 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
   }
 
   Future<void> _submit() async {
-    if (AdminRemoteAuthService.hasPendingChallenge) {
-      final token = await AdminRemoteAuthService.verify(_codeController.text);
-      if (token == null) {
-        setState(() => _errorText = 'Invalid or expired production 2FA code.');
-        return;
-      }
-      OwnerAdminAccessService.markTwoFactorVerifiedForSession();
-      await AuthRouterService.markAdminAuthenticated(authToken: token);
-      if (!mounted) return;
-      Navigator.of(context).pushNamedAndRemoveUntil('/admin-dashboard', (route) => false);
+    if (_isSubmitting) {
       return;
     }
-    if (_isSetupMode) {
-      await _handleSetup();
-      return;
-    }
-    await _handleVerify();
-  }
-
-  Future<void> _handleSetup() async {
     final code = _codeController.text.trim();
-
     if (!RegExp(r'^\d{6}$').hasMatch(code)) {
       setState(() {
-        _errorText = 'Enter a 6-digit authenticator code.';
+        _errorText = 'Enter the 6-digit OTP sent to your email.';
       });
       return;
     }
 
-    final ok = OwnerAdminAccessService.verifyTwoFactorSetupCode(code);
-    if (!ok) {
+    setState(() {
+      _isSubmitting = true;
+      _errorText = null;
+    });
+
+    final token = await AdminRemoteAuthService.verify(code);
+    if (token == null) {
+      if (!mounted) {
+        return;
+      }
       setState(() {
-        _errorText = 'Scan the QR code first, then enter the 6-digit code from your authenticator.';
+        _isSubmitting = false;
+        _errorText = 'Invalid or expired OTP. Please try again or resend OTP.';
       });
       return;
     }
 
-    OwnerAdminAccessService.completeTwoFactorSetup();
-
-    await AuthRouterService.markAdminAuthenticated(authToken: 'admin-session');
-
-    if (!mounted) {
-      return;
-    }
-
-    await showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('2FA Enabled'),
-        content: Text(
-          'Save this one-time recovery code in a safe place:\n\n${OwnerAdminAccessService.twoFactorRecoveryCode}\n\n'
-          'You can use it once if you cannot access your 2FA code.',
-        ),
-        actions: [
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Continue'),
-          ),
-        ],
-      ),
-    );
-
+    OwnerAdminAccessService.markTwoFactorVerifiedForSession();
+    await AuthRouterService.markAdminAuthenticated(authToken: token);
     if (!mounted) {
       return;
     }
     Navigator.of(context).pushNamedAndRemoveUntil('/admin-dashboard', (route) => false);
   }
 
-  Future<void> _handleVerify() async {
-    final code = _codeController.text.trim();
-    final ok = OwnerAdminAccessService.verifyTwoFactorCode(code);
-
-    if (!ok) {
-      setState(() {
-        _errorText = 'Invalid 2FA code or recovery code.';
-      });
+  Future<void> _resendOtp() async {
+    if (_isResending) {
       return;
     }
-
-    await AuthRouterService.markAdminAuthenticated(authToken: 'admin-session');
-
+    setState(() {
+      _isResending = true;
+      _errorText = null;
+    });
+    final sent = await AdminRemoteAuthService.resendOtp();
     if (!mounted) {
       return;
     }
-    Navigator.of(context).pushNamedAndRemoveUntil('/admin-dashboard', (route) => false);
+    setState(() {
+      _isResending = false;
+      if (!sent) {
+        _errorText = 'Unable to resend OTP. Please sign in again.';
+      }
+    });
+    if (sent) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('A fresh OTP has been sent. It is valid for 5 minutes.')),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final setupData = _setupData;
-    final setupUri = setupData?.otpauthUri ?? '';
-    final recoveryCode = setupData?.recoveryCode ?? '';
-    final remoteQrUrl = AdminRemoteAuthService.qrCodeUrl;
-    final remoteQrBytes = remoteQrUrl.startsWith('data:image') && remoteQrUrl.contains(',')
-        ? base64Decode(remoteQrUrl.split(',').last)
-        : null;
+    final maskedDeliveryEmail = AdminRemoteAuthService.deliveryEmail.isNotEmpty
+        ? AdminRemoteAuthService.deliveryEmail
+        : 'RAJESH.KHOLA@GMAIL.COM';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F4EE),
@@ -149,7 +119,7 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
         backgroundColor: const Color(0xFFF8FAFC),
         foregroundColor: const Color(0xFF0F172A),
         elevation: 0,
-        title: const Text('Admin 2FA Verification'),
+        title: const Text('Admin Email OTP Verification'),
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -165,9 +135,9 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    _isSetupMode ? 'Set up two-factor security' : 'Verify with two-factor code',
-                    style: const TextStyle(
+                  const Text(
+                    'Enter the 6-digit OTP',
+                    style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
                       color: Color(0xFF0F172A),
@@ -175,64 +145,20 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    _isSetupMode
-                        ? 'Scan the QR code in Google Authenticator or Microsoft Authenticator, then enter the 6-digit code it generates.'
-                        : 'Enter your 6-digit 2FA code. You can also use your one-time recovery code.',
+                    'A fresh 6-digit OTP was sent to $maskedDeliveryEmail. OTP validity: 5 minutes.',
                     style: const TextStyle(
                       fontSize: 13,
                       height: 1.5,
                       color: Color(0xFF475569),
                     ),
                   ),
-                  if (_isSetupMode) ...[
-                    const SizedBox(height: 18),
-                    Center(
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                        ),
-                        child: Column(
-                          children: [
-                            if (remoteQrBytes != null)
-                              Image.memory(remoteQrBytes, width: 190, height: 190)
-                            else
-                              QrImageView(
-                                data: setupUri,
-                                size: 190,
-                                backgroundColor: Colors.white,
-                              ),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'Scan this QR code with your authenticator app.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF0F172A),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    if (!AdminRemoteAuthService.hasPendingChallenge) ...[
-                      SelectableText(
-                        'Manual setup key: ${setupData?.secret ?? ''}',
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF475569)),
-                      ),
-                      const SizedBox(height: 14),
-                    ],
-                  ],
                   const SizedBox(height: 16),
                   TextField(
                     controller: _codeController,
                     keyboardType: TextInputType.number,
+                    maxLength: 6,
                     decoration: InputDecoration(
-                      labelText: _isSetupMode ? '2FA code from authenticator' : '2FA code or recovery code',
+                      labelText: '6-digit email OTP',
                       errorText: _errorText,
                       filled: true,
                       fillColor: const Color(0xFFF8FAFC),
@@ -252,9 +178,9 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: _submit,
+                      onPressed: _isSubmitting ? null : _submit,
                       icon: const Icon(Icons.verified_user_rounded),
-                      label: Text(_isSetupMode ? 'Verify QR Setup and Continue' : 'Verify and Continue'),
+                      label: Text(_isSubmitting ? 'Verifying...' : 'Verify OTP and Continue'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF183A5B),
                         foregroundColor: Colors.white,
@@ -265,17 +191,15 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
                       ),
                     ),
                   ),
-                  if (_isSetupMode && !AdminRemoteAuthService.hasPendingChallenge) ...[
-                    const SizedBox(height: 14),
-                    Text(
-                      'Recovery code: $recoveryCode',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF475569),
-                        fontWeight: FontWeight.w600,
-                      ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _isResending ? null : _resendOtp,
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: Text(_isResending ? 'Resending OTP...' : 'Resend OTP'),
                     ),
-                  ],
+                  ),
                 ],
               ),
             ),
