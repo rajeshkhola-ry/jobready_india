@@ -30,7 +30,7 @@ class AuthRouterService {
       }
     }
 
-    if (OwnerAdminAccessService.isUnlocked && OwnerAdminAccessService.isTwoFactorVerifiedForSession) {
+    if (OwnerAdminAccessService.isUnlocked) {
       return 'admin';
     }
 
