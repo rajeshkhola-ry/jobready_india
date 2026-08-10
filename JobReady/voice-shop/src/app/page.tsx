@@ -40,15 +40,16 @@ const planColumns = ["1-Day Pass", "7-Days Pass", "30-Days Pass", "1-Year Pass"]
 const indianLanguages = ["Hindi", "Tamil", "Telugu", "Bengali", "Marathi", "Gujarati", "Kannada", "Malayalam", "Punjabi", "Odia", "Assamese", "Urdu"] as const;
 const internationalLanguages = ["English (US/UK/IN)", "Spanish", "French", "German", "Mandarin Chinese", "Japanese", "Korean", "Arabic", "Russian", "Portuguese", "Italian", "Dutch", "Turkish", "Vietnamese", "Indonesian"] as const;
 const footerLinks = [
-  { label: "About Us", href: "https://getreadyjob.com/#/about" },
-  { label: "Contact", href: "https://getreadyjob.com/#/contact" },
+  { label: "About Us", href: "/about" },
+  { label: "Contact", href: "/contact" },
   { label: "Pricing", href: "#pricing" },
   { label: "FAQ", href: "#faq" },
-  { label: "Help Center / Support", href: "https://getreadyjob.com/#/support" },
-  { label: "Privacy Policy", href: "https://getreadyjob.com/#/privacy" },
-  { label: "Terms & Conditions", href: "https://getreadyjob.com/#/terms" },
+  { label: "Help Center / Support", href: "/contact" },
+  { label: "Privacy Policy", href: "/privacy" },
+  { label: "Terms & Conditions", href: "/terms" },
+  { label: "Refund & Cancellation", href: "/refund-cancellation" },
   { label: "Cookie Policy", href: "https://getreadyjob.com/#/cookie-policy" },
-  { label: "Disclaimer", href: "https://getreadyjob.com/#/disclaimer" },
+  { label: "Disclaimer", href: "/terms" },
   { label: "Customer Reviews / Testimonials", href: "https://getreadyjob.com/#/testimonials" },
 ] as const;
 const faqs = [
@@ -293,6 +294,7 @@ export default function Home() {
             <button className="primary-button" onClick={claimTrial} disabled={busy}>{busy ? "Activating..." : "Claim 2 free minutes"}<ArrowRight size={18} /></button>
             <span className="secure-note"><LockKeyhole size={15} /> Login required. One trial per account.</span>
           </div>}
+          <p className="ai-disclaimer-inline">Disclaimer: Our tools utilize Artificial Intelligence to assist users with job preparation, resume building, and translations. Users are advised to review and verify all generated content for accuracy before official submission to government forms, employers, or institutions.</p>
           {status && <p className="status-line" role="status">{status}</p>}
         </div>
         <div className="voice-console" aria-label="Voice preview console">
@@ -382,12 +384,16 @@ export default function Home() {
         </nav>
         <div className="footer-details">
           <div>
-            <a href="mailto:hello@getreadyjob.com">Business email: hello@getreadyjob.com</a>
+            <a href="mailto:support@getreadyjob.com">Support email: support@getreadyjob.com</a>
+            <p>Business email: hello@getreadyjob.com</p>
+            <p>Office: GETREADYJOB, India (physical office support desk; full mailing address shared to verified review teams on request)</p>
             <p>Social: LinkedIn (Coming Soon) • X/Twitter (Coming Soon) • YouTube (Coming Soon)</p>
           </div>
           <div>
             <a href="https://getreadyjob.com/">Website: getreadyjob.com</a>
-            <p>Copyright 2026 GETREADYJOB. All rights reserved.</p>
+            <p>Patent Pending (App No. 202611096315) | © 2026 GETREADYJOB</p>
+            <p>GETREADYJOB is a protected platform. The technology and core systems, including the "VOICE ENABLED MULTILINGUAL JOB PREPARATION PLATFORM WITH AUTOMATED LANGUAGE CONVERTER TOOLS", are filed and protected under the Indian Patent Act (Patent Application No. 202611096315).</p>
+            <p>All content, branding, design, and software tools on https://getreadyjob.com are the exclusive intellectual property of GETREADYJOB. Unauthorized copying, scraping, reverse-engineering, or reproduction of any part of this platform without prior written permission is strictly prohibited and subject to legal action.</p>
           </div>
         </div>
       </footer>
