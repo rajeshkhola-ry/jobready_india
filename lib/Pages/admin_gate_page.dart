@@ -45,11 +45,7 @@ class _AdminGatePageState extends State<AdminGatePage> {
       if (!mounted) {
         return;
       }
-      if (OwnerAdminAccessService.isTwoFactorVerifiedForSession) {
-        Navigator.of(context).pushReplacementNamed(widget.targetRoute);
-      } else {
-        Navigator.of(context).pushReplacementNamed('/admin-2fa');
-      }
+      Navigator.of(context).pushReplacementNamed(widget.targetRoute);
     });
   }
 
@@ -57,9 +53,12 @@ class _AdminGatePageState extends State<AdminGatePage> {
     final remote = await AdminRemoteAuthService.login(_adminIdController.text, _passwordController.text);
     if (remote.success) {
       OwnerAdminAccessService.markRemoteAdminUnlocked();
-      await AuthRouterService.clearAuthentication();
+      OwnerAdminAccessService.markTwoFactorVerifiedForSession();
+      await AuthRouterService.markAdminAuthenticated(
+        authToken: remote.authToken.isNotEmpty ? remote.authToken : 'admin-session',
+      );
       if (!mounted) return;
-      Navigator.of(context).pushNamedAndRemoveUntil('/admin-2fa', (route) => false);
+      Navigator.of(context).pushNamedAndRemoveUntil(widget.targetRoute, (route) => false);
       return;
     }
     final ok = OwnerAdminAccessService.unlockWithCredentials(
@@ -67,9 +66,10 @@ class _AdminGatePageState extends State<AdminGatePage> {
       _passwordController.text,
     );
     if (ok) {
-      await AuthRouterService.clearAuthentication();
+      OwnerAdminAccessService.markTwoFactorVerifiedForSession();
+      await AuthRouterService.markAdminAuthenticated(authToken: 'admin-session');
       if (!mounted) return;
-      Navigator.of(context).pushNamedAndRemoveUntil('/admin-2fa', (route) => false);
+      Navigator.of(context).pushNamedAndRemoveUntil(widget.targetRoute, (route) => false);
       return;
     }
 

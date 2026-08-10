@@ -10,8 +10,15 @@ class AdminRemoteLoginResult {
   final String? error;
   final bool showQr;
   final String qrCodeUrl;
+  final String authToken;
 
-  const AdminRemoteLoginResult({required this.success, this.error, this.showQr = false, this.qrCodeUrl = ''});
+  const AdminRemoteLoginResult({
+    required this.success,
+    this.error,
+    this.showQr = false,
+    this.qrCodeUrl = '',
+    this.authToken = '',
+  });
 }
 
 class AdminRemoteAuthService {
@@ -34,6 +41,13 @@ class AdminRemoteAuthService {
       if (response.statusCode < 200 || response.statusCode >= 300 || data['success'] != true) {
         return AdminRemoteLoginResult(success: false, error: data['error']?.toString() ?? 'Admin login failed.');
       }
+
+      final directToken = data['token']?.toString() ?? '';
+      if (directToken.isNotEmpty) {
+        clearPendingChallenge();
+        return AdminRemoteLoginResult(success: true, authToken: directToken);
+      }
+
       final challenge = data['challengeToken']?.toString() ?? '';
       if (challenge.isEmpty) return const AdminRemoteLoginResult(success: false, error: 'Admin challenge was not created.');
       final displayQr = data['showQR'] == true;
