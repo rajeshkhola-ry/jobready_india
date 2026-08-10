@@ -57,6 +57,7 @@ h1 { font-size: clamp(58px, 7vw, 104px); line-height: .9; margin: 0; font-weight
 .primary-button:disabled { opacity: .65; cursor: wait; }
 .secure-note { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
 .status-line { margin: 15px 0 0; color: var(--green-dark); font-size: 14px; font-weight: 700; }
+.ai-disclaimer-inline { margin: 14px 0 0; max-width: 760px; padding: 10px 12px; border-left: 4px solid #d97706; background: #fff7ed; color: #9a3412; font-size: 12px; line-height: 1.55; font-weight: 700; border-radius: 4px; }
 .admin-unlimited-note { width: fit-content; display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid #8ac6aa; border-radius: 6px; background: #e7f5ed; color: var(--green-dark); font-size: 13px; font-weight: 900; }
 .voice-console { min-height: 330px; padding: 24px; border: 1px solid rgba(167,202,184,.5); background: linear-gradient(145deg, rgba(18,45,36,.98), rgba(8,28,22,.99)); color: white; border-radius: 8px; box-shadow: 22px 24px 0 #d7e4dc, 0 28px 60px rgba(20,33,29,.16), inset 0 1px rgba(255,255,255,.08); display: flex; flex-direction: column; transition: transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s ease; }
 .voice-console:hover { transform: translateY(-6px) rotateX(1deg); box-shadow: 22px 30px 0 #d7e4dc, 0 36px 68px rgba(20,33,29,.2), inset 0 1px rgba(255,255,255,.1); }
@@ -166,6 +167,16 @@ h1 { font-size: clamp(58px, 7vw, 104px); line-height: .9; margin: 0; font-weight
 .footer-details > div:last-child { text-align: right; }
 .footer-details a { color: #d9eee5; font-size: 13px; font-weight: 800; }
 .footer-details p { margin: 8px 0 0; color: #91aa9f; font-size: 12px; line-height: 1.55; }
+.legal-shell { background: radial-gradient(circle at 10% 0%, rgba(12,107,78,.08), transparent 30%), var(--paper); }
+.legal-topbar { position: sticky; top: 0; }
+.legal-content-wrap { padding: 56px 7vw 72px; }
+.legal-card { max-width: 980px; margin: 0 auto; background: rgba(255,255,255,.9); border: 1px solid rgba(189,207,198,.9); border-radius: 10px; box-shadow: var(--shadow-soft); padding: 30px; }
+.legal-title { margin: 0; font-size: clamp(38px, 5vw, 62px); line-height: 1.03; }
+.legal-intro { margin: 14px 0 0; color: var(--muted); font-size: 15px; line-height: 1.75; max-width: 840px; }
+.legal-sections { margin-top: 24px; display: grid; gap: 14px; }
+.legal-section-block { padding: 16px; background: #f8faf7; border: 1px solid #d5e0d9; border-radius: 8px; }
+.legal-section-block h2 { margin: 0 0 8px; font-size: 22px; line-height: 1.2; }
+.legal-section-block p { margin: 0; color: #365248; white-space: pre-line; font-size: 14px; line-height: 1.72; }
 .dialog-backdrop { position: fixed; inset: 0; z-index: 50; background: rgba(8,25,19,.58); display: grid; place-items: center; padding: 20px; backdrop-filter: blur(14px) saturate(125%); animation: backdropIn .22s ease-out both; }
 .auth-dialog { width: min(100%, 540px); max-height: calc(100vh - 40px); overflow-y: auto; background: rgba(255,255,255,.91); border: 1px solid rgba(255,255,255,.7); border-radius: 8px; padding: 34px; position: relative; box-shadow: 0 30px 90px rgba(7,28,20,.32), inset 0 1px rgba(255,255,255,.9); backdrop-filter: blur(24px) saturate(145%); animation: dialogIn .3s cubic-bezier(.2,.85,.25,1) both; }
 .auth-dialog h2 { margin: 0 0 8px; font-size: 40px; }
