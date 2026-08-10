@@ -34,6 +34,7 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
         if (!mounted) {
           return;
         }
+        OwnerAdminAccessService.lock();
         Navigator.of(context).pushNamedAndRemoveUntil('/admin', (route) => false);
       });
     }
@@ -104,6 +105,13 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('A fresh OTP has been sent. It is valid for 5 minutes.')),
       );
+    } else {
+      OwnerAdminAccessService.lock();
+      AdminRemoteAuthService.clearPendingChallenge();
+      if (!mounted) {
+        return;
+      }
+      Navigator.of(context).pushNamedAndRemoveUntil('/admin', (route) => false);
     }
   }
 
