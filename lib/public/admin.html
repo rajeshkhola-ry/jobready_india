@@ -50,6 +50,10 @@
     </div>
     <button id="loginBtn">Sign In</button>
     <div id="twoFactorStep" class="hidden" style="margin-top:14px;">
+      <div id="twoFactorSetup" class="hidden" style="margin-bottom:12px;">
+        <p id="twoFactorSetupMessage" class="muted" style="margin:0 0 8px 0;">Scan this QR code in your authenticator app, then enter the 6-digit code below.</p>
+        <img id="twoFactorQrImage" alt="Authenticator QR code" style="display:block;max-width:240px;width:100%;background:#fff;border-radius:8px;padding:8px;border:1px solid var(--border);" />
+      </div>
       <div class="field">
         <label for="twoFactorCode">Authenticator Code (6 digits)</label>
         <input id="twoFactorCode" type="text" inputmode="numeric" maxlength="6" placeholder="123456" />
@@ -342,6 +346,9 @@
     const logoutBtn = document.getElementById('logoutBtn');
     const loginStatus = document.getElementById('loginStatus');
     const twoFactorStep = document.getElementById('twoFactorStep');
+    const twoFactorSetup = document.getElementById('twoFactorSetup');
+    const twoFactorSetupMessage = document.getElementById('twoFactorSetupMessage');
+    const twoFactorQrImage = document.getElementById('twoFactorQrImage');
     const twoFactorCodeInput = document.getElementById('twoFactorCode');
     const recoveryCodeInput = document.getElementById('recoveryCode');
     const sessionInfo = document.getElementById('sessionInfo');
@@ -396,6 +403,18 @@
     const multiplierPreview = document.getElementById('multiplierPreview');
     let pendingChallengeToken = '';
 
+    function resetTwoFactorSetupUi() {
+      if (twoFactorSetup) {
+        twoFactorSetup.classList.add('hidden');
+      }
+      if (twoFactorQrImage) {
+        twoFactorQrImage.removeAttribute('src');
+      }
+      if (twoFactorSetupMessage) {
+        twoFactorSetupMessage.textContent = 'Scan this QR code in your authenticator app, then enter the 6-digit code below.';
+      }
+    }
+
     function decodeJwtPayload(token) {
       try {
         const parts = String(token || '').split('.');
@@ -415,6 +434,7 @@
       if (twoFactorStep) {
         twoFactorStep.classList.add('hidden');
       }
+      resetTwoFactorSetupUi();
       if (twoFactorCodeInput) {
         twoFactorCodeInput.value = '';
       }
@@ -429,9 +449,23 @@
       }
     }
 
-    function showTwoFactorStep(message) {
+    function showTwoFactorStep(message, twoFactorData) {
+      const setupMode = Boolean(twoFactorData && twoFactorData.showQR && twoFactorData.qrCodeUrl);
       if (twoFactorStep) {
         twoFactorStep.classList.remove('hidden');
+      }
+      if (setupMode) {
+        if (twoFactorSetup) {
+          twoFactorSetup.classList.remove('hidden');
+        }
+        if (twoFactorQrImage) {
+          twoFactorQrImage.src = twoFactorData.qrCodeUrl;
+        }
+        if (twoFactorSetupMessage) {
+          twoFactorSetupMessage.textContent = 'First-time setup: scan this QR code now, then enter your 6-digit authenticator code.';
+        }
+      } else {
+        resetTwoFactorSetupUi();
       }
       if (twoFactorCodeInput) {
         twoFactorCodeInput.focus();
@@ -684,7 +718,10 @@
 
       if (data.requires2fa) {
         pendingChallengeToken = data.challengeToken || '';
-        showTwoFactorStep('Password verified. Enter your authenticator code to continue.');
+        showTwoFactorStep(
+          data.showQR ? 'Password verified. Scan the QR code and enter your authenticator code to continue.' : 'Password verified. Enter your authenticator code to continue.',
+          data
+        );
         return;
       }
 
