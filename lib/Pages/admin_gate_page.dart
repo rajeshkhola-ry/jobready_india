@@ -47,8 +47,11 @@ class _AdminGatePageState extends State<AdminGatePage> {
       }
       if (OwnerAdminAccessService.isTwoFactorVerifiedForSession) {
         Navigator.of(context).pushReplacementNamed(widget.targetRoute);
-      } else {
+      } else if (AdminRemoteAuthService.hasPendingChallenge) {
         Navigator.of(context).pushReplacementNamed('/admin-2fa');
+      } else {
+        // Avoid a redirect loop when no active OTP challenge exists.
+        OwnerAdminAccessService.lock();
       }
     });
   }
