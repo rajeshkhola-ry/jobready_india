@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../Services/auth_router_service.dart';
@@ -16,6 +18,8 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
   String? _errorText;
   bool _isSubmitting = false;
   bool _isResending = false;
+  int _resendCooldownSeconds = 0;
+  Timer? _resendCooldownTimer;
 
   @override
   void initState() {
@@ -42,8 +46,32 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
 
   @override
   void dispose() {
+    _resendCooldownTimer?.cancel();
     _codeController.dispose();
     super.dispose();
+  }
+
+  void _startResendCooldown({int seconds = 30}) {
+    _resendCooldownTimer?.cancel();
+    setState(() {
+      _resendCooldownSeconds = seconds;
+    });
+    _resendCooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_resendCooldownSeconds <= 1) {
+        timer.cancel();
+        setState(() {
+          _resendCooldownSeconds = 0;
+        });
+        return;
+      }
+      setState(() {
+        _resendCooldownSeconds -= 1;
+      });
+    });
   }
 
   Future<void> _submit() async {
@@ -84,7 +112,7 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
   }
 
   Future<void> _resendOtp() async {
-    if (_isResending) {
+    if (_isResending || _resendCooldownSeconds > 0) {
       return;
     }
     setState(() {
@@ -102,8 +130,9 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
       }
     });
     if (sent) {
+      _startResendCooldown();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('A fresh OTP has been sent. It is valid for 5 minutes.')),
+        const SnackBar(content: Text('A fresh OTP has been sent. You can resend again after 30 seconds.')),
       );
     } else {
       OwnerAdminAccessService.lock();
@@ -203,9 +232,15 @@ class _AdminTwoFactorPageState extends State<AdminTwoFactorPage> {
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
-                      onPressed: _isResending ? null : _resendOtp,
+                      onPressed: (_isResending || _resendCooldownSeconds > 0) ? null : _resendOtp,
                       icon: const Icon(Icons.refresh_rounded),
-                      label: Text(_isResending ? 'Resending OTP...' : 'Resend OTP'),
+                      label: Text(
+                        _isResending
+                            ? 'Resending OTP...'
+                            : (_resendCooldownSeconds > 0
+                                ? 'Resend OTP in ${_resendCooldownSeconds}s'
+                                : 'Resend OTP'),
+                      ),
                     ),
                   ),
                 ],
