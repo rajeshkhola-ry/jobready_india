@@ -157,6 +157,38 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
     anchor.remove();
   }
 
+  void _openHelloJobTranslator() {
+    if (!mounted) {
+      return;
+    }
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Hello Job AI'),
+        content: const Text(
+          'You are now kept inside GETREADYJOB for Voice AI access. External redirects are disabled for safety.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Stay Here'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              if (!mounted) {
+                return;
+              }
+              Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+            },
+            child: const Text('Go to Home'),
+          ),
+        ],
+      ),
+    );
+  }
+
   int _creditsForPlan(String planName) {
     switch (planName) {
       case '7Days':
@@ -370,6 +402,46 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                           },
                         ),
                       ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Material(
+                    color: const Color(0xFF0F172A),
+                    borderRadius: BorderRadius.circular(8),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: _openHelloJobTranslator,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                        child: Row(
+                          children: [
+                            const Badge(
+                              backgroundColor: Color(0xFF22D3EE),
+                              smallSize: 9,
+                              child: Icon(Icons.headset_mic_rounded, color: Colors.white, size: 28),
+                            ),
+                            const SizedBox(width: 14),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Live Voice Translator',
+                                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
+                                  ),
+                                  SizedBox(height: 3),
+                                  Text(
+                                    'Open Hello Job AI in a dedicated tab',
+                                    style: TextStyle(color: Color(0xFFBAE6FD), fontSize: 12.5),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            const Icon(Icons.open_in_new_rounded, color: Color(0xFF22D3EE)),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 18),

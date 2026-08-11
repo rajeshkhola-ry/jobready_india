@@ -397,7 +397,35 @@ class _HomePageV11State extends State<HomePageV11> {
   }
 
   void _openHelloJobTranslator() {
-    html.window.open('https://hello.getreadyjob.com', '_blank');
+    if (!mounted) {
+      return;
+    }
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Hello Job AI'),
+        content: const Text(
+          'Hello Job AI now runs inside GETREADYJOB. You will stay on this page and never be redirected to an external domain.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Stay on Home'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              if (!mounted) {
+                return;
+              }
+              Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+            },
+            child: const Text('Open Home Safe Mode'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showSuggestionDialog() {
