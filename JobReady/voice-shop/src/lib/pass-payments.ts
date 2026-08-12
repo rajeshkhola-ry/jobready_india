@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { db } from "@/lib/db";
+import { getActivePassForUser } from "@/lib/auth";
 import { convertInrPrice, PASS_PRICES_INR, type CurrencyCode, type CustomerType } from "@/lib/pricing";
 
 type PassCode = keyof typeof PASS_PRICES_INR;
@@ -58,6 +59,12 @@ export function verifyAndActivatePass(userId: number, orderId: string, paymentId
       db.prepare(`INSERT INTO package_passes(user_id, pass_code, starts_at, expires_at) VALUES (?, ?, ?, ?)`)
         .run(userId, `${order.pass_code}:${order.customer_type}`, startsAt.toISOString(), expiresAt.toISOString());
     }
-    return { activated: order.status === "created", passCode: order.pass_code, customerType: order.customer_type };
+    const activePass = getActivePassForUser(userId);
+    return {
+      activated: order.status === "created",
+      passCode: order.pass_code,
+      customerType: order.customer_type,
+      activePass,
+    };
   })();
 }

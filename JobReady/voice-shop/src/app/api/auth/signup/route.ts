@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
-import { setSession } from "@/lib/auth";
+import { getActivePassForUser, hasClaimedFreeTrial, setSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { signupSchema } from "@/lib/schemas";
 import { authCorsOptions, withAuthCors } from "@/lib/auth-cors";
@@ -19,8 +19,10 @@ export async function POST(request: Request) {
   `).run(parsed.data.fullName, parsed.data.email, parsed.data.mobile, parsed.data.country, passwordHash);
   const userId = Number(result.lastInsertRowid);
   db.prepare("INSERT INTO wallets(user_id) VALUES (?)").run(userId);
-  await setSession({ id: userId, email: parsed.data.email, fullName: parsed.data.fullName });
-  return withAuthCors(NextResponse.json({ success: true, user: { id: userId, email: parsed.data.email, fullName: parsed.data.fullName, mobile: parsed.data.mobile, country: parsed.data.country, role: "user", walletBalancePaise: 0 } }, { status: 201 }), request);
+  const activePass = getActivePassForUser(userId);
+  const hasFreeTrial = hasClaimedFreeTrial(userId);
+  await setSession({ id: userId, email: parsed.data.email, fullName: parsed.data.fullName, activePass, hasFreeTrial });
+  return withAuthCors(NextResponse.json({ success: true, user: { id: userId, email: parsed.data.email, fullName: parsed.data.fullName, mobile: parsed.data.mobile, country: parsed.data.country, role: "user", activePass, hasFreeTrial, walletBalancePaise: 0 } }, { status: 201 }), request);
 }
 
 export async function OPTIONS(request: Request) { return authCorsOptions(request); }

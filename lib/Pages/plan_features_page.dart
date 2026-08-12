@@ -159,8 +159,9 @@ class _PlanFeaturesPageState extends State<PlanFeaturesPage> {
         return Scaffold(
           appBar: AppBar(
             backgroundColor: const Color(0xFF1F2937),
+            foregroundColor: Colors.white,
             iconTheme: const IconThemeData(
-              color: Color(0xFFFFC72C),
+              color: Colors.white,
               size: 30,
             ),
             title: const Text(

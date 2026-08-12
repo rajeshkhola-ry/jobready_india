@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { getSession, hasClaimedFreeTrial } from "@/lib/auth";
 import { availableOAuthProviders } from "@/lib/oauth-config";
 import { isVoiceShopAdminAuthorized } from "@/lib/admin-auth";
 
@@ -13,5 +13,6 @@ export async function GET(request: Request) {
     });
   }
   const user = await getSession();
-  return NextResponse.json({ authenticated: Boolean(user), user: user ? { ...user, role: "user" } : null, adminUnlimited: false, oauthProviders: availableOAuthProviders() });
+  const refreshedUser = user ? { ...user, role: "user", hasFreeTrial: user.hasFreeTrial || hasClaimedFreeTrial(user.id) } : null;
+  return NextResponse.json({ authenticated: Boolean(refreshedUser), user: refreshedUser, adminUnlimited: false, oauthProviders: availableOAuthProviders() });
 }

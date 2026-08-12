@@ -29,9 +29,27 @@ class _MicroCanvaUtilitiesPageState extends State<MicroCanvaUtilitiesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Micro-Canva Utilities'),
+        title: const Text(
+          'Micro-Canva Utilities',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
         backgroundColor: const Color(0xFF1F2937),
         foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
+        actionsIconTheme: const IconThemeData(color: Colors.white),
+        leading: Builder(
+          builder: (context) {
+            return IconButton(
+              icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+              tooltip: 'Back',
+              onPressed: () => Navigator.of(context).maybePop(),
+            );
+          },
+        ),
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -136,9 +154,24 @@ class _MicroCanvaUtilitiesPageState extends State<MicroCanvaUtilitiesPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '1) Instant Background Remover',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                '1) Instant Background Remover',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+              ),
+              IconButton(
+                onPressed: _isProcessing ? null : _removeBackground,
+                icon: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
+                style: IconButton.styleFrom(
+                  backgroundColor: const Color(0xFF0E3A66),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.all(8),
+                ),
+                tooltip: 'Remove Background',
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           const Text(
@@ -150,8 +183,13 @@ class _MicroCanvaUtilitiesPageState extends State<MicroCanvaUtilitiesPage> {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: _isProcessing ? null : _removeBackground,
-              icon: const Icon(Icons.auto_fix_high_rounded),
+              icon: const Icon(Icons.auto_fix_high_rounded, color: Colors.white),
               label: const Text('Remove Background (Client-Side)'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0E3A66),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
             ),
           ),
         ],

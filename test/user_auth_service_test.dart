@@ -4,6 +4,22 @@ import 'package:jobready_india/Services/user_auth_service.dart';
 
 void main() {
   group('UserAuthService.canProceedToPayment', () {
+    test('creates a social session for supported OAuth providers', () async {
+      final session = await UserAuthService.signInWithSocialProvider(
+        provider: 'google',
+        email: 'social@example.com',
+        displayName: 'Social User',
+        country: 'India',
+        countryCode: '+91',
+        mobileNumber: '9999999999',
+        selectedPlan: 'starter_99',
+      );
+
+      expect(session, isNotNull);
+      expect(session!.authMethod, 'google');
+      expect(session.email, 'social@example.com');
+    });
+
     test('allows signed-in users even when the profile is incomplete', () {
       final incompleteProfile = UserAccountProfile.initial();
 

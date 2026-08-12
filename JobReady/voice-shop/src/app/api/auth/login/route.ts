@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
-import { setSession } from "@/lib/auth";
+import { getActivePassForUser, hasClaimedFreeTrial, setSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { loginSchema } from "@/lib/schemas";
 import { authCorsOptions, withAuthCors } from "@/lib/auth-cors";
@@ -16,9 +16,11 @@ export async function POST(request: Request) {
     return withAuthCors(NextResponse.json({ error: "Invalid email or password." }, { status: 401 }), request);
   }
 
-  await setSession({ id: user.id, email: user.email, fullName: user.full_name });
+  const activePass = getActivePassForUser(user.id);
+  const hasFreeTrial = hasClaimedFreeTrial(user.id);
+  await setSession({ id: user.id, email: user.email, fullName: user.full_name, activePass, hasFreeTrial });
   const wallet = db.prepare("SELECT balance_paise FROM wallets WHERE user_id = ?").get(user.id) as { balance_paise?: number } | undefined;
-  return withAuthCors(NextResponse.json({ success: true, user: { id: user.id, email: user.email, fullName: user.full_name, mobile: user.mobile, country: user.country, role: "user", walletBalancePaise: wallet?.balance_paise || 0 } }), request);
+  return withAuthCors(NextResponse.json({ success: true, user: { id: user.id, email: user.email, fullName: user.full_name, mobile: user.mobile, country: user.country, role: "user", activePass, hasFreeTrial, walletBalancePaise: wallet?.balance_paise || 0 } }), request);
 }
 
 export async function OPTIONS(request: Request) { return authCorsOptions(request); }

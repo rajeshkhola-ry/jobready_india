@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../Utils/lifetime_device_limit_utils.dart';
 import '../Utils/web_safe_browser.dart';
+import 'plan_catalog_service.dart';
 import 'shared_user_auth_service.dart';
 import 'user_account_service.dart';
 
@@ -78,6 +79,11 @@ class UserAuthService {
   static const String _deviceSessionTokenStorageKey = 'jobready_device_session_token_v2';
   static const String _authRoleStorageKey = 'jobready_auth_role_v1';
   static const String _authTokenStorageKey = 'jobready_auth_token_v1';
+  static const Set<String> supportedSocialProviders = <String>{
+    'google',
+    'apple',
+    'microsoft',
+  };
 
   static bool get isSignedIn {
     if (getSession() != null) {
@@ -208,6 +214,114 @@ class UserAuthService {
     return session;
   }
 
+  static bool canProceedToPayment({
+    required UserAccountProfile profile,
+    bool isSignedInOverride = false,
+    bool includeGlobalSessionCheck = true,
+  }) {
+    if (isSignedInOverride || (includeGlobalSessionCheck && isSignedIn)) {
+      return true;
+    }
+
+    final hasDisplayName = profile.displayName.trim().isNotEmpty;
+    final hasEmail = profile.email.trim().isNotEmpty;
+    final hasCountry = profile.country.trim().isNotEmpty;
+    final hasMobile = profile.mobileNumber.trim().isNotEmpty;
+    return hasDisplayName && hasEmail && hasCountry && hasMobile;
+  }
+
+  static Future<UserAuthSession?> signInWithSocialProvider({
+    required String provider,
+    required String email,
+    String? displayName,
+    String? country,
+    String? countryCode,
+    String? mobileNumber,
+    String? selectedPlan,
+  }) async {
+    final normalizedProvider = provider.trim().toLowerCase();
+    final normalizedEmail = _normalizeEmail(email);
+    if (!supportedSocialProviders.contains(normalizedProvider) || normalizedEmail.isEmpty) {
+      return null;
+    }
+
+    final activeSession = getSession();
+    if (activeSession != null && activeSession.email == normalizedEmail) {
+      await _updateProfileFromSession(activeSession, activePlan: selectedPlan ?? activeSession.email);
+      return activeSession;
+    }
+
+    final accounts = _readAccounts();
+    final existing = accounts[normalizedEmail];
+    final effectivePlan = _normalizePlan(
+      selectedPlan ?? (existing is Map ? existing['active_plan']?.toString() : null),
+    );
+
+    if (effectivePlan == 'Lifetime') {
+      await _enforceLifetimeDeviceLimit(email: normalizedEmail, selectedPlan: effectivePlan);
+    }
+
+    try {
+      await SharedUserAuthService.socialLogin(
+        provider: normalizedProvider,
+        email: normalizedEmail,
+        fullName: displayName ?? 'Social User',
+        mobile: mobileNumber ?? '',
+        country: country ?? 'India',
+      );
+    } catch (_) {
+      // Ignore shared-service failures and continue with the local session flow.
+    }
+
+    final existingDisplayName = existing is Map ? existing['display_name']?.toString().trim() ?? '' : '';
+    final existingCountry = existing is Map ? existing['country']?.toString().trim() ?? '' : '';
+    final existingCountryCode = existing is Map ? existing['country_code']?.toString().trim() ?? '' : '';
+    final existingMobile = existing is Map ? existing['mobile_number']?.toString().trim() ?? '' : '';
+
+    final session = UserAuthSession(
+      uid: existing is Map ? existing['uid']?.toString() ?? 'local-${DateTime.now().microsecondsSinceEpoch}' : 'local-${DateTime.now().microsecondsSinceEpoch}',
+      displayName: displayName?.trim().isNotEmpty == true
+          ? displayName!.trim()
+          : (existingDisplayName.isNotEmpty ? existingDisplayName : 'Social User'),
+      email: normalizedEmail,
+      country: country?.trim().isNotEmpty == true
+          ? country!
+          : (existingCountry.isNotEmpty ? existingCountry : 'India'),
+      countryCode: countryCode?.trim().isNotEmpty == true
+          ? countryCode!
+          : (existingCountryCode.isNotEmpty ? existingCountryCode : '+91'),
+      mobileNumber: mobileNumber?.trim().isNotEmpty == true
+          ? mobileNumber!.trim()
+          : existingMobile,
+      authMethod: normalizedProvider,
+      isEmailVerified: true,
+      createdAt: existing is Map
+          ? DateTime.tryParse(existing['created_at']?.toString() ?? '') ?? DateTime.now()
+          : DateTime.now(),
+      lastLoginAt: DateTime.now(),
+    );
+
+    final accountEntry = {
+      'uid': session.uid,
+      'display_name': session.displayName,
+      'email': normalizedEmail,
+      'active_plan': effectivePlan,
+      'country': session.country,
+      'country_code': session.countryCode,
+      'mobile_number': session.mobileNumber,
+      'auth_method': normalizedProvider,
+      'password_hash': null,
+      'created_at': session.createdAt.toIso8601String(),
+      'last_login_at': session.lastLoginAt.toIso8601String(),
+    };
+
+    accounts[normalizedEmail] = accountEntry;
+    await _saveAccounts(accounts);
+    await _persistSession(session);
+    await _updateProfileFromSession(session, activePlan: effectivePlan);
+    return session;
+  }
+
   static Future<UserAuthSession?> signInWithGoogle({
     required String email,
     String? displayName,
@@ -278,6 +392,19 @@ class UserAuthService {
   static Future<UserAuthSession?> signInWithGoogleAuto({
     String? selectedPlan,
   }) async {
+    final existingSession = getSession();
+    if (existingSession != null) {
+      return signInWithSocialProvider(
+        provider: 'google',
+        email: existingSession.email,
+        displayName: existingSession.displayName,
+        country: existingSession.country,
+        countryCode: existingSession.countryCode,
+        mobileNumber: existingSession.mobileNumber,
+        selectedPlan: selectedPlan,
+      );
+    }
+
     // Try to reuse browser/local account context before asking user for manual fields.
     final profile = UserAccountService.getProfile();
     final accounts = _readAccounts();
@@ -413,6 +540,9 @@ class UserAuthService {
 
   static Future<void> _updateProfileFromSession(UserAuthSession session, {String? activePlan}) async {
     final profile = UserAccountService.getProfile();
+    final resolvedPlan = activePlan ?? profile.activePlan;
+    final normalizedPlan = resolvedPlan.trim().isEmpty ? 'Free' : resolvedPlan;
+    final unifiedPlan = PlanService.resolvePlan(normalizedPlan);
     await UserAccountService.saveProfile(
       profile.copyWith(
         displayName: session.displayName,
@@ -421,7 +551,15 @@ class UserAuthService {
         countryCode: session.countryCode,
         mobileNumber: session.mobileNumber,
         googleLoginPreferred: session.authMethod == 'google',
-        activePlan: activePlan ?? profile.activePlan,
+        activePlan: normalizedPlan,
+        planId: unifiedPlan.planId,
+        planName: unifiedPlan.planName,
+        planStatus: 'active',
+        remainingCredits: unifiedPlan.voiceMinutesRemaining,
+        toolsUnlimited: unifiedPlan.toolsUnlimited,
+        planCurrency: 'INR',
+        planPrice: unifiedPlan.priceInr,
+        planSummary: unifiedPlan.description,
       ),
     );
   }

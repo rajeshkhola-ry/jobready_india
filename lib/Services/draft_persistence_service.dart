@@ -121,6 +121,11 @@ class DraftPersistenceService {
 
   static void clearMaskDraft() => WebSafeBrowser.removeLocalStorage(_kMasksKey);
 
+  static const Map<int, IconData> _knownPosterIconsByCodePoint = <int, IconData>{
+    0xe8f9: Icons.star_rounded,
+    0xf5f7: Icons.work_outline_rounded,
+  };
+
   // ── Time formatting ────────────────────────────────────────────────────────
 
   static String relativeTime(DateTime savedAt) {
@@ -162,11 +167,10 @@ class DraftPersistenceService {
     IconData? iconData;
     final icoMap = m['ico'] as Map<String, dynamic>?;
     if (icoMap != null) {
-      iconData = IconData(
-        icoMap['cp'] as int,
-        fontFamily: icoMap['ff'] as String?,
-        fontPackage: icoMap['fp'] as String?,
-      );
+      final codePoint = icoMap['cp'];
+      if (codePoint is int) {
+        iconData = _knownPosterIconsByCodePoint[codePoint];
+      }
     }
 
     return PosterLayerDraft(

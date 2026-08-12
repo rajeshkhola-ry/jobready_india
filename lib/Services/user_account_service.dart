@@ -17,6 +17,11 @@ class UserAccountProfile {
   final String planCurrency;
   final double planPrice;
   final String planSummary;
+  final String planId;
+  final String planName;
+  final String? activatedAtIso;
+  final String? expiresAtIso;
+  final bool toolsUnlimited;
 
   const UserAccountProfile({
     required this.displayName,
@@ -33,6 +38,11 @@ class UserAccountProfile {
     required this.planCurrency,
     required this.planPrice,
     required this.planSummary,
+    this.planId = 'free',
+    this.planName = 'Free / Trial',
+    this.activatedAtIso,
+    this.expiresAtIso,
+    this.toolsUnlimited = false,
   });
 
   factory UserAccountProfile.initial() {
@@ -46,11 +56,14 @@ class UserAccountProfile {
       googleLoginPreferred: false,
       activePlan: 'Free',
       planStatus: 'Active',
-      remainingCredits: 3,
+      remainingCredits: 5,
       convertedFilesCount: 0,
-      planCurrency: 'USD',
+      planCurrency: 'INR',
       planPrice: 0.0,
-      planSummary: 'Free access to core tools',
+      planSummary: 'Free / Trial access',
+      planId: 'free',
+      planName: 'Free / Trial',
+      toolsUnlimited: false,
     );
   }
 
@@ -69,6 +82,11 @@ class UserAccountProfile {
     String? planCurrency,
     double? planPrice,
     String? planSummary,
+    String? planId,
+    String? planName,
+    String? activatedAtIso,
+    String? expiresAtIso,
+    bool? toolsUnlimited,
   }) {
     return UserAccountProfile(
       displayName: displayName ?? this.displayName,
@@ -85,10 +103,16 @@ class UserAccountProfile {
       planCurrency: planCurrency ?? this.planCurrency,
       planPrice: planPrice ?? this.planPrice,
       planSummary: planSummary ?? this.planSummary,
+      planId: planId ?? this.planId,
+      planName: planName ?? this.planName,
+      activatedAtIso: activatedAtIso ?? this.activatedAtIso,
+      expiresAtIso: expiresAtIso ?? this.expiresAtIso,
+      toolsUnlimited: toolsUnlimited ?? this.toolsUnlimited,
     );
   }
 
   Map<String, dynamic> toMap() {
+    final normalizedPlanId = planId.isNotEmpty ? planId : 'free';
     return {
       'display_name': displayName,
       'email': email,
@@ -104,10 +128,37 @@ class UserAccountProfile {
       'plan_currency': planCurrency,
       'plan_price': planPrice,
       'plan_summary': planSummary,
+      'plan_id': normalizedPlanId,
+      'plan_name': planName,
+      'activated_at': activatedAtIso,
+      'expires_at': expiresAtIso,
+      'tools_unlimited': toolsUnlimited,
+      'plan': {
+        'plan_id': normalizedPlanId,
+        'plan_name': planName,
+        'status': planStatus,
+        'activated_at': activatedAtIso,
+        'expires_at': expiresAtIso,
+      },
+      'credits': {
+        'voice_minutes_remaining': remainingCredits,
+        'tools_unlimited': toolsUnlimited,
+      },
     };
   }
 
   factory UserAccountProfile.fromMap(Map<String, dynamic> map) {
+    final planMap = map['plan'] is Map ? Map<String, dynamic>.from(map['plan'] as Map) : <String, dynamic>{};
+    final creditsMap = map['credits'] is Map ? Map<String, dynamic>.from(map['credits'] as Map) : <String, dynamic>{};
+    final legacyPlanId = map['plan_id']?.toString() ?? map['active_plan']?.toString() ?? 'free';
+    final planId = (planMap['plan_id'] ?? legacyPlanId).toString();
+    final displayPlanName = (planMap['plan_name'] ?? map['plan_name'] ?? map['active_plan'] ?? 'Free / Trial').toString();
+    final activePlan = map['active_plan']?.toString() ?? displayPlanName;
+    final remaining = int.tryParse(creditsMap['voice_minutes_remaining']?.toString() ?? map['remaining_credits']?.toString() ?? '') ??
+        int.tryParse(map['voice_minutes_remaining']?.toString() ?? '') ?? 5;
+    final toolsUnlimited = (creditsMap['tools_unlimited'] ?? map['tools_unlimited'] ?? false) == true;
+    final expiresAt = (planMap['expires_at'] ?? map['expires_at'])?.toString();
+
     return UserAccountProfile(
       displayName: map['display_name']?.toString() ?? '',
       email: map['email']?.toString() ?? '',
@@ -120,13 +171,18 @@ class UserAccountProfile {
       mobileNumber: map['mobile_number']?.toString() ?? '',
       historyEnabled: map['history_enabled'] == true,
       googleLoginPreferred: map['google_login_preferred'] == true,
-      activePlan: map['active_plan']?.toString() ?? 'Free',
-      planStatus: map['plan_status']?.toString() ?? 'Active',
-      remainingCredits: int.tryParse(map['remaining_credits']?.toString() ?? '') ?? 3,
+      activePlan: activePlan,
+      planStatus: (planMap['status'] ?? map['plan_status'] ?? 'active').toString(),
+      remainingCredits: remaining,
       convertedFilesCount: int.tryParse(map['converted_files_count']?.toString() ?? '') ?? 0,
-      planCurrency: map['plan_currency']?.toString() ?? 'USD',
+      planCurrency: map['plan_currency']?.toString() ?? 'INR',
       planPrice: double.tryParse(map['plan_price']?.toString() ?? '') ?? 0.0,
-      planSummary: map['plan_summary']?.toString() ?? 'Free access to core tools',
+      planSummary: map['plan_summary']?.toString() ?? 'Free / Trial access',
+      planId: planId,
+      planName: displayPlanName,
+      activatedAtIso: (planMap['activated_at'] ?? map['activated_at'])?.toString(),
+      expiresAtIso: expiresAt,
+      toolsUnlimited: toolsUnlimited,
     );
   }
 }

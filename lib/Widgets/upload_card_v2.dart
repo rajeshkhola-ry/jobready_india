@@ -512,7 +512,7 @@ class _UploadCardV2State extends State<UploadCardV2> {
                 if (kIsWeb) ...[
                   Container(
                     width: double.infinity,
-                    height: 96,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 22),
                     decoration: BoxDecoration(
                       color: _dragging ? const Color(0xFFEFF6FF) : const Color(0xFFF8FCFF),
                       borderRadius: BorderRadius.circular(14),
@@ -521,15 +521,24 @@ class _UploadCardV2State extends State<UploadCardV2> {
                         width: 1.2,
                       ),
                     ),
-                    child: Center(
-                      child: Text(
-                        _dragging ? 'Release to upload' : 'Drop files here',
-                        style: const TextStyle(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.cloud_upload_outlined,
+                          size: 24,
                           color: Color(0xFF1E4E7C),
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13,
                         ),
-                      ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _dragging ? 'Release to upload' : 'Drop files here',
+                          style: const TextStyle(
+                            color: Color(0xFF1E4E7C),
+                            fontWeight: FontWeight.w800,
+                            fontSize: 19,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -539,7 +548,7 @@ class _UploadCardV2State extends State<UploadCardV2> {
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
@@ -555,16 +564,16 @@ class _UploadCardV2State extends State<UploadCardV2> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
+                Text(
+                  _planLimitText(),
+                  style: TextStyle(color: Color(0xFF6B7280), fontSize: 13),
+                ),
+                const SizedBox(height: 12),
                 const Text(
                   'Upload on Home, then open any tool below. Your file stays loaded and is shared automatically.',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  _planLimitText(),
-                  style: TextStyle(color: Color(0xFF6B7280), fontSize: 13),
                 ),
                 const SizedBox(height: 12),
                 if (_selectedFiles.isNotEmpty)

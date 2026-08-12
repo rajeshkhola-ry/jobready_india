@@ -20,8 +20,32 @@ test("verified pass payment activates exactly once", async () => {
   const paymentId = "pay_pass_test";
   const signature = crypto.createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!).update(`order_pass_test|${paymentId}`).digest("hex");
 
-  assert.deepEqual(verifyAndActivatePass(userId, "order_pass_test", paymentId, signature), { activated: true, passCode: "7-day", customerType: "personal" });
-  assert.deepEqual(verifyAndActivatePass(userId, "order_pass_test", paymentId, signature), { activated: false, passCode: "7-day", customerType: "personal" });
+  const firstResult = verifyAndActivatePass(userId, "order_pass_test", paymentId, signature);
+  assert.deepEqual(firstResult, {
+    activated: true,
+    passCode: "7-day",
+    customerType: "personal",
+    activePass: {
+      code: "7-day",
+      customerType: "personal",
+      startsAt: firstResult.activePass!.startsAt,
+      expiresAt: firstResult.activePass!.expiresAt,
+    },
+  });
+
+  const secondResult = verifyAndActivatePass(userId, "order_pass_test", paymentId, signature);
+  assert.deepEqual(secondResult, {
+    activated: false,
+    passCode: "7-day",
+    customerType: "personal",
+    activePass: {
+      code: "7-day",
+      customerType: "personal",
+      startsAt: secondResult.activePass!.startsAt,
+      expiresAt: secondResult.activePass!.expiresAt,
+    },
+  });
+
   const count = db.prepare("SELECT COUNT(*) AS count FROM package_passes WHERE user_id = ?").get(userId) as { count: number };
   assert.equal(count.count, 1);
 });

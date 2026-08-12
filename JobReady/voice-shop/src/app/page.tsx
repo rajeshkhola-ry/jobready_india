@@ -4,9 +4,10 @@ import { FormEvent, useEffect, useState } from "react";
 import { ArrowRight, Check, CheckCircle2, CircleDollarSign, Clock3, Globe2, Headphones, LockKeyhole, LogOut, Mail, Mic2, ShieldCheck, Sparkles, UserRound, WalletCards, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { hasVoiceShopAccess } from "@/lib/access";
 
 type AuthMode = "login" | "signup" | "forgot";
-type SessionUser = { id: number; email: string; fullName: string; role?: "user" | "admin" };
+type SessionUser = { id: number; email: string; fullName: string; role?: "user" | "admin"; hasFreeTrial?: boolean; activePass?: { code: string; customerType: "personal" | "business"; startsAt: string; expiresAt: string } | null };
 type OAuthProviders = { google: boolean; microsoft: boolean };
 type PassCode = "1-day" | "7-day" | "30-day" | "1-year";
 type CustomerType = "personal" | "business";
@@ -30,10 +31,10 @@ declare global {
 
 const passLabels: Record<string, string> = { "1-day": "1 Day", "7-day": "7 Days", "30-day": "30 Days", "1-year": "1 Year" };
 const showcaseTools = [
-  { title: "AI Mock Interviewer", image: "/showcase/mock-interview.svg", alt: "An interviewer and student practicing with a phone on the table", description: "Practice mock interviews at home. The AI asks real interview questions and gives instant feedback to improve your confidence." },
-  { title: "Real-time Voice & Language Translator", image: "/showcase/voice-translator.svg", alt: "Two people translating a conversation through one smartphone", description: "Break language barriers. Speak in your native language, and the AI instantly translates and speaks it back in the other person's language." },
-  { title: "AI Study & Learning Assistant", image: "/showcase/study-assistant.svg", alt: "A student learning with books and a mobile AI tutor", description: "Your personal study buddy. Understand tough topics in plain, easy language and make learning fun." },
-  { title: "AI Resume & Career Tools", image: "/showcase/resume-career.svg", alt: "A professional resume being generated on a phone", description: "Create professional ATS-friendly resumes in minutes and apply for job opportunities directly." },
+  { title: "AI Mock Interviewer", image: "/showcase/mock-interview.svg", alt: "An interviewer and student practicing with a phone on the table", description: "Practice mock interviews at home. The AI asks real interview questions and gives instant feedback to improve your confidence.", launchUrl: "#workspace", howToUse: ["Sign in and open your secure workspace.", "Pick a role, answer the prompt, and let the AI coach you live.", "Review the feedback and repeat until your confidence improves."] },
+  { title: "Real-time Voice & Language Translator", image: "/showcase/voice-translator.svg", alt: "Two people translating a conversation through one smartphone", description: "Break language barriers. Speak in your native language, and the AI instantly translates and speaks it back in the other person's language.", launchUrl: "#workspace", howToUse: ["Start a secure session from your account.", "Speak naturally in your language and choose the target language.", "Listen to the instant translation and continue the conversation."] },
+  { title: "AI Study & Learning Assistant", image: "/showcase/study-assistant.svg", alt: "A student learning with books and a mobile AI tutor", description: "Your personal study buddy. Understand tough topics in plain, easy language and make learning fun.", launchUrl: "#workspace", howToUse: ["Open the workspace with your verified account.", "Share the topic or concept you need to learn.", "Use the guided explanation and practice questions to lock it in."] },
+  { title: "AI Resume & Career Tools", image: "/showcase/resume-career.svg", alt: "A professional resume being generated on a phone", description: "Create professional ATS-friendly resumes in minutes and apply for job opportunities directly.", launchUrl: "#workspace", howToUse: ["Launch the workspace from your active account.", "Upload your experience details or draft a resume.", "Generate a polished CV and apply with confidence."] },
 ] as const;
 const universalFeatures = ["AI Voice Shop & Calling", "AI Mock Interview Practice", "Real-time Voice Translator", "AI Study & Learning Partner", "AI Resume & Career Builder", "Unlimited Tool Switching", "24/7 Customer Support"] as const;
 const planColumns = ["1-Day Pass", "7-Days Pass", "30-Days Pass", "1-Year Pass"] as const;
@@ -79,6 +80,7 @@ export default function Home() {
   const [selectedPassCode, setSelectedPassCode] = useState<PassCode | null>(null);
   const [passPaymentBusy, setPassPaymentBusy] = useState(false);
   const isAdmin = user?.role === "admin";
+  const hasAccess = hasVoiceShopAccess(user);
 
   useEffect(() => {
     Promise.all([fetch("/api/auth/me").then((response) => response.json()), fetch("/api/pricing").then((response) => response.json())])
@@ -99,8 +101,28 @@ export default function Home() {
     setBusy(true);
     const response = await fetch("/api/trial/claim", { method: "POST" });
     const data = await response.json();
-    setStatus(data.granted ? `${data.minutes} free minutes activated.` : trialMessage(data.reason));
     setBusy(false);
+    if (data.granted) {
+      setUser((current) => current ? { ...current, hasFreeTrial: true } : current);
+      setStatus(`${data.minutes} free minutes activated.`);
+      return;
+    }
+    setStatus(trialMessage(data.reason));
+  }
+
+  function launchTool(tool: (typeof showcaseTools)[number]) {
+    if (!user) {
+      setAuthMode("signup");
+      setStatus("Create an account or sign in to unlock the Voice Shop tools.");
+      setAuthOpen(true);
+      return;
+    }
+    if (!hasAccess) {
+      setStatus("This tool needs an active pass or free trial. Pick a pass or claim your trial first.");
+      return;
+    }
+    setStatus(`${tool.title} is ready. You can continue in the secure Voice Studio.`);
+    window.location.hash = tool.launchUrl.replace(/^#/, "");
   }
 
   async function logout() {
@@ -307,10 +329,28 @@ export default function Home() {
       <section className="showcase-section" id="tools">
         <div className="showcase-heading"><p className="eyebrow">One account, practical AI tools</p><h2>Everyday help that feels simple</h2><p>Use one familiar workspace for interview practice, conversation, study, and career preparation.</p></div>
         <div className="showcase-list">
-          {showcaseTools.map((tool, index) => <article className="showcase-item" key={tool.title}>
-            <figure className="showcase-visual"><Image src={tool.image} alt={tool.alt} width={640} height={400} /></figure>
-            <div className="showcase-copy"><span>0{index + 1}</span><h3>{tool.title}</h3><p>{tool.description}</p><a href="#passes">Explore passes <ArrowRight size={17} /></a></div>
-          </article>)}
+          {showcaseTools.map((tool, index) => {
+            const canLaunch = hasAccess;
+            return <article className="showcase-item" key={tool.title}>
+              <figure className="showcase-visual"><Image src={tool.image} alt={tool.alt} width={640} height={400} /></figure>
+              <div className="showcase-copy">
+                <span>0{index + 1}</span>
+                <h3>{tool.title}</h3>
+                <p>{tool.description}</p>
+                <div className="tool-actions">
+                  <button type="button" className="primary-button tool-launch-button" onClick={() => launchTool(tool)} disabled={busy && !canLaunch}>
+                    {canLaunch ? "🚀 Launch tool" : "🔒 Unlock access"}
+                  </button>
+                  {!canLaunch && catalog?.trialEnabled === true && user && <button type="button" className="secondary-button" onClick={claimTrial} disabled={busy}>🎁 Claim 2 free minutes</button>}
+                  {!user && catalog?.trialEnabled === true && <button type="button" className="secondary-button" onClick={() => { setAuthMode("signup"); setAuthOpen(true); setStatus("Create your verified account and claim your free trial."); }}>🎁 Claim trial</button>}
+                </div>
+                <details className="tool-guide" open={index === 0}>
+                  <summary>How to use</summary>
+                  <ol>{tool.howToUse.map((step) => <li key={step}>{step}</li>)}</ol>
+                </details>
+              </div>
+            </article>;
+          })}
         </div>
       </section>
 
@@ -421,6 +461,7 @@ export default function Home() {
 function AuthDialog({ mode, status, trialEnabled, oauthProviders, onModeChange, onClose, onAuthenticated, onStatus }: { mode: AuthMode; status: string; trialEnabled: boolean; oauthProviders: OAuthProviders; onModeChange: (mode: AuthMode) => void; onClose: () => void; onAuthenticated: (user: SessionUser) => void; onStatus: (message: string) => void; }) {
   const [busy, setBusy] = useState(false);
   const [email, setEmail] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
@@ -444,7 +485,29 @@ function AuthDialog({ mode, status, trialEnabled, oauthProviders, onModeChange, 
         <form onSubmit={submit} className="auth-form">
           {mode === "signup" && <><label>Full name<input name="fullName" required minLength={2} autoComplete="name" /></label><div className="field-pair"><label>Mobile number<input name="mobile" required minLength={7} autoComplete="tel" /></label><label>Country<input name="country" required minLength={2} autoComplete="country-name" /></label></div></>}
           <label>Email ID<input name="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required autoComplete="off" data-1p-ignore data-lpignore="true" /></label>
-          {mode !== "forgot" && <label>Password<input name="password" type="password" required minLength={8} autoComplete={mode === "signup" ? "new-password" : "current-password"} /></label>}
+          {mode !== "forgot" && (
+            <label>
+              Password
+              <div className="password-input-wrap">
+                <input
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  minLength={8}
+                  autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  title={showPassword ? "Hide password" : "Show password"}
+                  onClick={() => setShowPassword((value) => !value)}
+                >
+                  {showPassword ? "👁️‍🗨️" : "👁️"}
+                </button>
+              </div>
+            </label>
+          )}
           <button className="primary-button form-submit" disabled={busy}>{busy ? "Please wait..." : mode === "signup" ? "Create account" : mode === "forgot" ? "Prepare reset link" : "Sign in"}<ArrowRight size={17} /></button>
         </form>
         {status && <p className="dialog-status" role="status">{status}</p>}

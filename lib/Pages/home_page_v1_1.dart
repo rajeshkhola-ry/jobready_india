@@ -634,6 +634,174 @@ class _HomePageV11State extends State<HomePageV11> {
     }
   }
 
+  Future<void> _showPaymentSuccessFlow({required String plan}) async {
+    final guideCards = PlanService.getToolUsageGuides();
+    if (!mounted) {
+      return;
+    }
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 20),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 860, maxHeight: 760),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.verified_rounded, color: Color(0xFF15803D), size: 28),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '$plan plan activated',
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Your payment has been confirmed. Start using the tools right away from the next action below.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF475569),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.of(dialogContext).pop();
+                        if (!mounted) {
+                          return;
+                        }
+                        html.window.open('https://voice.getreadyjob.com', '_self');
+                      },
+                      icon: const Icon(Icons.rocket_launch_rounded),
+                      label: const Text('Start Using Tools Now'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0F766E),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        textStyle: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  const Text(
+                    'How to use your tools',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  ...guideCards.map(
+                    (guide) => Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFF),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFCBD5E1)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            guide.title,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            guide.subtitle,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF475569),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          ...guide.steps.map(
+                            (step) => Padding(
+                              padding: const EdgeInsets.only(bottom: 6),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    width: 24,
+                                    height: 24,
+                                    margin: const EdgeInsets.only(top: 1),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFDBEAFE),
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        step.title.replaceFirst('Step ', ''),
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w800,
+                                          color: Color(0xFF1D4ED8),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      step.description,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF2D3748),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      child: const Text('Stay on Home'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _showPostLoginPrompt() async {
     if (!mounted) {
       return;
@@ -1357,6 +1525,8 @@ class _HomePageV11State extends State<HomePageV11> {
                   },
                 ),
                 const SizedBox(height: 10),
+                const _ToolAccessGuidanceSection(),
+                const SizedBox(height: 10),
                 const _AboutUsSection(),
                 const SizedBox(height: 10),
                 const _FuturePlanSection(),
@@ -1643,6 +1813,199 @@ class _QuickAccessActionButton extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ToolAccessGuidanceSection extends StatelessWidget {
+  const _ToolAccessGuidanceSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final profile = UserAccountService.getProfile();
+    final hasActivePass = PlanService.hasActiveToolAccess(planId: profile.planId);
+    final guides = PlanService.getToolUsageGuides();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFE9FDF7), Color(0xFFEFF6FF)],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFB8E8D8)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.smart_toy_rounded, color: Color(0xFF0F766E), size: 22),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Voice tools access',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: hasActivePass ? const Color(0xFFDCFCE7) : const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  hasActivePass ? 'Active pass' : 'Inactive pass',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: hasActivePass ? const Color(0xFF166534) : const Color(0xFF92400E),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            hasActivePass
+                ? 'Your access is active. Open the tool and start immediately.'
+                : 'Unlock access to start using the AI voice, mock interview, and study tools.',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF334155),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                if (hasActivePass) {
+                  html.window.open('https://voice.getreadyjob.com', '_self');
+                  return;
+                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Choose a plan to unlock access for the voice tools.')),
+                );
+              },
+              icon: Icon(hasActivePass ? Icons.play_circle_fill_rounded : Icons.lock_open_rounded),
+              label: Text(hasActivePass ? 'Launch Tool' : 'Unlock Access'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: hasActivePass ? const Color(0xFF0F766E) : const Color(0xFF123A63),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                textStyle: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          ...guides.map(
+            (guide) => Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFDCE7F3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          guide.title,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: hasActivePass ? const Color(0xFFDCFCE7) : const Color(0xFFEEF2FF),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          hasActivePass ? 'Ready' : 'Locked',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            color: hasActivePass ? const Color(0xFF166534) : const Color(0xFF4338CA),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    guide.subtitle,
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF475569),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  ...guide.steps.map(
+                    (step) => Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 22,
+                            height: 22,
+                            margin: const EdgeInsets.only(top: 1),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE2E8F0),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Center(
+                              child: Text(
+                                step.title.replaceFirst('Step ', ''),
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF1E293B),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              step.description,
+                              style: const TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF334155),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -3445,6 +3808,174 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
     };
   }
 
+  Future<void> _showPaymentSuccessFlow({required String plan}) async {
+    final guideCards = PlanService.getToolUsageGuides();
+    if (!mounted) {
+      return;
+    }
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 20),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 860, maxHeight: 760),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.verified_rounded, color: Color(0xFF15803D), size: 28),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '$plan plan activated',
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Your payment has been confirmed. Start using the tools right away from the next action below.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF475569),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.of(dialogContext).pop();
+                        if (!mounted) {
+                          return;
+                        }
+                        html.window.open('https://voice.getreadyjob.com', '_self');
+                      },
+                      icon: const Icon(Icons.rocket_launch_rounded),
+                      label: const Text('Start Using Tools Now'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0F766E),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        textStyle: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  const Text(
+                    'How to use your tools',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  ...guideCards.map(
+                    (guide) => Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFF),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFCBD5E1)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            guide.title,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            guide.subtitle,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF475569),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          ...guide.steps.map(
+                            (step) => Padding(
+                              padding: const EdgeInsets.only(bottom: 6),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    width: 24,
+                                    height: 24,
+                                    margin: const EdgeInsets.only(top: 1),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFDBEAFE),
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        step.title.replaceFirst('Step ', ''),
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w800,
+                                          color: Color(0xFF1D4ED8),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      step.description,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF2D3748),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      child: const Text('Stay on Home'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _openAuthThenContinue() async {
     await showDialog<void>(
       context: context,
@@ -3665,9 +4196,28 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
         };
       });
 
-      const message = 'Payment verified successfully.';
+      final profile = UserAccountService.getProfile();
+      final unifiedPlan = PlanService.resolvePlan(widget.selectedPlan);
+      final paidProfile = profile.copyWith(
+        activePlan: widget.selectedPlan,
+        planStatus: 'active',
+        remainingCredits: unifiedPlan.voiceMinutesRemaining,
+        planCurrency: _localCurrency,
+        planPrice: _chargeAmountForPlan(widget.selectedPlan),
+        planId: unifiedPlan.planId,
+        planName: unifiedPlan.planName,
+        planSummary: unifiedPlan.description,
+        toolsUnlimited: unifiedPlan.toolsUnlimited,
+      );
+      await UserAccountService.saveProfile(paidProfile);
+
+      if (mounted) {
+        setState(() {});
+        await _showPaymentSuccessFlow(plan: widget.selectedPlan);
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(message)),
+        const SnackBar(content: Text('Payment verified successfully.')),
       );
     } catch (error) {
       final failureMessage = _friendlyCheckoutError(error, '/api/create-order');

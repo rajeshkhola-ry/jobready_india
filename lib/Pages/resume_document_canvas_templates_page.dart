@@ -72,8 +72,13 @@ class _ResumeDocumentCanvasTemplatesPageState extends State<ResumeDocumentCanvas
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Resume & Document Canvas Templates'),
+        title: const Text(
+          'Resume & Document Canvas Templates',
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: const Color(0xFF0D3B66),
+        foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Container(
         decoration: const BoxDecoration(

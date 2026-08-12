@@ -89,6 +89,14 @@ h1 { font-size: clamp(58px, 7vw, 104px); line-height: .9; margin: 0; font-weight
 .showcase-copy p { margin: 0; color: var(--muted); font-size: 16px; line-height: 1.75; }
 .showcase-copy a { margin-top: 22px; display: inline-flex; align-items: center; gap: 8px; color: var(--green); font-size: 13px; font-weight: 800; transition: gap .22s ease, color .22s ease; }
 .showcase-copy a:hover { gap: 13px; color: var(--green-dark); }
+.tool-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.tool-launch-button { min-width: 180px; }
+.secondary-button { min-height: 44px; border: 1px solid var(--line); border-radius: 6px; background: #f4f8f5; color: var(--green-dark); font-weight: 800; padding: 0 14px; cursor: pointer; transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease; }
+.secondary-button:hover { border-color: var(--green); transform: translateY(-2px); box-shadow: 0 8px 18px rgba(12,107,78,.12); }
+.tool-guide { margin-top: 18px; border: 1px solid #d5e2d8; border-radius: 6px; background: #f8faf7; padding: 12px 14px 10px; }
+.tool-guide summary { cursor: pointer; list-style: none; font-weight: 800; color: var(--green-dark); }
+.tool-guide summary::-webkit-details-marker { display: none; }
+.tool-guide ol { margin: 8px 0 0 18px; padding: 0; color: var(--muted); line-height: 1.8; font-size: 13px; }
 .matrix-section { padding: 82px 7vw; background: #eef3ee; }
 .matrix-scroll { max-height: 520px; overflow: auto; border: 1px solid rgba(185,203,193,.9); background: rgba(255,255,255,.88); border-radius: 8px; box-shadow: var(--shadow-soft), inset 0 1px rgba(255,255,255,.85); scrollbar-color: var(--green) #e5ece7; scrollbar-width: thin; }
 .feature-matrix { width: 100%; min-width: 760px; border-collapse: collapse; }
@@ -192,6 +200,10 @@ h1 { font-size: clamp(58px, 7vw, 104px); line-height: .9; margin: 0; font-weight
 .or-divider::before, .or-divider::after { content: ""; height: 1px; flex: 1; background: var(--line); }
 .auth-form { display: grid; gap: 14px; }
 .auth-form label { display: grid; gap: 6px; font-size: 12px; font-weight: 800; }
+.password-input-wrap { position: relative; }
+.password-input-wrap input { padding-right: 44px; }
+.password-toggle { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; display: grid; place-items: center; border: 0; background: transparent; color: var(--muted); cursor: pointer; border-radius: 4px; font-size: 18px; line-height: 1; }
+.password-toggle:hover { background: rgba(12,107,78,.06); color: var(--green); }
 .auth-form input { width: 100%; height: 44px; border: 1px solid #bdc8c2; background: rgba(255,255,255,.78); border-radius: 4px; padding: 0 12px; outline: none; transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease; }
 .auth-form input:focus { border-color: var(--green); background: white; box-shadow: var(--focus-ring); }
 .field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }

@@ -29,8 +29,21 @@ class UserAuthDialog extends StatefulWidget {
 class _UserAuthDialogState extends State<UserAuthDialog> {
   UserAuthMode _mode = UserAuthMode.signIn;
   bool _isSubmitting = false;
+  bool _isPasswordVisible = false;
   String? _errorText;
   String? _successText;
+
+  static const List<String> _countryOptions = <String>[
+    'India',
+    'United States',
+    'United Kingdom',
+    'Canada',
+    'Australia',
+    'United Arab Emirates',
+    'Singapore',
+    'Germany',
+    'South Africa',
+  ];
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -39,6 +52,64 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
   );
   final TextEditingController _mobileController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+
+  Future<void> _handleSocialSignIn(String provider) async {
+    setState(() {
+      _isSubmitting = true;
+      _errorText = null;
+      _successText = null;
+    });
+
+    try {
+      final email = _emailController.text.trim();
+      final displayName = _nameController.text.trim();
+      final country = _countryController.text.trim().isNotEmpty ? _countryController.text.trim() : 'India';
+      final mobile = _mobileController.text.trim();
+
+      final session = await UserAuthService.signInWithSocialProvider(
+        provider: provider,
+        email: email.isNotEmpty ? email : '${provider}@jobready.local',
+        displayName: displayName.isNotEmpty ? displayName : 'Social User',
+        country: country,
+        countryCode: '+91',
+        mobileNumber: mobile,
+        selectedPlan: widget.preselectedPlan,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      if (session == null) {
+        setState(() {
+          _errorText = 'We could not complete $provider sign-in. Please try again.';
+          _isSubmitting = false;
+        });
+        return;
+      }
+
+      await AuthRouterService.markUserAuthenticated(authToken: 'user-session');
+      Navigator.of(context).pop();
+
+      if (widget.onAuthenticated != null) {
+        widget.onAuthenticated!(widget.preselectedPlan, widget.selectedCurrency);
+        return;
+      }
+
+      if (widget.stayOnHomeAfterAuth) {
+        return;
+      }
+
+      AuthRouterService.redirectAfterLogin(context, fallbackRoute: '/dashboard');
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _errorText = 'Social sign-in is unavailable right now. Please use email sign-in instead.';
+          _isSubmitting = false;
+        });
+      }
+    }
+  }
 
   bool _isStrongPassword(String password) {
     if (password.length < 8) {
@@ -341,6 +412,48 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
                   ),
                 ),
                 const SizedBox(height: 16),
+                _SocialSignInButton(
+                  label: 'Continue with Google',
+                  icon: 'G',
+                  iconColor: const Color(0xFFEA4335),
+                  onPressed: () => _handleSocialSignIn('google'),
+                  enabled: !_isSubmitting,
+                ),
+                const SizedBox(height: 10),
+                _SocialSignInButton(
+                  label: 'Continue with Apple',
+                  icon: '',
+                  iconColor: const Color(0xFF111827),
+                  onPressed: () => _handleSocialSignIn('apple'),
+                  enabled: !_isSubmitting,
+                ),
+                const SizedBox(height: 10),
+                _SocialSignInButton(
+                  label: 'Continue with Microsoft',
+                  icon: 'M',
+                  iconColor: const Color(0xFF0078D4),
+                  onPressed: () => _handleSocialSignIn('microsoft'),
+                  enabled: !_isSubmitting,
+                ),
+                const SizedBox(height: 18),
+                const Row(
+                  children: [
+                    Expanded(child: Divider()),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      child: Text(
+                        'OR',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                    ),
+                    Expanded(child: Divider()),
+                  ],
+                ),
+                const SizedBox(height: 16),
                 if (isCreateAccount) ...[
                   TextField(
                     controller: _nameController,
@@ -358,19 +471,56 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
                   autocorrect: false,
                   enableSuggestions: false,
                   decoration: const InputDecoration(
-                    labelText: 'Email ID',
+                    labelText: 'Email ID / Username',
                     border: OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 12),
-                if (isCreateAccount) ...[
-                  TextField(
-                    controller: _countryController,
-                    decoration: const InputDecoration(
-                      labelText: 'Country',
-                      border: OutlineInputBorder(),
+                TextField(
+                  controller: _passwordController,
+                  obscureText: !_isPasswordVisible,
+                  keyboardType: TextInputType.visiblePassword,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _isPasswordVisible = !_isPasswordVisible;
+                        });
+                      },
+                      tooltip: _isPasswordVisible ? 'Hide password' : 'Show password',
+                      icon: Icon(
+                        _isPasswordVisible
+                            ? Icons.visibility_off_rounded
+                            : Icons.visibility_rounded,
+                        color: const Color(0xFF64748B),
+                      ),
                     ),
                   ),
+                ),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<String>(
+                  value: _countryOptions.contains(_countryController.text.trim())
+                      ? _countryController.text.trim()
+                      : 'India',
+                  decoration: const InputDecoration(
+                    labelText: 'Country / Region',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: _countryOptions
+                      .map(
+                        (country) => DropdownMenuItem<String>(
+                          value: country,
+                          child: Text(country),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (country) {
+                    _countryController.text = country ?? 'India';
+                  },
+                ),
+                if (isCreateAccount) ...[
                   const SizedBox(height: 12),
                   TextField(
                     controller: _mobileController,
@@ -382,15 +532,15 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
                   ),
                   const SizedBox(height: 12),
                 ],
-                TextField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Password',
-                    border: OutlineInputBorder(),
+                if (!isCreateAccount) ...[
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: _forgotPassword,
+                      child: const Text('Forgot Password?'),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 10),
+                ],
                 if (isCreateAccount)
                   const Text(
                     'Password must be 8+ characters and include upper case, lower case, and a number.',
@@ -401,15 +551,6 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
                     ),
                   ),
                 if (isCreateAccount) const SizedBox(height: 8),
-                if (!isCreateAccount) ...[
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: _forgotPassword,
-                      child: const Text('Forgot Password?'),
-                    ),
-                  ),
-                ],
                 if (_errorText != null) ...[
                   const SizedBox(height: 8),
                   Container(
@@ -471,6 +612,63 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SocialSignInButton extends StatelessWidget {
+  const _SocialSignInButton({
+    required this.label,
+    required this.icon,
+    required this.iconColor,
+    required this.onPressed,
+    required this.enabled,
+  });
+
+  final String label;
+  final String icon;
+  final Color iconColor;
+  final VoidCallback onPressed;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: enabled ? onPressed : null,
+        icon: Container(
+          width: 22,
+          height: 22,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: iconColor.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            icon,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: iconColor,
+            ),
+          ),
+        ),
+        label: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF0F172A),
+          ),
+        ),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          side: const BorderSide(color: Color(0xFFE2E8F0)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          foregroundColor: const Color(0xFF0F172A),
         ),
       ),
     );

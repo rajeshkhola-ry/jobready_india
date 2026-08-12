@@ -37,6 +37,20 @@ class SharedUserAuthService {
   static Future<SharedAuthResult> signup({required String fullName, required String email, required String mobile, required String country, required String password}) =>
       _post('/api/auth/signup', {'fullName': fullName, 'email': email, 'mobile': mobile, 'country': country, 'password': password});
 
+  static Future<SharedAuthResult> socialLogin({
+    required String provider,
+    required String email,
+    String? fullName,
+    String? mobile,
+    String? country,
+  }) => _post('/api/auth/social-login', {
+    'provider': provider,
+    'email': email,
+    'fullName': fullName ?? 'Social User',
+    'mobile': mobile ?? '',
+    'country': country ?? 'India',
+  });
+
   static Future<void> logout() async {
     try {
       await html.HttpRequest.request(

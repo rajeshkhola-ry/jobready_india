@@ -12,7 +12,8 @@ class TermsConditionsPage extends StatelessWidget {
       backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
         backgroundColor: const Color(0xFF111827),
-        foregroundColor: const Color(0xFFFFC72C),
+        foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
         titleSpacing: 12,
         title: Row(
@@ -126,6 +127,11 @@ class TermsConditionsPage extends StatelessWidget {
                   const _Section(
                     title: '10. Contact Information',
                     body: 'For legal and support matters, please contact: hello@getreadyjob.com',
+                  ),
+                  const _Section(
+                    title: '11. Legal & Patent Notice',
+                    body:
+                        'GETREADYJOB is a protected platform. The technology and core systems, including the "VOICE ENABLED MULTILINGUAL JOB PREPARATION PLATFORM WITH AUTOMATED LANGUAGE CONVERTER TOOLS", are filed and protected under the Indian Patent Act (Patent Application No. 202611096315).\n\nAll content, branding, design, and software tools on https://getreadyjob.com are the exclusive intellectual property of GETREADYJOB. Unauthorized copying, scraping, reverse-engineering, or reproduction of any part of this platform without prior written permission is strictly prohibited and subject to legal action.',
                   ),
                   const SizedBox(height: 16),
                   const Text(

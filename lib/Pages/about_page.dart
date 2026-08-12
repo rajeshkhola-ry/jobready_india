@@ -28,6 +28,11 @@ class AboutPage extends StatelessWidget {
           title: 'Our Story',
           body: 'GETREADYJOB is evolving from a focused document workflow platform into a broader product designed for job seekers, students, professionals, and teams.',
         ),
+        SiteContentSection(
+          title: 'Legal & Patent Notice',
+          body:
+              'GETREADYJOB is a protected platform. The technology and core systems, including the "VOICE ENABLED MULTILINGUAL JOB PREPARATION PLATFORM WITH AUTOMATED LANGUAGE CONVERTER TOOLS", are filed and protected under the Indian Patent Act (Patent Application No. 202611096315).\n\nAll content, branding, design, and software tools on https://getreadyjob.com are the exclusive intellectual property of GETREADYJOB. Unauthorized copying, scraping, reverse-engineering, or reproduction of any part of this platform without prior written permission is strictly prohibited and subject to legal action.',
+        ),
       ],
     );
   }

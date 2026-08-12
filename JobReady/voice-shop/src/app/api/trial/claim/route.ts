@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { getSession, setSession, hasClaimedFreeTrial } from "@/lib/auth";
 import { claimFreeTrial } from "@/lib/trial";
 import { getVoiceShopSettings } from "@/lib/voice-shop-settings";
 
@@ -9,6 +9,9 @@ export async function POST() {
   }
   const user = await getSession();
   const result = claimFreeTrial(user?.id ?? null);
+  if (user && result.granted) {
+    await setSession({ ...user, hasFreeTrial: true });
+  }
   const status = result.granted
     ? 201
     : result.reason === "authentication_required"
@@ -16,5 +19,5 @@ export async function POST() {
       : result.reason === "trial_disabled"
         ? 403
         : 409;
-  return NextResponse.json(result, { status });
+  return NextResponse.json({ ...result, hasFreeTrial: result.granted || hasClaimedFreeTrial(user?.id ?? 0) }, { status });
 }

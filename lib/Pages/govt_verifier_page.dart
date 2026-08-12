@@ -85,7 +85,7 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
     setState(() {
       _overlayFile = picked;
       _overlayImage = frame.image;
-      _overlayStatus = 'Photo loaded. Enter your name and DOP, then download.';
+      _overlayStatus = 'Photo loaded. Enter your name and DOP/DOB date, then download.';
     });
   }
 
@@ -337,7 +337,7 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
               _panel(child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const _H('Overlay Text'),
+                    const _H('Overlay Text'),
                   const SizedBox(height: 12),
                   TextField(
                     controller: _nameCtrl,
@@ -353,7 +353,7 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
                   TextField(
                     controller: _dopCtrl,
                     decoration: const InputDecoration(
-                      labelText: 'Date of Photo (DOP)',
+                      labelText: 'Date of Photo/Birth (DOP/DOB)',
                       hintText: '05/08/2026',
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.calendar_today_rounded, size: 18),
@@ -429,7 +429,7 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
                   icon: _isExportingOverlay
                       ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                       : const Icon(Icons.download_rounded),
-                  label: Text(_isExportingOverlay ? 'Rendering…' : 'Download Photo with Name/DOP Strip (PNG)'),
+                  label: Text(_isExportingOverlay ? 'Rendering…' : 'Download Photo with Name + DOP/DOB Strip (PNG)'),
                   style: _primaryBtn(const Color(0xFF0F2D4A)),
                 ),
               ),
@@ -864,13 +864,17 @@ class _OverlayStripPainter extends CustomPainter {
 
     if (name.isEmpty && dop.isEmpty) return;
 
-    final stripH = (size.height * 0.115).clamp(18.0, 38.0);
+    final stripH = twoLine
+        ? (size.height * 0.20).clamp(34.0, 72.0)
+        : (size.height * 0.125).clamp(22.0, 46.0);
     final stripTop = atBottom ? size.height - stripH : 0.0;
     final stripRect = Rect.fromLTWH(0, stripTop, size.width, stripH);
+    final padX = (size.width * 0.03).clamp(6.0, 20.0);
+    final padY = (stripH * 0.14).clamp(2.0, 8.0);
 
     canvas.drawRect(stripRect, Paint()..color = Colors.black);
 
-    final fontSize = (stripH * (twoLine ? 0.28 : 0.36)).clamp(7.0, 14.0);
+    final fontSize = (stripH * (twoLine ? 0.23 : 0.34)).clamp(8.0, 16.0);
     final style = ui.TextStyle(
       color: const Color(0xFFFFFFFF),
       fontSize: fontSize,
@@ -879,23 +883,63 @@ class _OverlayStripPainter extends CustomPainter {
     );
 
     if (twoLine) {
-      _paintLine(canvas, name.isNotEmpty ? 'Name: $name' : '', size.width, stripTop, stripH * 0.3, style);
-      _paintLine(canvas, dop.isNotEmpty ? 'DOP: $dop' : '', size.width, stripTop + stripH * 0.55, stripH * 0.3, style);
+      final availableW = size.width - (padX * 2);
+      final lineH = (stripH - (padY * 2)) / 2;
+      _paintLine(
+        canvas,
+        name.isNotEmpty ? 'Name: $name' : '',
+        availableW,
+        padX,
+        stripTop + padY,
+        lineH,
+        style,
+      );
+      _paintLine(
+        canvas,
+        dop.isNotEmpty ? 'DOP/DOB: $dop' : '',
+        availableW,
+        padX,
+        stripTop + padY + lineH,
+        lineH,
+        style,
+      );
     } else {
       final parts = <String>[];
       if (name.isNotEmpty) parts.add('Name: $name');
-      if (dop.isNotEmpty) parts.add('DOP: $dop');
-      _paintLine(canvas, parts.join('     '), size.width, stripTop + (stripH - fontSize) / 2, stripH, style);
+      if (dop.isNotEmpty) parts.add('DOP/DOB: $dop');
+      _paintLine(
+        canvas,
+        parts.join('     '),
+        size.width - (padX * 2),
+        padX,
+        stripTop + padY,
+        stripH - (padY * 2),
+        style,
+      );
     }
   }
 
-  void _paintLine(Canvas canvas, String text, double width, double top, double lineH, ui.TextStyle style) {
+  void _paintLine(
+    Canvas canvas,
+    String text,
+    double width,
+    double left,
+    double top,
+    double lineH,
+    ui.TextStyle style,
+  ) {
     if (text.isEmpty) return;
-    final pb = ui.ParagraphBuilder(ui.ParagraphStyle(textAlign: TextAlign.center))
+    final pb = ui.ParagraphBuilder(
+      ui.ParagraphStyle(
+        textAlign: TextAlign.center,
+        maxLines: 1,
+        ellipsis: '...',
+      ),
+    )
       ..pushStyle(style)
       ..addText(text);
     final para = pb.build()..layout(ui.ParagraphConstraints(width: width));
-    canvas.drawParagraph(para, Offset(0, top + (lineH - para.height) / 2));
+    canvas.drawParagraph(para, Offset(left, top + (lineH - para.height) / 2));
   }
 
   @override

@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -263,7 +262,8 @@ class _FraudSealPageState extends State<FraudSealPage> {
                   Switch(
                     value: _watermarkEnabled,
                     onChanged: (v) => setState(() => _watermarkEnabled = v),
-                    activeColor: const Color(0xFF0A1F3D),
+                    activeThumbColor: const Color(0xFF0A1F3D),
+                    activeTrackColor: const Color(0xFFD8E2F0),
                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                 ]),
@@ -417,7 +417,8 @@ class _FraudSealPageState extends State<FraudSealPage> {
                   Switch(
                     value: _sealEnabled,
                     onChanged: (v) => setState(() => _sealEnabled = v),
-                    activeColor: const Color(0xFF065F46),
+                    activeThumbColor: const Color(0xFF065F46),
+                    activeTrackColor: const Color(0xFFD1FAE5),
                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                 ]),
@@ -743,8 +744,10 @@ class _SealPainter extends CustomPainter {
   void _drawSeal(Canvas canvas, Size size) {
     const padH = 10.0;
     const padV = 7.0;
-    final fontSize = (size.width * 0.022).clamp(7.0, 13.0);
-    final lineH = fontSize * 1.45;
+    final margin = (math.min(size.width, size.height) * 0.04).clamp(12.0, 22.0);
+    final maxBoxW = math.max(120.0, size.width - margin * 2);
+    final maxBoxH = math.max(90.0, size.height - margin * 2);
+
     final lines = [
       '✓  GETREADYJOB · SECURE DOCUMENT',
       'PURPOSE: ${purpose.isEmpty ? '(not set)' : purpose}',
@@ -752,39 +755,51 @@ class _SealPainter extends CustomPainter {
       'REF: $sealRef   •   SEALED: $sealTimestamp',
       'Generated locally — no data uploaded to any server.',
     ];
-    final boxW = (size.width * 0.72).clamp(180.0, 460.0);
-    final boxH = lines.length * lineH + padV * 2 + 4;
-    final boxL = size.width - boxW - 8;
-    final boxT = size.height - boxH - 8;
 
-    // Box background
-    canvas.drawRect(
-      Rect.fromLTWH(boxL, boxT, boxW, boxH),
-      Paint()..color = Colors.white.withValues(alpha: 0.92),
+    double fontSize = (size.width * 0.022).clamp(7.0, 13.0);
+    double lineH = fontSize * 1.45;
+    double boxH = lines.length * lineH + padV * 2 + 6;
+    while (boxH > maxBoxH && fontSize > 6.0) {
+      fontSize -= 0.5;
+      lineH = fontSize * 1.45;
+      boxH = lines.length * lineH + padV * 2 + 6;
+    }
+
+    final boxW = ((size.width * 0.72).clamp(120.0, maxBoxW)).clamp(0.0, maxBoxW);
+    final finalBoxH = math.min(boxH, maxBoxH);
+    final boxL = size.width - boxW - margin;
+    final boxT = size.height - finalBoxH - margin;
+
+    final badgeFill = Paint()..color = Colors.white.withValues(alpha: 0.96);
+    final outerStroke = Paint()
+      ..color = const Color(0xFF0A1F3D)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6;
+    final innerStroke = Paint()
+      ..color = const Color(0xFFFCD34D)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.9;
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Rect.fromLTWH(boxL, boxT, boxW, finalBoxH), const Radius.circular(8)),
+      badgeFill,
     );
-    // Box border: outer dark, inner gold accent line
-    canvas.drawRect(
-      Rect.fromLTWH(boxL, boxT, boxW, boxH),
-      Paint()
-        ..color = const Color(0xFF0A1F3D)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5,
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Rect.fromLTWH(boxL, boxT, boxW, finalBoxH), const Radius.circular(8)),
+      outerStroke,
     );
-    canvas.drawRect(
-      Rect.fromLTWH(boxL + 2, boxT + 2, boxW - 4, boxH - 4),
-      Paint()
-        ..color = const Color(0xFFFCD34D)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 0.8,
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Rect.fromLTWH(boxL + 2, boxT + 2, boxW - 4, finalBoxH - 4), const Radius.circular(6)),
+      innerStroke,
     );
 
-    // Text lines
     double ty = boxT + padV;
     for (int i = 0; i < lines.length; i++) {
       final isHeader = i == 0;
-      final pb = ui.ParagraphBuilder(ui.ParagraphStyle(maxLines: 1))
+      final textColor = isHeader ? const Color(0xFF0A1F3D) : const Color(0xFF334155);
+      final pb = ui.ParagraphBuilder(ui.ParagraphStyle(maxLines: 1, ellipsis: '...'))
         ..pushStyle(ui.TextStyle(
-          color: isHeader ? const Color(0xFF0A1F3D) : const Color(0xFF334155),
+          color: textColor,
           fontSize: isHeader ? fontSize : fontSize * 0.88,
           fontWeight: isHeader ? ui.FontWeight.w800 : ui.FontWeight.w400,
           letterSpacing: isHeader ? 0.6 : 0.2,
@@ -795,6 +810,20 @@ class _SealPainter extends CustomPainter {
       canvas.drawParagraph(para, Offset(boxL + padH, ty));
       ty += lineH;
     }
+
+    final checkRadius = math.max(9.0, fontSize * 1.05);
+    final checkCenter = Offset(boxL + boxW - checkRadius - 12, boxT + 9);
+    canvas.drawCircle(checkCenter, checkRadius, Paint()..color = const Color(0xFF0A1F3D));
+    canvas.drawCircle(checkCenter, checkRadius - 2.2, Paint()..color = const Color(0xFFFCD34D));
+    final tick = ui.ParagraphBuilder(ui.ParagraphStyle(textAlign: TextAlign.center))
+      ..pushStyle(ui.TextStyle(
+        color: const Color(0xFF0A1F3D),
+        fontSize: fontSize * 0.85,
+        fontWeight: ui.FontWeight.w900,
+      ))
+      ..addText('✓');
+    final tickPara = tick.build()..layout(ui.ParagraphConstraints(width: 40));
+    canvas.drawParagraph(tickPara, Offset(checkCenter.dx - tickPara.longestLine / 2, checkCenter.dy - tickPara.height / 2 - 1));
   }
 
   // ── Geometry helpers ──────────────────────────────────────────────────────

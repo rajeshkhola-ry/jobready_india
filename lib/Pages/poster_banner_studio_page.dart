@@ -134,8 +134,21 @@ class _PosterBannerStudioPageState extends State<PosterBannerStudioPage> {
 
   void _syncControllers() {
     final layer = _selectedLayer;
-    _textController.text = layer.text;
-    _fontSizeController.text = layer.fontSize.toStringAsFixed(0);
+    if (_textController.text != layer.text) {
+      _textController.value = _textController.value.copyWith(
+        text: layer.text,
+        selection: TextSelection.collapsed(offset: layer.text.length),
+        composing: TextRange.empty,
+      );
+    }
+    final fontSizeText = layer.fontSize.toStringAsFixed(0);
+    if (_fontSizeController.text != fontSizeText) {
+      _fontSizeController.value = _fontSizeController.value.copyWith(
+        text: fontSizeText,
+        selection: TextSelection.collapsed(offset: fontSizeText.length),
+        composing: TextRange.empty,
+      );
+    }
   }
 
   void _applyTemplate(PosterStudioTemplate template) {
@@ -154,7 +167,6 @@ class _PosterBannerStudioPageState extends State<PosterBannerStudioPage> {
   void _updateLayer(PosterLayerDraft updated) {
     setState(() {
       _layers[_selectedLayerIndex] = updated;
-      _syncControllers();
     });
     _scheduleSave();
   }
@@ -419,8 +431,13 @@ class _PosterBannerStudioPageState extends State<PosterBannerStudioPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Poster & Banner Studio'),
+        title: const Text(
+          'Poster & Banner Studio',
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: const Color(0xFF123A63),
+        foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           if (_lastSaved != null)
             Padding(
@@ -635,6 +652,7 @@ class _PosterBannerStudioPageState extends State<PosterBannerStudioPage> {
                           left: layer.position.dx,
                           top: layer.position.dy,
                           child: GestureDetector(
+                            behavior: HitTestBehavior.translucent,
                             onTap: () => setState(() {
                               _selectedLayerIndex = index;
                               _syncControllers();
@@ -776,7 +794,7 @@ class _PosterBannerStudioPageState extends State<PosterBannerStudioPage> {
   Widget _buildInspectorPanel() {
     final layer = _selectedLayer;
     return Card(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -839,21 +857,22 @@ class _PosterBannerStudioPageState extends State<PosterBannerStudioPage> {
               maxLines: 2,
               decoration: const InputDecoration(labelText: 'Layer Text'),
               onChanged: (value) {
+                final current = _selectedLayer;
                 _updateLayer(
                   PosterLayerDraft(
-                    type: layer.type,
-                    label: layer.label,
-                    position: layer.position,
-                    size: layer.size,
-                    rotation: layer.rotation,
+                    type: current.type,
+                    label: current.label,
+                    position: current.position,
+                    size: current.size,
+                    rotation: current.rotation,
                     text: value,
-                    fontSize: layer.fontSize,
-                    fontWeight: layer.fontWeight,
-                    fillColor: layer.fillColor,
-                    textColor: layer.textColor,
-                    iconData: layer.iconData,
-                    shapeType: layer.shapeType,
-                    borderRadius: layer.borderRadius,
+                    fontSize: current.fontSize,
+                    fontWeight: current.fontWeight,
+                    fillColor: current.fillColor,
+                    textColor: current.textColor,
+                    iconData: current.iconData,
+                    shapeType: current.shapeType,
+                    borderRadius: current.borderRadius,
                   ),
                 );
               },
