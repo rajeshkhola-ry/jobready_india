@@ -5,6 +5,8 @@ import { ArrowRight, Check, CheckCircle2, CircleDollarSign, Clock3, Globe2, Head
 import Image from "next/image";
 import Link from "next/link";
 
+import { getMainSiteAccessMessage, shouldOpenMainSiteForGuestAccess } from "../lib/main-site-access";
+
 type AuthMode = "login" | "signup" | "forgot";
 type SessionUser = { id: number; email: string; fullName: string; role?: "user" | "admin" };
 type OAuthProviders = { google: boolean; microsoft: boolean };
@@ -79,6 +81,7 @@ export default function Home() {
   const [selectedPassCode, setSelectedPassCode] = useState<PassCode | null>(null);
   const [passPaymentBusy, setPassPaymentBusy] = useState(false);
   const isAdmin = user?.role === "admin";
+  const mainSiteUrl = "https://getreadyjob.com/";
 
   useEffect(() => {
     Promise.all([fetch("/api/auth/me").then((response) => response.json()), fetch("/api/pricing").then((response) => response.json())])
@@ -90,10 +93,9 @@ export default function Home() {
       setStatus("Admin unlimited access is already active.");
       return;
     }
-    if (!user) {
-      setAuthMode("signup");
-      setStatus("Create your verified account before activating the free trial.");
-      setAuthOpen(true);
+    if (shouldOpenMainSiteForGuestAccess(Boolean(user))) {
+      setStatus(getMainSiteAccessMessage());
+      window.location.href = mainSiteUrl;
       return;
     }
     setBusy(true);
@@ -135,9 +137,13 @@ export default function Home() {
       return;
     }
     if (!user) {
-      setAuthMode("login");
-      setStatus("Sign in before adding funds to your Voice Shop wallet.");
-      setAuthOpen(true);
+      setStatus(getMainSiteAccessMessage());
+      window.location.href = mainSiteUrl;
+      return;
+    }
+    if (shouldOpenMainSiteForGuestAccess(Boolean(user))) {
+      setStatus(getMainSiteAccessMessage());
+      window.location.href = mainSiteUrl;
       return;
     }
 
@@ -209,9 +215,13 @@ export default function Home() {
       return;
     }
     if (!user) {
-      setAuthMode("login");
-      setStatus("Sign in before purchasing a Voice Shop pass.");
-      setAuthOpen(true);
+      setStatus(getMainSiteAccessMessage());
+      window.location.href = mainSiteUrl;
+      return;
+    }
+    if (shouldOpenMainSiteForGuestAccess(Boolean(user))) {
+      setStatus(getMainSiteAccessMessage());
+      window.location.href = mainSiteUrl;
       return;
     }
     setPassPaymentBusy(true);
@@ -275,11 +285,11 @@ export default function Home() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <a className="brand" href="https://getreadyjob.com/" aria-label="Back to GETREADYJOB main site"><span className="brand-mark"><Mic2 size={20} /></span><span>GETREADYJOB <b>VOICE SHOP</b></span></a>
-        <nav className="topnav" aria-label="Primary navigation"><a className="main-site-link" href="https://getreadyjob.com/">← Home</a><a href="#workspace">Voice Studio</a><a href="#pricing">Pricing</a><a href="#passes">Passes</a></nav>
+        <a className="brand" href={mainSiteUrl} aria-label="Back to GETREADYJOB main site"><span className="brand-mark"><Mic2 size={20} /></span><span>GETREADYJOB <b>VOICE SHOP</b></span></a>
+        <nav className="topnav" aria-label="Primary navigation"><a className="main-site-link" href={mainSiteUrl}>← Home</a><a href="#workspace">Voice Studio</a><a href="#pricing">Pricing</a><a href="#passes">Passes</a></nav>
         <div className="account-actions">
           <span className="currency-pill"><Globe2 size={15} /> {catalog?.currency || "..."}</span>
-          {user ? <><span className={`user-name ${isAdmin ? "admin-user" : ""}`}><UserRound size={16} /> {isAdmin ? "Admin · Unlimited" : user.fullName}</span><button className="icon-button" onClick={logout} title="Sign out" aria-label="Sign out"><LogOut size={18} /></button></> : <button className="text-button" onClick={() => { setAuthMode("login"); setAuthOpen(true); }}>Sign in</button>}
+          {user ? <><span className={`user-name ${isAdmin ? "admin-user" : ""}`}><UserRound size={16} /> {isAdmin ? "Admin · Unlimited" : user.fullName}</span><button className="icon-button" onClick={logout} title="Sign out" aria-label="Sign out"><LogOut size={18} /></button></> : <a className="text-button" href={mainSiteUrl}>Go to Main Homepage</a>}
         </div>
       </header>
 
@@ -288,8 +298,14 @@ export default function Home() {
           <p className="eyebrow"><Sparkles size={15} /> Account-protected voice access</p>
           <h1>Voice Shop</h1>
           <p className="lead">A secure voice workspace for personal projects and business production, priced by the minute or by pass.</p>
+          {!user && (
+            <div className="main-site-gate">
+              <p>{getMainSiteAccessMessage()}</p>
+              <a className="primary-button" href={mainSiteUrl}>Go to Main Homepage ➔</a>
+            </div>
+          )}
           {isAdmin && <div className="admin-unlimited-note"><ShieldCheck size={17} /> Unlimited admin access active across all Voice Shop tools</div>}
-          {!isAdmin && catalog?.trialEnabled === true && <div className="workspace-actions">
+          {!isAdmin && user && catalog?.trialEnabled === true && <div className="workspace-actions">
             <button className="primary-button" onClick={claimTrial} disabled={busy}>{busy ? "Activating..." : "Claim 2 free minutes"}<ArrowRight size={18} /></button>
             <span className="secure-note"><LockKeyhole size={15} /> Login required. One trial per account.</span>
           </div>}
@@ -400,7 +416,7 @@ export default function Home() {
         </div>
       </footer>
 
-      {authOpen && <AuthDialog key={authMode} mode={authMode} status={status} trialEnabled={catalog?.trialEnabled === true} oauthProviders={oauthProviders} onModeChange={setAuthMode} onClose={() => setAuthOpen(false)} onAuthenticated={(authenticatedUser) => { setUser(authenticatedUser); setAuthOpen(false); setStatus(catalog?.trialEnabled === true ? "Account verified. Your trial is ready to activate." : "Account verified. You are signed in securely."); }} onStatus={setStatus} />}
+      {authOpen && user && <AuthDialog key={authMode} mode={authMode} status={status} trialEnabled={catalog?.trialEnabled === true} oauthProviders={oauthProviders} onModeChange={setAuthMode} onClose={() => setAuthOpen(false)} onAuthenticated={(authenticatedUser) => { setUser(authenticatedUser); setAuthOpen(false); setStatus(catalog?.trialEnabled === true ? "Account verified. Your trial is ready to activate." : "Account verified. You are signed in securely."); }} onStatus={setStatus} />}
       {selectedPassCode && catalog && <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !passPaymentBusy) setSelectedPassCode(null); }}>
         <div className="pass-picker" role="dialog" aria-modal="true" aria-labelledby="pass-picker-title">
           <button className="dialog-close" type="button" disabled={passPaymentBusy} onClick={() => setSelectedPassCode(null)} aria-label="Close pass chooser"><X /></button>
