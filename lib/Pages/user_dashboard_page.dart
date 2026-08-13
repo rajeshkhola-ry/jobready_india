@@ -165,9 +165,9 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Hello Job AI'),
+        title: const Text('GETREADYJOB Access'),
         content: const Text(
-          'You are now kept inside GETREADYJOB for Voice AI access. External redirects are disabled for safety.',
+          'You are now kept inside GETREADYJOB for core AI access. External redirects are disabled for safety.',
         ),
         actions: [
           TextButton(
@@ -426,12 +426,12 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Live Voice Translator',
+                                    'Core AI Access',
                                     style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
                                   ),
                                   SizedBox(height: 3),
                                   Text(
-                                    'Open Hello Job AI in a dedicated tab',
+                                    'Open your GETREADYJOB dashboard in one step',
                                     style: TextStyle(color: Color(0xFFBAE6FD), fontSize: 12.5),
                                   ),
                                 ],

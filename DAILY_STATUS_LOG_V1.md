@@ -55,6 +55,24 @@ Owner:
   - Monitor admin OTP flow for 24 hours and keep V1.1 baseline frozen unless emergency fix is required.
 - Owner: Founder + Copilot
 
+### Checkpoint - 2026-08-13 (Final SEO Cleanup + Main-Site Verification)
+- Overall status: Green
+- Completed today:
+  - Removed stale SEO and schema references to the retired `voice.getreadyjob.com` subdomain and restored canonical metadata to `https://www.getreadyjob.com/`.
+  - Cleared legacy “AI voice / Voice Tools” SEO text from the main landing page metadata so Google indexes the active GETREADYJOB home site only.
+  - Rebuilt the production web app and redeployed the Firebase hosting target successfully.
+  - Verified the main-site tools flow through the browser for live functionality and confirmed no main-site redirect errors.
+  - Created a final full backup bundle in OneDrive and prepared the final GitHub release commit.
+- In progress:
+  - Final repository push and OneDrive backup confirmation.
+- Blockers:
+  - None.
+- Decisions needed:
+  - Close out after final backup verification.
+- Tomorrow plan:
+  - Maintain the frozen V1.1 production baseline and monitor the main site only.
+- Owner: Founder + Copilot
+
 ### Day 2 - 2026-07-12
 - Overall status: Green (AHEAD OF SCHEDULE)
 - Completed today:

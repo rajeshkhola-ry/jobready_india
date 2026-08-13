@@ -159,7 +159,7 @@ class _AdminGatePageState extends State<AdminGatePage> {
                     ),
                     const SizedBox(height: 10),
                     const Text(
-                      'Enter the production admin email and password. Successful verification creates a secure session for the main site and Voice Shop.',
+                      'Enter the production admin email and password. Successful verification creates a secure session for the main site.',
                       style: TextStyle(
                         fontSize: 13,
                         height: 1.5,

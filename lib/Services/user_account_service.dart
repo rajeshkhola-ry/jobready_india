@@ -11,12 +11,15 @@ class UserAccountProfile {
   final bool historyEnabled;
   final bool googleLoginPreferred;
   final String activePlan;
+  final String planId;
+  final String planName;
   final String planStatus;
   final int remainingCredits;
   final int convertedFilesCount;
   final String planCurrency;
   final double planPrice;
   final String planSummary;
+  final bool toolsUnlimited;
 
   const UserAccountProfile({
     required this.displayName,
@@ -27,12 +30,15 @@ class UserAccountProfile {
     required this.historyEnabled,
     required this.googleLoginPreferred,
     required this.activePlan,
+    required this.planId,
+    required this.planName,
     required this.planStatus,
     required this.remainingCredits,
     required this.convertedFilesCount,
     required this.planCurrency,
     required this.planPrice,
     required this.planSummary,
+    required this.toolsUnlimited,
   });
 
   factory UserAccountProfile.initial() {
@@ -45,12 +51,15 @@ class UserAccountProfile {
       historyEnabled: true,
       googleLoginPreferred: false,
       activePlan: 'Free',
+      planId: 'free',
+      planName: 'Free',
       planStatus: 'Active',
       remainingCredits: 3,
       convertedFilesCount: 0,
       planCurrency: 'USD',
       planPrice: 0.0,
       planSummary: 'Free access to core tools',
+      toolsUnlimited: false,
     );
   }
 
@@ -63,12 +72,15 @@ class UserAccountProfile {
     bool? historyEnabled,
     bool? googleLoginPreferred,
     String? activePlan,
+    String? planId,
+    String? planName,
     String? planStatus,
     int? remainingCredits,
     int? convertedFilesCount,
     String? planCurrency,
     double? planPrice,
     String? planSummary,
+    bool? toolsUnlimited,
   }) {
     return UserAccountProfile(
       displayName: displayName ?? this.displayName,
@@ -79,12 +91,15 @@ class UserAccountProfile {
       historyEnabled: historyEnabled ?? this.historyEnabled,
       googleLoginPreferred: googleLoginPreferred ?? this.googleLoginPreferred,
       activePlan: activePlan ?? this.activePlan,
+      planId: planId ?? this.planId,
+      planName: planName ?? this.planName,
       planStatus: planStatus ?? this.planStatus,
       remainingCredits: remainingCredits ?? this.remainingCredits,
       convertedFilesCount: convertedFilesCount ?? this.convertedFilesCount,
       planCurrency: planCurrency ?? this.planCurrency,
       planPrice: planPrice ?? this.planPrice,
       planSummary: planSummary ?? this.planSummary,
+      toolsUnlimited: toolsUnlimited ?? this.toolsUnlimited,
     );
   }
 
@@ -98,12 +113,15 @@ class UserAccountProfile {
       'history_enabled': historyEnabled,
       'google_login_preferred': googleLoginPreferred,
       'active_plan': activePlan,
+      'plan_id': planId,
+      'plan_name': planName,
       'plan_status': planStatus,
       'remaining_credits': remainingCredits,
       'converted_files_count': convertedFilesCount,
       'plan_currency': planCurrency,
       'plan_price': planPrice,
       'plan_summary': planSummary,
+      'tools_unlimited': toolsUnlimited,
     };
   }
 
@@ -121,12 +139,15 @@ class UserAccountProfile {
       historyEnabled: map['history_enabled'] == true,
       googleLoginPreferred: map['google_login_preferred'] == true,
       activePlan: map['active_plan']?.toString() ?? 'Free',
+      planId: map['plan_id']?.toString() ?? 'free',
+      planName: map['plan_name']?.toString() ?? 'Free',
       planStatus: map['plan_status']?.toString() ?? 'Active',
       remainingCredits: int.tryParse(map['remaining_credits']?.toString() ?? '') ?? 3,
       convertedFilesCount: int.tryParse(map['converted_files_count']?.toString() ?? '') ?? 0,
       planCurrency: map['plan_currency']?.toString() ?? 'USD',
       planPrice: double.tryParse(map['plan_price']?.toString() ?? '') ?? 0.0,
       planSummary: map['plan_summary']?.toString() ?? 'Free access to core tools',
+      toolsUnlimited: map['tools_unlimited'] == true,
     );
   }
 }

@@ -24,7 +24,6 @@ import '../Services/user_account_service.dart';
 import '../Services/user_auth_service.dart';
 import '../Services/usage_quota_service.dart';
 import '../Services/razorpay_service.dart';
-import '../Services/voice_access_service.dart';
 import '../Widgets/user_auth_dialog.dart';
 import '../Widgets/ai_resume_feature_banner.dart';
 import '../Widgets/brand_logo_button.dart';
@@ -405,14 +404,14 @@ class _HomePageV11State extends State<HomePageV11> {
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Hello Job AI'),
+        title: const Text('Main App Access'),
         content: const Text(
-          'Hello Job AI now runs inside GETREADYJOB. You will stay on this page and never be redirected to an external domain.',
+          'All core GETREADYJOB tools remain inside the main app. You will stay on this site and continue your access flow without any external redirect.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Stay on Home'),
+            child: const Text('Stay Here'),
           ),
           ElevatedButton(
             onPressed: () {
@@ -422,7 +421,7 @@ class _HomePageV11State extends State<HomePageV11> {
               }
               Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
             },
-            child: const Text('Open Home Safe Mode'),
+            child: const Text('Open Main Home'),
           ),
         ],
       ),
@@ -636,7 +635,6 @@ class _HomePageV11State extends State<HomePageV11> {
   }
 
   Future<void> _showPaymentSuccessFlow({required String plan}) async {
-    final guideCards = PlanService.getToolUsageGuides();
     if (!mounted) {
       return;
     }
@@ -672,7 +670,7 @@ class _HomePageV11State extends State<HomePageV11> {
                   ),
                   const SizedBox(height: 10),
                   const Text(
-                    'Your payment has been confirmed. Start using the tools right away from the next action below.',
+                    'Your payment has been confirmed. Continue in the main app and start using the tools right away.',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -688,101 +686,16 @@ class _HomePageV11State extends State<HomePageV11> {
                         if (!mounted) {
                           return;
                         }
-                        html.window.open('https://voice.getreadyjob.com', '_self');
+                        html.window.open('https://getreadyjob.com/', '_self');
                       },
                       icon: const Icon(Icons.rocket_launch_rounded),
-                      label: const Text('Start Using Tools Now'),
+                      label: const Text('Open Main App'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF0F766E),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         textStyle: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  const Text(
-                    'How to use your tools',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF0F172A),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  ...guideCards.map(
-                    (guide) => Container(
-                      width: double.infinity,
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFF),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFCBD5E1)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            guide.title,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF0F172A),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            guide.subtitle,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF475569),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          ...guide.steps.map(
-                            (step) => Padding(
-                              padding: const EdgeInsets.only(bottom: 6),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    width: 24,
-                                    height: 24,
-                                    margin: const EdgeInsets.only(top: 1),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFDBEAFE),
-                                      borderRadius: BorderRadius.circular(999),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        step.title.replaceFirst('Step ', ''),
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w800,
-                                          color: Color(0xFF1D4ED8),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      step.description,
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: Color(0xFF2D3748),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
                       ),
                     ),
                   ),
@@ -963,43 +876,36 @@ class _HomePageV11State extends State<HomePageV11> {
     }
   }
 
-  bool get _isAdminSession => VoiceAccessService.hasAdminSession();
-
-  bool get _isLoggedInUser => VoiceAccessService.hasUserSession();
-
-  String get _voiceStatusLabel => VoiceAccessService.statusLabel(
-        isAdminSession: _isAdminSession,
-        isSignedIn: _isLoggedInUser,
-      );
-
-  String get _voiceActionLabel => VoiceAccessService.primaryActionLabel(
-        planId: UserAccountService.getProfile().planId,
-        isAdminSession: _isAdminSession,
-        isSignedIn: _isLoggedInUser,
-      );
-
-  bool get _hasVoiceLaunchAccess => VoiceAccessService.hasVoiceLaunchAccess(
-        planId: UserAccountService.getProfile().planId,
-        isAdminSession: _isAdminSession,
-        isSignedIn: _isLoggedInUser,
-      );
-
-  void _handleVoiceLaunchFromHome() {
-    final profile = UserAccountService.getProfile();
-    final planId = profile.planId;
-    final isAdminSession = VoiceAccessService.hasAdminSession();
-    final isSignedInUser = VoiceAccessService.hasUserSession();
-
-    if (VoiceAccessService.shouldLaunchVoiceTool(
-      planId: planId,
-      isAdminSession: isAdminSession,
-      isSignedIn: isSignedInUser,
-    )) {
-      html.window.open('https://voice.getreadyjob.com', '_self');
+  Future<void> _showCoreToolsAccessNotice() async {
+    if (!mounted) {
       return;
     }
 
-    _openUserLoginPanel();
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Access required'),
+        content: const Text(
+          'Please sign in on the main homepage (getreadyjob.com) to continue with our available core tools and services.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Stay here'),
+          ),
+          FilledButton.icon(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              html.window.open('https://getreadyjob.com/', '_self');
+            },
+            icon: const Icon(Icons.home_rounded),
+            label: const Text('Go to Main Homepage ➔'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -1033,7 +939,7 @@ class _HomePageV11State extends State<HomePageV11> {
             ),
           if (useCompactHeaderActions)
             _TopActionIcon(
-              tooltip: 'Open Hello Job AI Live Voice Translator',
+              tooltip: 'Open main app access',
               icon: Icons.headset_mic_rounded,
               iconColor: const Color(0xFF0891B2),
               onTap: _openHelloJobTranslator,
@@ -1048,7 +954,7 @@ class _HomePageV11State extends State<HomePageV11> {
                   smallSize: 7,
                   child: Icon(Icons.headset_mic_rounded, size: 18),
                 ),
-                label: const Text('Hello Job AI'),
+                label: const Text('Main App'),
                 style: FilledButton.styleFrom(
                   backgroundColor: const Color(0xFF0F172A),
                   foregroundColor: Colors.white,
@@ -1059,22 +965,6 @@ class _HomePageV11State extends State<HomePageV11> {
                 ),
               ),
             ),
-          TextButton.icon(
-            onPressed: _handleVoiceLaunchFromHome,
-            icon: Icon(
-              _isAdminSession
-                  ? Icons.shield_rounded
-                  : (_isLoggedInUser ? Icons.verified_user_rounded : Icons.person_outline_rounded),
-              size: 16,
-            ),
-            label: Text(_voiceStatusLabel),
-            style: TextButton.styleFrom(
-              foregroundColor: _isAdminSession
-                  ? const Color(0xFF0F766E)
-                  : (_isLoggedInUser ? const Color(0xFF166534) : const Color(0xFF334155)),
-              textStyle: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-          ),
           _TopActionIcon(
             tooltip: 'Benchmark',
             icon: Icons.bar_chart_rounded,
@@ -1305,7 +1195,7 @@ class _HomePageV11State extends State<HomePageV11> {
                                         border: Border.all(color: const Color(0xFFA7D7C4)),
                                       ),
                                       child: const Text(
-                                        '✨ Premium | AI Voice & Career Tools',
+                                        '✨ Premium | Core Career Tools',
                                         style: TextStyle(
                                           color: Color(0xFF075A43),
                                           fontSize: 10.5,
@@ -1315,7 +1205,7 @@ class _HomePageV11State extends State<HomePageV11> {
                                     ),
                                     const SizedBox(height: 5),
                                     Text(
-                                      'Next-Gen AI Voice & Career Tools 🎙️',
+                                      'Career Tools & Document Suite',
                                       style: TextStyle(
                                         color: const Color(0xFF102A24),
                                         fontSize: isCompact ? 15 : 19,
@@ -1325,7 +1215,7 @@ class _HomePageV11State extends State<HomePageV11> {
                                     ),
                                     const SizedBox(height: 3),
                                     Text(
-                                      'AI Mock Interviews • Voice Translator • Study Assistant • ATS Resume',
+                                      'Photo Resizer • Purpose Watermark • AI Resume • Document Suite',
                                       style: TextStyle(
                                         color: const Color(0xFF48645B),
                                         fontSize: isCompact ? 11.5 : 13,
@@ -1338,7 +1228,7 @@ class _HomePageV11State extends State<HomePageV11> {
                               ),
                               SizedBox(width: isCompact ? 12 : 16),
                               FilledButton(
-                                onPressed: _handleVoiceLaunchFromHome,
+                                onPressed: () => html.window.open('https://getreadyjob.com/', '_self'),
                                 style: FilledButton.styleFrom(
                                   backgroundColor: const Color(0xFF0C6B4E),
                                   foregroundColor: Colors.white,
@@ -1351,7 +1241,7 @@ class _HomePageV11State extends State<HomePageV11> {
                                   elevation: 3,
                                   shadowColor: const Color(0xFF0C6B4E).withValues(alpha: 0.28),
                                 ),
-                                child: Text(_hasVoiceLaunchAccess ? '🚀 Launch Tool' : '🚀 Explore →'),
+                                child: const Text('🚀 Explore →'),
                               ),
                             ],
                           ),
@@ -1570,7 +1460,9 @@ class _HomePageV11State extends State<HomePageV11> {
                   },
                 ),
                 const SizedBox(height: 10),
-                const _ToolAccessGuidanceSection(),
+                _ToolAccessGuidanceSection(
+                  onLaunchVoiceTool: _showCoreToolsAccessNotice,
+                ),
                 const SizedBox(height: 10),
                 const _AboutUsSection(),
                 const SizedBox(height: 10),
@@ -1864,19 +1756,15 @@ class _QuickAccessActionButton extends StatelessWidget {
 }
 
 class _ToolAccessGuidanceSection extends StatelessWidget {
-  const _ToolAccessGuidanceSection();
+  final Future<void> Function()? onLaunchVoiceTool;
+
+  const _ToolAccessGuidanceSection({this.onLaunchVoiceTool});
 
   @override
   Widget build(BuildContext context) {
     final profile = UserAccountService.getProfile();
-    final isAdminSession = VoiceAccessService.hasAdminSession();
-    final hasActivePass = PlanService.hasActiveToolAccess(planId: profile.planId);
-    final hasLaunchAccess = VoiceAccessService.hasVoiceLaunchAccess(
-      planId: profile.planId,
-      isAdminSession: isAdminSession,
-      isSignedIn: UserAuthService.isSignedIn,
-    );
-    final guides = PlanService.getToolUsageGuides();
+    final isSignedIn = UserAuthService.isSignedIn;
+    final hasAccess = isSignedIn || (profile.activePlan.isNotEmpty && profile.activePlan != 'Free');
 
     return Container(
       width: double.infinity,
@@ -1895,11 +1783,11 @@ class _ToolAccessGuidanceSection extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.smart_toy_rounded, color: Color(0xFF0F766E), size: 22),
+              const Icon(Icons.rocket_launch_rounded, color: Color(0xFF0F766E), size: 22),
               const SizedBox(width: 8),
               const Expanded(
                 child: Text(
-                  'Voice tools access',
+                  'Continue on the main app',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w900,
@@ -1910,15 +1798,15 @@ class _ToolAccessGuidanceSection extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: hasActivePass ? const Color(0xFFDCFCE7) : const Color(0xFFFEF3C7),
+                  color: hasAccess ? const Color(0xFFDCFCE7) : const Color(0xFFFEF3C7),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  hasLaunchAccess ? (isAdminSession ? 'Admin session' : 'Active pass') : 'Inactive pass',
+                  hasAccess ? 'Ready to launch' : 'Sign in required',
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
-                    color: hasLaunchAccess ? const Color(0xFF166534) : const Color(0xFF92400E),
+                    color: hasAccess ? const Color(0xFF166534) : const Color(0xFF92400E),
                   ),
                 ),
               ),
@@ -1926,9 +1814,9 @@ class _ToolAccessGuidanceSection extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            hasLaunchAccess
-                ? 'Your access is active. Open the tool and start immediately.'
-                : 'Unlock access to start using the AI voice, mock interview, and study tools.',
+            hasAccess
+                ? 'Your account is ready. Open the main GETREADYJOB app and continue with your tools.'
+                : 'Please sign in on the main homepage (getreadyjob.com) to continue with the available core tools and services.',
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
@@ -1940,119 +1828,16 @@ class _ToolAccessGuidanceSection extends StatelessWidget {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: () {
-                if (hasLaunchAccess) {
-                  html.window.open('https://voice.getreadyjob.com', '_self');
-                  return;
-                }
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Choose a plan to unlock access for the voice tools.')),
-                );
+                html.window.open('https://getreadyjob.com/', '_self');
               },
-              icon: Icon(hasLaunchAccess ? Icons.play_circle_fill_rounded : Icons.lock_open_rounded),
-              label: Text(hasLaunchAccess ? '🚀 Launch Tool' : 'Unlock Access'),
+              icon: const Icon(Icons.home_rounded),
+              label: const Text('Go to Main Homepage ➔'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: hasLaunchAccess ? const Color(0xFF0F766E) : const Color(0xFF123A63),
+                backgroundColor: const Color(0xFF0F766E),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 textStyle: const TextStyle(fontWeight: FontWeight.w800),
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          ...guides.map(
-            (guide) => Container(
-              width: double.infinity,
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFDCE7F3)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          guide.title,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF0F172A),
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: hasLaunchAccess ? const Color(0xFFDCFCE7) : const Color(0xFFEEF2FF),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Text(
-                          hasLaunchAccess ? 'Ready' : 'Locked',
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w800,
-                            color: hasLaunchAccess ? const Color(0xFF166534) : const Color(0xFF4338CA),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    guide.subtitle,
-                    style: const TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF475569),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  ...guide.steps.map(
-                    (step) => Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: 22,
-                            height: 22,
-                            margin: const EdgeInsets.only(top: 1),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFE2E8F0),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Center(
-                              child: Text(
-                                step.title.replaceFirst('Step ', ''),
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF1E293B),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              step.description,
-                              style: const TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF334155),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
               ),
             ),
           ),
@@ -3860,7 +3645,6 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
   }
 
   Future<void> _showPaymentSuccessFlow({required String plan}) async {
-    final guideCards = PlanService.getToolUsageGuides();
     if (!mounted) {
       return;
     }
@@ -3896,7 +3680,7 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
                   ),
                   const SizedBox(height: 10),
                   const Text(
-                    'Your payment has been confirmed. Start using the tools right away from the next action below.',
+                    'Your payment has been confirmed. Continue in the main app and start using the tools right away.',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -3912,101 +3696,16 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
                         if (!mounted) {
                           return;
                         }
-                        html.window.open('https://voice.getreadyjob.com', '_self');
+                        html.window.open('https://getreadyjob.com/', '_self');
                       },
                       icon: const Icon(Icons.rocket_launch_rounded),
-                      label: const Text('Start Using Tools Now'),
+                      label: const Text('Open Main App'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF0F766E),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         textStyle: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  const Text(
-                    'How to use your tools',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF0F172A),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  ...guideCards.map(
-                    (guide) => Container(
-                      width: double.infinity,
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFF),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFCBD5E1)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            guide.title,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF0F172A),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            guide.subtitle,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF475569),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          ...guide.steps.map(
-                            (step) => Padding(
-                              padding: const EdgeInsets.only(bottom: 6),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    width: 24,
-                                    height: 24,
-                                    margin: const EdgeInsets.only(top: 1),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFDBEAFE),
-                                      borderRadius: BorderRadius.circular(999),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        step.title.replaceFirst('Step ', ''),
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w800,
-                                          color: Color(0xFF1D4ED8),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      step.description,
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: Color(0xFF2D3748),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
                       ),
                     ),
                   ),
@@ -4248,17 +3947,18 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
       });
 
       final profile = UserAccountService.getProfile();
-      final unifiedPlan = PlanService.resolvePlan(widget.selectedPlan);
+      final selectedPlan = widget.selectedPlan;
+      final isPaidPlan = selectedPlan != 'Free';
       final paidProfile = profile.copyWith(
-        activePlan: widget.selectedPlan,
+        activePlan: selectedPlan,
+        planId: selectedPlan.toLowerCase(),
+        planName: selectedPlan,
         planStatus: 'active',
-        remainingCredits: unifiedPlan.voiceMinutesRemaining,
+        remainingCredits: isPaidPlan ? 999 : 3,
         planCurrency: _localCurrency,
-        planPrice: _chargeAmountForPlan(widget.selectedPlan),
-        planId: unifiedPlan.planId,
-        planName: unifiedPlan.planName,
-        planSummary: unifiedPlan.description,
-        toolsUnlimited: unifiedPlan.toolsUnlimited,
+        planPrice: _chargeAmountForPlan(selectedPlan),
+        planSummary: isPaidPlan ? '$selectedPlan access is active.' : 'Free access to core tools',
+        toolsUnlimited: selectedPlan == 'Lifetime' || selectedPlan == 'Yearly' || selectedPlan == 'Monthly',
       );
       await UserAccountService.saveProfile(paidProfile);
 

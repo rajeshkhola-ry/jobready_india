@@ -30,7 +30,7 @@ class SharedAuthResult {
 }
 
 class SharedUserAuthService {
-  static const _baseUrl = 'https://voice.getreadyjob.com';
+  static const _baseUrl = 'https://getreadyjob.com';
 
   static Future<SharedAuthResult> login(String email, String password) => _post('/api/auth/login', {'email': email, 'password': password});
 

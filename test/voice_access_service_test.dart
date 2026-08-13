@@ -31,21 +31,28 @@ void main() {
       );
     });
 
-    test('blocks launch for free users without admin or paid access', () {
+    test('allows direct launch from the voice surface for guest users and free accounts', () {
       final launchReady = VoiceAccessService.shouldLaunchVoiceTool(
         isAdminSession: false,
-        isSignedIn: true,
+        isSignedIn: false,
         planId: 'free',
       );
 
-      expect(launchReady, isFalse);
+      expect(launchReady, isTrue);
+      expect(
+        VoiceAccessService.statusLabel(
+          isAdminSession: false,
+          isSignedIn: false,
+        ),
+        'Voice Access',
+      );
       expect(
         VoiceAccessService.primaryActionLabel(
           isAdminSession: false,
-          isSignedIn: true,
+          isSignedIn: false,
           planId: 'free',
         ),
-        'User Account',
+        '🚀 Launch Tool',
       );
     });
   });

@@ -4,6 +4,36 @@ import 'plan_catalog_service.dart';
 import 'user_auth_service.dart';
 
 class VoiceAccessService {
+  static String _normalizePlanName(String? planId) {
+    final normalized = (planId ?? '').trim();
+    if (normalized.isEmpty) {
+      return 'Free';
+    }
+
+    final lower = normalized.toLowerCase();
+    if (lower.contains('7day')) {
+      return '7Days';
+    }
+    if (lower.contains('month')) {
+      return 'Monthly';
+    }
+    if (lower.contains('year')) {
+      return 'Yearly';
+    }
+    if (lower.contains('lifetime')) {
+      return 'Lifetime';
+    }
+    if (lower == 'free') {
+      return 'Free';
+    }
+    return normalized;
+  }
+
+  static bool hasActiveToolAccess(String? planId) {
+    final normalizedPlan = _normalizePlanName(planId);
+    return normalizedPlan != 'Free' && PlanCatalogConfig.isPaidPlan(normalizedPlan);
+  }
+
   static bool hasAdminSession({bool? isAdminSession}) {
     if (isAdminSession != null) {
       return isAdminSession;
@@ -38,10 +68,7 @@ class VoiceAccessService {
       return false;
     }
 
-    return PlanService.hasActiveToolAccess(
-      role: 'user',
-      planId: planId,
-    );
+    return hasActiveToolAccess(planId);
   }
 
   static String statusLabel({bool? isAdminSession, bool? isSignedIn}) {
@@ -53,7 +80,7 @@ class VoiceAccessService {
       return 'User Account';
     }
 
-    return 'Sign in';
+    return 'Voice Access';
   }
 
   static String primaryActionLabel({
@@ -73,7 +100,7 @@ class VoiceAccessService {
       return 'User Account';
     }
 
-    return 'Sign in';
+    return '🚀 Launch Tool';
   }
 
   static bool shouldLaunchVoiceTool({

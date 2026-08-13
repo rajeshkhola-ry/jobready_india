@@ -340,6 +340,16 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
                     color: Color(0xFF475569),
                   ),
                 ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Use your main GETREADYJOB account on getreadyjob.com to manage your plan and unlock the full job-ready tool suite.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    height: 1.5,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F766E),
+                  ),
+                ),
                 const SizedBox(height: 16),
                 if (isCreateAccount) ...[
                   TextField(
