@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:universal_html/html.dart' as html;
 
 import '../Services/auth_router_service.dart';
 import '../Services/coupon_service.dart';
@@ -836,9 +837,110 @@ class _SalesAuditDialog extends StatefulWidget {
 
 class _SalesAuditDialogState extends State<_SalesAuditDialog> {
   String _range = 'financial-year';
+  DateTime? _fromDate;
+  DateTime? _toDate;
+  String _filterMode = 'all';
   final TextEditingController _invoiceQueryController = TextEditingController();
   final TextEditingController _stateController = TextEditingController(text: 'Delhi');
   final TextEditingController _gstinController = TextEditingController();
+
+  String get _filterLabel {
+    switch (_filterMode) {
+      case 'b2b':
+        return 'B2B';
+      case 'b2c':
+        return 'B2C';
+      case 'sez':
+        return 'SEZ';
+      case 'state':
+        return 'State';
+      default:
+        return 'All';
+    }
+  }
+
+  Future<void> _pickDate(bool isFromDate) async {
+    final chosenDate = await showDatePicker(
+      context: context,
+      initialDate: (isFromDate ? _fromDate : _toDate) ?? DateTime.now(),
+      firstDate: DateTime(2024),
+      lastDate: DateTime(2100),
+    );
+    if (chosenDate == null) {
+      return;
+    }
+    setState(() {
+      if (isFromDate) {
+        _fromDate = chosenDate;
+      } else {
+        _toDate = chosenDate;
+      }
+    });
+  }
+
+  Map<String, String> _buildExportQueryParams() {
+    final params = <String, String>{
+      'range': 'custom',
+      'format': 'csv',
+    };
+
+    if (_fromDate != null) {
+      params['fromDate'] = _fromDate!.toIso8601String().split('T').first;
+    }
+    if (_toDate != null) {
+      params['toDate'] = _toDate!.toIso8601String().split('T').first;
+    }
+
+    switch (_filterMode) {
+      case 'b2b':
+        params['transactionType'] = 'B2B';
+        break;
+      case 'b2c':
+        params['transactionType'] = 'B2C';
+        break;
+      case 'sez':
+        params['sezStatus'] = 'YES';
+        break;
+      case 'state':
+        final state = _stateController.text.trim();
+        if (state.isNotEmpty) {
+          params['state'] = state;
+        }
+        break;
+      default:
+        break;
+    }
+
+    final state = _stateController.text.trim();
+    if (state.isNotEmpty && _filterMode != 'state') {
+      params['state'] = state;
+    }
+
+    final gstin = _gstinController.text.trim();
+    if (gstin.isNotEmpty) {
+      params['gstin'] = gstin;
+    }
+
+    return params;
+  }
+
+  void _downloadCsvReport() {
+    final params = _buildExportQueryParams();
+    final uri = Uri.https(
+      'jobready-india.onrender.com',
+      '/api/admin/sales-report/export',
+      params,
+    );
+
+    final popupWindow = html.window.open(uri.toString(), '_blank');
+    if (popupWindow == null) {
+      final anchor = html.AnchorElement(href: uri.toString())
+        ..target = '_blank'
+        ..rel = 'noopener'
+        ..setAttribute('download', 'jobready_sales_report.csv');
+      anchor.click();
+    }
+  }
 
   @override
   void dispose() {
@@ -900,11 +1002,49 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
               const SizedBox(height: 18),
               const Divider(),
               const SizedBox(height: 12),
-              const Text('Invoice search & amendment', style: TextStyle(fontWeight: FontWeight.w800)),
+              const Text('Custom export filters', style: TextStyle(fontWeight: FontWeight.w800)),
               const SizedBox(height: 8),
-              TextField(
-                controller: _invoiceQueryController,
-                decoration: const InputDecoration(labelText: 'Search by invoice number or transaction ID'),
+              Row(
+                children: [
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => _pickDate(true),
+                      child: InputDecorator(
+                        decoration: const InputDecoration(labelText: 'From'),
+                        child: Text(_fromDate == null ? 'Select date' : _fromDate!.toLocal().toString().split(' ').first),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => _pickDate(false),
+                      child: InputDecorator(
+                        decoration: const InputDecoration(labelText: 'To'),
+                        child: Text(_toDate == null ? 'Select date' : _toDate!.toLocal().toString().split(' ').first),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: _filterMode,
+                decoration: const InputDecoration(labelText: 'Filter'),
+                items: const [
+                  DropdownMenuItem(value: 'all', child: Text('All')),
+                  DropdownMenuItem(value: 'b2b', child: Text('B2B')),
+                  DropdownMenuItem(value: 'b2c', child: Text('B2C')),
+                  DropdownMenuItem(value: 'sez', child: Text('SEZ')),
+                  DropdownMenuItem(value: 'state', child: Text('State')),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _filterMode = value;
+                    });
+                  }
+                },
               ),
               const SizedBox(height: 8),
               Row(
@@ -915,11 +1055,18 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
                 ],
               ),
               const SizedBox(height: 12),
+              const Text('Invoice search & amendment', style: TextStyle(fontWeight: FontWeight.w800)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _invoiceQueryController,
+                decoration: const InputDecoration(labelText: 'Search by invoice number or transaction ID'),
+              ),
+              const SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () {},
+                      onPressed: _downloadCsvReport,
                       icon: const Icon(Icons.download_outlined),
                       label: const Text('Export CSV'),
                     ),
@@ -942,14 +1089,16 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
-                child: const Column(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Invoice actions', style: TextStyle(fontWeight: FontWeight.w700)),
-                    SizedBox(height: 8),
-                    Text('• amend billing address / GSTIN / customer details', style: TextStyle(fontSize: 12, color: Color(0xFF475569))),
-                    Text('• cancel and log credit note', style: TextStyle(fontSize: 12, color: Color(0xFF475569))),
-                    Text('• resend PDF to customer', style: TextStyle(fontSize: 12, color: Color(0xFF475569))),
+                    const Text('Invoice actions', style: TextStyle(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 8),
+                    const Text('• amend billing address / GSTIN / customer details', style: TextStyle(fontSize: 12, color: Color(0xFF475569))),
+                    const Text('• cancel and log credit note', style: TextStyle(fontSize: 12, color: Color(0xFF475569))),
+                    const Text('• resend PDF to customer', style: TextStyle(fontSize: 12, color: Color(0xFF475569))),
+                    const SizedBox(height: 6),
+                    Text('Active filter: $_filterLabel', style: const TextStyle(fontSize: 12, color: Color(0xFF0F172A), fontWeight: FontWeight.w700)),
                   ],
                 ),
               ),

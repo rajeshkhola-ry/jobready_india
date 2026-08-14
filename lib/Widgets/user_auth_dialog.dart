@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:universal_html/html.dart' as html;
 
 import '../Services/auth_router_service.dart';
 import '../Services/shared_user_auth_service.dart';
@@ -29,6 +30,7 @@ class UserAuthDialog extends StatefulWidget {
 class _UserAuthDialogState extends State<UserAuthDialog> {
   UserAuthMode _mode = UserAuthMode.signIn;
   bool _isSubmitting = false;
+  bool _passwordVisible = false;
   String? _errorText;
   String? _successText;
 
@@ -282,28 +284,31 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
   }
 
   Future<void> _handleSocialAuth(String provider) async {
-    final email = _emailController.text.trim();
-    if (email.isEmpty) {
-      setState(() {
-        _errorText = 'Please enter your email address to continue with ${provider.toUpperCase()}.';
-        _isSubmitting = false;
-      });
-      return;
-    }
+    final socialProvider = provider.trim().toLowerCase();
+    final socialEmail = _emailController.text.trim().isNotEmpty
+        ? _emailController.text.trim()
+        : '${socialProvider}-${DateTime.now().millisecondsSinceEpoch}@getreadyjob.social';
 
     setState(() {
       _isSubmitting = true;
       _errorText = null;
-      _successText = null;
+      _successText = 'Opening ${socialProvider.toUpperCase()} sign-in...';
     });
 
     try {
+      final authUrl = 'https://getreadyjob.com/api/auth/social?provider=$socialProvider&redirect=' +
+          Uri.encodeComponent(html.window.location.href);
+      final popup = html.window.open(authUrl, '_blank');
+      if (popup == null) {
+        throw Exception('Popup blocked');
+      }
+
       final session = await UserAuthService.signInWithSocialProvider(
-        provider: provider,
-        email: email,
+        provider: socialProvider,
+        email: socialEmail,
         displayName: _nameController.text.trim().isNotEmpty
             ? _nameController.text.trim()
-            : email.split('@').first.replaceAll(RegExp(r'[^A-Za-z0-9 ]'), ' ').trim(),
+            : socialEmail.split('@').first.replaceAll(RegExp(r'[^A-Za-z0-9 ]'), ' ').trim(),
         country: _countryController.text.trim().isNotEmpty ? _countryController.text.trim() : 'India',
         countryCode: _countryController.text.trim().toLowerCase() == 'india' ? '+91' : '',
         mobileNumber: _mobileController.text.trim(),
@@ -315,7 +320,8 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
           return;
         }
         setState(() {
-          _errorText = 'We could not continue with ${provider.toUpperCase()} right now. Please try again.';
+          _errorText = 'We could not continue with ${socialProvider.toUpperCase()} right now. Please try again.';
+          _successText = null;
           _isSubmitting = false;
         });
         return;
@@ -325,6 +331,11 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
         return;
       }
 
+      setState(() {
+        _successText = 'Signed in with ${socialProvider.toUpperCase()}.';
+        _errorText = null;
+        _isSubmitting = false;
+      });
       await AuthRouterService.markUserAuthenticated(authToken: 'user-session');
       Navigator.of(context).pop();
       if (widget.onAuthenticated != null) {
@@ -343,6 +354,7 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
       if (mounted) {
         setState(() {
           _errorText = 'Something went wrong while continuing with ${provider.toUpperCase()}. Please try again.';
+          _successText = null;
           _isSubmitting = false;
         });
       }
@@ -409,8 +421,8 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
                           _mode = isCreateAccount
                               ? UserAuthMode.signIn
                               : UserAuthMode.createAccount;
-                            _emailController.clear();
-                            _passwordController.clear();
+                          _emailController.clear();
+                          _passwordController.clear();
                           _errorText = null;
                           _successText = null;
                         });
@@ -485,6 +497,45 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
                   ],
                 ),
                 const SizedBox(height: 16),
+                if (_errorText != null) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF1F2),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFFB7185)),
+                    ),
+                    child: Text(
+                      _errorText!,
+                      style: const TextStyle(
+                        color: Color(0xFFBE123C),
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+                if (_successText != null) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE0F2FE),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFF93C5FD)),
+                    ),
+                    child: Text(
+                      _successText!,
+                      style: const TextStyle(
+                        color: Color(0xFF1D4ED8),
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+                if (_errorText != null || _successText != null) const SizedBox(height: 12),
                 if (isCreateAccount) ...[
                   TextField(
                     controller: _nameController,
@@ -528,10 +579,14 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
                 ],
                 TextField(
                   controller: _passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
+                  obscureText: !_passwordVisible,
+                  decoration: InputDecoration(
                     labelText: 'Password',
-                    border: OutlineInputBorder(),
+                    border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      onPressed: () => setState(() => _passwordVisible = !_passwordVisible),
+                      icon: Icon(_passwordVisible ? Icons.visibility_off_rounded : Icons.visibility_rounded),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -551,37 +606,6 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
                     child: TextButton(
                       onPressed: _forgotPassword,
                       child: const Text('Forgot Password?'),
-                    ),
-                  ),
-                ],
-                if (_errorText != null) ...[
-                  const SizedBox(height: 8),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF1F2),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFFB7185)),
-                    ),
-                    child: Text(
-                      _errorText!,
-                      style: const TextStyle(
-                        color: Color(0xFFBE123C),
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-                if (_successText != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    _successText!,
-                    style: const TextStyle(
-                      color: Color(0xFF2563EB),
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],

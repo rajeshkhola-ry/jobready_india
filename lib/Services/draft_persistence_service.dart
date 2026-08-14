@@ -10,6 +10,22 @@ const String _kPosterKey = 'grj_poster_draft_v1';
 const String _kQrKey = 'grj_qr_draft_v1';
 const String _kMasksKey = 'grj_masks_draft_v1';
 
+/// A limited set of app icons that may be persisted in poster drafts.
+/// This avoids the web tree-shaker failure caused by constructing fresh IconData
+/// instances from JSON during draft deserialization.
+final Map<int, IconData> _persistedIconRegistry = <int, IconData>{
+  Icons.work_outline_rounded.codePoint: Icons.work_outline_rounded,
+  Icons.star_rounded.codePoint: Icons.star_rounded,
+  Icons.arrow_upward.codePoint: Icons.arrow_upward,
+  Icons.arrow_downward.codePoint: Icons.arrow_downward,
+  Icons.arrow_back.codePoint: Icons.arrow_back,
+  Icons.arrow_forward.codePoint: Icons.arrow_forward,
+  Icons.delete_outline.codePoint: Icons.delete_outline,
+  Icons.image.codePoint: Icons.image,
+  Icons.layers_outlined.codePoint: Icons.layers_outlined,
+  Icons.picture_as_pdf_outlined.codePoint: Icons.picture_as_pdf_outlined,
+};
+
 /// Lightweight auto-save/restore for Poster Studio and Privacy Masker state.
 /// All data is stored in browser localStorage as JSON — no server, no images.
 class DraftPersistenceService {
@@ -162,11 +178,10 @@ class DraftPersistenceService {
     IconData? iconData;
     final icoMap = m['ico'] as Map<String, dynamic>?;
     if (icoMap != null) {
-      iconData = IconData(
-        icoMap['cp'] as int,
-        fontFamily: icoMap['ff'] as String?,
-        fontPackage: icoMap['fp'] as String?,
-      );
+      final codePoint = (icoMap['cp'] as num?)?.toInt();
+      if (codePoint != null) {
+        iconData = _persistedIconRegistry[codePoint];
+      }
     }
 
     return PosterLayerDraft(

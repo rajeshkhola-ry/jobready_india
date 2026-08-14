@@ -353,17 +353,6 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                       icon: const Icon(Icons.login_rounded),
                       label: const Text('Open login'),
                     ),
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const AiResumeBuilderPage()),
-                        );
-                      },
-                      icon: const Icon(Icons.smart_toy_rounded),
-                      label: const Text('AI Resume Builder'),
-                    ),
                   ],
                 ),
               ),
@@ -504,49 +493,6 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                   ),
                   const SizedBox(height: 18),
                   AiResumeFeatureBanner(activePlan: activePlan),
-                  const SizedBox(height: 18),
-                  InkWell(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const AiResumeBuilderPage()),
-                      );
-                    },
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0F172A),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFC72C).withValues(alpha: 0.18),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: const Icon(Icons.smart_toy_rounded, color: Color(0xFFFFC72C)),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: const [
-                                Text('AI Resume Builder', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
-                                SizedBox(height: 2),
-                                Text('Create and tailor polished resumes with AI-led guidance and fast export options.', style: TextStyle(fontSize: 12.5, color: Color(0xFFE2E8F0))),
-                              ],
-                            ),
-                          ),
-                          const Icon(Icons.arrow_forward_rounded, color: Colors.white),
-                        ],
-                      ),
-                    ),
-                  ),
                   const SizedBox(height: 18),
                   const Text('Available Plans', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
                   const SizedBox(height: 10),

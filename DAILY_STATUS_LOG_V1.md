@@ -73,6 +73,25 @@ Owner:
   - Maintain the frozen V1.1 production baseline and monitor the main site only.
 - Owner: Founder + Copilot
 
+### Checkpoint - 2026-08-14 (Final GST Export UI + Production Release)
+- Overall status: Green
+- Completed today:
+  - Finalized the admin GST audit export UI and custom-date/state/GSTIN filters against the verified backend export contract. ✓
+  - Ensured the browser CSV export path directly triggers the server download without stale UI state. ✓
+  - Fixed the social auth dialog to open OAuth in one click with no email prefill required and moved alerts above the credential form. ✓
+  - Added the password visibility toggle and removed the locked-dashboard AI Resume Builder CTA. ✓
+  - Verified the production Flutter web build succeeds with the current app config and compatibility flags for icon-tree-shaking. ✓
+  - Prepared and staged the release commit for deployment to Firebase Hosting and the Render backend. ✓
+- In progress:
+  - Final production push and live smoke validation after deploy.
+- Blockers:
+  - None.
+- Decisions needed:
+  - None.
+- Tomorrow plan:
+  - Monitor production traffic and keep the V1.1 baseline frozen unless an emergency issue is reported.
+- Owner: Founder + Copilot
+
 ### Day 2 - 2026-07-12
 - Overall status: Green (AHEAD OF SCHEDULE)
 - Completed today:
