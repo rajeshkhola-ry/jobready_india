@@ -1,8 +1,10 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:universal_html/html.dart' as html;
 
+import '../Services/admin_remote_auth_service.dart';
 import '../Services/auth_router_service.dart';
 import '../Services/coupon_service.dart';
 import '../Services/owner_admin_access_service.dart';
@@ -28,6 +30,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   late int _couponCount;
   late int _planCount;
   late int _toolAccessCount;
+  String? _csvExportError;
+  bool _isCsvExporting = false;
 
   static const String _auditStorageKey = 'jobready_admin_activity_log_v1_1';
   static const String _checkoutStorageKey = 'jobready_admin_checkout_settings_v1_1';
@@ -840,6 +844,8 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
   DateTime? _fromDate;
   DateTime? _toDate;
   String _filterMode = 'all';
+  String? _csvExportError;
+  bool _isCsvExporting = false;
   final TextEditingController _invoiceQueryController = TextEditingController();
   final TextEditingController _stateController = TextEditingController(text: 'Delhi');
   final TextEditingController _gstinController = TextEditingController();
@@ -882,32 +888,42 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
     final params = <String, String>{
       'range': 'custom',
       'format': 'csv',
+      'filter': _filterLabel,
     };
 
-    if (_fromDate != null) {
-      params['fromDate'] = _fromDate!.toIso8601String().split('T').first;
+    final fromDate = _fromDate?.toIso8601String().split('T').first;
+    final toDate = _toDate?.toIso8601String().split('T').first;
+    if (fromDate != null && fromDate.isNotEmpty) {
+      params['from'] = fromDate;
+      params['fromDate'] = fromDate;
     }
-    if (_toDate != null) {
-      params['toDate'] = _toDate!.toIso8601String().split('T').first;
+    if (toDate != null && toDate.isNotEmpty) {
+      params['to'] = toDate;
+      params['toDate'] = toDate;
     }
 
     switch (_filterMode) {
       case 'b2b':
+        params['filter'] = 'B2B';
         params['transactionType'] = 'B2B';
         break;
       case 'b2c':
+        params['filter'] = 'B2C';
         params['transactionType'] = 'B2C';
         break;
       case 'sez':
+        params['filter'] = 'SEZ';
         params['sezStatus'] = 'YES';
         break;
       case 'state':
+        params['filter'] = 'State';
         final state = _stateController.text.trim();
         if (state.isNotEmpty) {
           params['state'] = state;
         }
         break;
       default:
+        params['filter'] = 'All';
         break;
     }
 
@@ -924,21 +940,188 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
     return params;
   }
 
-  void _downloadCsvReport() {
+  Future<bool> _refreshExpiredAdminSession() async {
+    final emailController = TextEditingController();
+    final passwordController = TextEditingController();
+
+    final credentials = await showDialog<Map<String, String>>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Admin session expired'),
+          content: SizedBox(
+            width: 360,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Your admin CSV token expired. Sign in again to continue the export.',
+                  style: TextStyle(fontSize: 13, color: Color(0xFF475569)),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: emailController,
+                  decoration: const InputDecoration(labelText: 'Admin email'),
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: passwordController,
+                  decoration: const InputDecoration(labelText: 'Password'),
+                  obscureText: true,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final email = emailController.text.trim();
+                final password = passwordController.text.trim();
+                if (email.isEmpty || password.isEmpty) {
+                  return;
+                }
+                Navigator.of(dialogContext).pop({'email': email, 'password': password});
+              },
+              child: const Text('Continue'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (credentials == null) {
+      return false;
+    }
+
+    final result = await AdminRemoteAuthService.login(credentials['email'] ?? '', credentials['password'] ?? '');
+    if (!result.success || result.authToken.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result.error ?? 'Admin authentication failed. Please try again.')),
+        );
+      }
+      return false;
+    }
+
+    await AuthRouterService.markAdminAuthenticated(authToken: result.authToken);
+    return true;
+  }
+
+  Future<void> _downloadCsvReport({bool retryAfterRefresh = false}) async {
+    setState(() {
+      _csvExportError = null;
+      _isCsvExporting = true;
+    });
+
     final params = _buildExportQueryParams();
+    final fromDate = params['fromDate'] ?? params['from'];
+    final toDate = params['toDate'] ?? params['to'];
+    final normalizedFilter = params['filter'] ?? 'All';
+
+    final exportParams = <String, String>{
+      'range': 'custom',
+      'format': 'csv',
+      'filter': normalizedFilter,
+      if (fromDate != null && fromDate.isNotEmpty) 'from': fromDate,
+      if (toDate != null && toDate.isNotEmpty) 'to': toDate,
+      if (fromDate != null && fromDate.isNotEmpty) 'fromDate': fromDate,
+      if (toDate != null && toDate.isNotEmpty) 'toDate': toDate,
+    };
+
+    final typeFilter = params['transactionType'];
+    if (typeFilter != null && typeFilter.isNotEmpty) {
+      exportParams['transactionType'] = typeFilter;
+    }
+
+    final stateFilter = params['state'];
+    if (stateFilter != null && stateFilter.isNotEmpty) {
+      exportParams['state'] = stateFilter;
+    }
+
+    final gstinFilter = params['gstin'];
+    if (gstinFilter != null && gstinFilter.isNotEmpty) {
+      exportParams['gstin'] = gstinFilter;
+    }
+
+    final sezFilter = params['sezStatus'];
+    if (sezFilter != null && sezFilter.isNotEmpty) {
+      exportParams['sezStatus'] = sezFilter;
+    }
+
     final uri = Uri.https(
       'jobready-india.onrender.com',
       '/api/admin/sales-report/export',
-      params,
+      exportParams,
     );
 
-    final popupWindow = html.window.open(uri.toString(), '_blank');
-    if (popupWindow == null) {
-      final anchor = html.AnchorElement(href: uri.toString())
-        ..target = '_blank'
-        ..rel = 'noopener'
-        ..setAttribute('download', 'jobready_sales_report.csv');
+    final adminToken = AuthRouterService.authToken;
+    if (adminToken.isEmpty) {
+      setState(() {
+        _isCsvExporting = false;
+        _csvExportError = 'Admin session is required to export the sales CSV.';
+      });
+      return;
+    }
+
+    try {
+      final response = await http.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $adminToken',
+          'Accept': 'text/csv,text/plain,*/*',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      final bodyText = response.body;
+      final isExpiredTokenResponse = response.statusCode == 401 || bodyText.contains('Token expired');
+      if (isExpiredTokenResponse && !retryAfterRefresh) {
+        final refreshed = await _refreshExpiredAdminSession();
+        if (refreshed) {
+          await _downloadCsvReport(retryAfterRefresh: true);
+          return;
+        }
+        throw Exception('Admin session expired. Please sign in again to export.');
+      }
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw Exception('Export request failed with status ${response.statusCode}. Response: $bodyText');
+      }
+
+      final csvData = response.body;
+      if (csvData.trim().isEmpty) {
+        setState(() {
+          _isCsvExporting = false;
+          _csvExportError = 'The CSV export is empty.';
+        });
+        return;
+      }
+
+      final bytes = utf8.encode(csvData);
+      final blob = html.Blob([bytes], 'text/csv;charset=utf-8');
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute('download', 'GSTR1_Sales_Report_${DateTime.now().millisecondsSinceEpoch}.csv')
+        ..style.display = 'none';
+      html.document.body?.append(anchor);
       anchor.click();
+      anchor.remove();
+      html.Url.revokeObjectUrl(url);
+
+      setState(() {
+        _isCsvExporting = false;
+      });
+    } catch (error) {
+      setState(() {
+        _isCsvExporting = false;
+        _csvExportError = 'Unable to download the CSV export. Please retry. ${error.toString()}';
+      });
     }
   }
 
@@ -1062,13 +1245,30 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
                 decoration: const InputDecoration(labelText: 'Search by invoice number or transaction ID'),
               ),
               const SizedBox(height: 12),
+              if (_csvExportError != null)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF1F2),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFDC2626)),
+                  ),
+                  child: Text(
+                    _csvExportError!,
+                    style: const TextStyle(color: Color(0xFF991B1B), fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ),
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: _downloadCsvReport,
-                      icon: const Icon(Icons.download_outlined),
-                      label: const Text('Export CSV'),
+                      onPressed: _isCsvExporting ? null : _downloadCsvReport,
+                      icon: _isCsvExporting
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.download_outlined),
+                      label: Text(_isCsvExporting ? 'Exporting...' : 'Export CSV'),
                     ),
                   ),
                   const SizedBox(width: 8),

@@ -159,10 +159,17 @@ class _HomePageV11State extends State<HomePageV11> {
   void initState() {
     super.initState();
     _planCatalog = PlanCatalogService.load();
+    _syncDocumentTitle();
     _showCookieConsentBanner = !_hasAcceptedCookieConsent();
     _selectedPaymentCurrency = _resolveInitialPaymentCurrency();
     unawaited(_autoDetectCountryAndCurrency());
     _initPwaInstallPrompt();
+  }
+
+  void _syncDocumentTitle() {
+    try {
+      html.document.title = 'Get Ready Job | SSC Photo Resize 20KB, UPSC Photo Compressor 50KB & Govt Job Photo Resizer';
+    } catch (_) {}
   }
 
   @override
@@ -1334,10 +1341,6 @@ class _HomePageV11State extends State<HomePageV11> {
                   },
                 ),
                 const SizedBox(height: 10),
-                _ToolAccessGuidanceSection(
-                  onLaunchVoiceTool: _showCoreToolsAccessNotice,
-                ),
-                const SizedBox(height: 10),
                 const _AboutUsSection(),
                 const SizedBox(height: 10),
                 const _FuturePlanSection(),
@@ -1624,98 +1627,6 @@ class _QuickAccessActionButton extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _ToolAccessGuidanceSection extends StatelessWidget {
-  final Future<void> Function()? onLaunchVoiceTool;
-
-  const _ToolAccessGuidanceSection({this.onLaunchVoiceTool});
-
-  @override
-  Widget build(BuildContext context) {
-    final profile = UserAccountService.getProfile();
-    final isSignedIn = UserAuthService.isSignedIn;
-    final hasAccess = isSignedIn || (profile.activePlan.isNotEmpty && profile.activePlan != 'Free');
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFE9FDF7), Color(0xFFEFF6FF)],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFB8E8D8)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.rocket_launch_rounded, color: Color(0xFF0F766E), size: 22),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text(
-                  'Continue on the main app',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF0F172A),
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: hasAccess ? const Color(0xFFDCFCE7) : const Color(0xFFFEF3C7),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  hasAccess ? 'Ready to launch' : 'Sign in required',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    color: hasAccess ? const Color(0xFF166534) : const Color(0xFF92400E),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            hasAccess
-                ? 'Your account is ready. Open the main GETREADYJOB app and continue with your tools.'
-                : 'Please sign in on the main homepage (getreadyjob.com) to continue with the available core tools and services.',
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF334155),
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                html.window.open('https://getreadyjob.com/', '_self');
-              },
-              icon: const Icon(Icons.home_rounded),
-              label: const Text('Go to Main Homepage ➔'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0F766E),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                textStyle: const TextStyle(fontWeight: FontWeight.w800),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
