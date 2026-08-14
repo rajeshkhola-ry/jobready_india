@@ -21,6 +21,8 @@ class UserAccountProfile {
   final String planSummary;
   final bool toolsUnlimited;
   final String gstin;
+  final String companyName;
+  final String billingState;
 
   const UserAccountProfile({
     required this.displayName,
@@ -41,6 +43,8 @@ class UserAccountProfile {
     required this.planSummary,
     required this.toolsUnlimited,
     this.gstin = '',
+    this.companyName = '',
+    this.billingState = '',
   });
 
   factory UserAccountProfile.initial() {
@@ -63,6 +67,8 @@ class UserAccountProfile {
       planSummary: 'Free access to core tools',
       toolsUnlimited: false,
       gstin: '',
+      companyName: '',
+      billingState: '',
     );
   }
 
@@ -85,6 +91,8 @@ class UserAccountProfile {
     String? planSummary,
     bool? toolsUnlimited,
     String? gstin,
+    String? companyName,
+    String? billingState,
   }) {
     return UserAccountProfile(
       displayName: displayName ?? this.displayName,
@@ -105,6 +113,8 @@ class UserAccountProfile {
       planSummary: planSummary ?? this.planSummary,
       toolsUnlimited: toolsUnlimited ?? this.toolsUnlimited,
       gstin: gstin ?? this.gstin,
+      companyName: companyName ?? this.companyName,
+      billingState: billingState ?? this.billingState,
     );
   }
 
@@ -128,6 +138,8 @@ class UserAccountProfile {
       'plan_summary': planSummary,
       'tools_unlimited': toolsUnlimited,
       'gstin': gstin,
+      'company_name': companyName,
+      'billing_state': billingState,
     };
   }
 
@@ -155,6 +167,8 @@ class UserAccountProfile {
       planSummary: map['plan_summary']?.toString() ?? 'Free access to core tools',
       toolsUnlimited: map['tools_unlimited'] == true,
       gstin: map['gstin']?.toString() ?? '',
+      companyName: map['company_name']?.toString() ?? map['company']?.toString() ?? '',
+      billingState: map['billing_state']?.toString() ?? map['state']?.toString() ?? '',
     );
   }
 }

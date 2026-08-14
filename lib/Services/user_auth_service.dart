@@ -208,6 +208,93 @@ class UserAuthService {
     return session;
   }
 
+  static bool canProceedToPayment({
+    UserAccountProfile? profile,
+    bool? isSignedInOverride,
+    UserAuthSession? session,
+  }) {
+    final signedIn = isSignedInOverride ?? session != null || isSignedIn;
+    if (signedIn) {
+      return true;
+    }
+
+    final currentProfile = profile ?? UserAccountService.getProfile();
+    final hasIdentity = currentProfile.displayName.trim().isNotEmpty;
+    final hasEmail = currentProfile.email.trim().isNotEmpty;
+    final hasCountry = currentProfile.country.trim().isNotEmpty;
+    final hasMobile = currentProfile.mobileNumber.trim().isNotEmpty;
+    return hasIdentity && hasEmail && hasCountry && hasMobile;
+  }
+
+  static Future<UserAuthSession?> signInWithSocialProvider({
+    required String provider,
+    required String email,
+    String? displayName,
+    String? country,
+    String? countryCode,
+    String? mobileNumber,
+    String? selectedPlan,
+  }) async {
+    final normalizedProvider = provider.trim().toLowerCase();
+    final normalizedEmail = _normalizeEmail(email);
+    if (normalizedProvider.isEmpty || normalizedEmail.isEmpty) {
+      return null;
+    }
+
+    final accounts = _readAccounts();
+    final existing = accounts[normalizedEmail];
+    final effectivePlan = _normalizePlan(selectedPlan ?? (existing is Map ? existing['active_plan']?.toString() : null));
+    if (effectivePlan == 'Lifetime') {
+      await _enforceLifetimeDeviceLimit(email: normalizedEmail, selectedPlan: effectivePlan);
+    }
+
+    final existingDisplayName = existing is Map ? existing['display_name']?.toString().trim() ?? '' : '';
+    final existingCountry = existing is Map ? existing['country']?.toString().trim() ?? '' : '';
+    final existingCountryCode = existing is Map ? existing['country_code']?.toString().trim() ?? '' : '';
+    final existingMobile = existing is Map ? existing['mobile_number']?.toString().trim() ?? '' : '';
+
+    final session = UserAuthSession(
+      uid: existing is Map ? existing['uid']?.toString() ?? 'local-${DateTime.now().microsecondsSinceEpoch}' : 'local-${DateTime.now().microsecondsSinceEpoch}',
+      displayName: displayName?.trim().isNotEmpty == true
+          ? displayName!.trim()
+          : (existingDisplayName.isNotEmpty ? existingDisplayName : 'User'),
+      email: normalizedEmail,
+      country: country?.trim().isNotEmpty == true
+          ? country!
+          : (existingCountry.isNotEmpty ? existingCountry : 'India'),
+      countryCode: countryCode?.trim().isNotEmpty == true
+          ? countryCode!
+          : (existingCountryCode.isNotEmpty ? existingCountryCode : '+91'),
+      mobileNumber: mobileNumber?.trim().isNotEmpty == true
+          ? mobileNumber!.trim()
+          : existingMobile,
+      authMethod: normalizedProvider,
+      isEmailVerified: true,
+      createdAt: existing is Map ? DateTime.tryParse(existing['created_at']?.toString() ?? '') ?? DateTime.now() : DateTime.now(),
+      lastLoginAt: DateTime.now(),
+    );
+
+    final accountEntry = {
+      'uid': session.uid,
+      'display_name': session.displayName,
+      'email': normalizedEmail,
+      'active_plan': effectivePlan,
+      'country': session.country,
+      'country_code': session.countryCode,
+      'mobile_number': session.mobileNumber,
+      'auth_method': normalizedProvider,
+      'password_hash': null,
+      'created_at': session.createdAt.toIso8601String(),
+      'last_login_at': session.lastLoginAt.toIso8601String(),
+    };
+
+    accounts[normalizedEmail] = accountEntry;
+    await _saveAccounts(accounts);
+    await _persistSession(session);
+    await _updateProfileFromSession(session, activePlan: effectivePlan);
+    return session;
+  }
+
   static Future<UserAuthSession?> signInWithGoogle({
     required String email,
     String? displayName,

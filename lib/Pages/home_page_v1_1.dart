@@ -3207,26 +3207,33 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
   Map<String, dynamic> _buildBillingPayload() {
     final profile = UserAccountService.getProfile();
     final session = UserAuthService.getSession();
+    final isBusiness = (widget.usageType ?? 'Personal') == 'Business';
 
     final displayName = profile.displayName.trim().isNotEmpty
         ? profile.displayName.trim()
         : (session?.displayName.trim().isNotEmpty == true ? session!.displayName.trim() : 'User');
     final email = profile.email.trim().isNotEmpty
         ? profile.email.trim()
-      : (session?.email.trim().isNotEmpty == true ? session!.email.trim() : '');
+        : (session?.email.trim().isNotEmpty == true ? session!.email.trim() : '');
     final mobileRaw = profile.mobileNumber.trim().isNotEmpty
         ? profile.mobileNumber.trim()
-      : (session?.mobileNumber.trim() ?? '');
+        : (session?.mobileNumber.trim() ?? '');
     final mobileDigits = mobileRaw.replaceAll(RegExp(r'\D'), '');
     final normalizedMobile = mobileDigits;
+    final country = profile.country.trim().isEmpty ? 'India' : profile.country.trim();
+    final state = isBusiness
+        ? (profile.billingState.trim().isNotEmpty ? profile.billingState.trim() : country)
+        : country;
+    final company = isBusiness ? profile.companyName.trim() : '';
+    final gstin = isBusiness ? profile.gstin.trim() : '';
 
     return {
       'name': displayName,
-      'company': '',
+      'company': company,
       'address': '',
-      'country': profile.country.trim().isEmpty ? 'India' : profile.country.trim(),
-      'state': profile.country.trim().isEmpty ? 'India' : profile.country.trim(),
-      'gstin': profile.gstin.trim(),
+      'country': country,
+      'state': state,
+      'gstin': gstin,
       'email': email,
       'mobile': normalizedMobile,
     };
@@ -7563,6 +7570,7 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
   late final TextEditingController _nameController;
   late final TextEditingController _emailController;
   late final TextEditingController _mobileController;
+  late final TextEditingController _companyController;
   late final TextEditingController _gstinController;
   static const List<String> _countryOptions = <String>[
     'India',
@@ -7599,9 +7607,28 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
     'SG': 'Singapore',
     'AE': 'UAE',
   };
+  static const List<String> _indianStates = <String>[
+    'Andhra Pradesh',
+    'Bihar',
+    'Delhi',
+    'Gujarat',
+    'Haryana',
+    'Karnataka',
+    'Kerala',
+    'Maharashtra',
+    'Punjab',
+    'Rajasthan',
+    'Tamil Nadu',
+    'Telangana',
+    'Uttar Pradesh',
+    'West Bengal',
+    'Other',
+  ];
 
   String _selectedCountry = 'India';
   String _selectedCountryCode = '+91';
+  String _selectedAccountType = 'Personal';
+  String _selectedBusinessState = 'Delhi';
 
   String _detectCountryByLocale() {
     final language = html.window.navigator.language?.toUpperCase() ?? '';
@@ -7620,11 +7647,14 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
     _nameController = TextEditingController(text: profile.displayName);
     _emailController = TextEditingController(text: profile.email);
     _mobileController = TextEditingController(text: profile.mobileNumber);
+    _companyController = TextEditingController(text: profile.companyName);
     _gstinController = TextEditingController(text: profile.gstin);
     _selectedCountry = profile.country.isNotEmpty ? profile.country : localeCountry;
     _selectedCountryCode = profile.countryCode.isNotEmpty
-      ? profile.countryCode
-      : (_countryDialCodeMap[_selectedCountry] ?? '+91');
+        ? profile.countryCode
+        : (_countryDialCodeMap[_selectedCountry] ?? '+91');
+    _selectedBusinessState = profile.billingState.isNotEmpty ? profile.billingState : (_indianStates.contains('Delhi') ? 'Delhi' : 'Other');
+    _selectedAccountType = profile.companyName.trim().isNotEmpty || profile.gstin.trim().isNotEmpty ? 'Business' : 'Personal';
   }
 
   @override
@@ -7632,6 +7662,7 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
     _nameController.dispose();
     _emailController.dispose();
     _mobileController.dispose();
+    _companyController.dispose();
     _gstinController.dispose();
     super.dispose();
   }
@@ -7640,7 +7671,9 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
     final mobile = _mobileController.text.trim();
+    final company = _companyController.text.trim();
     final gstin = _gstinController.text.trim().toUpperCase();
+    final isBusiness = _selectedAccountType == 'Business';
 
     if (email.isEmpty || _selectedCountry.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -7663,6 +7696,20 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
       return;
     }
 
+    if (isBusiness && company.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Company name is required for business billing.')),
+      );
+      return;
+    }
+
+    if (isBusiness && gstin.isNotEmpty && !RegExp(r'^[0-9A-Z]{15}$').hasMatch(gstin)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid 15-digit GSTIN.')),
+      );
+      return;
+    }
+
     final previousProfile = UserAccountService.getProfile();
     final profile = previousProfile.copyWith(
       displayName: name,
@@ -7672,6 +7719,8 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
       mobileNumber: mobile,
       historyEnabled: true,
       googleLoginPreferred: previousProfile.googleLoginPreferred,
+      companyName: isBusiness ? company : '',
+      billingState: isBusiness ? _selectedBusinessState : _selectedCountry,
       gstin: gstin,
     );
 
@@ -7687,6 +7736,8 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
 
   @override
   Widget build(BuildContext context) {
+    final showBusinessFields = _selectedAccountType == 'Business';
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -7724,10 +7775,55 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
             ),
             const SizedBox(height: 8),
           ],
+          Row(
+            children: [
+              Expanded(
+                child: ChoiceChip(
+                  label: const Text('Personal (Individual)'),
+                  selected: _selectedAccountType == 'Personal',
+                  onSelected: (_) => setState(() => _selectedAccountType = 'Personal'),
+                  showCheckmark: false,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ChoiceChip(
+                  label: const Text('For Business (B2B)'),
+                  selected: _selectedAccountType == 'Business',
+                  onSelected: (_) => setState(() => _selectedAccountType = 'Business'),
+                  showCheckmark: false,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (showBusinessFields) ...[
+            TextField(
+              controller: _companyController,
+              decoration: InputDecoration(
+                labelText: 'Company Name',
+                hintText: 'Enter your business name',
+                isDense: true,
+                filled: true,
+                fillColor: const Color(0xFFF8FAFC),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xFF0F172A), width: 1.4),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
           TextField(
             controller: _nameController,
             decoration: InputDecoration(
-              labelText: 'Name',
+              labelText: showBusinessFields ? 'Primary Contact Name' : 'Name',
               hintText: 'Enter your name',
               isDense: true,
               filled: true,
@@ -7807,6 +7903,44 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
             ),
           ),
           const SizedBox(height: 8),
+          if (showBusinessFields) ...[
+            DropdownButtonFormField<String>(
+              value: _selectedBusinessState,
+              items: _indianStates
+                  .map(
+                    (state) => DropdownMenuItem<String>(
+                      value: state,
+                      child: Text(state),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                if (value == null) {
+                  return;
+                }
+                setState(() {
+                  _selectedBusinessState = value;
+                });
+              },
+              decoration: InputDecoration(
+                labelText: 'State',
+                isDense: true,
+                filled: true,
+                fillColor: const Color(0xFFF8FAFC),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xFF0F172A), width: 1.4),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
           Row(
             children: [
               SizedBox(
@@ -7873,28 +8007,30 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _gstinController,
-            textCapitalization: TextCapitalization.characters,
-            decoration: InputDecoration(
-              labelText: 'GSTIN (Optional for B2B Invoice)',
-              hintText: 'Enter your 15-digit GSTIN (Optional)',
-              isDense: true,
-              filled: true,
-              fillColor: const Color(0xFFF8FAFC),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFF0F172A), width: 1.4),
+          if (showBusinessFields) ...[
+            const SizedBox(height: 8),
+            TextField(
+              controller: _gstinController,
+              textCapitalization: TextCapitalization.characters,
+              decoration: InputDecoration(
+                labelText: 'GSTIN (Optional for B2B Invoice)',
+                hintText: 'Enter your 15-digit GSTIN (Optional)',
+                isDense: true,
+                filled: true,
+                fillColor: const Color(0xFFF8FAFC),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xFF0F172A), width: 1.4),
+                ),
               ),
             ),
-          ),
+          ],
           const SizedBox(height: 10),
           SizedBox(
             width: double.infinity,

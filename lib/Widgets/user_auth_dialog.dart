@@ -281,6 +281,98 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
     });
   }
 
+  Future<void> _handleSocialAuth(String provider) async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      setState(() {
+        _errorText = 'Please enter your email address to continue with ${provider.toUpperCase()}.';
+        _isSubmitting = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+      _errorText = null;
+      _successText = null;
+    });
+
+    try {
+      final session = await UserAuthService.signInWithSocialProvider(
+        provider: provider,
+        email: email,
+        displayName: _nameController.text.trim().isNotEmpty
+            ? _nameController.text.trim()
+            : email.split('@').first.replaceAll(RegExp(r'[^A-Za-z0-9 ]'), ' ').trim(),
+        country: _countryController.text.trim().isNotEmpty ? _countryController.text.trim() : 'India',
+        countryCode: _countryController.text.trim().toLowerCase() == 'india' ? '+91' : '',
+        mobileNumber: _mobileController.text.trim(),
+        selectedPlan: widget.preselectedPlan,
+      );
+
+      if (session == null) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _errorText = 'We could not continue with ${provider.toUpperCase()} right now. Please try again.';
+          _isSubmitting = false;
+        });
+        return;
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      await AuthRouterService.markUserAuthenticated(authToken: 'user-session');
+      Navigator.of(context).pop();
+      if (widget.onAuthenticated != null) {
+        widget.onAuthenticated!(widget.preselectedPlan, widget.selectedCurrency);
+        return;
+      }
+      if (widget.stayOnHomeAfterAuth) {
+        return;
+      }
+      if (widget.preselectedPlan != null && widget.preselectedPlan!.trim().isNotEmpty) {
+        Navigator.of(context).pushNamed('/dashboard', arguments: {'plan': widget.preselectedPlan});
+      } else {
+        AuthRouterService.redirectAfterLogin(context, fallbackRoute: '/dashboard');
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _errorText = 'Something went wrong while continuing with ${provider.toUpperCase()}. Please try again.';
+          _isSubmitting = false;
+        });
+      }
+    }
+  }
+
+  Widget _providerButton({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return Expanded(
+      child: SizedBox(
+        height: 48,
+        child: OutlinedButton.icon(
+          onPressed: onPressed,
+          icon: Icon(icon, size: 18, color: color),
+          label: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: color,
+            side: BorderSide(color: color.withValues(alpha: 0.25)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            backgroundColor: color.withValues(alpha: 0.03),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isCreateAccount = _mode == UserAuthMode.createAccount;
@@ -349,6 +441,48 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF0F766E),
                   ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    _providerButton(
+                      label: 'Continue with Google',
+                      icon: Icons.g_mobiledata_rounded,
+                      color: const Color(0xFFEA4335),
+                      onPressed: () => _handleSocialAuth('google'),
+                    ),
+                    const SizedBox(width: 8),
+                    _providerButton(
+                      label: 'Continue with Apple',
+                      icon: Icons.apple_rounded,
+                      color: const Color(0xFF111827),
+                      onPressed: () => _handleSocialAuth('apple'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    _providerButton(
+                      label: 'Continue with Microsoft',
+                      icon: Icons.desktop_windows_rounded,
+                      color: const Color(0xFF0078D4),
+                      onPressed: () => _handleSocialAuth('microsoft'),
+                    ),
+                    const SizedBox(width: 8),
+                    _providerButton(
+                      label: 'Email / Password',
+                      icon: Icons.mail_outline_rounded,
+                      color: const Color(0xFF2563EB),
+                      onPressed: () {
+                        setState(() {
+                          _mode = UserAuthMode.signIn;
+                          _errorText = null;
+                          _successText = null;
+                        });
+                      },
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 if (isCreateAccount) ...[

@@ -365,6 +365,13 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     Navigator.of(context).pushNamedAndRemoveUntil('/admin', (route) => false);
   }
 
+  void _openSalesAuditDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => const _SalesAuditDialog(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -521,6 +528,12 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       description: 'Control checkout availability, account requirements, and gateway defaults.',
                       icon: Icons.credit_card_outlined,
                       onTap: () => _openPaymentsDialog(context),
+                    ),
+                    _AdminCard(
+                      title: 'Sales & GST audit',
+                      description: 'Review GST-ready sales exports, filings, and invoice management actions.',
+                      icon: Icons.receipt_long_outlined,
+                      onTap: () => _openSalesAuditDialog(context),
                     ),
                     _AdminCard(
                       title: 'Analytics & logs',
@@ -809,6 +822,143 @@ class _PricingDialogState extends State<_PricingDialog> {
       actions: [
         TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
         ElevatedButton(onPressed: _save, child: const Text('Save')),
+      ],
+    );
+  }
+}
+
+class _SalesAuditDialog extends StatefulWidget {
+  const _SalesAuditDialog();
+
+  @override
+  State<_SalesAuditDialog> createState() => _SalesAuditDialogState();
+}
+
+class _SalesAuditDialogState extends State<_SalesAuditDialog> {
+  String _range = 'financial-year';
+  final TextEditingController _invoiceQueryController = TextEditingController();
+  final TextEditingController _stateController = TextEditingController(text: 'Delhi');
+  final TextEditingController _gstinController = TextEditingController();
+
+  @override
+  void dispose() {
+    _invoiceQueryController.dispose();
+    _stateController.dispose();
+    _gstinController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final stats = <Map<String, String>>[
+      {'label': 'Range', 'value': _range},
+      {'label': 'B2B', 'value': '0'},
+      {'label': 'B2C', 'value': '0'},
+      {'label': 'Revenue', 'value': '₹0.00'},
+    ];
+
+    return AlertDialog(
+      title: const Text('Sales & GST Audit Reports'),
+      content: SizedBox(
+        width: 640,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  ChoiceChip(label: const Text('This Month'), selected: _range == 'this-month', onSelected: (_) => setState(() => _range = 'this-month')),
+                  ChoiceChip(label: const Text('Quarterly'), selected: _range == 'quarterly', onSelected: (_) => setState(() => _range = 'quarterly')),
+                  ChoiceChip(label: const Text('FY'), selected: _range == 'financial-year', onSelected: (_) => setState(() => _range = 'financial-year')),
+                  ChoiceChip(label: const Text('Previous Year'), selected: _range == 'previous-year', onSelected: (_) => setState(() => _range = 'previous-year')),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: stats.map((item) => Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(item['label'] ?? '', style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 4),
+                      Text(item['value'] ?? '', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+                    ],
+                  ),
+                )).toList(),
+              ),
+              const SizedBox(height: 18),
+              const Divider(),
+              const SizedBox(height: 12),
+              const Text('Invoice search & amendment', style: TextStyle(fontWeight: FontWeight.w800)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _invoiceQueryController,
+                decoration: const InputDecoration(labelText: 'Search by invoice number or transaction ID'),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(child: TextField(controller: _stateController, decoration: const InputDecoration(labelText: 'State'))),
+                  const SizedBox(width: 8),
+                  Expanded(child: TextField(controller: _gstinController, decoration: const InputDecoration(labelText: 'GSTIN'))),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {},
+                      icon: const Icon(Icons.download_outlined),
+                      label: const Text('Export CSV'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {},
+                      icon: const Icon(Icons.refresh_outlined),
+                      label: const Text('Search Invoice'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Invoice actions', style: TextStyle(fontWeight: FontWeight.w700)),
+                    SizedBox(height: 8),
+                    Text('• amend billing address / GSTIN / customer details', style: TextStyle(fontSize: 12, color: Color(0xFF475569))),
+                    Text('• cancel and log credit note', style: TextStyle(fontSize: 12, color: Color(0xFF475569))),
+                    Text('• resend PDF to customer', style: TextStyle(fontSize: 12, color: Color(0xFF475569))),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
       ],
     );
   }

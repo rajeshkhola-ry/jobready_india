@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:universal_html/html.dart' as html;
 
@@ -20,6 +22,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
   UserAuthSession? _session;
   UserAccountProfile _profile = UserAccountProfile.initial();
   List<DocumentHistoryEntry> _history = const <DocumentHistoryEntry>[];
+  List<Map<String, dynamic>> _purchaseTransactions = const <Map<String, dynamic>>[];
   bool _isBusy = false;
   bool _hasProcessedRouteArgs = false;
 
@@ -49,6 +52,48 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
       _profile = UserAccountService.getProfile();
       _history = DocumentHistoryService.getEntries();
     });
+    await _loadPurchaseHistory();
+  }
+
+  Future<void> _loadPurchaseHistory() async {
+    final email = (_session?.email ?? _profile.email).trim();
+    if (email.isEmpty) {
+      setState(() {
+        _purchaseTransactions = const <Map<String, dynamic>>[];
+      });
+      return;
+    }
+
+    try {
+      final requestUrl = '/api/user/transactions?email=' + Uri.encodeComponent(email);
+      final response = await html.HttpRequest.request(
+        requestUrl,
+        method: 'GET',
+        requestHeaders: {'Accept': 'application/json'},
+      );
+      final raw = response.responseText ?? '{}';
+      if (raw.trim().isEmpty) {
+        setState(() {
+          _purchaseTransactions = const <Map<String, dynamic>>[];
+        });
+        return;
+      }
+      final decoded = (jsonDecode(raw) as Map?) ?? const <String, dynamic>{};
+      final transactions = decoded['transactions'];
+      final list = transactions is List ? transactions.cast<Map<dynamic, dynamic>>() : const <Map<dynamic, dynamic>>[];
+      setState(() {
+        _purchaseTransactions = list
+            .map((entry) => Map<String, dynamic>.from(entry.map((key, value) => MapEntry(key.toString(), value))))
+            .toList(growable: false);
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _purchaseTransactions = const <Map<String, dynamic>>[];
+      });
+    }
   }
 
   Future<void> _handleInitialRouteArgs() async {
@@ -155,6 +200,11 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
       ..click();
     html.Url.revokeObjectUrl(url);
     anchor.remove();
+  }
+
+  void _downloadInvoice(String transactionId) {
+    final url = '/api/user/invoice/$transactionId';
+    html.window.open(url, '_blank');
   }
 
   void _openHelloJobTranslator() {
@@ -392,10 +442,18 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                               physics: const NeverScrollableScrollPhysics(),
                               crossAxisSpacing: 12,
                               mainAxisSpacing: 12,
-                              childAspectRatio: 2.3,
+                              childAspectRatio: 2.2,
                               children: [
                                 _dashboardMetric('Active Plan', activePlan, Icons.workspace_premium_rounded, const Color(0xFF2563EB)),
-                                _dashboardMetric('Remaining Credits', credits.toString(), Icons.stars_rounded, const Color(0xFF7C3AED)),
+                                _dashboardMetric(
+                                  'Current Balance',
+                                  _profile.planPrice > 0
+                                      ? '${_profile.planCurrency} ${_profile.planPrice.toStringAsFixed(2)}'
+                                      : 'Free',
+                                  Icons.account_balance_wallet_rounded,
+                                  const Color(0xFF0F766E),
+                                ),
+                                _dashboardMetric('Remaining Quota', credits.toString(), Icons.stars_rounded, const Color(0xFF7C3AED)),
                                 _dashboardMetric('Converted Files', convertedFiles.toString(), Icons.file_download_done_rounded, const Color(0xFF0F766E)),
                               ],
                             );
@@ -410,7 +468,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                     borderRadius: BorderRadius.circular(8),
                     clipBehavior: Clip.antiAlias,
                     child: InkWell(
-                      onTap: _openHelloJobTranslator,
+                      onTap: () => Navigator.of(context).pushNamed('/dashboard'),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
                         child: Row(
@@ -418,7 +476,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                             const Badge(
                               backgroundColor: Color(0xFF22D3EE),
                               smallSize: 9,
-                              child: Icon(Icons.headset_mic_rounded, color: Colors.white, size: 28),
+                              child: Icon(Icons.account_balance_wallet_rounded, color: Colors.white, size: 28),
                             ),
                             const SizedBox(width: 14),
                             const Expanded(
@@ -426,19 +484,19 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Core AI Access',
+                                    'Balance & quota overview',
                                     style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
                                   ),
                                   SizedBox(height: 3),
                                   Text(
-                                    'Open your GETREADYJOB dashboard in one step',
+                                    'Your current plan, remaining credits, and usage stay visible here.',
                                     style: TextStyle(color: Color(0xFFBAE6FD), fontSize: 12.5),
                                   ),
                                 ],
                               ),
                             ),
                             const SizedBox(width: 12),
-                            const Icon(Icons.open_in_new_rounded, color: Color(0xFF22D3EE)),
+                            const Icon(Icons.arrow_forward_rounded, color: Color(0xFF22D3EE)),
                           ],
                         ),
                       ),
@@ -552,6 +610,53 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                                             onPressed: () => _downloadEntry(entry),
                                             icon: const Icon(Icons.download_rounded, size: 16),
                                             label: const Text('Download'),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
+                          ),
+                  ),
+                  const SizedBox(height: 18),
+                  const Text('Purchase History', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: _purchaseTransactions.isEmpty
+                        ? const Text('No purchases yet. Your invoices will appear here after payment.', style: TextStyle(color: Color(0xFF64748B)))
+                        : SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: DataTable(
+                              headingTextStyle: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                              dataTextStyle: const TextStyle(color: Color(0xFF334155)),
+                              columns: const [
+                                DataColumn(label: Text('Invoice')),
+                                DataColumn(label: Text('Plan')),
+                                DataColumn(label: Text('Amount')),
+                                DataColumn(label: Text('Date')),
+                                DataColumn(label: Text('Download')),
+                              ],
+                              rows: _purchaseTransactions
+                                  .map(
+                                    (entry) => DataRow(
+                                      cells: [
+                                        DataCell(Text(entry['invoiceNumber']?.toString() ?? entry['transactionId']?.toString() ?? 'Invoice')),
+                                        DataCell(Text(entry['planName']?.toString() ?? entry['planId']?.toString() ?? 'Plan')),
+                                        DataCell(Text('${entry['totalAmount'] ?? entry['amount'] ?? 0} ${entry['currency'] ?? 'INR'}')),
+                                        DataCell(Text((entry['paidAt'] ?? entry['createdAt'] ?? '').toString().split('T').first)),
+                                        DataCell(
+                                          TextButton.icon(
+                                            onPressed: () => _downloadInvoice(entry['transactionId']?.toString() ?? ''),
+                                            icon: const Icon(Icons.download_rounded, size: 16),
+                                            label: const Text('Invoice'),
                                           ),
                                         ),
                                       ],
