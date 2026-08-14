@@ -3225,6 +3225,7 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
       'company': '',
       'address': '',
       'country': profile.country.trim().isEmpty ? 'India' : profile.country.trim(),
+      'state': profile.country.trim().isEmpty ? 'India' : profile.country.trim(),
       'gstin': profile.gstin.trim(),
       'email': email,
       'mobile': normalizedMobile,
