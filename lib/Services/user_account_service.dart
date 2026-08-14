@@ -20,6 +20,7 @@ class UserAccountProfile {
   final double planPrice;
   final String planSummary;
   final bool toolsUnlimited;
+  final String gstin;
 
   const UserAccountProfile({
     required this.displayName,
@@ -39,6 +40,7 @@ class UserAccountProfile {
     required this.planPrice,
     required this.planSummary,
     required this.toolsUnlimited,
+    this.gstin = '',
   });
 
   factory UserAccountProfile.initial() {
@@ -60,6 +62,7 @@ class UserAccountProfile {
       planPrice: 0.0,
       planSummary: 'Free access to core tools',
       toolsUnlimited: false,
+      gstin: '',
     );
   }
 
@@ -81,6 +84,7 @@ class UserAccountProfile {
     double? planPrice,
     String? planSummary,
     bool? toolsUnlimited,
+    String? gstin,
   }) {
     return UserAccountProfile(
       displayName: displayName ?? this.displayName,
@@ -100,6 +104,7 @@ class UserAccountProfile {
       planPrice: planPrice ?? this.planPrice,
       planSummary: planSummary ?? this.planSummary,
       toolsUnlimited: toolsUnlimited ?? this.toolsUnlimited,
+      gstin: gstin ?? this.gstin,
     );
   }
 
@@ -122,6 +127,7 @@ class UserAccountProfile {
       'plan_price': planPrice,
       'plan_summary': planSummary,
       'tools_unlimited': toolsUnlimited,
+      'gstin': gstin,
     };
   }
 
@@ -148,6 +154,7 @@ class UserAccountProfile {
       planPrice: double.tryParse(map['plan_price']?.toString() ?? '') ?? 0.0,
       planSummary: map['plan_summary']?.toString() ?? 'Free access to core tools',
       toolsUnlimited: map['tools_unlimited'] == true,
+      gstin: map['gstin']?.toString() ?? '',
     );
   }
 }

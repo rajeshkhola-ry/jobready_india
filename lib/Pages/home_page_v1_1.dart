@@ -25,7 +25,6 @@ import '../Services/user_auth_service.dart';
 import '../Services/usage_quota_service.dart';
 import '../Services/razorpay_service.dart';
 import '../Widgets/user_auth_dialog.dart';
-import '../Widgets/ai_resume_feature_banner.dart';
 import '../Widgets/brand_logo_button.dart';
 import '../Widgets/production_footer.dart';
 import 'ai_resume_builder_page.dart';
@@ -136,8 +135,6 @@ class _HomePageV11State extends State<HomePageV11> {
   String _selectedPaymentCurrency = 'USD';
   String _detectedCountryCode = 'IN';
   String? _selectedUsageType;
-  bool _showLiveOfferBanner = false;
-  String _liveOfferText = '';
   bool _showCookieConsentBanner = false;
   bool _pwaInstallAvailable = false;
   late PlanCatalogConfig _planCatalog;
@@ -930,40 +927,26 @@ class _HomePageV11State extends State<HomePageV11> {
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
         ),
         actions: [
+          if (!UserAuthService.isSignedIn)
+            _TopActionIcon(
+              tooltip: 'Sign In',
+              icon: Icons.person_outline_rounded,
+              iconColor: const Color(0xFF2563EB),
+              onTap: _openUserLoginPanel,
+            )
+          else
+            _TopActionIcon(
+              tooltip: 'Account',
+              icon: Icons.account_circle_rounded,
+              iconColor: const Color(0xFF0F172A),
+              onTap: () => Navigator.of(context).pushNamed('/dashboard'),
+            ),
           if (_pwaInstallAvailable)
             _TopActionIcon(
               tooltip: 'Install App',
               icon: Icons.install_mobile_rounded,
               iconColor: const Color(0xFF1F4E79),
               onTap: _triggerPwaInstall,
-            ),
-          if (useCompactHeaderActions)
-            _TopActionIcon(
-              tooltip: 'Open main app access',
-              icon: Icons.headset_mic_rounded,
-              iconColor: const Color(0xFF0891B2),
-              onTap: _openHelloJobTranslator,
-            )
-          else
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
-              child: FilledButton.icon(
-                onPressed: _openHelloJobTranslator,
-                icon: const Badge(
-                  backgroundColor: Color(0xFF22D3EE),
-                  smallSize: 7,
-                  child: Icon(Icons.headset_mic_rounded, size: 18),
-                ),
-                label: const Text('Main App'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF0F172A),
-                  foregroundColor: Colors.white,
-                  textStyle: const TextStyle(fontWeight: FontWeight.w800),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
             ),
           _TopActionIcon(
             tooltip: 'Benchmark',
@@ -1146,117 +1129,8 @@ class _HomePageV11State extends State<HomePageV11> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                AiResumeFeatureBanner(activePlan: _selectedPlanForPayment),
-                const SizedBox(height: 10),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final isCompact = constraints.maxWidth < 600;
-                    final bannerMaxWidth = isCompact ? constraints.maxWidth : 900.0;
-                    final bannerPadding = EdgeInsets.symmetric(
-                      horizontal: isCompact ? 14 : 20,
-                      vertical: isCompact ? 12 : 14,
-                    );
-
-                    return Center(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: bannerMaxWidth),
-                        child: Container(
-                          width: double.infinity,
-                          padding: bannerPadding,
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [Color(0xFFF7FFFC), Color(0xFFF1F7FF)],
-                            ),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: const Color(0xFFBFDCD2), width: 1.2),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF0C6B4E).withValues(alpha: 0.12),
-                                blurRadius: 28,
-                                offset: const Offset(0, 12),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFE1F5ED),
-                                        borderRadius: BorderRadius.circular(999),
-                                        border: Border.all(color: const Color(0xFFA7D7C4)),
-                                      ),
-                                      child: const Text(
-                                        '✨ Premium | Core Career Tools',
-                                        style: TextStyle(
-                                          color: Color(0xFF075A43),
-                                          fontSize: 10.5,
-                                          fontWeight: FontWeight.w800,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 5),
-                                    Text(
-                                      'Career Tools & Document Suite',
-                                      style: TextStyle(
-                                        color: const Color(0xFF102A24),
-                                        fontSize: isCompact ? 15 : 19,
-                                        height: 1.15,
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 3),
-                                    Text(
-                                      'Photo Resizer • Purpose Watermark • AI Resume • Document Suite',
-                                      style: TextStyle(
-                                        color: const Color(0xFF48645B),
-                                        fontSize: isCompact ? 11.5 : 13,
-                                        height: 1.4,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              SizedBox(width: isCompact ? 12 : 16),
-                              FilledButton(
-                                onPressed: () => html.window.open('https://getreadyjob.com/', '_self'),
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: const Color(0xFF0C6B4E),
-                                  foregroundColor: Colors.white,
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: isCompact ? 14 : 20,
-                                    vertical: isCompact ? 10 : 12,
-                                  ),
-                                  textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                  elevation: 3,
-                                  shadowColor: const Color(0xFF0C6B4E).withValues(alpha: 0.28),
-                                ),
-                                child: const Text('🚀 Explore →'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 10),
                 const _V2Column(),
                 const SizedBox(height: 10),
-                if (_showLiveOfferBanner && _liveOfferText.trim().isNotEmpty) ...[
-                  _LiveOfferBanner(text: _liveOfferText),
-                  const SizedBox(height: 10),
-                ],
                 const SizedBox(height: 12),
                 const SizedBox(height: 4),
                 const SizedBox(height: 16),
@@ -1854,41 +1728,6 @@ class _FixedAdSpace extends StatefulWidget {
 
   @override
   State<_FixedAdSpace> createState() => _FixedAdSpaceState();
-}
-
-class _LiveOfferBanner extends StatelessWidget {
-  final String text;
-
-  const _LiveOfferBanner({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF7CC),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFFE08A)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.local_offer_rounded, color: Color(0xFFB45309), size: 18),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF78350F),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _WhyChooseAdSection extends StatelessWidget {
@@ -3386,7 +3225,7 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
       'company': '',
       'address': '',
       'country': profile.country.trim().isEmpty ? 'India' : profile.country.trim(),
-      'gstin': '',
+      'gstin': profile.gstin.trim(),
       'email': email,
       'mobile': normalizedMobile,
     };
@@ -3879,9 +3718,6 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
       billingForFallback = billing;
       final keyResponse = await _requestJsonWithFallback('GET', '/api/config');
       final keyId = keyResponse['key_id']?.toString().trim() ?? '';
-      if (keyId.isEmpty) {
-        throw Exception('Razorpay public key is not configured on the server.');
-      }
 
       final amountMinor = (_chargeAmountForPlan(widget.selectedPlan) * 100).round();
       if (amountMinor <= 0) {
@@ -3908,12 +3744,60 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
         throw Exception(failure);
       }
 
+      final isLocalCheckout = createOrderResponse['localOnly'] == true;
       final orderId = createOrderResponse['order_id']?.toString() ?? '';
       final orderAmount = int.tryParse(createOrderResponse['amount']?.toString() ?? '') ?? amountMinor;
       final orderCurrency = createOrderResponse['currency']?.toString().toUpperCase() ?? _localCurrency;
 
       if (orderId.isEmpty) {
         throw Exception('Payment order ID is missing from server response.');
+      }
+
+      if (isLocalCheckout) {
+        setState(() {
+          _lastCheckoutResponse = {
+            ...readiness,
+            'selected_plan': widget.selectedPlan,
+            'checkout_state': 'local_checkout_ready',
+            'status': 'ready_for_integration',
+            'label': 'Local Checkout Ready',
+            'message': 'Checkout is running in local fallback mode because the payment provider is not configured for this environment. Access has been granted in test mode.',
+            'order_id': orderId,
+            'localOnly': true,
+          };
+        });
+
+        final profile = UserAccountService.getProfile();
+        final selectedPlan = widget.selectedPlan;
+        final isPaidPlan = selectedPlan != 'Free';
+        final paidProfile = profile.copyWith(
+          activePlan: selectedPlan,
+          planId: selectedPlan.toLowerCase(),
+          planName: selectedPlan,
+          planStatus: 'active',
+          remainingCredits: isPaidPlan ? 999 : 3,
+          planCurrency: _localCurrency,
+          planPrice: _chargeAmountForPlan(selectedPlan),
+          planSummary: isPaidPlan ? '$selectedPlan access is active.' : 'Free access to core tools',
+          toolsUnlimited: selectedPlan == 'Lifetime' || selectedPlan == 'Yearly' || selectedPlan == 'Monthly',
+        );
+        await UserAccountService.saveProfile(paidProfile);
+
+        if (mounted) {
+          setState(() {});
+          await _showPaymentSuccessFlow(plan: widget.selectedPlan);
+        }
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Local checkout fallback accepted. Access is enabled for this session.')),
+          );
+        }
+        return;
+      }
+
+      if (keyId.isEmpty) {
+        throw Exception('Razorpay public key is not configured on the server.');
       }
 
       setState(() {
@@ -7678,6 +7562,7 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
   late final TextEditingController _nameController;
   late final TextEditingController _emailController;
   late final TextEditingController _mobileController;
+  late final TextEditingController _gstinController;
   static const List<String> _countryOptions = <String>[
     'India',
     'United States',
@@ -7734,6 +7619,7 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
     _nameController = TextEditingController(text: profile.displayName);
     _emailController = TextEditingController(text: profile.email);
     _mobileController = TextEditingController(text: profile.mobileNumber);
+    _gstinController = TextEditingController(text: profile.gstin);
     _selectedCountry = profile.country.isNotEmpty ? profile.country : localeCountry;
     _selectedCountryCode = profile.countryCode.isNotEmpty
       ? profile.countryCode
@@ -7745,6 +7631,7 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
     _nameController.dispose();
     _emailController.dispose();
     _mobileController.dispose();
+    _gstinController.dispose();
     super.dispose();
   }
 
@@ -7752,6 +7639,7 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
     final mobile = _mobileController.text.trim();
+    final gstin = _gstinController.text.trim().toUpperCase();
 
     if (email.isEmpty || _selectedCountry.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -7783,6 +7671,7 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
       mobileNumber: mobile,
       historyEnabled: true,
       googleLoginPreferred: previousProfile.googleLoginPreferred,
+      gstin: gstin,
     );
 
     await UserAccountService.saveProfile(profile);
@@ -7982,6 +7871,28 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _gstinController,
+            textCapitalization: TextCapitalization.characters,
+            decoration: InputDecoration(
+              labelText: 'GSTIN (Optional for B2B Invoice)',
+              hintText: 'Enter your 15-digit GSTIN (Optional)',
+              isDense: true,
+              filled: true,
+              fillColor: const Color(0xFFF8FAFC),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFF0F172A), width: 1.4),
+              ),
+            ),
           ),
           const SizedBox(height: 10),
           SizedBox(
