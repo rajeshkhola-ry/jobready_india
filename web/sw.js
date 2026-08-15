@@ -1,6 +1,6 @@
-// GRJ Service Worker v20260805
+// GRJ Service Worker v20260815
 // Offline-first caching for zero-latency WASM execution
-const CACHE_NAME = 'grj-cache-v20260805';
+const CACHE_NAME = 'grj-cache-v20260815';
 
 const PRECACHE_ASSETS = [
   '/',

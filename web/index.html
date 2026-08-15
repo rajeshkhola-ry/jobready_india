@@ -615,7 +615,27 @@
       async function registerServiceWorker() {
         if ('serviceWorker' in navigator) {
           try {
-            await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+            var registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+            // Proactively check for a newer sw.js instead of waiting on the browser's own
+            // update timer, so returning visitors always get the newest build automatically.
+            if (registration && typeof registration.update === 'function') {
+              registration.update().catch(function () {});
+              document.addEventListener('visibilitychange', function () {
+                if (document.visibilityState === 'visible') {
+                  registration.update().catch(function () {});
+                }
+              });
+            }
+            if (registration && registration.waiting) {
+              registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
+            navigator.serviceWorker.addEventListener('controllerchange', function () {
+              if (window.__GRJ_SW_RELOADED__) {
+                return;
+              }
+              window.__GRJ_SW_RELOADED__ = true;
+              window.location.reload();
+            });
           } catch (e) {
             console.warn('GRJ SW registration failed:', e);
           }
