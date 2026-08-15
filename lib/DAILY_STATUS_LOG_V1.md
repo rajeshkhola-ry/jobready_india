@@ -1096,6 +1096,26 @@ Prepared For: JOBREADY
   one var is saved, no further rebuild needed.
 - Owner: Founder + Copilot
 
+### Same day follow-up #2 — auth modal cleanup: Google + Email/Password only
+- Overall status: Green (deployed)
+- Completed:
+  - `Widgets/user_auth_dialog.dart`: removed the "Continue with Apple" and "Continue with Microsoft"
+    buttons; the modal now shows a single row: Google 1-Click + Email/Password toggle.
+  - Deleted the now fully-dead legacy `_handleSocialAuth` (synthetic `@getreadyjob.social` email +
+    popup-to-nowhere) since Google — its only remaining real caller — already routes through the
+    verified `_handleGoogleAuth`/`GoogleIdentityService` path; removed the now-unused
+    `package:universal_html/html.dart` import with it.
+  - Validation: `get_errors` clean; `flutter analyze` → same 3 pre-existing
+    `use_build_context_synchronously` info lints only, no new issues, no unused-import warnings.
+  - Rebuilt with the same Client ID `--dart-define` and redeployed: `flutter clean` →
+    `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run
+    --no-tree-shake-icons --dart-define=GOOGLE_OAUTH_CLIENT_ID=365906972808-o92qicufhbn7r40hjrib3bln05vv52mk.apps.googleusercontent.com`
+    → success. `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success.
+  - Committed + pushed (commit `b10f1a6`, net -101 lines) → triggers Render + GitHub Pages redeploy.
+  - Screenshot-reverified the live Firebase-hosted build after reload: renders correctly, no new
+    console errors.
+- Owner: Founder + Copilot
+
     - Added colour entry to `colorMap`
   - **Validation** ✓
     - `get_errors` on all 3 modified/created files: 0 errors
