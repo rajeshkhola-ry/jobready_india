@@ -7,6 +7,8 @@ import '../Utils/ui_web_stub.dart' if (dart.library.html) 'dart:ui_web' as ui_we
 import 'package:flutter/material.dart';
 import 'package:universal_html/html.dart' as html;
 
+import 'api_config.dart';
+
 /// Real, server-verified Google profile returned after a successful sign-in.
 class GoogleSignInProfile {
   final String email;
@@ -308,9 +310,14 @@ class GoogleIdentityService {
 
   Future<GoogleSignInResult> _verifyWithBackend(String idToken) async {
     final claims = _decodeIdTokenClaims(idToken) ?? const <String, dynamic>{};
+    // Must be absolute: Firebase Hosting rewrites every unknown path to index.html,
+    // so a relative /api call would return HTML instead of reaching the API server.
+    final base = ApiConfig.baseUrl.endsWith('/')
+        ? ApiConfig.baseUrl.substring(0, ApiConfig.baseUrl.length - 1)
+        : ApiConfig.baseUrl;
     try {
       final response = await html.HttpRequest.request(
-        '/api/user/google-signin',
+        '$base/api/user/google-signin',
         method: 'POST',
         requestHeaders: {'Content-Type': 'application/json', 'Accept': 'application/json'},
         sendData: jsonEncode({'id_token': idToken}),
