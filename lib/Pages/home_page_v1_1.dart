@@ -900,12 +900,9 @@ class _HomePageV11State extends State<HomePageV11> {
             child: const Text('Stay here'),
           ),
           FilledButton.icon(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              html.window.open('https://getreadyjob.com/', '_self');
-            },
+            onPressed: () => Navigator.of(dialogContext).pop(),
             icon: const Icon(Icons.home_rounded),
-            label: const Text('Go to Main Homepage ➔'),
+            label: const Text('Stay here'),
           ),
         ],
       ),

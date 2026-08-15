@@ -1103,8 +1103,8 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
         return;
       }
 
-      final bytes = utf8.encode(csvData);
-      final blob = html.Blob([bytes], 'text/csv;charset=utf-8');
+      final csvBytes = response.bodyBytes.isNotEmpty ? response.bodyBytes : utf8.encode(csvData);
+      final blob = html.Blob([csvBytes], 'text/csv;charset=utf-8');
       final url = html.Url.createObjectUrlFromBlob(blob);
       final anchor = html.AnchorElement(href: url)
         ..setAttribute('download', 'GSTR1_Sales_Report_${DateTime.now().millisecondsSinceEpoch}.csv')

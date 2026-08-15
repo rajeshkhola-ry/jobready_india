@@ -176,17 +176,8 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
         if (widget.stayOnHomeAfterAuth) {
           return;
         }
-        if (widget.preselectedPlan != null &&
-            widget.preselectedPlan!.trim().isNotEmpty) {
-          Navigator.of(context).pushNamed(
-            '/dashboard',
-            arguments: {'plan': widget.preselectedPlan},
-          );
-        } else {
-          AuthRouterService.redirectAfterLogin(
-            context,
-            fallbackRoute: '/dashboard',
-          );
+        if (mounted) {
+          setState(() {});
         }
         return;
       }
@@ -223,6 +214,11 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
         return;
       }
       await AuthRouterService.markUserAuthenticated(authToken: 'user-session');
+      if (mounted) {
+        setState(() {
+          _successText = 'Signed in successfully. Your account is ready.';
+        });
+      }
       Navigator.of(context).pop();
       if (widget.onAuthenticated != null) {
         widget.onAuthenticated!(
@@ -234,16 +230,8 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
       if (widget.stayOnHomeAfterAuth) {
         return;
       }
-      if (widget.preselectedPlan != null &&
-          widget.preselectedPlan!.trim().isNotEmpty) {
-        Navigator.of(
-          context,
-        ).pushNamed('/dashboard', arguments: {'plan': widget.preselectedPlan});
-      } else {
-        AuthRouterService.redirectAfterLogin(
-          context,
-          fallbackRoute: '/dashboard',
-        );
+      if (mounted) {
+        setState(() {});
       }
     } on AuthRestrictionException catch (exception) {
       if (mounted) {
@@ -345,10 +333,8 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
       if (widget.stayOnHomeAfterAuth) {
         return;
       }
-      if (widget.preselectedPlan != null && widget.preselectedPlan!.trim().isNotEmpty) {
-        Navigator.of(context).pushNamed('/dashboard', arguments: {'plan': widget.preselectedPlan});
-      } else {
-        AuthRouterService.redirectAfterLogin(context, fallbackRoute: '/dashboard');
+      if (mounted) {
+        setState(() {});
       }
     } catch (_) {
       if (mounted) {

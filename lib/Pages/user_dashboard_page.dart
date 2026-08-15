@@ -8,8 +8,6 @@ import '../Services/plan_catalog_service.dart';
 import '../Services/user_account_service.dart';
 import '../Services/user_auth_service.dart';
 import '../Widgets/user_auth_dialog.dart';
-import '../Widgets/ai_resume_feature_banner.dart';
-import 'ai_resume_builder_page.dart';
 
 class UserDashboardPage extends StatefulWidget {
   const UserDashboardPage({super.key});
@@ -23,7 +21,6 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
   UserAccountProfile _profile = UserAccountProfile.initial();
   List<DocumentHistoryEntry> _history = const <DocumentHistoryEntry>[];
   List<Map<String, dynamic>> _purchaseTransactions = const <Map<String, dynamic>>[];
-  bool _isBusy = false;
   bool _hasProcessedRouteArgs = false;
 
   @override
@@ -52,7 +49,76 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
       _profile = UserAccountService.getProfile();
       _history = DocumentHistoryService.getEntries();
     });
+    final email = (_session?.email ?? _profile.email).trim();
+    if (email.isNotEmpty) {
+      await _syncProfileFromServer(email);
+    }
     await _loadPurchaseHistory();
+  }
+
+  Future<void> _syncProfileFromServer(String email) async {
+    try {
+      final requestUrl = '/api/user/account?email=${Uri.encodeComponent(email)}';
+      final response = await html.HttpRequest.request(
+        requestUrl,
+        method: 'GET',
+        requestHeaders: {'Accept': 'application/json'},
+      );
+      final raw = response.responseText ?? '{}';
+      if (raw.trim().isEmpty) {
+        return;
+      }
+      final decoded = (jsonDecode(raw) as Map?) ?? const <String, dynamic>{};
+      final user = decoded['user'];
+      if (user is! Map) {
+        return;
+      }
+
+      final serverPlanName = (user['planName'] ?? user['plan_name'] ?? user['activePlan'] ?? user['active_plan'] ?? _profile.activePlan).toString();
+      final normalizedPlanName = serverPlanName.trim().isNotEmpty ? serverPlanName : _profile.activePlan;
+      final planPrice = _planPriceForLabel(normalizedPlanName);
+      final synchronizedProfile = _profile.copyWith(
+        displayName: (user['name'] ?? _profile.displayName).toString(),
+        email: (user['email'] ?? email).toString(),
+        country: (user['billingCountry'] ?? user['country'] ?? _profile.country).toString(),
+        activePlan: normalizedPlanName,
+        planId: (user['planId'] ?? user['plan_id'] ?? _profile.planId).toString(),
+        planName: normalizedPlanName,
+        planStatus: (user['planStatus'] ?? user['plan_status'] ?? 'Active').toString(),
+        remainingCredits: _creditsForPlan(normalizedPlanName),
+        planCurrency: 'INR',
+        planPrice: planPrice,
+        planSummary: _planSummary(normalizedPlanName),
+        gstin: (user['gstin'] ?? _profile.gstin).toString(),
+        companyName: (user['company'] ?? _profile.companyName).toString(),
+        billingState: (user['billingState'] ?? user['state'] ?? _profile.billingState).toString(),
+      );
+
+      await UserAccountService.saveProfile(synchronizedProfile);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _profile = synchronizedProfile;
+      });
+    } catch (_) {
+      // Ignore server-sync failures; the dashboard keeps the last known local profile.
+    }
+  }
+
+  double _planPriceForLabel(String planLabel) {
+    switch (planLabel) {
+      case '7 Days Access':
+        return 99.0;
+      case '1 Month Pro':
+        return 499.0;
+      case '1 Year Unlimited Access':
+        return 999.0;
+      case 'Lifetime Pro':
+        return 2999.0;
+      default:
+        return _profile.planPrice > 0 ? _profile.planPrice : 0.0;
+    }
   }
 
   Future<void> _loadPurchaseHistory() async {
@@ -65,7 +131,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
     }
 
     try {
-      final requestUrl = '/api/user/transactions?email=' + Uri.encodeComponent(email);
+      final requestUrl = '/api/user/transactions?email=${Uri.encodeComponent(email)}';
       final response = await html.HttpRequest.request(
         requestUrl,
         method: 'GET',
@@ -109,10 +175,6 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
       return;
     }
 
-    setState(() {
-      _isBusy = true;
-    });
-
     await Future<void>.delayed(const Duration(milliseconds: 250));
 
     final profile = _profile.copyWith(
@@ -131,7 +193,6 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
     }
     setState(() {
       _profile = profile;
-      _isBusy = false;
     });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Your $planName plan is now active.')),
@@ -205,38 +266,6 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
   void _downloadInvoice(String transactionId) {
     final url = '/api/user/invoice/$transactionId';
     html.window.open(url, '_blank');
-  }
-
-  void _openHelloJobTranslator() {
-    if (!mounted) {
-      return;
-    }
-
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('GETREADYJOB Access'),
-        content: const Text(
-          'You are now kept inside GETREADYJOB for core AI access. External redirects are disabled for safety.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Stay Here'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              if (!mounted) {
-                return;
-              }
-              Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
-            },
-            child: const Text('Go to Home'),
-          ),
-        ],
-      ),
-    );
   }
 
   int _creditsForPlan(String planName) {
@@ -318,7 +347,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
             tooltip: 'Sign out',
             onPressed: () async {
               await UserAuthService.signOut();
-              if (!mounted) {
+              if (!mounted || !context.mounted) {
                 return;
               }
               Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
@@ -492,35 +521,6 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  AiResumeFeatureBanner(activePlan: activePlan),
-                  const SizedBox(height: 18),
-                  const Text('Available Plans', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
-                  const SizedBox(height: 10),
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final availableWidth = constraints.maxWidth;
-                      final crossAxisCount = availableWidth >= 920
-                          ? 3
-                          : availableWidth >= 640
-                              ? 2
-                              : 1;
-
-                      return GridView.count(
-                        crossAxisCount: crossAxisCount,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 1.05,
-                        children: [
-                          _planCard('7Days', '7-day access', PlanCatalogService.formatPlanPriceLine('7Days', currencyCode: 'USD'), () => _purchasePlan('7Days')),
-                          _planCard('Monthly', 'Monthly value', PlanCatalogService.formatPlanPriceLine('Monthly', currencyCode: 'USD'), () => _purchasePlan('Monthly')),
-                          _planCard('Yearly', 'Yearly value', PlanCatalogService.formatPlanPriceLine('Yearly', currencyCode: 'USD'), () => _purchasePlan('Yearly')),
-                        ],
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 18),
                   const Text('Conversion History & Downloads', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
                   const SizedBox(height: 10),
                   Container(
@@ -651,33 +651,4 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
     );
   }
 
-  Widget _planCard(String planName, String subtitle, String price, VoidCallback onBuy) {
-    return Container(
-      width: 220,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(planName, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
-          const SizedBox(height: 4),
-          Text(subtitle, style: const TextStyle(fontSize: 12.5, color: Color(0xFF64748B))),
-          const SizedBox(height: 12),
-          Text(price, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF2563EB))),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _isBusy ? null : onBuy,
-              child: Text(_isBusy ? 'Processing...' : 'Buy now'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
