@@ -163,7 +163,45 @@ class _HomePageV11State extends State<HomePageV11> {
     _showCookieConsentBanner = !_hasAcceptedCookieConsent();
     _selectedPaymentCurrency = _resolveInitialPaymentCurrency();
     unawaited(_autoDetectCountryAndCurrency());
+    unawaited(_refreshPlanCatalogFromBackend());
     _initPwaInstallPrompt();
+  }
+
+  /// The admin-configured, GST-inclusive gross price is the single source of truth for
+  /// both the pricing cards and checkout. Falls back to the local cache/consts on failure.
+  Future<void> _refreshPlanCatalogFromBackend() async {
+    try {
+      final uri = Uri.parse('${ApiConfig.baseUrl}/api/public/plan-catalog');
+      final request = await html.HttpRequest.request(
+        uri.toString(),
+        method: 'GET',
+        requestHeaders: const {'Accept': 'application/json'},
+      );
+      final raw = request.responseText ?? '';
+      if (raw.trim().isEmpty) {
+        return;
+      }
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map || decoded['catalog'] is! Map) {
+        return;
+      }
+      final catalog = Map<String, dynamic>.from(decoded['catalog'] as Map);
+      final merged = PlanCatalogConfig.fromMap({
+        'inr_prices': catalog['inr_prices'],
+        'usd_prices': catalog['usd_prices'],
+        'enabled_tools_by_plan': _planCatalog.enabledToolsByPlan,
+        'user_quotas_by_plan': _planCatalog.userQuotasByPlan,
+      });
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _planCatalog = merged;
+      });
+      unawaited(PlanCatalogService.save(merged));
+    } catch (_) {
+      // Network unavailable: keep showing the locally-cached/default prices.
+    }
   }
 
   void _syncDocumentTitle() {
@@ -342,6 +380,10 @@ class _HomePageV11State extends State<HomePageV11> {
   }
 
   double _baseUsdPriceForPlan(String plan) {
+    final fromCatalog = _planCatalog.usdPrices[plan];
+    if (fromCatalog != null) {
+      return fromCatalog;
+    }
     switch (plan) {
       case '7Days':
         return _sevenDayPlanUsd;
@@ -357,6 +399,10 @@ class _HomePageV11State extends State<HomePageV11> {
   }
 
   double _baseInrPriceForPlan(String plan) {
+    final fromCatalog = _planCatalog.inrPrices[plan];
+    if (fromCatalog != null) {
+      return fromCatalog;
+    }
     switch (plan) {
       case '7Days':
         return _sevenDayPlanInr;
@@ -377,12 +423,12 @@ class _HomePageV11State extends State<HomePageV11> {
     }
 
     if (currencyCode == 'INR') {
-      return _priceForUsage(_baseInrPriceForPlan(plan));
+      return _priceForUsage(_baseInrPriceForPlan(plan)).roundToDouble();
     }
 
     final usdBase = _priceForUsage(_baseUsdPriceForPlan(plan));
     final rate = _paymentCurrencyRates[currencyCode] ?? 1.0;
-    return usdBase * rate;
+    return (usdBase * rate).roundToDouble();
   }
 
   String _planPriceLine(String plan, String suffix) {
@@ -2285,13 +2331,30 @@ class _PlanCardTileState extends State<_PlanCardTile> {
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: Colors.black.withOpacity(0.06)),
                   ),
-                  child: Text(
-                    widget.priceLine,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF111827),
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        widget.priceLine,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF111827),
+                        ),
+                      ),
+                      if (widget.title != 'FREE') ...[
+                        const SizedBox(height: 2),
+                        const Text(
+                          '(Incl. of 18% GST)',
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
                 const SizedBox(height: 11),

@@ -691,12 +691,17 @@ class _PricingDialogState extends State<_PricingDialog> {
   late Map<String, TextEditingController> _usdControllers;
   late Map<String, TextEditingController> _quotaControllers;
   late Map<String, List<String>> _enabledToolsByPlan;
+  bool _isLoading = true;
+  bool _isSaving = false;
+  String? _statusMessage;
+  bool _statusIsError = false;
 
   @override
   void initState() {
     super.initState();
     _selectedPlan = 'Monthly';
     _hydrateFromConfig(widget.initialConfig);
+    _loadFromBackend();
   }
 
   @override
@@ -749,9 +754,84 @@ class _PricingDialogState extends State<_PricingDialog> {
       },
       userQuotasByPlan: quotas,
     );
-    PlanCatalogService.save(config);
-    widget.onSave(config);
-    Navigator.of(context).pop();
+    _saveToBackend(config);
+  }
+
+  Future<void> _loadFromBackend() async {
+    try {
+      final uri = Uri.https('jobready-india.onrender.com', '/api/public/plan-catalog');
+      final response = await http.get(uri, headers: const {'Accept': 'application/json'});
+      if (!mounted) return;
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+        final catalog = (decoded['catalog'] as Map?) ?? {};
+        final serverConfig = PlanCatalogConfig.fromMap({
+          'inr_prices': catalog['inr_prices'],
+          'usd_prices': catalog['usd_prices'],
+          'enabled_tools_by_plan': widget.initialConfig.enabledToolsByPlan.map((k, v) => MapEntry(k, v)),
+          'user_quotas_by_plan': widget.initialConfig.userQuotasByPlan,
+        });
+        setState(() {
+          _hydrateFromConfig(serverConfig);
+          _isLoading = false;
+        });
+        return;
+      }
+    } catch (_) {
+      // Keep the locally-cached values already hydrated in initState as a fallback.
+    }
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _saveToBackend(PlanCatalogConfig config) async {
+    final adminToken = AuthRouterService.authToken;
+    if (adminToken.isEmpty) {
+      setState(() {
+        _statusIsError = true;
+        _statusMessage = 'Admin session is required to save pricing.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+      _statusMessage = null;
+    });
+
+    try {
+      final uri = Uri.https('jobready-india.onrender.com', '/api/admin/plan-catalog');
+      final response = await http.post(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $adminToken',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode(config.toMap()),
+      );
+      if (!mounted) return;
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        setState(() {
+          _isSaving = false;
+          _statusIsError = true;
+          _statusMessage = 'Save failed (${response.statusCode}). Prices were not published to the live site.';
+        });
+        return;
+      }
+      await PlanCatalogService.save(config);
+      widget.onSave(config);
+      if (!mounted) return;
+      Navigator.of(context).pop();
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isSaving = false;
+        _statusIsError = true;
+        _statusMessage = 'Save failed. ${error.toString()}';
+      });
+    }
   }
 
   @override
@@ -766,6 +846,34 @@ class _PricingDialogState extends State<_PricingDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const Text(
+                'Prices entered here are the final, all-in-one amount shown to customers '
+                '(already includes 18% GST). They publish to the live site immediately on Save.',
+                style: TextStyle(fontSize: 11.5, height: 1.4, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 10),
+              if (_isLoading) const LinearProgressIndicator(),
+              if (_statusMessage != null) ...[
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: _statusIsError ? const Color(0xFFFFF1F2) : const Color(0xFFE0F2FE),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: _statusIsError ? const Color(0xFFDC2626) : const Color(0xFF0EA5E9)),
+                  ),
+                  child: Text(
+                    _statusMessage!,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: _statusIsError ? const Color(0xFF991B1B) : const Color(0xFF0C4A6E),
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 value: _selectedPlan,
                 decoration: const InputDecoration(labelText: 'Plan to edit'),
@@ -838,8 +946,11 @@ class _PricingDialogState extends State<_PricingDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-        ElevatedButton(onPressed: _save, child: const Text('Save')),
+        TextButton(onPressed: _isSaving ? null : () => Navigator.of(context).pop(), child: const Text('Cancel')),
+        ElevatedButton(
+          onPressed: (_isLoading || _isSaving) ? null : _save,
+          child: Text(_isSaving ? 'Saving...' : 'Save'),
+        ),
       ],
     );
   }
