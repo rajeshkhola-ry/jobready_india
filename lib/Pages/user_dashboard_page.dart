@@ -77,6 +77,10 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
       final serverPlanName = (user['planName'] ?? user['plan_name'] ?? user['activePlan'] ?? user['active_plan'] ?? _profile.activePlan).toString();
       final normalizedPlanName = serverPlanName.trim().isNotEmpty ? serverPlanName : _profile.activePlan;
       final planPrice = _planPriceForLabel(normalizedPlanName);
+      final quotaIsUnlimited = user['quotaIsUnlimited'] == true || user['quotaTotal']?.toString() == 'unlimited';
+      final quotaRemaining = quotaIsUnlimited
+          ? -1
+          : int.tryParse(user['quotaRemaining']?.toString() ?? '') ?? _creditsForPlan(normalizedPlanName);
       final synchronizedProfile = _profile.copyWith(
         displayName: (user['name'] ?? _profile.displayName).toString(),
         email: (user['email'] ?? email).toString(),
@@ -85,13 +89,14 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
         planId: (user['planId'] ?? user['plan_id'] ?? _profile.planId).toString(),
         planName: normalizedPlanName,
         planStatus: (user['planStatus'] ?? user['plan_status'] ?? 'Active').toString(),
-        remainingCredits: _creditsForPlan(normalizedPlanName),
+        remainingCredits: quotaRemaining,
         planCurrency: 'INR',
         planPrice: planPrice,
         planSummary: _planSummary(normalizedPlanName),
         gstin: (user['gstin'] ?? _profile.gstin).toString(),
         companyName: (user['company'] ?? _profile.companyName).toString(),
         billingState: (user['billingState'] ?? user['state'] ?? _profile.billingState).toString(),
+        planExpiresAt: (user['accessExpiresAt'] ?? user['access_expires_at'] ?? _profile.planExpiresAt).toString(),
       );
 
       await UserAccountService.saveProfile(synchronizedProfile);
@@ -320,8 +325,17 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
   @override
   Widget build(BuildContext context) {
     final activePlan = _profile.activePlan.isNotEmpty ? _profile.activePlan : 'Free';
-    final credits = _profile.remainingCredits > 0 ? _profile.remainingCredits : _creditsForPlan(activePlan);
+    final isUnlimitedQuota = _profile.remainingCredits < 0;
+    final credits = isUnlimitedQuota
+        ? 'Unlimited'
+        : (_profile.remainingCredits > 0 ? _profile.remainingCredits : _creditsForPlan(activePlan)).toString();
     final convertedFiles = _profile.convertedFilesCount > 0 ? _profile.convertedFilesCount : _history.length;
+    final planExpiry = DateTime.tryParse(_profile.planExpiresAt);
+    final expiryLabel = activePlan == 'Free'
+        ? 'No expiry (Free plan)'
+        : (planExpiry == null
+            ? 'Not available'
+            : '${planExpiry.toLocal().day.toString().padLeft(2, '0')}-${planExpiry.toLocal().month.toString().padLeft(2, '0')}-${planExpiry.toLocal().year}');
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FC),
@@ -463,6 +477,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                               childAspectRatio: 2.2,
                               children: [
                                 _dashboardMetric('Active Plan', activePlan, Icons.workspace_premium_rounded, const Color(0xFF2563EB)),
+                                _dashboardMetric('Plan Expiry', expiryLabel, Icons.event_available_rounded, const Color(0xFFB45309)),
                                 _dashboardMetric(
                                   'Current Balance',
                                   _profile.planPrice > 0
@@ -471,7 +486,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                                   Icons.account_balance_wallet_rounded,
                                   const Color(0xFF0F766E),
                                 ),
-                                _dashboardMetric('Remaining Quota', credits.toString(), Icons.stars_rounded, const Color(0xFF7C3AED)),
+                                _dashboardMetric('Remaining Quota', credits, Icons.stars_rounded, const Color(0xFF7C3AED)),
                                 _dashboardMetric('Converted Files', convertedFiles.toString(), Icons.file_download_done_rounded, const Color(0xFF0F766E)),
                               ],
                             );

@@ -1,5 +1,9 @@
-import 'package:flutter/material.dart';
+import 'dart:convert';
 
+import 'package:flutter/material.dart';
+import 'package:universal_html/html.dart' as html;
+
+import '../Services/api_config.dart';
 import '../Services/usage_quota_service.dart';
 import '../Services/public_brand_config.dart';
 import '../Services/free_trial_service.dart';
@@ -10,6 +14,48 @@ import 'user_auth_dialog.dart';
 
 bool _isAdminBypassActive() {
   return OwnerAdminAccessService.isUnlocked;
+}
+
+/// Fire-and-forget: decrements the signed-in customer's purchased quota balance on the
+/// backend and refreshes the local cached profile so the Dashboard reflects it immediately,
+/// without blocking or slowing down the tool action itself.
+void _syncPaidQuotaConsumption() {
+  if (!UserAuthService.isSignedIn) {
+    return;
+  }
+  final profile = UserAccountService.getProfile();
+  final email = profile.email.trim();
+  if (email.isEmpty || profile.activePlan.trim().isEmpty || profile.activePlan == 'Free') {
+    return;
+  }
+
+  Future<void>(() async {
+    try {
+      final uri = Uri.parse('${ApiConfig.baseUrl}/api/user/quota/consume');
+      final request = await html.HttpRequest.request(
+        uri.toString(),
+        method: 'POST',
+        requestHeaders: const {'Content-Type': 'application/json', 'Accept': 'application/json'},
+        sendData: jsonEncode({'email': email}),
+      );
+      final raw = request.responseText ?? '';
+      if (raw.trim().isEmpty) {
+        return;
+      }
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map || decoded['success'] != true) {
+        return;
+      }
+      final isUnlimited = decoded['quotaIsUnlimited'] == true || decoded['quotaTotal']?.toString() == 'unlimited';
+      final remaining = isUnlimited ? -1 : int.tryParse(decoded['quotaRemaining']?.toString() ?? '');
+      if (remaining == null) {
+        return;
+      }
+      await UserAccountService.saveProfile(profile.copyWith(remainingCredits: remaining));
+    } catch (_) {
+      // Non-critical: the Dashboard will pick up the correct balance on its next server sync.
+    }
+  });
 }
 
 /// Call this before starting any tool action.
@@ -55,6 +101,7 @@ Future<bool> checkQuotaAndProceed({
   }
 
   if (!overLimit) {
+    _syncPaidQuotaConsumption();
     return true;
   }
 

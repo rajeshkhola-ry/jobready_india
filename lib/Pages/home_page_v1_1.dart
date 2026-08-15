@@ -1905,6 +1905,7 @@ class _PlanCardsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final showGstTag = selectedCurrency.trim().toUpperCase() == 'INR';
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWide = constraints.maxWidth > 980;
@@ -1922,6 +1923,7 @@ class _PlanCardsSection extends StatelessWidget {
             title: '7 DAYS',
             subtitle: 'Test PDF edit, PDF to Word, OCR, and premium workflow controls',
             priceLine: sevenDayPriceLine,
+            showGstTag: showGstTag,
             enabledTools: enabledToolsByPlan['7Days'] ?? const <String>[],
             buttonLabel: 'Select Plan',
             selected: selectedPlan == '7Days',
@@ -1931,6 +1933,7 @@ class _PlanCardsSection extends StatelessWidget {
             title: 'MONTHLY',
             subtitle: 'Monthly access with document conversion, edit, and support workflows',
             priceLine: monthlyPriceLine,
+            showGstTag: showGstTag,
             enabledTools: enabledToolsByPlan['Monthly'] ?? const <String>[],
             buttonLabel: 'Select Plan',
             badgeLabel: 'Popular',
@@ -1941,6 +1944,7 @@ class _PlanCardsSection extends StatelessWidget {
             title: 'YEARLY',
             subtitle: 'Best value for regular use, higher limits, and full plan coverage',
             priceLine: yearlyPriceLine,
+            showGstTag: showGstTag,
             enabledTools: enabledToolsByPlan['Yearly'] ?? const <String>[],
             buttonLabel: 'Select Plan',
             badgeLabel: 'Best Value',
@@ -1952,6 +1956,7 @@ class _PlanCardsSection extends StatelessWidget {
             title: 'LIFETIME LAUNCH OFFER',
             subtitle: 'One-time access for 1 desktop/laptop and 1 mobile device',
             priceLine: lifetimePriceLine,
+            showGstTag: showGstTag,
             enabledTools: enabledToolsByPlan['Lifetime'] ?? const <String>[],
             buttonLabel: 'Select Plan',
             selected: selectedPlan == 'Lifetime',
@@ -2105,6 +2110,7 @@ class _PlanCardTile extends StatefulWidget {
   final String title;
   final String subtitle;
   final String priceLine;
+  final bool showGstTag;
   final List<String> enabledTools;
   final String buttonLabel;
   final String? badgeLabel;
@@ -2116,6 +2122,7 @@ class _PlanCardTile extends StatefulWidget {
     required this.title,
     required this.subtitle,
     required this.priceLine,
+    this.showGstTag = false,
     required this.enabledTools,
     required this.buttonLabel,
     this.badgeLabel,
@@ -2343,7 +2350,7 @@ class _PlanCardTileState extends State<_PlanCardTile> {
                           color: Color(0xFF111827),
                         ),
                       ),
-                      if (widget.title != 'FREE') ...[
+                      if (widget.title != 'FREE' && widget.showGstTag) ...[
                         const SizedBox(height: 2),
                         const Text(
                           '(Incl. of 18% GST)',

@@ -1171,6 +1171,34 @@ Prepared For: JOBREADY
       3. Pricing (`/pricing` -> `PricingPage`)
       4. FAQ (`/faq` -> `FaqPage`)
       5. Help Center / Support (`/support` -> `SupportPage`)
+
+### Checkpoint - 2026-08-15 (Conditional GST Tag + Universal Paid Plan Quota Tracking)
+- Overall status: Green (backend verified via isolated test, 22/22 backend tests pass, analyzer clean)
+- Completed today:
+  - **Conditional GST Tag Display** ✓
+    - `lib/Pages/home_page_v1_1.dart`: `(Incl. of 18% GST)` subtitle on paid plan cards now only renders when the selected currency is INR; hidden for all other currencies.
+  - **Universal Paid Plan Activation & Real-Time Quota Tracking (backend)** ✓
+    - `lib/compression_server.js`: added `getQuotaEntitlementForPlan()` (mirrors existing amount-based plan detection: 7-Day=10, Monthly=60, Yearly=180, Lifetime=500, default=3) and `getUserQuotaSnapshot()`.
+    - Extended `upsertUserAccount()` to initialize/allocate `quotaTotal`/`quotaUsed` without wiping existing usage on routine logins.
+    - Wired quota allocation into all purchase paths: `/api/create-order`, payment-verify handler, and the Razorpay webhook handler.
+    - `GET /api/user/account` now self-heals from sales-transaction history (pre-existing behavior) AND allocates/returns real quota + expiry fields for every account, which automatically backfills the real 14-Aug-2026 ₹99 7-Day purchase for `rajesh.khola@gmail.com` with no one-off script needed.
+    - New `POST /api/user/quota/consume`: decrements a signed-in customer's purchased quota by 1 per tool action, persists, returns live snapshot.
+    - New `POST /api/admin/users/backfill-quota` (admin-only, preview-by-default, `?apply=true` to write): reconciles any legacy account missing quota fields against its most recent paid transaction.
+  - **Frontend wiring (real-time reflection)** ✓
+    - `lib/Services/user_account_service.dart`: added `planExpiresAt` field to `UserAccountProfile` (constructor, `copyWith`, `toMap`, `fromMap`).
+    - `lib/Pages/user_dashboard_page.dart`: `_syncProfileFromServer` now maps real `quotaRemaining`/`quotaIsUnlimited`/`accessExpiresAt` from the backend instead of the old fake static credit lookup; added a new "Plan Expiry" metric card to the dashboard grid.
+    - `lib/Widgets/quota_gate.dart`: after an existing free-tier check passes, signed-in customers on a paid plan now fire an additive, non-blocking call to `/api/user/quota/consume` and refresh their locally cached balance, without altering existing free/anonymous daily-limit gating.
+  - **Validation** ✓
+    - Isolated Node verification script proved: self-heal backfill allocates correct quota for the real `rajesh.khola@gmail.com` purchase pattern, three sequential consume calls decrement correctly and persist, and the generic admin backfill endpoint correctly previews then applies a fix for a legacy account (script deleted after use).
+    - `node --check` syntax valid; `npm test` 22/22 passing.
+    - `flutter analyze` clean (0 errors) across all four modified Dart files.
+- In progress:
+  - Ready for commit, push, and deploy (Render + Firebase).
+- Blockers:
+  - None.
+- Decisions needed:
+  - Lifetime plan quota is set to a large finite number (500) to match the pre-existing dashboard convention, rather than "Unlimited" — revisit if true unlimited usage is desired for Lifetime customers.
+- Owner: Founder + Copilot
       6. Privacy Policy (`/privacy` -> `PrivacyPolicyPage`)
       7. Terms & Conditions (`/terms` -> `TermsConditionsPage`)
       8. Cookie Policy (`/cookie-policy` -> `CookiePolicyPage`)

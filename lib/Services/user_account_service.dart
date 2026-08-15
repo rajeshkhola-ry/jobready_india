@@ -23,6 +23,7 @@ class UserAccountProfile {
   final String gstin;
   final String companyName;
   final String billingState;
+  final String planExpiresAt;
 
   const UserAccountProfile({
     required this.displayName,
@@ -45,6 +46,7 @@ class UserAccountProfile {
     this.gstin = '',
     this.companyName = '',
     this.billingState = '',
+    this.planExpiresAt = '',
   });
 
   factory UserAccountProfile.initial() {
@@ -69,6 +71,7 @@ class UserAccountProfile {
       gstin: '',
       companyName: '',
       billingState: '',
+      planExpiresAt: '',
     );
   }
 
@@ -93,6 +96,7 @@ class UserAccountProfile {
     String? gstin,
     String? companyName,
     String? billingState,
+    String? planExpiresAt,
   }) {
     return UserAccountProfile(
       displayName: displayName ?? this.displayName,
@@ -115,6 +119,7 @@ class UserAccountProfile {
       gstin: gstin ?? this.gstin,
       companyName: companyName ?? this.companyName,
       billingState: billingState ?? this.billingState,
+      planExpiresAt: planExpiresAt ?? this.planExpiresAt,
     );
   }
 
@@ -140,6 +145,7 @@ class UserAccountProfile {
       'gstin': gstin,
       'company_name': companyName,
       'billing_state': billingState,
+      'plan_expires_at': planExpiresAt,
     };
   }
 
@@ -169,6 +175,7 @@ class UserAccountProfile {
       gstin: map['gstin']?.toString() ?? '',
       companyName: map['company_name']?.toString() ?? map['company']?.toString() ?? '',
       billingState: map['billing_state']?.toString() ?? map['state']?.toString() ?? '',
+      planExpiresAt: map['plan_expires_at']?.toString() ?? '',
     );
   }
 }
