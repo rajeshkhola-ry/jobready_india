@@ -3965,7 +3965,7 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
               dense: true,
               activeColor: const Color(0xFF1E3A8A),
               title: const Text(
-                'Is this an SEZ unit / developer with LUT/Bond?',
+                'Is this an SEZ unit / developer? (18% IGST applies; claim refund/ITC with tax invoice)',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,

@@ -370,10 +370,17 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     Navigator.of(context).pushNamedAndRemoveUntil('/admin', (route) => false);
   }
 
-  void _openSalesAuditDialog(BuildContext context) {
+  void _openGstReportDialog(BuildContext context) {
     showDialog<void>(
       context: context,
-      builder: (dialogContext) => const _SalesAuditDialog(),
+      builder: (dialogContext) => const _SalesAuditDialog(mode: 'gst'),
+    );
+  }
+
+  void _openSalesOrdersDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => const _SalesAuditDialog(mode: 'orders'),
     );
   }
 
@@ -535,10 +542,16 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       onTap: () => _openPaymentsDialog(context),
                     ),
                     _AdminCard(
-                      title: 'Sales & GST audit',
-                      description: 'Review GST-ready sales exports, filings, and invoice management actions.',
+                      title: 'GST Report (GSTR-1 Ready)',
+                      description: 'Tax filing export for your CA and the GST portal, with B2B / B2C / SEZ classification.',
                       icon: Icons.receipt_long_outlined,
-                      onTap: () => _openSalesAuditDialog(context),
+                      onTap: () => _openGstReportDialog(context),
+                    ),
+                    _AdminCard(
+                      title: 'Sales & Orders Report',
+                      description: 'Internal operations export for accounting, payments, and order reconciliation.',
+                      icon: Icons.shopping_cart_checkout_outlined,
+                      onTap: () => _openSalesOrdersDialog(context),
                     ),
                     _AdminCard(
                       title: 'Analytics & logs',
@@ -833,7 +846,10 @@ class _PricingDialogState extends State<_PricingDialog> {
 }
 
 class _SalesAuditDialog extends StatefulWidget {
-  const _SalesAuditDialog();
+  /// 'gst' renders the GSTR-1 filing export, 'orders' the internal sales report.
+  final String mode;
+
+  const _SalesAuditDialog({this.mode = 'gst'});
 
   @override
   State<_SalesAuditDialog> createState() => _SalesAuditDialogState();
@@ -852,6 +868,20 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
   List<Map<String, dynamic>> _searchResults = [];
   bool _isSearching = false;
   String? _searchError;
+
+  bool get _isGstMode => widget.mode != 'orders';
+
+  String get _dialogTitle => _isGstMode ? 'GST Report (GSTR-1 Ready)' : 'Sales & Orders Report';
+
+  String get _dialogPurpose => _isGstMode
+      ? 'Tax filing export for your CA / the GST portal. Columns: Invoice Number, Invoice Date, Customer Name, Customer GSTIN, Place of Supply, Taxable Value, IGST, CGST, SGST, Total Invoice Value, Transaction Type (B2B / B2C / SEZ with Payment of IGST).'
+      : 'Internal business operations, accounting and order reconciliation. Columns: Order/Payment Ref, Invoice Number, Order Date, Customer Name, Email, Phone, Plan/Item, Gross Amount, Discount/Coupon, Net Paid, Gateway Status, Access Duration.';
+
+  String get _exportPath => _isGstMode
+      ? '/api/admin/gst-report/export'
+      : '/api/admin/sales-orders-report/export';
+
+  String get _exportFilePrefix => _isGstMode ? 'GSTR1_Report' : 'Sales_Orders_Report';
 
   String get _filterLabel {
     switch (_filterMode) {
@@ -1059,7 +1089,7 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
 
     final uri = Uri.https(
       'jobready-india.onrender.com',
-      '/api/admin/sales-report/export',
+      _exportPath,
       exportParams,
     );
 
@@ -1110,7 +1140,7 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
       final blob = html.Blob([csvBytes], 'text/csv;charset=utf-8');
       final url = html.Url.createObjectUrlFromBlob(blob);
       final anchor = html.AnchorElement(href: url)
-        ..setAttribute('download', 'GSTR1_Sales_Report_${DateTime.now().millisecondsSinceEpoch}.csv')
+        ..setAttribute('download', '${_exportFilePrefix}_${DateTime.now().millisecondsSinceEpoch}.csv')
         ..style.display = 'none';
       html.document.body?.append(anchor);
       anchor.click();
@@ -1442,7 +1472,7 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
     ];
 
     return AlertDialog(
-      title: const Text('Sales & GST Audit Reports'),
+      title: Text(_dialogTitle),
       content: SizedBox(
         width: 640,
         child: SingleChildScrollView(
@@ -1450,6 +1480,20 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Text(
+                  _dialogPurpose,
+                  style: const TextStyle(fontSize: 11.5, height: 1.45, color: Color(0xFF334155), fontWeight: FontWeight.w600),
+                ),
+              ),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -1510,39 +1554,41 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
                 ],
               ),
               const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                value: _filterMode,
-                decoration: const InputDecoration(labelText: 'Filter'),
-                items: const [
-                  DropdownMenuItem(value: 'all', child: Text('All')),
-                  DropdownMenuItem(value: 'b2b', child: Text('B2B')),
-                  DropdownMenuItem(value: 'b2c', child: Text('B2C')),
-                  DropdownMenuItem(value: 'sez', child: Text('SEZ')),
-                  DropdownMenuItem(value: 'state', child: Text('State')),
-                ],
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      _filterMode = value;
-                    });
-                  }
-                },
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(child: TextField(controller: _stateController, decoration: const InputDecoration(labelText: 'State'))),
-                  const SizedBox(width: 8),
-                  Expanded(child: TextField(controller: _gstinController, decoration: const InputDecoration(labelText: 'GSTIN'))),
-                ],
-              ),
-              const SizedBox(height: 12),
-              const Text('Invoice search & amendment', style: TextStyle(fontWeight: FontWeight.w800)),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _invoiceQueryController,
-                decoration: const InputDecoration(labelText: 'Search by invoice number or transaction ID'),
-              ),
+              if (_isGstMode) ...[
+                DropdownButtonFormField<String>(
+                  value: _filterMode,
+                  decoration: const InputDecoration(labelText: 'Filter'),
+                  items: const [
+                    DropdownMenuItem(value: 'all', child: Text('All')),
+                    DropdownMenuItem(value: 'b2b', child: Text('B2B')),
+                    DropdownMenuItem(value: 'b2c', child: Text('B2C')),
+                    DropdownMenuItem(value: 'sez', child: Text('SEZ')),
+                    DropdownMenuItem(value: 'state', child: Text('State')),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        _filterMode = value;
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(child: TextField(controller: _stateController, decoration: const InputDecoration(labelText: 'State'))),
+                    const SizedBox(width: 8),
+                    Expanded(child: TextField(controller: _gstinController, decoration: const InputDecoration(labelText: 'GSTIN'))),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Text('Invoice search & amendment', style: TextStyle(fontWeight: FontWeight.w800)),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _invoiceQueryController,
+                  decoration: const InputDecoration(labelText: 'Search by invoice number or transaction ID'),
+                ),
+              ],
               const SizedBox(height: 12),
               if (_csvExportError != null)
                 Container(
@@ -1567,19 +1613,21 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
                       icon: _isCsvExporting
                           ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                           : const Icon(Icons.download_outlined),
-                      label: Text(_isCsvExporting ? 'Exporting...' : 'Export CSV'),
+                      label: Text(_isCsvExporting ? 'Exporting...' : (_isGstMode ? 'Export GST CSV' : 'Export Orders CSV')),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _isSearching ? null : _searchInvoices,
-                      icon: _isSearching
-                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Icon(Icons.search_outlined),
-                      label: Text(_isSearching ? 'Searching...' : 'Search Invoice'),
+                  if (_isGstMode) ...[
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _isSearching ? null : _searchInvoices,
+                        icon: _isSearching
+                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Icon(Icons.search_outlined),
+                        label: Text(_isSearching ? 'Searching...' : 'Search Invoice'),
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
               if (_searchError != null) ...[
