@@ -3024,7 +3024,14 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
   late final TextEditingController _checkoutGstinController;
   late final TextEditingController _checkoutCompanyController;
   late final TextEditingController _checkoutBillingEmailController;
+  late final TextEditingController _promoCodeController;
   bool _isSezUnit = false;
+
+  List<Map<String, dynamic>> _availableOffers = <Map<String, dynamic>>[];
+  Map<String, dynamic>? _appliedPromo;
+  String? _promoMessage;
+  bool _promoMessageIsError = false;
+  bool _promoValidating = false;
 
   static const Duration _checkoutTimeout = Duration(minutes: 10);
 
@@ -3038,6 +3045,8 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
     _checkoutGstinController = TextEditingController(text: profile.gstin);
     _checkoutCompanyController = TextEditingController(text: profile.companyName);
     _checkoutBillingEmailController = TextEditingController();
+    _promoCodeController = TextEditingController();
+    _loadAvailableOffers();
   }
 
   @override
@@ -3045,6 +3054,7 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
     _checkoutGstinController.dispose();
     _checkoutCompanyController.dispose();
     _checkoutBillingEmailController.dispose();
+    _promoCodeController.dispose();
     super.dispose();
   }
 
@@ -3056,6 +3066,118 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
           ? widget.selectedCurrency
           : 'USD';
     }
+    if ((oldWidget.selectedPlan != widget.selectedPlan || oldWidget.selectedCurrency != widget.selectedCurrency) &&
+        _appliedPromo != null) {
+      // Re-validate against the new base amount so the discount stays accurate if the
+      // customer switches plan/currency after already applying a code.
+      _applyPromoCode(_appliedPromo!['code'].toString(), silent: true);
+    }
+  }
+
+  Future<void> _loadAvailableOffers() async {
+    try {
+      final response = await _requestJsonWithFallback('GET', '/api/public/promo-codes');
+      final offers = (response['offers'] as List?) ?? const [];
+      if (!mounted) return;
+      setState(() {
+        _availableOffers = offers.map((item) => Map<String, dynamic>.from(item as Map)).toList();
+      });
+    } catch (_) {
+      // Offers are a convenience UI - silently skip if unavailable, manual code entry still works.
+    }
+  }
+
+  String _promoDiscountLabel(Map<String, dynamic> offer) {
+    final percent = (offer['discountPercent'] as num?)?.toDouble() ?? 0;
+    final flat = (offer['discountFlat'] as num?)?.toDouble() ?? 0;
+    if (percent > 0) return '${percent.toStringAsFixed(percent.truncateToDouble() == percent ? 0 : 1)}% off';
+    if (flat > 0) return '₹${flat.toStringAsFixed(flat.truncateToDouble() == flat ? 0 : 2)} off';
+    return 'Offer';
+  }
+
+  Future<void> _applyPromoCode(String rawCode, {bool silent = false}) async {
+    final code = rawCode.trim().toUpperCase();
+    if (code.isEmpty) {
+      if (!silent) {
+        setState(() {
+          _promoMessageIsError = true;
+          _promoMessage = 'Enter a promo code first.';
+        });
+      }
+      return;
+    }
+
+    final amountMinor = (_chargeAmountForPlan(widget.selectedPlan) * 100).round();
+    if (amountMinor <= 0) {
+      return;
+    }
+
+    setState(() {
+      _promoValidating = true;
+      if (!silent) {
+        _promoMessage = null;
+      }
+    });
+
+    try {
+      final response = await _requestJsonWithFallback(
+        'POST',
+        '/api/public/promo-codes/validate',
+        body: {'code': code, 'amount': amountMinor, 'currency': _localCurrency},
+      );
+      if (!mounted) return;
+      final promo = (response['promo'] as Map?) ?? const {};
+      setState(() {
+        _promoValidating = false;
+        _appliedPromo = {
+          'code': code,
+          'discountPercent': (promo['discountPercent'] as num?)?.toDouble() ?? 0,
+          'discountFlat': (promo['discountFlat'] as num?)?.toDouble() ?? 0,
+        };
+        _promoMessageIsError = false;
+        _promoMessage = 'Promo code "$code" applied successfully.';
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _promoValidating = false;
+        _appliedPromo = null;
+        _promoMessageIsError = true;
+        _promoMessage = error.toString().replaceFirst('Exception: ', '');
+      });
+    }
+  }
+
+  void _removePromoCode() {
+    setState(() {
+      _appliedPromo = null;
+      _promoMessage = null;
+      _promoMessageIsError = false;
+      _promoCodeController.clear();
+    });
+  }
+
+  double _discountAmountForPlan(String plan) {
+    if (_appliedPromo == null) {
+      return 0;
+    }
+    final baseAmount = _chargeAmountForPlan(plan);
+    final percent = (_appliedPromo!['discountPercent'] as num?)?.toDouble() ?? 0;
+    final flat = (_appliedPromo!['discountFlat'] as num?)?.toDouble() ?? 0;
+    if (percent > 0) {
+      return (baseAmount * percent / 100);
+    }
+    if (flat > 0) {
+      return flat > baseAmount ? baseAmount : flat;
+    }
+    return 0;
+  }
+
+  double _discountedAmountForPlan(String plan) {
+    final baseAmount = _chargeAmountForPlan(plan);
+    final discount = _discountAmountForPlan(plan);
+    final result = baseAmount - discount;
+    return result < 0 ? 0 : result;
   }
 
   bool _canProceedWithPurchase() {
@@ -3789,6 +3911,7 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
         'receipt': 'plan-${widget.selectedPlan.toLowerCase()}-${DateTime.now().millisecondsSinceEpoch}',
         'planId': widget.selectedPlan,
         'billing': billing,
+        'promoCode': _appliedPromo?['code'] ?? '',
       };
 
       final createOrderResponse = await _requestJsonWithFallback(
@@ -4096,6 +4219,9 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
     final status = readiness['status']?.toString() ?? 'blocked';
     final statusColor = _statusColor(status);
     final amount = _chargeAmountForPlan(widget.selectedPlan);
+    final discount = _discountAmountForPlan(widget.selectedPlan);
+    final discountedAmount = _discountedAmountForPlan(widget.selectedPlan);
+    final hasDiscount = _appliedPromo != null && discount > 0;
     final billingCountry = UserAccountService.getProfile().country.trim();
     final isExportSupply = billingCountry.isNotEmpty && billingCountry.toLowerCase() != 'india';
     final taxLine = isExportSupply
@@ -4103,6 +4229,9 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
         : (_isSezUnit
             ? 'Tax: 18% IGST (SEZ with Payment of IGST) - included in the amount above.'
             : 'Tax: 18% GST included in the amount above.');
+    final recalculatedGstLine = (!isExportSupply && hasDiscount)
+        ? 'Recalculated after discount: Base ${_formatCurrencyAmount(discountedAmount / 1.18, _localCurrency)} + GST ${_formatCurrencyAmount(discountedAmount - (discountedAmount / 1.18), _localCurrency)} = ${_formatCurrencyAmount(discountedAmount, _localCurrency)} payable.'
+        : null;
 
     return Container(
       width: double.infinity,
@@ -4150,10 +4279,46 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
             ],
           ),
           const SizedBox(height: 8),
-          Text(
-            'Plan: ${widget.selectedPlan} | Amount: ${_formatCurrencyAmount(amount, _localCurrency)} | Usage: ${widget.usageType ?? 'NOT SELECTED'}',
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
-          ),
+          if (hasDiscount) ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  'Plan: ${widget.selectedPlan} | Usage: ${widget.usageType ?? 'NOT SELECTED'}',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Text(
+                  _formatCurrencyAmount(amount, _localCurrency),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF94A3B8),
+                    decoration: TextDecoration.lineThrough,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '- ${_formatCurrencyAmount(discount, _localCurrency)}',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF16A34A)),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '= ${_formatCurrencyAmount(discountedAmount, _localCurrency)}',
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                ),
+              ],
+            ),
+          ] else
+            Text(
+              'Plan: ${widget.selectedPlan} | Amount: ${_formatCurrencyAmount(amount, _localCurrency)} | Usage: ${widget.usageType ?? 'NOT SELECTED'}',
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+            ),
           const SizedBox(height: 4),
           Text(
             taxLine,
@@ -4163,6 +4328,13 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
               color: isExportSupply ? const Color(0xFF0F766E) : const Color(0xFF334155),
             ),
           ),
+          if (recalculatedGstLine != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              recalculatedGstLine,
+              style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: Color(0xFF7C3AED)),
+            ),
+          ],
           const SizedBox(height: 4),
           Text(
             'Gateway display: ${_resolvedGatewayName().toUpperCase()} | Currency mode: ${readiness['currency_mode']?.toString() ?? 'n/a'}',
@@ -4175,6 +4347,115 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
                 : 'Resolve configuration notes above before attempting checkout.',
             style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPromoCodeSection() {
+    final hasOffers = _availableOffers.isNotEmpty;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFD3DFF0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Have a promo code?',
+            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Color(0xFF16324D)),
+          ),
+          if (hasOffers) ...[
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              value: null,
+              isExpanded: true,
+              hint: const Text('Available offers', style: TextStyle(fontSize: 12.5)),
+              decoration: InputDecoration(
+                isDense: true,
+                filled: true,
+                fillColor: const Color(0xFFF8FBFF),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              items: _availableOffers
+                  .map(
+                    (offer) => DropdownMenuItem<String>(
+                      value: offer['code'].toString(),
+                      child: Text(
+                        '${offer['code']} - ${_promoDiscountLabel(offer)}${(offer['description'] ?? '').toString().isNotEmpty ? ' (${offer['description']})' : ''}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 12.5),
+                      ),
+                    ),
+                  )
+                  .toList(growable: false),
+              onChanged: (value) {
+                if (value != null) {
+                  _promoCodeController.text = value;
+                  _applyPromoCode(value);
+                }
+              },
+            ),
+          ],
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _promoCodeController,
+                  textCapitalization: TextCapitalization.characters,
+                  enabled: _appliedPromo == null,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    hintText: 'Enter promo code',
+                    filled: true,
+                    fillColor: const Color(0xFFF8FBFF),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (_appliedPromo == null)
+                ElevatedButton(
+                  onPressed: _promoValidating ? null : () => _applyPromoCode(_promoCodeController.text),
+                  child: Text(_promoValidating ? 'Checking...' : 'Apply'),
+                )
+              else
+                OutlinedButton(
+                  onPressed: _removePromoCode,
+                  child: const Text('Remove'),
+                ),
+            ],
+          ),
+          if (_promoMessage != null) ...[
+            const SizedBox(height: 6),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  _promoMessageIsError ? Icons.error_outline_rounded : Icons.check_circle_outline_rounded,
+                  size: 15,
+                  color: _promoMessageIsError ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    _promoMessage!,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: _promoMessageIsError ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -4293,6 +4574,8 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
           ),
           const SizedBox(height: 8),
           _buildReadinessCard(),
+          const SizedBox(height: 8),
+          _buildPromoCodeSection(),
           const SizedBox(height: 8),
           _buildUsageAndBillingSection(),
           const SizedBox(height: 8),

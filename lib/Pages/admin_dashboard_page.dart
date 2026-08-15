@@ -2178,85 +2178,377 @@ class _PromoDialog extends StatefulWidget {
 }
 
 class _PromoDialogState extends State<_PromoDialog> {
-  final TextEditingController _codeController = TextEditingController(text: 'NEWYEAR10');
-  final TextEditingController _discountController = TextEditingController(text: '20');
-  String _validity = '30';
+  final TextEditingController _codeController = TextEditingController();
+  final TextEditingController _valueController = TextEditingController(text: '10');
+  final TextEditingController _usageLimitController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+
+  String _discountType = 'percent';
+  DateTime? _expiryDate;
+  bool _active = true;
+  bool _isLoading = true;
+  bool _isSaving = false;
+  String? _statusMessage;
+  bool _statusIsError = false;
+  List<Map<String, dynamic>> _promos = <Map<String, dynamic>>[];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFromBackend();
+  }
 
   @override
   void dispose() {
     _codeController.dispose();
-    _discountController.dispose();
+    _valueController.dispose();
+    _usageLimitController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
-  void _save() {
-    final discount = int.tryParse(_discountController.text.trim()) ?? 20;
-    if (discount < 1 || discount > 100) {
+  Future<void> _loadFromBackend() async {
+    final adminToken = AuthRouterService.authToken;
+    try {
+      final uri = Uri.https('jobready-india.onrender.com', '/api/admin/promos');
+      final response = await http.get(uri, headers: {
+        'Authorization': 'Bearer $adminToken',
+        'Accept': 'application/json',
+      });
+      if (!mounted) return;
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+        final promos = (decoded['promos'] as List?) ?? const [];
+        setState(() {
+          _promos = promos.map((item) => Map<String, dynamic>.from(item as Map)).toList();
+          _isLoading = false;
+        });
+        return;
+      }
+      setState(() {
+        _isLoading = false;
+        _statusIsError = true;
+        _statusMessage = 'Could not load promo codes (${response.statusCode}).';
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _statusIsError = true;
+        _statusMessage = 'Could not load promo codes. ${error.toString()}';
+      });
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _pickExpiryDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _expiryDate ?? DateTime.now().add(const Duration(days: 30)),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2099, 12, 31),
+    );
+    if (picked != null) {
+      setState(() {
+        _expiryDate = picked;
+      });
+    }
+  }
+
+  Future<void> _submit(Map<String, dynamic> payload) async {
+    final adminToken = AuthRouterService.authToken;
+    if (adminToken.isEmpty) {
+      setState(() {
+        _statusIsError = true;
+        _statusMessage = 'Admin session is required to save promo codes.';
+      });
       return;
     }
-    CouponService.upsertCoupon(
-      code: _codeController.text.trim(),
-      discountPercent: discount,
-      validFor: Duration(days: int.tryParse(_validity) ?? 30),
-    );
-    widget.onSaved();
-    Navigator.of(context).pop();
+
+    setState(() {
+      _isSaving = true;
+      _statusMessage = null;
+    });
+
+    try {
+      final uri = Uri.https('jobready-india.onrender.com', '/api/admin/promos');
+      final response = await http.post(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $adminToken',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode(payload),
+      );
+      if (!mounted) return;
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        setState(() {
+          _isSaving = false;
+          _statusIsError = true;
+          _statusMessage = 'Save failed (${response.statusCode}).';
+        });
+        return;
+      }
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      final promos = (decoded['promos'] as List?) ?? const [];
+      setState(() {
+        _promos = promos.map((item) => Map<String, dynamic>.from(item as Map)).toList();
+        _isSaving = false;
+        _statusIsError = false;
+        _statusMessage = 'Saved.';
+      });
+      widget.onSaved();
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isSaving = false;
+        _statusIsError = true;
+        _statusMessage = 'Save failed. ${error.toString()}';
+      });
+    }
+  }
+
+  Future<void> _createOrUpdate() async {
+    final code = _codeController.text.trim().toUpperCase();
+    if (code.isEmpty) {
+      setState(() {
+        _statusIsError = true;
+        _statusMessage = 'Promo code is required.';
+      });
+      return;
+    }
+    final value = double.tryParse(_valueController.text.trim()) ?? 0;
+    if (value <= 0) {
+      setState(() {
+        _statusIsError = true;
+        _statusMessage = 'Enter a discount value greater than 0.';
+      });
+      return;
+    }
+    final usageLimit = int.tryParse(_usageLimitController.text.trim()) ?? 0;
+
+    await _submit({
+      'code': code,
+      'description': _descriptionController.text.trim(),
+      'discountPercent': _discountType == 'percent' ? value : 0,
+      'discountFlat': _discountType == 'flat' ? value : 0,
+      'validUntil': _expiryDate == null ? '' : _formatDate(_expiryDate!),
+      'usageLimit': usageLimit,
+      'active': _active,
+    });
+
+    if (mounted && (_statusMessage == 'Saved.')) {
+      _codeController.clear();
+      _valueController.text = '10';
+      _usageLimitController.clear();
+      _descriptionController.clear();
+      setState(() {
+        _expiryDate = null;
+        _active = true;
+      });
+    }
+  }
+
+  Future<void> _toggleActive(Map<String, dynamic> promo) async {
+    await _submit({
+      'code': promo['code'],
+      'active': !(promo['active'] == true),
+    });
+  }
+
+  Future<void> _delete(String code) async {
+    final adminToken = AuthRouterService.authToken;
+    if (adminToken.isEmpty) {
+      return;
+    }
+    try {
+      final uri = Uri.https('jobready-india.onrender.com', '/api/admin/promos/${Uri.encodeComponent(code)}');
+      final response = await http.delete(uri, headers: {'Authorization': 'Bearer $adminToken'});
+      if (!mounted) return;
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+        final promos = (decoded['promos'] as List?) ?? const [];
+        setState(() {
+          _promos = promos.map((item) => Map<String, dynamic>.from(item as Map)).toList();
+          _statusIsError = false;
+          _statusMessage = 'Deleted $code.';
+        });
+        widget.onSaved();
+      }
+    } catch (_) {}
+  }
+
+  String _discountLabel(Map<String, dynamic> promo) {
+    final percent = (promo['discountPercent'] as num?)?.toDouble() ?? 0;
+    final flat = (promo['discountFlat'] as num?)?.toDouble() ?? 0;
+    if (percent > 0) return '${percent.toStringAsFixed(percent.truncateToDouble() == percent ? 0 : 2)}% off';
+    if (flat > 0) return '₹${flat.toStringAsFixed(flat.truncateToDouble() == flat ? 0 : 2)} off';
+    return 'No discount set';
   }
 
   @override
   Widget build(BuildContext context) {
-    final coupons = CouponService.getAllCoupons().take(6).toList();
     return AlertDialog(
       title: const Text('Promo codes'),
       content: SizedBox(
-        width: 400,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: _codeController,
-              decoration: const InputDecoration(labelText: 'Coupon code'),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _discountController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Discount %'),
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              value: _validity,
-              decoration: const InputDecoration(labelText: 'Validity (days)'),
-              items: const [
-                DropdownMenuItem(value: '7', child: Text('7 days')),
-                DropdownMenuItem(value: '30', child: Text('30 days')),
-                DropdownMenuItem(value: '90', child: Text('90 days')),
+        width: 460,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Backend-persisted discount codes, synced live to the checkout "Available Offers" list.',
+                style: TextStyle(fontSize: 11.5, height: 1.4, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 10),
+              if (_isLoading) const LinearProgressIndicator(),
+              if (_statusMessage != null) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: _statusIsError ? const Color(0xFFFFF1F2) : const Color(0xFFE0F2FE),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: _statusIsError ? const Color(0xFFDC2626) : const Color(0xFF0EA5E9)),
+                  ),
+                  child: Text(
+                    _statusMessage!,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: _statusIsError ? const Color(0xFFDC2626) : const Color(0xFF0369A1),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
               ],
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() {
-                    _validity = value;
-                  });
-                }
-              },
-            ),
-            const SizedBox(height: 12),
-            const Text('Recent coupons', style: TextStyle(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 6),
-            if (coupons.isEmpty)
-              const Text('No coupons yet.')
-            else
-              ...coupons.map((coupon) => Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: Text('${coupon.code} • ${coupon.discountPercent}%'),
-                  )),
-          ],
+              TextField(
+                controller: _codeController,
+                textCapitalization: TextCapitalization.characters,
+                decoration: const InputDecoration(labelText: 'Promo code (e.g. NEWYEAR10)', isDense: true),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _descriptionController,
+                decoration: const InputDecoration(labelText: 'Description (shown in Available Offers)', isDense: true),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: _discountType,
+                      decoration: const InputDecoration(labelText: 'Discount type', isDense: true),
+                      items: const [
+                        DropdownMenuItem(value: 'percent', child: Text('Percent (%)')),
+                        DropdownMenuItem(value: 'flat', child: Text('Flat amount (₹)')),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() => _discountType = value);
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: _valueController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(labelText: _discountType == 'percent' ? 'Value (%)' : 'Value (₹)', isDense: true),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _pickExpiryDate,
+                      child: Text(_expiryDate == null ? 'No expiry (pick date)' : 'Expires ${_formatDate(_expiryDate!)}'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: _usageLimitController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: 'Usage limit (0 = unlimited)', isDense: true),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                title: const Text('Active', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                value: _active,
+                onChanged: (value) => setState(() => _active = value),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isSaving ? null : _createOrUpdate,
+                  child: Text(_isSaving ? 'Saving...' : 'Create / update promo code'),
+                ),
+              ),
+              const Divider(height: 24),
+              const Text('Existing promo codes', style: TextStyle(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 6),
+              if (!_isLoading && _promos.isEmpty)
+                const Text('No promo codes yet.')
+              else
+                ..._promos.map((promo) {
+                  final active = promo['active'] == true;
+                  final used = (promo['usedCount'] as num?)?.toInt() ?? 0;
+                  final limit = (promo['usageLimit'] as num?)?.toInt() ?? 0;
+                  final expiry = (promo['validUntil'] ?? '').toString();
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 6),
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('${promo['code']} • ${_discountLabel(promo)}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5)),
+                              Text(
+                                'Used: $used${limit > 0 ? '/$limit' : ''}${expiry.isNotEmpty ? ' • Expires: $expiry' : ' • No expiry'}',
+                                style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Switch(value: active, onChanged: (_) => _toggleActive(promo)),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                          onPressed: () => _delete(promo['code'].toString()),
+                          tooltip: 'Delete',
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+            ],
+          ),
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-        ElevatedButton(onPressed: _save, child: const Text('Save coupon')),
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
       ],
     );
   }

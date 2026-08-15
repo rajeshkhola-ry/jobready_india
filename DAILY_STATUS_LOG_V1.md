@@ -1198,6 +1198,34 @@ Prepared For: JOBREADY
   - None.
 - Decisions needed:
   - Lifetime plan quota is set to a large finite number (500) to match the pre-existing dashboard convention, rather than "Unlimited" — revisit if true unlimited usage is desired for Lifetime customers.
+
+### Checkpoint - 2026-08-15 (Lifetime = Truly Unlimited + Backend-Persisted Promo Code & Discount Engine)
+- Overall status: Green (23/23 backend tests pass, analyzer clean across all touched files)
+- Completed today:
+  - **Lifetime plan quota now truly unlimited** ✓
+    - `lib/compression_server.js`: `getQuotaEntitlementForPlan` now returns `{total:'unlimited', isUnlimited:true}` for `lifetime-pro` instead of a 500 cap.
+    - `lib/Pages/user_dashboard_page.dart`: dashboard now shows "Unlimited" for Lifetime accounts in every code path (server-confirmed and local fallback), replacing the old fake "500" number.
+  - **Promo Code & Discount Engine - backend** ✓
+    - Found and reconciled three pre-existing, disconnected coupon/promo systems; extended the existing backend `promoCodes[]` + `applyPromoCode()` system (already wired into `/api/create-order` and GST recompute) rather than building a parallel one.
+    - Added disk persistence for `promoCodes` (previously in-memory only, wiped every restart), mirroring the established `userAccounts` persistence pattern.
+    - Added an `active` toggle + `description` field to promo codes.
+    - Fixed a real bug: `applyPromoCode` used to increment usage count on every preview/create-order call (not just actual payment), meaning mere typing or abandoned checkouts could exhaust a code's usage limit. It is now a pure, non-mutating preview; a new `redeemPromoCode()` increments usage exactly once, only at verified-payment time (local no-gateway checkout, `/api/verify-payment`, and the Razorpay webhook's new-transaction branch).
+    - Fixed a real unit bug: flat discounts were compared directly against amounts in paise/cents, so an admin-entered "₹100 off" was actually only applying ₹1 off; flat discounts are now correctly converted from major to minor units.
+    - New `GET /api/public/promo-codes` (safe-fields-only list of active offers for the checkout "Available Offers" selector) and `POST /api/public/promo-codes/validate` (canonical non-mutating preview endpoint).
+    - Transactions now record which promo code and discount amount were used at time of purchase (previously never recorded despite other code expecting the field).
+  - **Promo Code & Discount Engine - frontend** ✓
+    - `lib/Pages/admin_dashboard_page.dart`: rewired the admin "Promo codes" dialog off the frontend-only, non-persistent `CouponService` onto real backend calls (`GET`/`POST`/`DELETE /api/admin/promos`), with code/description/discount type+value/expiry date picker/usage limit/active toggle, and a live list of existing codes with inline active-toggle and delete.
+    - `lib/Pages/home_page_v1_1.dart` (`_UserPaymentPanel`): added an "Available Offers" dropdown and "Apply Promo Code" input with green/red feedback and a Remove option; live discount math (strikethrough original, discount, final total) and a recalculated GST breakdown line for the discounted total; re-validates automatically if plan/currency changes after a code is applied; `promoCode` now sent through to `/api/create-order` so the server applies and later redeems the same code.
+  - **Validation** ✓
+    - Added a comprehensive new test to the existing `lib/test/promoRoutes.test.js` (active toggle, public offers list correctness, non-mutating preview, redeem-only-on-completed-checkout, deactivation) plus a dedicated flat-discount unit-conversion test.
+    - `node --check` clean; `npm test` 23/23 passing; `flutter analyze` clean across all modified Dart files.
+- In progress:
+  - Ready for commit, push, and deploy (Render + Firebase).
+- Blockers:
+  - None.
+- Decisions needed:
+  - None.
+- Owner: Founder + Copilot
 - Owner: Founder + Copilot
       6. Privacy Policy (`/privacy` -> `PrivacyPolicyPage`)
       7. Terms & Conditions (`/terms` -> `TermsConditionsPage`)
