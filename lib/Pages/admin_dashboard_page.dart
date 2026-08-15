@@ -865,6 +865,9 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
   final TextEditingController _invoiceQueryController = TextEditingController();
   final TextEditingController _stateController = TextEditingController(text: 'Delhi');
   final TextEditingController _gstinController = TextEditingController();
+  final TextEditingController _sampleEmailController = TextEditingController(text: 'rajesh.khola@gmail.com');
+  bool _isSendingSample = false;
+  String? _sampleStatus;
   List<Map<String, dynamic>> _searchResults = [];
   bool _isSearching = false;
   String? _searchError;
@@ -1163,7 +1166,54 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
     _invoiceQueryController.dispose();
     _stateController.dispose();
     _gstinController.dispose();
+    _sampleEmailController.dispose();
     super.dispose();
+  }
+
+  Future<void> _sendSampleInvoiceEmail() async {
+    final recipient = _sampleEmailController.text.trim();
+    if (recipient.isEmpty) {
+      setState(() => _sampleStatus = 'Enter a recipient email address first.');
+      return;
+    }
+
+    setState(() {
+      _isSendingSample = true;
+      _sampleStatus = null;
+    });
+
+    try {
+      final response = await _authedRequest(
+        'POST',
+        '/api/admin/email/send-sample-invoice',
+        body: {'to': recipient, 'name': 'Rajesh Kumar Yadav'},
+      );
+      if (!mounted) {
+        return;
+      }
+      if (response == null) {
+        setState(() {
+          _isSendingSample = false;
+          _sampleStatus = 'Admin session is required to send the sample invoice.';
+        });
+        return;
+      }
+      final ok = response.statusCode >= 200 && response.statusCode < 300;
+      setState(() {
+        _isSendingSample = false;
+        _sampleStatus = ok
+            ? 'Sample welcome email + invoice PDF sent to $recipient.'
+            : 'Send failed (${response.statusCode}). ${response.body}';
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isSendingSample = false;
+        _sampleStatus = 'Send failed. ${error.toString()}';
+      });
+    }
   }
 
   Future<http.Response?> _authedRequest(
@@ -1630,6 +1680,41 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
                   ],
                 ],
               ),
+              if (!_isGstMode) ...[
+                const SizedBox(height: 18),
+                const Divider(),
+                const SizedBox(height: 12),
+                const Text('Send sample welcome email + invoice PDF', style: TextStyle(fontWeight: FontWeight.w800)),
+                const SizedBox(height: 4),
+                const Text(
+                  'Sends the exact production template to any address for review. No sale is recorded and no live invoice number is used.',
+                  style: TextStyle(fontSize: 11.5, height: 1.4, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _sampleEmailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(labelText: 'Recipient email'),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _isSendingSample ? null : _sendSampleInvoiceEmail,
+                    icon: _isSendingSample
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.mark_email_read_outlined),
+                    label: Text(_isSendingSample ? 'Sending...' : 'Send Sample Invoice Email'),
+                  ),
+                ),
+                if (_sampleStatus != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    _sampleStatus!,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF0F766E)),
+                  ),
+                ],
+              ],
               if (_searchError != null) ...[
                 const SizedBox(height: 8),
                 Text(_searchError!, style: const TextStyle(color: Color(0xFF991B1B), fontSize: 12, fontWeight: FontWeight.w600)),
