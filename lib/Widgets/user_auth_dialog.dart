@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:universal_html/html.dart' as html;
 
 import '../Services/auth_router_service.dart';
 import '../Services/google_identity_service.dart';
@@ -272,88 +271,6 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
     });
   }
 
-  Future<void> _handleSocialAuth(String provider) async {
-    final socialProvider = provider.trim().toLowerCase();
-
-    if (socialProvider == 'google') {
-      await _handleGoogleAuth();
-      return;
-    }
-
-    final socialEmail = _emailController.text.trim().isNotEmpty
-        ? _emailController.text.trim()
-        : '${socialProvider}-${DateTime.now().millisecondsSinceEpoch}@getreadyjob.social';
-
-    setState(() {
-      _isSubmitting = true;
-      _errorText = null;
-      _successText = 'Opening ${socialProvider.toUpperCase()} sign-in...';
-    });
-
-    try {
-      final authUrl = 'https://getreadyjob.com/api/auth/social?provider=$socialProvider&redirect=' +
-          Uri.encodeComponent(html.window.location.href);
-      final popup = html.window.open(authUrl, '_blank');
-      if (popup == null) {
-        throw Exception('Popup blocked');
-      }
-
-      final session = await UserAuthService.signInWithSocialProvider(
-        provider: socialProvider,
-        email: socialEmail,
-        displayName: _nameController.text.trim().isNotEmpty
-            ? _nameController.text.trim()
-            : socialEmail.split('@').first.replaceAll(RegExp(r'[^A-Za-z0-9 ]'), ' ').trim(),
-        country: _countryController.text.trim().isNotEmpty ? _countryController.text.trim() : 'India',
-        countryCode: _countryController.text.trim().toLowerCase() == 'india' ? '+91' : '',
-        mobileNumber: _mobileController.text.trim(),
-        selectedPlan: widget.preselectedPlan,
-      );
-
-      if (session == null) {
-        if (!mounted) {
-          return;
-        }
-        setState(() {
-          _errorText = 'We could not continue with ${socialProvider.toUpperCase()} right now. Please try again.';
-          _successText = null;
-          _isSubmitting = false;
-        });
-        return;
-      }
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _successText = 'Signed in with ${socialProvider.toUpperCase()}.';
-        _errorText = null;
-        _isSubmitting = false;
-      });
-      await AuthRouterService.markUserAuthenticated(authToken: 'user-session');
-      Navigator.of(context).pop();
-      if (widget.onAuthenticated != null) {
-        widget.onAuthenticated!(widget.preselectedPlan, widget.selectedCurrency);
-        return;
-      }
-      if (widget.stayOnHomeAfterAuth) {
-        return;
-      }
-      if (mounted) {
-        setState(() {});
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _errorText = 'Something went wrong while continuing with ${provider.toUpperCase()}. Please try again.';
-          _successText = null;
-          _isSubmitting = false;
-        });
-      }
-    }
-  }
-
   Future<void> _handleGoogleAuth() async {
     if (!GoogleIdentityService.instance.isConfigured) {
       setState(() {
@@ -536,25 +453,7 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
                       label: 'Continue with Google',
                       icon: Icons.g_mobiledata_rounded,
                       color: const Color(0xFFEA4335),
-                      onPressed: () => _handleSocialAuth('google'),
-                    ),
-                    const SizedBox(width: 8),
-                    _providerButton(
-                      label: 'Continue with Apple',
-                      icon: Icons.apple_rounded,
-                      color: const Color(0xFF111827),
-                      onPressed: () => _handleSocialAuth('apple'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    _providerButton(
-                      label: 'Continue with Microsoft',
-                      icon: Icons.desktop_windows_rounded,
-                      color: const Color(0xFF0078D4),
-                      onPressed: () => _handleSocialAuth('microsoft'),
+                      onPressed: _handleGoogleAuth,
                     ),
                     const SizedBox(width: 8),
                     _providerButton(
