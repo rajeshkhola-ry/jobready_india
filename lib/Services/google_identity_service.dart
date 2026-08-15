@@ -31,12 +31,13 @@ class GoogleIdentityService {
   GoogleIdentityService._();
   static final GoogleIdentityService instance = GoogleIdentityService._();
 
-  /// Public Google OAuth Web Client ID (not a secret). Supplied at build time via
-  /// `--dart-define=GOOGLE_OAUTH_CLIENT_ID=...`. Must match the backend's
-  /// GOOGLE_OAUTH_CLIENT_ID env var so token audience verification succeeds.
+  /// Public Google OAuth Web Client ID (not a secret). Real production value is the default
+  /// so it works even without a build flag; still overridable via
+  /// `--dart-define=GOOGLE_OAUTH_CLIENT_ID=...`. Must match the backend's GOOGLE_OAUTH_CLIENT_ID
+  /// env var so token audience verification succeeds.
   static const String clientId = String.fromEnvironment(
     'GOOGLE_OAUTH_CLIENT_ID',
-    defaultValue: '',
+    defaultValue: '365906972808-o92qicufhbn7r40hjrib3bln05vv52mk.apps.googleusercontent.com',
   );
 
   bool get isConfigured => clientId.trim().isNotEmpty;
