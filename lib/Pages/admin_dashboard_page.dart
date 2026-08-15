@@ -976,57 +976,164 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
     return params;
   }
 
+  Future<String?> _promptAdminOtp() async {
+    final otpController = TextEditingController();
+    String? otpError;
+    bool isVerifying = false;
+    bool isResending = false;
+
+    final token = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (builderContext, setDialogState) {
+            return AlertDialog(
+              title: const Text('Enter admin OTP'),
+              content: SizedBox(
+                width: 360,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'A 6-digit OTP was sent to ${AdminRemoteAuthService.deliveryEmail.isNotEmpty ? AdminRemoteAuthService.deliveryEmail : 'your admin email'}. It is valid for 5 minutes.',
+                      style: const TextStyle(fontSize: 13, color: Color(0xFF475569)),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: otpController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 6,
+                      decoration: InputDecoration(
+                        labelText: '6-digit OTP',
+                        errorText: otpError,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isResending || isVerifying
+                      ? null
+                      : () async {
+                          setDialogState(() => isResending = true);
+                          final sent = await AdminRemoteAuthService.resendOtp();
+                          setDialogState(() {
+                            isResending = false;
+                            otpError = sent ? null : 'Could not resend the OTP. Please sign in again.';
+                          });
+                        },
+                  child: Text(isResending ? 'Resending...' : 'Resend OTP'),
+                ),
+                TextButton(
+                  onPressed: isVerifying ? null : () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: isVerifying
+                      ? null
+                      : () async {
+                          final code = otpController.text.trim();
+                          if (code.isEmpty) {
+                            setDialogState(() => otpError = 'Enter the OTP that was emailed to you.');
+                            return;
+                          }
+                          setDialogState(() {
+                            isVerifying = true;
+                            otpError = null;
+                          });
+                          final verifiedToken = await AdminRemoteAuthService.verify(code);
+                          if (verifiedToken == null || verifiedToken.isEmpty) {
+                            setDialogState(() {
+                              isVerifying = false;
+                              otpError = 'Invalid or expired OTP. Try again or resend.';
+                            });
+                            return;
+                          }
+                          if (dialogContext.mounted) {
+                            Navigator.of(dialogContext).pop(verifiedToken);
+                          }
+                        },
+                  child: Text(isVerifying ? 'Verifying...' : 'Verify'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    otpController.dispose();
+    return token;
+  }
+
   Future<bool> _refreshExpiredAdminSession() async {
     final emailController = TextEditingController();
     final passwordController = TextEditingController();
+    bool passwordVisible = false;
 
     final credentials = await showDialog<Map<String, String>>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Admin session expired'),
-          content: SizedBox(
-            width: 360,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Your admin CSV token expired. Sign in again to continue the export.',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF475569)),
+        return StatefulBuilder(
+          builder: (builderContext, setDialogState) {
+            return AlertDialog(
+              title: const Text('Admin session expired'),
+              content: SizedBox(
+                width: 360,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Your admin session expired. Sign in again to continue.',
+                      style: TextStyle(fontSize: 13, color: Color(0xFF475569)),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: emailController,
+                      decoration: const InputDecoration(labelText: 'Admin email'),
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: passwordController,
+                      obscureText: !passwordVisible,
+                      decoration: InputDecoration(
+                        labelText: 'Password',
+                        suffixIcon: IconButton(
+                          tooltip: passwordVisible ? 'Hide password' : 'Show password',
+                          onPressed: () => setDialogState(() => passwordVisible = !passwordVisible),
+                          icon: Icon(
+                            passwordVisible ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                            color: const Color(0xFF64748B),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: emailController,
-                  decoration: const InputDecoration(labelText: 'Admin email'),
-                  keyboardType: TextInputType.emailAddress,
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Cancel'),
                 ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: passwordController,
-                  decoration: const InputDecoration(labelText: 'Password'),
-                  obscureText: true,
+                ElevatedButton(
+                  onPressed: () {
+                    final email = emailController.text.trim();
+                    final password = passwordController.text.trim();
+                    if (email.isEmpty || password.isEmpty) {
+                      return;
+                    }
+                    Navigator.of(dialogContext).pop({'email': email, 'password': password});
+                  },
+                  child: const Text('Continue'),
                 ),
               ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final email = emailController.text.trim();
-                final password = passwordController.text.trim();
-                if (email.isEmpty || password.isEmpty) {
-                  return;
-                }
-                Navigator.of(dialogContext).pop({'email': email, 'password': password});
-              },
-              child: const Text('Continue'),
-            ),
-          ],
+            );
+          },
         );
       },
     );
@@ -1036,7 +1143,7 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
     }
 
     final result = await AdminRemoteAuthService.login(credentials['email'] ?? '', credentials['password'] ?? '');
-    if (!result.success || result.authToken.isEmpty) {
+    if (!result.success) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(result.error ?? 'Admin authentication failed. Please try again.')),
@@ -1045,7 +1152,22 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
       return false;
     }
 
-    await AuthRouterService.markAdminAuthenticated(authToken: result.authToken);
+    // Login succeeds with an empty token when 2FA is on; the OTP step issues the real token.
+    var authToken = result.authToken;
+    if (authToken.isEmpty && AdminRemoteAuthService.hasPendingChallenge && mounted) {
+      authToken = await _promptAdminOtp() ?? '';
+    }
+
+    if (authToken.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Admin verification was not completed.')),
+        );
+      }
+      return false;
+    }
+
+    await AuthRouterService.markAdminAuthenticated(authToken: authToken);
     return true;
   }
 
@@ -1225,6 +1347,13 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
   }) async {
     final adminToken = AuthRouterService.authToken;
     if (adminToken.isEmpty) {
+      // No token yet: re-authenticate first, then run the request once.
+      if (!retryAfterRefresh) {
+        final refreshed = await _refreshExpiredAdminSession();
+        if (refreshed) {
+          return _authedRequest(method, path, queryParams: queryParams, body: body, retryAfterRefresh: true);
+        }
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Admin session is required for this action.')),

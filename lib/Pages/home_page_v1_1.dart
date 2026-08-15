@@ -725,32 +725,59 @@ class _HomePageV11State extends State<HomePageV11> {
       return;
     }
 
+    Timer? countdownTimer;
+
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('You are logged in'),
-        content: const Text(
-          'You are logged in successfully. If you want to go to your user account, press User Account.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Stay on Home'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              if (!mounted) {
+      builder: (dialogContext) {
+        var secondsLeft = 10;
+        return StatefulBuilder(
+          builder: (builderContext, setDialogState) {
+            countdownTimer ??= Timer.periodic(const Duration(seconds: 1), (timer) {
+              if (secondsLeft <= 1) {
+                timer.cancel();
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop();
+                }
                 return;
               }
-              Navigator.of(context).pushNamed('/dashboard');
-            },
-            child: const Text('User Account'),
-          ),
-        ],
-      ),
+              setDialogState(() => secondsLeft -= 1);
+            });
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Text('You are logged in'),
+              content: Text(
+                'You are logged in successfully. If you want to go to your user account, press User Account.\n\n'
+                'Staying on Home in $secondsLeft second${secondsLeft == 1 ? '' : 's'}...',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    countdownTimer?.cancel();
+                    Navigator.of(dialogContext).pop();
+                  },
+                  child: const Text('Stay on Home'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    countdownTimer?.cancel();
+                    Navigator.of(dialogContext).pop();
+                    if (!mounted) {
+                      return;
+                    }
+                    Navigator.of(context).pushNamed('/dashboard');
+                  },
+                  child: const Text('User Account'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
+
+    countdownTimer?.cancel();
   }
 
   Future<void> _openCheckoutFlow(String plan) async {
@@ -909,6 +936,19 @@ class _HomePageV11State extends State<HomePageV11> {
     );
   }
 
+  String _signedInFirstName() {
+    final session = UserAuthService.getSession();
+    final name = (session?.displayName ?? '').trim();
+    if (name.isNotEmpty && name.toLowerCase() != 'user') {
+      return name.split(RegExp(r'\s+')).first;
+    }
+    final email = (session?.email ?? '').trim();
+    if (email.contains('@')) {
+      return email.split('@').first;
+    }
+    return 'there';
+  }
+
   @override
   Widget build(BuildContext context) {
     final sevenDayPriceLine = _planPriceLine('7Days', ' for 7 days');
@@ -938,13 +978,15 @@ class _HomePageV11State extends State<HomePageV11> {
               iconColor: const Color(0xFF0F172A),
               onTap: _openUserLoginPanel,
             )
-          else
+          else ...[
+            _SignedInGreeting(name: _signedInFirstName()),
             _TopActionIcon(
               tooltip: 'Account',
               icon: Icons.account_circle_rounded,
               iconColor: const Color(0xFF0F172A),
               onTap: () => Navigator.of(context).pushNamed('/dashboard'),
             ),
+          ],
           if (_pwaInstallAvailable)
             _TopActionIcon(
               tooltip: 'Install App',
@@ -5609,6 +5651,51 @@ class _FooterInfoRow extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SignedInGreeting extends StatelessWidget {
+  final String name;
+
+  const _SignedInGreeting({required this.name});
+
+  @override
+  Widget build(BuildContext context) {
+    if (MediaQuery.sizeOf(context).width < 480) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE6F4EA),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: const Color(0xFF9AD3AE)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.check_circle_rounded, size: 14, color: Color(0xFF1B7F4B)),
+              const SizedBox(width: 6),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 140),
+                child: Text(
+                  'Hi, $name',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF14532D),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
