@@ -197,6 +197,7 @@ class _BenchmarkHistoryPageState extends State<BenchmarkHistoryPage> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF0E3A66),
         elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
           'Benchmark History',
           style: TextStyle(

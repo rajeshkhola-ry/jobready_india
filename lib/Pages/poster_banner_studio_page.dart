@@ -421,6 +421,8 @@ class _PosterBannerStudioPageState extends State<PosterBannerStudioPage> {
       appBar: AppBar(
         title: const Text('Poster & Banner Studio'),
         backgroundColor: const Color(0xFF123A63),
+        foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           if (_lastSaved != null)
             Padding(

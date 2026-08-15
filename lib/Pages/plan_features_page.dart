@@ -160,7 +160,7 @@ class _PlanFeaturesPageState extends State<PlanFeaturesPage> {
           appBar: AppBar(
             backgroundColor: const Color(0xFF1F2937),
             iconTheme: const IconThemeData(
-              color: Color(0xFFFFC72C),
+              color: Colors.white,
               size: 30,
             ),
             title: const Text(

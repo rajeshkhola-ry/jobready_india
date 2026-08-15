@@ -13,6 +13,7 @@ class TermsConditionsPage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: const Color(0xFF111827),
         foregroundColor: const Color(0xFFFFC72C),
+        iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
         titleSpacing: 12,
         title: Row(

@@ -74,6 +74,8 @@ class _ResumeDocumentCanvasTemplatesPageState extends State<ResumeDocumentCanvas
       appBar: AppBar(
         title: const Text('Resume & Document Canvas Templates'),
         backgroundColor: const Color(0xFF0D3B66),
+        foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Container(
         decoration: const BoxDecoration(

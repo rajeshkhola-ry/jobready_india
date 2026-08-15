@@ -690,7 +690,7 @@ class _SealPainter extends CustomPainter {
 
     // 6 — Authenticity seal
     if (sealEnabled) {
-      _drawSeal(canvas, size);
+      _drawSeal(canvas, imgDst);
     }
   }
 
@@ -740,10 +740,10 @@ class _SealPainter extends CustomPainter {
 
   // ── Authenticity seal ─────────────────────────────────────────────────────
 
-  void _drawSeal(Canvas canvas, Size size) {
+  void _drawSeal(Canvas canvas, Rect imgRect) {
     const padH = 10.0;
     const padV = 7.0;
-    final fontSize = (size.width * 0.022).clamp(7.0, 13.0);
+    final fontSize = (imgRect.width * 0.022).clamp(7.0, 13.0);
     final lineH = fontSize * 1.45;
     final lines = [
       '✓  GETREADYJOB · SECURE DOCUMENT',
@@ -752,10 +752,12 @@ class _SealPainter extends CustomPainter {
       'REF: $sealRef   •   SEALED: $sealTimestamp',
       'Generated locally — no data uploaded to any server.',
     ];
-    final boxW = (size.width * 0.72).clamp(180.0, 460.0);
+    // Clamp to the actual rendered image rect so the seal never spills past its edges.
+    final maxBoxW = math.max(120.0, imgRect.width - 16);
+    final boxW = (imgRect.width * 0.72).clamp(180.0, 460.0).clamp(120.0, maxBoxW);
     final boxH = lines.length * lineH + padV * 2 + 4;
-    final boxL = size.width - boxW - 8;
-    final boxT = size.height - boxH - 8;
+    final boxL = (imgRect.right - boxW - 8).clamp(imgRect.left + 8, imgRect.right - 8);
+    final boxT = (imgRect.bottom - boxH - 8).clamp(imgRect.top + 8, imgRect.bottom - 8);
 
     // Box background
     canvas.drawRect(

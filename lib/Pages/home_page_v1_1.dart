@@ -6982,6 +6982,7 @@ class _PopularToolRow extends StatelessWidget {
                       Flexible(
                         child: Text(
                           label,
+                          maxLines: 2,
                           style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF1E293B)),
                           overflow: TextOverflow.ellipsis,
                         ),

@@ -11,6 +11,7 @@ class ComingSoonPage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           Padding(
             padding: const EdgeInsets.all(8.0),

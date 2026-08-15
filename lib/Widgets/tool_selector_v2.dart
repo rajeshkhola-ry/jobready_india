@@ -57,10 +57,10 @@ class ToolSelectorV2 extends StatelessWidget {
                     ? 2
                     : 1;
             final childAspectRatio = width >= 980
-              ? 3.2
+                ? 2.7
                 : width >= 680
-                ? 2.9
-                : 2.45;
+                    ? 2.5
+                    : 2.15;
 
             final tools = <Widget>[
               _tool(
@@ -336,11 +336,12 @@ class ToolSelectorV2 extends StatelessWidget {
                 const SizedBox(height: 5),
                 Text(
                   title,
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontWeight: FontWeight.w800,
                     fontSize: 11.5,
+                    height: 1.15,
                     color: Color(0xFF0F172A),
                   ),
                 ),
