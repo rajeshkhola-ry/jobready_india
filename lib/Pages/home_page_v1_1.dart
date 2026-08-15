@@ -3899,35 +3899,6 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Billing Type',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF334155),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: ChoiceChip(
-                  label: const Text('Personal (Default)'),
-                  selected: !isBusiness,
-                  onSelected: (_) => widget.onUsageTypeChanged('Personal'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ChoiceChip(
-                  label: const Text('Business'),
-                  selected: isBusiness,
-                  onSelected: (_) => widget.onUsageTypeChanged('Business'),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
           if (!isBusiness)
             TextField(
               controller: _checkoutGstinController,
@@ -3992,12 +3963,13 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
               controlAffinity: ListTileControlAffinity.leading,
               contentPadding: EdgeInsets.zero,
               dense: true,
+              activeColor: const Color(0xFF1E3A8A),
               title: const Text(
                 'Is this an SEZ unit / developer with LUT/Bond?',
                 style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF334155),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1E3A8A),
                 ),
               ),
             ),
