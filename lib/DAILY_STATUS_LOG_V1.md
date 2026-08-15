@@ -1070,6 +1070,32 @@ Prepared For: JOBREADY
     whatever transactions already exist under that email automatically — no data was fabricated.
 - Owner: Founder + Copilot
 
+### Same day follow-up — real Google OAuth Client ID received and wired in
+- Overall status: Yellow (frontend + non-secret config fully deployed; one Render dashboard step still owner-only)
+- Owner supplied the real Google OAuth Web Client ID:
+  `365906972808-o92qicufhbn7r40hjrib3bln05vv52mk.apps.googleusercontent.com`.
+- Completed:
+  - `Services/google_identity_service.dart`: Client ID is now the real production `defaultValue` (same
+    pattern as `ApiConfig.renderCompressionApiUrl`), still overridable via `--dart-define`.
+  - `compression_server.js`: added `https://getreadyjob-india-1cb34.web.app` and `.firebaseapp.com` to
+    `allowedCorsOrigins` so `/api/user/google-signin` also works when tested from the Firebase-hosted URL.
+  - `.env.backup`: recorded the confirmed (non-secret) Client ID value.
+  - Rebuilt: `flutter clean` → `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons --dart-define=GOOGLE_OAUTH_CLIENT_ID=365906972808-o92qicufhbn7r40hjrib3bln05vv52mk.apps.googleusercontent.com` → success. Verified the Client ID string is present in `build/web/main.dart.js` (2 matches) before deploying.
+  - Deployed: `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success.
+  - Committed + pushed (commit `ebe7f3b`) → triggers Render + GitHub Pages redeploy of the CORS change.
+  - Screenshot-verified the live Firebase-hosted build renders correctly (navbar, upload card, cookie
+    banner) with no new console errors; deep interactive click-through to the Google button dialog isn't
+    reliably automatable here (Flutter CanvasKit renders to a single canvas, not exposed to Playwright's
+    accessibility/selector tree — a known tooling limitation, not an app bug).
+- Blocker (owner-only, cannot be done from here): the Render **dashboard** env var
+  `GOOGLE_OAUTH_CLIENT_ID=365906972808-o92qicufhbn7r40hjrib3bln05vv52mk.apps.googleusercontent.com` still
+  needs to be set on the live `jobready-india` service (Render Dashboard → that service → Environment →
+  Add Environment Variable → Save, which auto-redeploys). No Render API/dashboard access exists in this
+  environment. Until set, `/api/user/google-signin` safely returns `503 "Google Sign-In is not configured
+  on the server yet."` instead of a false success — frontend is 100% ready and will work the moment this
+  one var is saved, no further rebuild needed.
+- Owner: Founder + Copilot
+
     - Added colour entry to `colorMap`
   - **Validation** ✓
     - `get_errors` on all 3 modified/created files: 0 errors
