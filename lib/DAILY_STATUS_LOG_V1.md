@@ -1009,6 +1009,67 @@ Prepared For: JOBREADY
   - **`Widgets/tool_selector_v2.dart`** ✓
     - Imported `PrivacyMaskerPage`
     - Added "Privacy Masker" tile to the tools grid (`Icons.shield_rounded`, navy `#1A2B45`)
+
+### Day - 2026-08-15 — Google OAuth real email capture + plan linking + dashboard cleanup
+- Overall status: Green (deployed; one manual step still needed from owner)
+- Root cause found:
+  - Google Sign-In never called Google at all: `Widgets/user_auth_dialog.dart` generated a fake
+    `google-<timestamp>@getreadyjob.social` email and opened a popup to `/api/auth/social`, a route
+    that does not exist on any backend. The dashboard then queried plan status by that fake email.
+  - `jobready-india.onrender.com` (the live backend behind getreadyjob.com) is `lib/compression_server.js`
+    (Node), confirmed byte-for-byte via its `/api/info` shape — not `render_api/app.py` (Python) as an
+    older memory note assumed. It already had a real `/api/user/google-signin`, `/api/user/account`, and
+    `/api/user/transactions` API.
+  - `userAccounts` (unlike `salesTransactions`) had no disk persistence at all, so it silently reset to
+    empty on every cold restart/redeploy even after a real payment had already created an account record.
+    Confirmed live: `GET /api/user/transactions?email=rajesh.khola@gmail.com` already returned a paid
+    ₹99 "7 Days Access" transaction, but `GET /api/user/account` for the same email 404'd.
+- Completed today:
+  - **`lib/compression_server.js`** ✓
+    - `/api/user/google-signin` now requires a real Google `id_token` and verifies it server-side against
+      Google's `tokeninfo` endpoint (checks `aud` matches `GOOGLE_OAUTH_CLIENT_ID` env var + `email_verified`)
+      before trusting/persisting the email. Legacy unverified `profile.email`-only payloads are rejected (400).
+    - `userAccounts` now persists to `PERSISTENT_DATA_DIR/user-accounts-state.json` (same atomic
+      write-temp-then-rename pattern as `salesTransactions`), loaded on startup and saved from a single
+      choke point inside `upsertUserAccount`.
+    - `GET /api/user/account` now falls back to rebuilding (and persisting) the account from the most
+      recent paid transaction when no explicit account record exists, instead of a false 404/"no plan".
+  - **`lib/Services/google_identity_service.dart`** (new) ✓
+    - Real Google Identity Services (GIS) integration: One Tap prompt first, falls back to an in-place
+      dialog rendering Google's real button (`HtmlElementView` + `registerViewFactory`, direct element
+      reference, no `document.getElementById` per known `ai_resume_builder_page.dart` gotcha) if One Tap
+      is suppressed/dismissed. No popup window, no page navigation. Sends the ID token to the backend for
+      verification via `/api/user/google-signin`; only trusts the server's verified response.
+    - `clientId` is a public (non-secret) `String.fromEnvironment('GOOGLE_OAUTH_CLIENT_ID')` — build-time
+      configurable, matching the existing `ApiConfig` convention.
+  - **`Widgets/user_auth_dialog.dart`** ✓
+    - Google button now calls the new service (`_handleGoogleAuth`); shows a clear "being configured"
+      message instead of faking a session when no Client ID is set. Other providers (Apple) unchanged.
+  - **`Pages/user_dashboard_page.dart`** ✓
+    - Removed the redundant dark "Balance & quota overview" banner; the status cards above it already
+      show Active Plan / Balance / Remaining Quota / Converted Files from the same synced profile.
+  - **`web/index.html`** ✓ — added the GIS script tag (`accounts.google.com/gsi/client`).
+  - **`.env.backup`** ✓ — documented new `GOOGLE_OAUTH_CLIENT_ID` and `PERSISTENT_DATA_DIR` Render vars.
+  - **`test/googleSignIn.test.js`** ✓ — rewritten for the new contract: one test proves a verified token
+    round-trips to the real email, one proves an unverified payload is rejected (400).
+  - **Validation** ✓ — `node --check` clean; `node --test test/googleSignIn.test.js test/promoRoutes.test.js`
+    → 12/12 passed; `flutter analyze` on all changed files → 0 errors (pre-existing info/warning lints only,
+    all in untouched code paths); `get_errors` → no errors.
+  - **Build & deploy** ✓
+    - `flutter clean` → `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` → success.
+    - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success (`getreadyjob-india-1cb34.web.app`).
+- Blocker / decision needed:
+  - **No Google OAuth Web Client ID exists anywhere in this environment** (not in the repo, GitHub secrets,
+    or `.env.backup`) and none can be fabricated. Until the owner creates one in Google Cloud Console and
+    (a) sets it as `GOOGLE_OAUTH_CLIENT_ID` on the Render backend and (b) rebuilds the Flutter web app with
+    `--dart-define=GOOGLE_OAUTH_CLIENT_ID=...`, the Google button shows a clear "being configured" message
+    instead of silently faking a session (safer than the previous bug, but not yet fully live).
+  - Only one ₹99 "7 Days Access" transaction for `rajesh.khola@gmail.com` is visible via the live,
+    unauthenticated `/api/user/transactions` endpoint as of this check; could not find a second one through
+    available tools. The account-persistence + transaction-fallback fix will make the dashboard reflect
+    whatever transactions already exist under that email automatically — no data was fabricated.
+- Owner: Founder + Copilot
+
     - Added colour entry to `colorMap`
   - **Validation** ✓
     - `get_errors` on all 3 modified/created files: 0 errors

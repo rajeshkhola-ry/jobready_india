@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:universal_html/html.dart' as html;
 
 import '../Services/auth_router_service.dart';
+import '../Services/google_identity_service.dart';
 import '../Services/shared_user_auth_service.dart';
 import '../Services/user_auth_service.dart';
 
@@ -273,6 +274,12 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
 
   Future<void> _handleSocialAuth(String provider) async {
     final socialProvider = provider.trim().toLowerCase();
+
+    if (socialProvider == 'google') {
+      await _handleGoogleAuth();
+      return;
+    }
+
     final socialEmail = _emailController.text.trim().isNotEmpty
         ? _emailController.text.trim()
         : '${socialProvider}-${DateTime.now().millisecondsSinceEpoch}@getreadyjob.social';
@@ -340,6 +347,88 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
       if (mounted) {
         setState(() {
           _errorText = 'Something went wrong while continuing with ${provider.toUpperCase()}. Please try again.';
+          _successText = null;
+          _isSubmitting = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleGoogleAuth() async {
+    if (!GoogleIdentityService.instance.isConfigured) {
+      setState(() {
+        _errorText = 'Google Sign-In is being configured for this site. Please use email sign-in for now.';
+        _successText = null;
+      });
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+      _errorText = null;
+      _successText = 'Opening Google sign-in...';
+    });
+
+    try {
+      final googleProfile = await GoogleIdentityService.instance.signIn(context);
+      if (googleProfile == null || googleProfile.email.isEmpty) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _errorText = 'Google sign-in was cancelled or could not be verified. Please try again.';
+          _successText = null;
+          _isSubmitting = false;
+        });
+        return;
+      }
+
+      final session = await UserAuthService.signInWithGoogle(
+        email: googleProfile.email,
+        displayName: googleProfile.displayName.isNotEmpty ? googleProfile.displayName : null,
+        country: _countryController.text.trim().isNotEmpty ? _countryController.text.trim() : 'India',
+        countryCode: _countryController.text.trim().toLowerCase() == 'india' ? '+91' : '',
+        mobileNumber: _mobileController.text.trim(),
+        selectedPlan: widget.preselectedPlan,
+      );
+
+      if (session == null) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _errorText = 'We could not continue with Google right now. Please try again.';
+          _successText = null;
+          _isSubmitting = false;
+        });
+        return;
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _successText = 'Signed in with Google.';
+        _errorText = null;
+        _isSubmitting = false;
+      });
+      await AuthRouterService.markUserAuthenticated(authToken: 'user-session');
+      Navigator.of(context).pop();
+      if (widget.onAuthenticated != null) {
+        widget.onAuthenticated!(widget.preselectedPlan, widget.selectedCurrency);
+        return;
+      }
+      if (widget.stayOnHomeAfterAuth) {
+        return;
+      }
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _errorText = 'Something went wrong while continuing with Google. Please try again.';
           _successText = null;
           _isSubmitting = false;
         });

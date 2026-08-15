@@ -480,46 +480,6 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 14),
-                  Material(
-                    color: const Color(0xFF0F172A),
-                    borderRadius: BorderRadius.circular(8),
-                    clipBehavior: Clip.antiAlias,
-                    child: InkWell(
-                      onTap: () => Navigator.of(context).pushNamed('/dashboard'),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-                        child: Row(
-                          children: [
-                            const Badge(
-                              backgroundColor: Color(0xFF22D3EE),
-                              smallSize: 9,
-                              child: Icon(Icons.account_balance_wallet_rounded, color: Colors.white, size: 28),
-                            ),
-                            const SizedBox(width: 14),
-                            const Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Balance & quota overview',
-                                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
-                                  ),
-                                  SizedBox(height: 3),
-                                  Text(
-                                    'Your current plan, remaining credits, and usage stay visible here.',
-                                    style: TextStyle(color: Color(0xFFBAE6FD), fontSize: 12.5),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            const Icon(Icons.arrow_forward_rounded, color: Color(0xFF22D3EE)),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
                   const SizedBox(height: 18),
                   const Text('Conversion History & Downloads', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
                   const SizedBox(height: 10),
