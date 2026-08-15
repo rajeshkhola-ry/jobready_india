@@ -271,12 +271,27 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
     });
   }
 
+  /// Keeps the dialog usable after any Google failure: nothing typed is cleared,
+  /// the email/password form stays ready, and the reason is stated plainly.
+  void _fallBackToEmailPassword(String message) {
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isSubmitting = false;
+      _successText = null;
+      _errorText = message;
+      if (_mode != UserAuthMode.createAccount) {
+        _mode = UserAuthMode.signIn;
+      }
+    });
+  }
+
   Future<void> _handleGoogleAuth() async {
     if (!GoogleIdentityService.instance.isConfigured) {
-      setState(() {
-        _errorText = 'Google Sign-In is being configured for this site. Please use email sign-in for now.';
-        _successText = null;
-      });
+      _fallBackToEmailPassword(
+        'Google Sign-In is not available right now. You can continue below with your email address and password.',
+      );
       return;
     }
 
@@ -287,19 +302,30 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
     });
 
     try {
-      final googleProfile = await GoogleIdentityService.instance.signIn(context);
-      if (googleProfile == null || googleProfile.email.isEmpty) {
-        if (!mounted) {
-          return;
+      final googleResult = await GoogleIdentityService.instance.signIn(context);
+      if (!googleResult.isSuccess) {
+        switch (googleResult.status) {
+          case GoogleSignInStatus.cancelled:
+            _fallBackToEmailPassword(
+              'Google sign-in was closed before it finished. No problem - enter your email address and password below to continue.',
+            );
+            break;
+          case GoogleSignInStatus.verificationFailed:
+            _fallBackToEmailPassword(
+              'Google could not verify this sign-in for our app yet. Please continue with your email address and password below - your account and plan stay exactly the same.',
+            );
+            break;
+          case GoogleSignInStatus.unavailable:
+          case GoogleSignInStatus.success:
+            _fallBackToEmailPassword(
+              'Google sign-in is unreachable from this browser right now. Please continue with your email address and password below.',
+            );
+            break;
         }
-        setState(() {
-          _errorText = 'Google sign-in was cancelled or could not be verified. Please try again.';
-          _successText = null;
-          _isSubmitting = false;
-        });
         return;
       }
 
+      final googleProfile = googleResult.profile!;
       final session = await UserAuthService.signInWithGoogle(
         email: googleProfile.email,
         displayName: googleProfile.displayName.isNotEmpty ? googleProfile.displayName : null,
@@ -310,14 +336,12 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
       );
 
       if (session == null) {
-        if (!mounted) {
-          return;
+        if (_emailController.text.trim().isEmpty) {
+          _emailController.text = googleProfile.email;
         }
-        setState(() {
-          _errorText = 'We could not continue with Google right now. Please try again.';
-          _successText = null;
-          _isSubmitting = false;
-        });
+        _fallBackToEmailPassword(
+          'We could not link your Google account automatically. Please continue with your email address and password below.',
+        );
         return;
       }
 
@@ -343,13 +367,9 @@ class _UserAuthDialogState extends State<UserAuthDialog> {
         setState(() {});
       }
     } catch (_) {
-      if (mounted) {
-        setState(() {
-          _errorText = 'Something went wrong while continuing with Google. Please try again.';
-          _successText = null;
-          _isSubmitting = false;
-        });
-      }
+      _fallBackToEmailPassword(
+        'Google sign-in could not be completed. Please continue with your email address and password below.',
+      );
     }
   }
 

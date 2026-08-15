@@ -24,6 +24,32 @@ class GoogleSignInProfile {
   });
 }
 
+/// Why a Google sign-in attempt ended, so callers can route the user to the
+/// email/password flow with an accurate message instead of a generic failure.
+enum GoogleSignInStatus {
+  success,
+
+  /// User closed One Tap / the button dialog, or dismissed the consent screen.
+  cancelled,
+
+  /// Google Identity Services could not load or start (blocked script, offline,
+  /// unsupported browser, missing client id).
+  unavailable,
+
+  /// A credential was returned but the backend refused it (unverified app,
+  /// audience mismatch, expired or tampered token).
+  verificationFailed,
+}
+
+class GoogleSignInResult {
+  final GoogleSignInStatus status;
+  final GoogleSignInProfile? profile;
+
+  const GoogleSignInResult({required this.status, this.profile});
+
+  bool get isSuccess => status == GoogleSignInStatus.success && profile != null;
+}
+
 /// Captures the user's real, verified Google email in-page (no popup/new tab,
 /// no full-page redirect) using Google Identity Services (GIS), then asks the
 /// backend to verify the ID token and persist the account before trusting it.
@@ -139,7 +165,7 @@ class GoogleIdentityService {
     script.async = true;
     script.onload = cb;
     script.onerror = function () {
-      window.postMessage({ source: 'jobready_google_signin', token: '$token', credential: null }, window.location.origin);
+      window.postMessage({ source: 'jobready_google_signin', token: '$token', credential: null, reason: 'script_error' }, window.location.origin);
     };
     document.head.appendChild(script);
   }
@@ -149,16 +175,16 @@ class GoogleIdentityService {
         client_id: '$clientId',
         auto_select: false,
         callback: function (response) {
-          window.postMessage({ source: 'jobready_google_signin', token: '$token', credential: response.credential }, window.location.origin);
+          window.postMessage({ source: 'jobready_google_signin', token: '$token', credential: response.credential, reason: '' }, window.location.origin);
         }
       });
       window.google.accounts.id.prompt(function (notification) {
         if (notification.isNotDisplayed() || notification.isSkippedMoment() || notification.isDismissedMoment()) {
-          window.postMessage({ source: 'jobready_google_signin', token: '$token', credential: null }, window.location.origin);
+          window.postMessage({ source: 'jobready_google_signin', token: '$token', credential: null, reason: 'prompt_suppressed' }, window.location.origin);
         }
       });
     } catch (error) {
-      window.postMessage({ source: 'jobready_google_signin', token: '$token', credential: null }, window.location.origin);
+      window.postMessage({ source: 'jobready_google_signin', token: '$token', credential: null, reason: 'init_error' }, window.location.origin);
     }
   });
 })();
@@ -168,9 +194,9 @@ class GoogleIdentityService {
 
   /// Shows a small in-place dialog with Google's real button, used only when the
   /// seamless One Tap prompt above is suppressed (still no new tab/redirect).
-  Future<String?> _showFallbackButtonDialog(BuildContext context) async {
+  Future<Map<String, dynamic>?> _showFallbackButtonDialog(BuildContext context) async {
     final token = _activeToken;
-    final completer = Completer<String?>();
+    final completer = Completer<Map<String, dynamic>?>();
     BuildContext? capturedDialogContext;
 
     final subscription = html.window.onMessage.listen((event) {
@@ -184,7 +210,7 @@ class GoogleIdentityService {
       if (completer.isCompleted) {
         return;
       }
-      completer.complete(data['credential']?.toString());
+      completer.complete(data);
       final dialogCtx = capturedDialogContext;
       if (dialogCtx != null && dialogCtx.mounted) {
         Navigator.of(dialogCtx).pop();
@@ -221,18 +247,18 @@ class GoogleIdentityService {
     return completer.future;
   }
 
-  /// Triggers real Google Sign-In in-place. Returns the server-verified profile,
-  /// or null if the user cancels or the flow could not be verified.
-  Future<GoogleSignInProfile?> signIn(BuildContext context) async {
+  /// Triggers real Google Sign-In in-place. The returned status tells the caller
+  /// whether to retry or to fall back to email/password sign-in.
+  Future<GoogleSignInResult> signIn(BuildContext context) async {
     if (!isConfigured) {
-      return null;
+      return const GoogleSignInResult(status: GoogleSignInStatus.unavailable);
     }
 
     final token = 'gsi_${DateTime.now().microsecondsSinceEpoch}';
     _activeToken = token;
     _ensureButtonFactoryRegistered();
 
-    final completer = Completer<String?>();
+    final completer = Completer<Map<String, dynamic>?>();
     final subscription = html.window.onMessage.listen((event) {
       final data = _decodeBridgeMessage(event.data);
       if (data == null) {
@@ -242,30 +268,45 @@ class GoogleIdentityService {
         return;
       }
       if (!completer.isCompleted) {
-        completer.complete(data['credential']?.toString());
+        completer.complete(data);
       }
     });
 
     _initializeAndPrompt(token);
 
-    String? credential = await completer.future.timeout(
+    final message = await completer.future.timeout(
       const Duration(seconds: 10),
       onTimeout: () => null,
     );
     await subscription.cancel();
 
-    if ((credential == null || credential.isEmpty) && context.mounted) {
-      credential = await _showFallbackButtonDialog(context);
+    var credential = message?['credential']?.toString() ?? '';
+    var reason = message?['reason']?.toString() ?? '';
+
+    if (credential.isEmpty && (reason == 'script_error' || reason == 'init_error')) {
+      return const GoogleSignInResult(status: GoogleSignInStatus.unavailable);
     }
 
-    if (credential == null || credential.isEmpty) {
-      return null;
+    if (credential.isEmpty && context.mounted) {
+      final fallback = await _showFallbackButtonDialog(context);
+      credential = fallback?['credential']?.toString() ?? '';
+      final fallbackReason = fallback?['reason']?.toString() ?? '';
+      if (fallbackReason.isNotEmpty) {
+        reason = fallbackReason;
+      }
+    }
+
+    if (credential.isEmpty) {
+      if (reason == 'script_error' || reason == 'init_error') {
+        return const GoogleSignInResult(status: GoogleSignInStatus.unavailable);
+      }
+      return const GoogleSignInResult(status: GoogleSignInStatus.cancelled);
     }
 
     return _verifyWithBackend(credential);
   }
 
-  Future<GoogleSignInProfile?> _verifyWithBackend(String idToken) async {
+  Future<GoogleSignInResult> _verifyWithBackend(String idToken) async {
     final claims = _decodeIdTokenClaims(idToken) ?? const <String, dynamic>{};
     try {
       final response = await html.HttpRequest.request(
@@ -277,23 +318,26 @@ class GoogleIdentityService {
       final raw = response.responseText ?? '{}';
       final decoded = (jsonDecode(raw) as Map?) ?? const <String, dynamic>{};
       if (decoded['success'] != true) {
-        return null;
+        return const GoogleSignInResult(status: GoogleSignInStatus.verificationFailed);
       }
       final user = decoded['user'];
       final serverEmail = user is Map ? (user['email']?.toString() ?? '') : '';
       final email = serverEmail.isNotEmpty ? serverEmail : (claims['email']?.toString() ?? '');
       if (email.trim().isEmpty) {
-        return null;
+        return const GoogleSignInResult(status: GoogleSignInStatus.verificationFailed);
       }
-      return GoogleSignInProfile(
-        email: email.trim().toLowerCase(),
-        emailVerified: decoded['emailVerified'] == true || claims['email_verified']?.toString() == 'true',
-        displayName: (user is Map ? user['name']?.toString() : null) ?? claims['name']?.toString() ?? '',
-        pictureUrl: (user is Map ? user['googlePicture']?.toString() : null) ?? claims['picture']?.toString() ?? '',
-        googleSub: (user is Map ? user['googleSub']?.toString() : null) ?? claims['sub']?.toString() ?? '',
+      return GoogleSignInResult(
+        status: GoogleSignInStatus.success,
+        profile: GoogleSignInProfile(
+          email: email.trim().toLowerCase(),
+          emailVerified: decoded['emailVerified'] == true || claims['email_verified']?.toString() == 'true',
+          displayName: (user is Map ? user['name']?.toString() : null) ?? claims['name']?.toString() ?? '',
+          pictureUrl: (user is Map ? user['googlePicture']?.toString() : null) ?? claims['picture']?.toString() ?? '',
+          googleSub: (user is Map ? user['googleSub']?.toString() : null) ?? claims['sub']?.toString() ?? '',
+        ),
       );
     } catch (_) {
-      return null;
+      return const GoogleSignInResult(status: GoogleSignInStatus.unavailable);
     }
   }
 }
