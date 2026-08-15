@@ -935,7 +935,7 @@ class _HomePageV11State extends State<HomePageV11> {
             _TopActionIcon(
               tooltip: 'Sign In',
               icon: Icons.person_outline_rounded,
-              iconColor: const Color(0xFF2563EB),
+              iconColor: const Color(0xFF0F172A),
               onTap: _openUserLoginPanel,
             )
           else

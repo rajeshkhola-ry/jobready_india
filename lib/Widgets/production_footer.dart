@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../Services/api_config.dart';
 import '../Services/public_brand_config.dart';
+import '../Utils/web_safe_browser.dart';
 
 class ProductionFooter extends StatelessWidget {
   final bool compact;
@@ -139,15 +141,48 @@ class _BusinessAndSocialBlock extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Social: LinkedIn (Coming Soon) • X/Twitter (Coming Soon) • YouTube (Coming Soon)',
-          style: TextStyle(
-            color: Color(0xFF94A3B8),
-            fontSize: 12,
-            height: 1.5,
-          ),
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            const Text(
+              'Social: ',
+              style: TextStyle(
+                color: Color(0xFF94A3B8),
+                fontSize: 12,
+                height: 1.5,
+              ),
+            ),
+            _FooterSocialLink(label: 'LinkedIn', url: ApiConfig.socialLinks['linkedin']!),
+            const Text(' • ', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+            _FooterSocialLink(label: 'X/Twitter', url: ApiConfig.socialLinks['twitter']!),
+            const Text(' • ', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+            _FooterSocialLink(label: 'YouTube', url: ApiConfig.socialLinks['youtube']!),
+          ],
         ),
       ],
+    );
+  }
+}
+
+class _FooterSocialLink extends StatelessWidget {
+  final String label;
+  final String url;
+
+  const _FooterSocialLink({required this.label, required this.url});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => WebSafeBrowser.openWindow(url),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Color(0xFFBFDBFE),
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          decoration: TextDecoration.underline,
+        ),
+      ),
     );
   }
 }

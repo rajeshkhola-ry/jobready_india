@@ -118,6 +118,7 @@ class ApiConfig {
     'facebook': 'https://facebook.com/getreadyjob',
     'instagram': 'https://instagram.com/getreadyjob',
     'linkedin': 'https://linkedin.com/company/getreadyjob',
+    'youtube': 'https://youtube.com/@getreadyjob',
   };
 
   // ==================== CRASH REPORTING ====================
