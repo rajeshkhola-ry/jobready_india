@@ -868,6 +868,8 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
   final TextEditingController _sampleEmailController = TextEditingController(text: 'rajesh.khola@gmail.com');
   bool _isSendingSample = false;
   String? _sampleStatus;
+  bool _isDataToolRunning = false;
+  String? _dataToolStatus;
   List<Map<String, dynamic>> _searchResults = [];
   bool _isSearching = false;
   String? _searchError;
@@ -921,14 +923,18 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
   }
 
   Map<String, String> _buildExportQueryParams() {
+    final fromDate = _fromDate?.toIso8601String().split('T').first;
+    final toDate = _toDate?.toIso8601String().split('T').first;
+    final hasCustomWindow = (fromDate != null && fromDate.isNotEmpty) || (toDate != null && toDate.isNotEmpty);
+
     final params = <String, String>{
-      'range': 'custom',
+      // Only switch to 'custom' when a real window is picked, otherwise the
+      // selected filing period chip is what should drive the export.
+      'range': hasCustomWindow ? 'custom' : _range,
       'format': 'csv',
       'filter': _filterLabel,
     };
 
-    final fromDate = _fromDate?.toIso8601String().split('T').first;
-    final toDate = _toDate?.toIso8601String().split('T').first;
     if (fromDate != null && fromDate.isNotEmpty) {
       params['from'] = fromDate;
       params['fromDate'] = fromDate;
@@ -963,17 +969,89 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
         break;
     }
 
-    final state = _stateController.text.trim();
-    if (state.isNotEmpty && _filterMode != 'state') {
-      params['state'] = state;
-    }
-
+    // The state box is only a filter when 'State' mode is chosen; otherwise its
+    // default value would silently exclude every other state from the export.
     final gstin = _gstinController.text.trim();
-    if (gstin.isNotEmpty) {
+    if (gstin.isNotEmpty && _filterMode == 'b2b') {
       params['gstin'] = gstin;
     }
 
     return params;
+  }
+
+  Future<void> _runTransactionDiagnostics() async {
+    setState(() {
+      _isDataToolRunning = true;
+      _dataToolStatus = null;
+    });
+    try {
+      final response = await _authedRequest('GET', '/api/admin/transactions/diagnostics', queryParams: _buildExportQueryParams());
+      if (!mounted) return;
+      if (response == null) {
+        setState(() {
+          _isDataToolRunning = false;
+          _dataToolStatus = 'Admin session is required.';
+        });
+        return;
+      }
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      final d = (decoded['diagnostics'] as Map?) ?? {};
+      setState(() {
+        _isDataToolRunning = false;
+        _dataToolStatus = 'Total: ${d['totalTransactions']} | Completed: ${d['completedTransactions']} | '
+            'In selected range: ${d['rowsInSelectedRange']}\n'
+            'Placeholder invoice numbers: ${d['placeholderInvoiceNumbers']} | Dummy GSTINs: ${d['dummyGstins']}\n'
+            'Range: ${d['earliestTransaction']} to ${d['latestTransaction']}\n'
+            'Persistent disk configured: ${d['persistentDiskConfigured']} | Store file exists: ${d['storageFileExists']}';
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isDataToolRunning = false;
+        _dataToolStatus = 'Diagnostics failed. ${error.toString()}';
+      });
+    }
+  }
+
+  Future<void> _sanitizeLegacyRows({required bool apply}) async {
+    setState(() {
+      _isDataToolRunning = true;
+      _dataToolStatus = null;
+    });
+    try {
+      final response = await _authedRequest(
+        'POST',
+        '/api/admin/transactions/sanitize',
+        queryParams: {'apply': apply ? 'true' : 'false'},
+      );
+      if (!mounted) return;
+      if (response == null) {
+        setState(() {
+          _isDataToolRunning = false;
+          _dataToolStatus = 'Admin session is required.';
+        });
+        return;
+      }
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      final r = (decoded['result'] as Map?) ?? {};
+      final changes = (r['changes'] as List?) ?? [];
+      final preview = changes.take(5).map((c) {
+        final fixes = ((c as Map)['fixes'] as List?) ?? [];
+        return '  ${c['transactionId']}: ${fixes.map((f) => '${(f as Map)['field']} "${f['from']}" -> "${f['to']}"').join('; ')}';
+      }).join('\n');
+      setState(() {
+        _isDataToolRunning = false;
+        _dataToolStatus = '${apply ? 'APPLIED' : 'PREVIEW (nothing written)'} - '
+            'total ${r['totalTransactions']}, affected ${r['affectedTransactions']}'
+            '${changes.isEmpty ? '' : '\n$preview'}';
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isDataToolRunning = false;
+        _dataToolStatus = 'Sanitize failed. ${error.toString()}';
+      });
+    }
   }
 
   Future<String?> _promptAdminOtp() async {
@@ -1809,6 +1887,59 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
                   ],
                 ],
               ),
+              if (_isGstMode) ...[
+                const SizedBox(height: 18),
+                const Divider(),
+                const SizedBox(height: 12),
+                const Text('Data health & legacy cleanup', style: TextStyle(fontWeight: FontWeight.w800)),
+                const SizedBox(height: 4),
+                const Text(
+                  'Preview shows what would change without writing. Clean Now backs up the store first, then fixes placeholder invoice numbers (plink-...) and dummy GSTINs.',
+                  style: TextStyle(fontSize: 11.5, height: 1.4, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: _isDataToolRunning ? null : _runTransactionDiagnostics,
+                      icon: const Icon(Icons.fact_check_outlined, size: 18),
+                      label: const Text('Check Data Health'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _isDataToolRunning ? null : () => _sanitizeLegacyRows(apply: false),
+                      icon: const Icon(Icons.visibility_outlined, size: 18),
+                      label: const Text('Preview Cleanup'),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: _isDataToolRunning ? null : () => _sanitizeLegacyRows(apply: true),
+                      icon: const Icon(Icons.cleaning_services_outlined, size: 18),
+                      label: const Text('Clean Now'),
+                    ),
+                  ],
+                ),
+                if (_isDataToolRunning) ...[
+                  const SizedBox(height: 8),
+                  const LinearProgressIndicator(),
+                ],
+                if (_dataToolStatus != null) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFCBD5E1)),
+                    ),
+                    child: SelectableText(
+                      _dataToolStatus!,
+                      style: const TextStyle(fontSize: 11.5, height: 1.5, color: Color(0xFF0F172A), fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ],
               if (!_isGstMode) ...[
                 const SizedBox(height: 18),
                 const Divider(),
