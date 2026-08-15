@@ -849,6 +849,9 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
   final TextEditingController _invoiceQueryController = TextEditingController();
   final TextEditingController _stateController = TextEditingController(text: 'Delhi');
   final TextEditingController _gstinController = TextEditingController();
+  List<Map<String, dynamic>> _searchResults = [];
+  bool _isSearching = false;
+  String? _searchError;
 
   String get _filterLabel {
     switch (_filterMode) {
@@ -1133,6 +1136,302 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
     super.dispose();
   }
 
+  Future<http.Response?> _authedRequest(
+    String method,
+    String path, {
+    Map<String, String>? queryParams,
+    Map<String, dynamic>? body,
+    bool retryAfterRefresh = false,
+  }) async {
+    final adminToken = AuthRouterService.authToken;
+    if (adminToken.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Admin session is required for this action.')),
+        );
+      }
+      return null;
+    }
+
+    final uri = Uri.https('jobready-india.onrender.com', path, queryParams);
+    final headers = {
+      'Authorization': 'Bearer $adminToken',
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+
+    http.Response response;
+    switch (method) {
+      case 'POST':
+        response = await http.post(uri, headers: headers, body: body != null ? jsonEncode(body) : null);
+        break;
+      case 'PATCH':
+        response = await http.patch(uri, headers: headers, body: body != null ? jsonEncode(body) : null);
+        break;
+      default:
+        response = await http.get(uri, headers: headers);
+    }
+
+    final isExpiredTokenResponse = response.statusCode == 401 || response.body.contains('Token expired');
+    if (isExpiredTokenResponse && !retryAfterRefresh) {
+      final refreshed = await _refreshExpiredAdminSession();
+      if (refreshed) {
+        return _authedRequest(method, path, queryParams: queryParams, body: body, retryAfterRefresh: true);
+      }
+    }
+
+    return response;
+  }
+
+  Future<void> _searchInvoices() async {
+    final query = _invoiceQueryController.text.trim();
+    if (query.isEmpty) {
+      setState(() {
+        _searchResults = [];
+        _searchError = 'Enter an invoice number or transaction ID to search.';
+      });
+      return;
+    }
+    setState(() {
+      _isSearching = true;
+      _searchError = null;
+    });
+    try {
+      final response = await _authedRequest('GET', '/api/admin/invoices/search', queryParams: {'query': query});
+      if (response == null) {
+        setState(() => _isSearching = false);
+        return;
+      }
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw Exception('Search failed with status ${response.statusCode}.');
+      }
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      final invoices = ((decoded['invoices'] as List?) ?? []).cast<Map<String, dynamic>>();
+      setState(() {
+        _searchResults = invoices;
+        _isSearching = false;
+      });
+    } catch (error) {
+      setState(() {
+        _isSearching = false;
+        _searchError = 'Unable to search invoices. ${error.toString()}';
+      });
+    }
+  }
+
+  Future<void> _showAmendDialog(Map<String, dynamic> invoice) async {
+    final nameController = TextEditingController(text: invoice['customerName']?.toString() ?? '');
+    final companyController = TextEditingController(text: invoice['companyName']?.toString() ?? '');
+    final gstinController = TextEditingController(text: invoice['gstin']?.toString() ?? '');
+    final stateController = TextEditingController(text: invoice['state']?.toString() ?? '');
+    final emailController = TextEditingController(text: invoice['email']?.toString() ?? '');
+    final mobileController = TextEditingController();
+    bool isSez = false;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: const Text('Amend Invoice (Non-Tax Fields)'),
+            content: SizedBox(
+              width: 420,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Invoice: ${invoice['invoiceNumber'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 10),
+                    TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Customer / Business Legal Name')),
+                    const SizedBox(height: 8),
+                    TextField(controller: companyController, decoration: const InputDecoration(labelText: 'Company Name')),
+                    const SizedBox(height: 8),
+                    TextField(controller: gstinController, decoration: const InputDecoration(labelText: 'Customer GSTIN')),
+                    const SizedBox(height: 8),
+                    TextField(controller: stateController, decoration: const InputDecoration(labelText: 'Billing Address / Place of Supply (State)')),
+                    const SizedBox(height: 8),
+                    TextField(controller: emailController, decoration: const InputDecoration(labelText: 'Billing Email')),
+                    const SizedBox(height: 8),
+                    TextField(controller: mobileController, decoration: const InputDecoration(labelText: 'Billing Mobile')),
+                    CheckboxListTile(
+                      value: isSez,
+                      onChanged: (value) => setDialogState(() => isSez = value ?? false),
+                      controlAffinity: ListTileControlAffinity.leading,
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      title: const Text('SEZ Status (Yes)'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Cancel')),
+              ElevatedButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Save Amendment')),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    try {
+      final response = await _authedRequest(
+        'PATCH',
+        '/api/admin/invoices/${invoice['transactionId']}/amend',
+        body: {
+          'customerName': nameController.text.trim(),
+          'companyName': companyController.text.trim(),
+          'gstin': gstinController.text.trim(),
+          'state': stateController.text.trim(),
+          'email': emailController.text.trim(),
+          'mobile': mobileController.text.trim(),
+          'sez': isSez ? 'YES' : 'NO',
+        },
+      );
+      if (response == null) return;
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw Exception('Amend failed with status ${response.statusCode}.');
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invoice amended successfully.')));
+      }
+      await _searchInvoices();
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Amend failed: $error')));
+      }
+    }
+  }
+
+  Future<void> _showCreditOrDebitNoteDialog(Map<String, dynamic> invoice, {required bool isCreditNote}) async {
+    final reasonController = TextEditingController();
+    final taxableController = TextEditingController();
+    final cgstController = TextEditingController();
+    final sgstController = TextEditingController();
+    final igstController = TextEditingController();
+    final netController = TextEditingController();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(isCreditNote ? 'Issue Credit Note' : 'Issue Debit Note'),
+        content: SizedBox(
+          width: 420,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Original Invoice: ${invoice['invoiceNumber'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 10),
+                TextField(controller: reasonController, decoration: const InputDecoration(labelText: 'Reason')),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: taxableController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(labelText: isCreditNote ? 'Credited Taxable Value' : 'Differential Taxable Value'),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: cgstController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(labelText: 'CGST'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: sgstController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(labelText: 'SGST'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: igstController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(labelText: 'IGST'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: netController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(labelText: isCreditNote ? 'Net Refund Amount' : 'Net Additional Amount'),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(isCreditNote ? 'Issue Credit Note' : 'Issue Debit Note'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    double? parseOrNull(String value) {
+      final trimmed = value.trim();
+      if (trimmed.isEmpty) return null;
+      return double.tryParse(trimmed);
+    }
+
+    final taxableValue = parseOrNull(taxableController.text);
+    final cgstValue = parseOrNull(cgstController.text);
+    final sgstValue = parseOrNull(sgstController.text);
+    final igstValue = parseOrNull(igstController.text);
+    final netValue = parseOrNull(netController.text);
+
+    final body = <String, dynamic>{
+      'reason': reasonController.text.trim(),
+      if (taxableValue != null) (isCreditNote ? 'creditedTaxableValue' : 'differentialTaxableValue'): taxableValue,
+      if (cgstValue != null) 'cgstAmount': cgstValue,
+      if (sgstValue != null) 'sgstAmount': sgstValue,
+      if (igstValue != null) 'igstAmount': igstValue,
+      if (netValue != null) (isCreditNote ? 'netRefundAmount' : 'netAdditionalAmount'): netValue,
+    };
+
+    try {
+      final response = await _authedRequest(
+        'POST',
+        '/api/admin/invoices/${invoice['transactionId']}/${isCreditNote ? 'credit-note' : 'debit-note'}',
+        body: body,
+      );
+      if (response == null) return;
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw Exception('Request failed with status ${response.statusCode}.');
+      }
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      final noteKey = isCreditNote ? 'creditNote' : 'debitNote';
+      final documentNumber = (decoded[noteKey] as Map<String, dynamic>?)?['documentNumber']?.toString() ?? '';
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${isCreditNote ? 'Credit' : 'Debit'} Note issued: $documentNumber')),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to issue note: $error')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final stats = <Map<String, String>>[
@@ -1274,13 +1573,65 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.refresh_outlined),
-                      label: const Text('Search Invoice'),
+                      onPressed: _isSearching ? null : _searchInvoices,
+                      icon: _isSearching
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.search_outlined),
+                      label: Text(_isSearching ? 'Searching...' : 'Search Invoice'),
                     ),
                   ),
                 ],
               ),
+              if (_searchError != null) ...[
+                const SizedBox(height: 8),
+                Text(_searchError!, style: const TextStyle(color: Color(0xFF991B1B), fontSize: 12, fontWeight: FontWeight.w600)),
+              ],
+              if (_searchResults.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                ..._searchResults.map((invoice) => Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            invoice['invoiceNumber']?.toString() ?? invoice['transactionId']?.toString() ?? '',
+                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${invoice['customerName'] ?? 'Customer'} • ${invoice['gstin']?.toString().isNotEmpty == true ? invoice['gstin'] : 'No GSTIN'} • ${invoice['state'] ?? ''}',
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF475569)),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              OutlinedButton(
+                                onPressed: () => _showAmendDialog(invoice),
+                                child: const Text('Amend'),
+                              ),
+                              OutlinedButton(
+                                onPressed: () => _showCreditOrDebitNoteDialog(invoice, isCreditNote: true),
+                                child: const Text('Credit Note'),
+                              ),
+                              OutlinedButton(
+                                onPressed: () => _showCreditOrDebitNoteDialog(invoice, isCreditNote: false),
+                                child: const Text('Debit Note'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    )),
+              ],
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.all(12),
