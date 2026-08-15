@@ -6,16 +6,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:universal_html/html.dart' as html;
 
-import '../../home_page_v1_1.dart';
 import '../../../Services/file_picker_service.dart';
 import '../../../Services/free_trial_service.dart';
 import '../../../Services/photo_resize_service.dart';
 import '../../../Services/upload_context_service.dart';
 import '../../../Services/wasm_document_service.dart';
+import '../../../Utils/tool_navigation.dart';
 import '../../../Widgets/quota_gate.dart';
 
+/// Which experience the shared photo studio opens in.
+enum PhotoWorkspaceMode { hdPhoto, poster }
+
 class PhotoHdWorkspacePage extends StatefulWidget {
-  const PhotoHdWorkspacePage({super.key});
+  final PhotoWorkspaceMode initialMode;
+
+  const PhotoHdWorkspacePage({super.key, this.initialMode = PhotoWorkspaceMode.hdPhoto});
 
   @override
   State<PhotoHdWorkspacePage> createState() => _PhotoHdWorkspacePageState();
@@ -65,6 +70,13 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialMode == PhotoWorkspaceMode.poster) {
+      _selectedWorkspacePresetId = 'poster_a4';
+      _selectedPreset = PhotoResizeService.presetById('poster_a4');
+      _selectedAspectPreset = 'poster';
+      _maxTargetKb = _posterTargetRange.defaultValue;
+      _statusMessage = 'Upload an image to start your poster or banner layout.';
+    }
     _hydrateFromUploadContext();
     if (kIsWeb) {
       html.document.body?.addEventListener('dragover', _handleBodyDragOver);
@@ -894,16 +906,13 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          tooltip: 'Back to Home',
+          tooltip: 'Back',
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () {
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (_) => const HomePageV11()),
-              (route) => false,
-            );
-          },
+          onPressed: () => closeToolWorkspace(context),
         ),
-        title: const Text('Photo HD Workspace + Poster Generator'),
+        title: Text(widget.initialMode == PhotoWorkspaceMode.poster
+            ? 'Poster Workspace'
+            : 'HD Photo Workspace'),
         backgroundColor: const Color(0xFF0E3A66),
         foregroundColor: Colors.white,
         elevation: 0,

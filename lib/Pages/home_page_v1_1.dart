@@ -6855,7 +6855,7 @@ class _MostPopularToolsCard extends StatelessWidget {
                   isFlagship: true,
                   badgeText: '1 FREE USE',
                   onTap: () {
-                    Navigator.of(context).pushNamed('/photo-hd');
+                    Navigator.of(context).pushNamed('/poster-workspace');
                   },
                 ),
                 _PopularToolRow(

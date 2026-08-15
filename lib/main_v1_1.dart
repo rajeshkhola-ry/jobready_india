@@ -317,7 +317,17 @@ class JobReadyV11App extends StatelessWidget {
           loader: () async {
             await photoHdWorkspacePage.loadLibrary();
           },
-          builder: () => photoHdWorkspacePage.PhotoHdWorkspacePage(),
+          builder: () => photoHdWorkspacePage.PhotoHdWorkspacePage(
+            initialMode: photoHdWorkspacePage.PhotoWorkspaceMode.hdPhoto,
+          ),
+        ),
+        '/poster-workspace': (_) => DeferredRoutePage(
+          loader: () async {
+            await photoHdWorkspacePage.loadLibrary();
+          },
+          builder: () => photoHdWorkspacePage.PhotoHdWorkspacePage(
+            initialMode: photoHdWorkspacePage.PhotoWorkspaceMode.poster,
+          ),
         ),
         '/privacy-masker': (_) => DeferredRoutePage(
           loader: () async {
