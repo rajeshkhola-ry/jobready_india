@@ -282,7 +282,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
       case 'Yearly':
         return 180;
       case 'Lifetime':
-        return 500;
+        return -1; // sentinel: unlimited (see remainingCredits < 0 handling in build())
       default:
         return 3;
     }
@@ -325,10 +325,9 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
   @override
   Widget build(BuildContext context) {
     final activePlan = _profile.activePlan.isNotEmpty ? _profile.activePlan : 'Free';
-    final isUnlimitedQuota = _profile.remainingCredits < 0;
-    final credits = isUnlimitedQuota
-        ? 'Unlimited'
-        : (_profile.remainingCredits > 0 ? _profile.remainingCredits : _creditsForPlan(activePlan)).toString();
+    final fallbackCredits = _profile.remainingCredits > 0 ? _profile.remainingCredits : _creditsForPlan(activePlan);
+    final isUnlimitedQuota = _profile.remainingCredits < 0 || fallbackCredits < 0;
+    final credits = isUnlimitedQuota ? 'Unlimited' : fallbackCredits.toString();
     final convertedFiles = _profile.convertedFilesCount > 0 ? _profile.convertedFilesCount : _history.length;
     final planExpiry = DateTime.tryParse(_profile.planExpiresAt);
     final expiryLabel = activePlan == 'Free'
