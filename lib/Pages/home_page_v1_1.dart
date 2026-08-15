@@ -2909,6 +2909,10 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
   bool _creatingPaymentLink = false;
   Map<String, dynamic>? _lastCheckoutResponse;
   String _localCurrency = 'USD';
+  late final TextEditingController _checkoutGstinController;
+  late final TextEditingController _checkoutCompanyController;
+  late final TextEditingController _checkoutBillingEmailController;
+  bool _isSezUnit = false;
 
   static const Duration _checkoutTimeout = Duration(minutes: 10);
 
@@ -2918,6 +2922,18 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
     _localCurrency = (widget.selectedCurrency == 'INR' || widget.selectedCurrency == 'USD')
         ? widget.selectedCurrency
         : 'USD';
+    final profile = UserAccountService.getProfile();
+    _checkoutGstinController = TextEditingController(text: profile.gstin);
+    _checkoutCompanyController = TextEditingController(text: profile.companyName);
+    _checkoutBillingEmailController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _checkoutGstinController.dispose();
+    _checkoutCompanyController.dispose();
+    _checkoutBillingEmailController.dispose();
+    super.dispose();
   }
 
   @override
@@ -3120,9 +3136,12 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
     final displayName = profile.displayName.trim().isNotEmpty
         ? profile.displayName.trim()
         : (session?.displayName.trim().isNotEmpty == true ? session!.displayName.trim() : 'User');
-    final email = profile.email.trim().isNotEmpty
-        ? profile.email.trim()
-        : (session?.email.trim().isNotEmpty == true ? session!.email.trim() : '');
+    final typedBillingEmail = _checkoutBillingEmailController.text.trim();
+    final email = typedBillingEmail.isNotEmpty
+        ? typedBillingEmail
+        : (profile.email.trim().isNotEmpty
+            ? profile.email.trim()
+            : (session?.email.trim().isNotEmpty == true ? session!.email.trim() : ''));
     final mobileRaw = profile.mobileNumber.trim().isNotEmpty
         ? profile.mobileNumber.trim()
         : (session?.mobileNumber.trim() ?? '');
@@ -3132,8 +3151,10 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
     final state = isBusiness
         ? (profile.billingState.trim().isNotEmpty ? profile.billingState.trim() : country)
         : country;
-    final company = isBusiness ? profile.companyName.trim() : '';
-    final gstin = isBusiness ? profile.gstin.trim() : '';
+    final typedCompany = _checkoutCompanyController.text.trim();
+    final company = isBusiness ? (typedCompany.isNotEmpty ? typedCompany : profile.companyName.trim()) : '';
+    final typedGstin = _checkoutGstinController.text.trim().toUpperCase();
+    final gstin = typedGstin.isNotEmpty ? typedGstin : profile.gstin.trim();
 
     return {
       'name': displayName,
@@ -3144,6 +3165,7 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
       'gstin': gstin,
       'email': email,
       'mobile': normalizedMobile,
+      'sez': (isBusiness && _isSezUnit) ? 'YES' : 'NO',
     };
   }
 
@@ -3251,6 +3273,14 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
         'name': billing['name']?.toString() ?? 'User',
         'email': billing['email']?.toString() ?? '',
         'contact': billing['mobile']?.toString() ?? '',
+      },
+      'notes': {
+        'name': billing['name']?.toString() ?? '',
+        'company': billing['company']?.toString() ?? '',
+        'gstin': billing['gstin']?.toString() ?? '',
+        'state': billing['state']?.toString() ?? '',
+        'country': billing['country']?.toString() ?? 'India',
+        'sez': billing['sez']?.toString() ?? 'NO',
       },
       'theme': {
         'color': '#${ApiConfig.razorpayConfig.themeColor.toUpperCase()}',
@@ -3856,6 +3886,127 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
     }
   }
 
+  Widget _buildUsageAndBillingSection() {
+    final isBusiness = widget.usageType == 'Business';
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFF),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFDCE5F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Billing Type',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF334155),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: ChoiceChip(
+                  label: const Text('Personal (Default)'),
+                  selected: !isBusiness,
+                  onSelected: (_) => widget.onUsageTypeChanged('Personal'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ChoiceChip(
+                  label: const Text('Business'),
+                  selected: isBusiness,
+                  onSelected: (_) => widget.onUsageTypeChanged('Business'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (!isBusiness)
+            TextField(
+              controller: _checkoutGstinController,
+              textCapitalization: TextCapitalization.characters,
+              decoration: InputDecoration(
+                labelText: 'GSTIN (Optional)',
+                hintText: 'Please enter your GSTIN if you want a tax invoice, or leave blank and proceed.',
+                isDense: true,
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            )
+          else ...[
+            const Text(
+              'Fill company details for a B2B business invoice, or skip to proceed.',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF64748B),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _checkoutCompanyController,
+              decoration: InputDecoration(
+                labelText: 'Company / Business Legal Name',
+                isDense: true,
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _checkoutBillingEmailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: InputDecoration(
+                labelText: 'Billing Email ID',
+                isDense: true,
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _checkoutGstinController,
+              textCapitalization: TextCapitalization.characters,
+              decoration: InputDecoration(
+                labelText: 'GSTIN',
+                hintText: 'Enter your 15-digit GSTIN (optional)',
+                isDense: true,
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+            CheckboxListTile(
+              value: _isSezUnit,
+              onChanged: (value) => setState(() => _isSezUnit = value ?? false),
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              title: const Text(
+                'Is this an SEZ unit / developer with LUT/Bond?',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF334155),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildReadinessCard() {
     final readiness = _readiness();
     final status = readiness['status']?.toString() ?? 'blocked';
@@ -4043,34 +4194,7 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
           const SizedBox(height: 8),
           _buildReadinessCard(),
           const SizedBox(height: 8),
-          const Text(
-            'Usage Type',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF334155),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: ChoiceChip(
-                  label: const Text('Personal'),
-                  selected: widget.usageType == 'Personal',
-                  onSelected: (_) => widget.onUsageTypeChanged('Personal'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ChoiceChip(
-                  label: const Text('Business'),
-                  selected: widget.usageType == 'Business',
-                  onSelected: (_) => widget.onUsageTypeChanged('Business'),
-                ),
-              ),
-            ],
-          ),
+          _buildUsageAndBillingSection(),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
             key: ValueKey('${widget.selectedPlan}_${widget.usageType}_${_localCurrency}'),
