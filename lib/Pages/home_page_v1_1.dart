@@ -3984,6 +3984,13 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
     final status = readiness['status']?.toString() ?? 'blocked';
     final statusColor = _statusColor(status);
     final amount = _chargeAmountForPlan(widget.selectedPlan);
+    final billingCountry = UserAccountService.getProfile().country.trim();
+    final isExportSupply = billingCountry.isNotEmpty && billingCountry.toLowerCase() != 'india';
+    final taxLine = isExportSupply
+        ? 'Tax: Export of Services (0% GST) - zero-rated supply, no GST charged.'
+        : (_isSezUnit
+            ? 'Tax: 18% IGST (SEZ with Payment of IGST) - included in the amount above.'
+            : 'Tax: 18% GST included in the amount above.');
 
     return Container(
       width: double.infinity,
@@ -4034,6 +4041,15 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
           Text(
             'Plan: ${widget.selectedPlan} | Amount: ${_formatCurrencyAmount(amount, _localCurrency)} | Usage: ${widget.usageType ?? 'NOT SELECTED'}',
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            taxLine,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: isExportSupply ? const Color(0xFF0F766E) : const Color(0xFF334155),
+            ),
           ),
           const SizedBox(height: 4),
           Text(
