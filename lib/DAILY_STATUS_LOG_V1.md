@@ -1273,3 +1273,17 @@ Prepared For: JOBREADY
   - **Owner action required**: `GEMINI_API_KEY` (and optionally `GEMINI_MODEL=gemini-flash-latest`) must be added to the live Render service's environment variables manually (Render dashboard → service → Environment → Add Environment Variable → Save, which triggers an auto-redeploy) — Copilot has no Render dashboard/API access in this environment and cannot set this directly. Until then, `/api/voice-command` on the live `jobready-india.onrender.com` backend will return a 503 "not configured" response even though it works locally and on this commit's code.
   - Note: the API key value provided by the owner (`AQ.Ab8RN6I_...`) does not match the typical Google AI Studio key format (`AIzaSy...`), but it authenticated successfully against the real Gemini API during live testing, so no action needed there.
 - Owner: Founder + Copilot
+
+### Same day follow-up #6 — SEO refresh (title/meta/OpenGraph/JSON-LD) for AI voice + CSV-to-Excel positioning
+- Overall status: Green (deployed)
+- Completed:
+  - **Title & primary meta tags** ✓ — `web/index.html`: new `<title>` ("GetReadyJob | AI Voice Document Converter, PDF to Word, CSV to Excel & Govt Exam Resizer"), new `meta[name="description"]` and `meta[name="keywords"]` per the requested copy (previous copy was SSC/UPSC-photo-resizer-only and no longer reflected the AI Voice Command / CSV to Excel features). Bumped `build-timestamp` to `2026-08-16-seo-update`.
+  - **OpenGraph & Twitter** ✓ — `og:title`/`og:description`/`twitter:title`/`twitter:description` updated to match; `og:image:alt`/`twitter:image:alt` refreshed to the new positioning. `og:url`/canonical already used `https://www.getreadyjob.com/` — confirmed unchanged.
+  - **Schema.org JSON-LD** ✓ — Consolidated the two separate, partly-stale `WebApplication` JSON-LD blocks into a single dual-typed entity (`"@type": ["WebApplication", "SoftwareApplication"]`) to avoid duplicate/conflicting structured data for the same site; added a `description` field; prepended 3 new `featureList` entries — "CSV to Excel (.xlsx) Converter", "Multilingual AI Voice Command Automation", "Client-side, privacy-first PDF/Image suite" — ahead of the existing feature entries; fixed the block's `url` to the `www` host to match canonical.
+  - **Client-side SEO sync** ✓ — `web/index.html`'s route-based SEO script (`defaultSeo`) updated (title/description/keywords/url) so the SPA doesn't overwrite the new root-route tags with the old copy after Flutter boots; also fixed its `url` to the `www` host (was previously inconsistent with the static canonical tag).
+  - **Validation** ✓ — wrote a throwaway Node script to `JSON.parse` every `<script type="application/ld+json">` block in the file; all 3 remaining blocks (Organization+WebSite graph, WebApplication+SoftwareApplication, FAQPage) parsed as valid JSON before building; deleted the script after.
+  - **Build & deploy** ✓
+    - `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` → success; confirmed the new title/description/OG/JSON-LD strings are present in `build/web/index.html`.
+    - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success.
+    - Committed + pushed (commit `9e4e49f`) → confirmed via GitHub REST API that all 3 workflows triggered for this commit.
+- Owner: Founder + Copilot
