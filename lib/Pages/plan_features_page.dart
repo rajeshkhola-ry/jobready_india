@@ -247,18 +247,6 @@ class _PlanFeaturesPageState extends State<PlanFeaturesPage> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: const [
-                    _LegendChip(label: 'FREE', color: Color(0xFF6B7280)),
-                    _LegendChip(label: '7 DAYS', color: Color(0xFFC97A3C)),
-                    _LegendChip(label: 'MONTHLY', color: Color(0xFF0F766E)),
-                    _LegendChip(label: 'YEARLY', color: Color(0xFF1D4ED8)),
-                    _LegendChip(label: 'LIFETIME', color: Color(0xFF7C3AED)),
-                  ],
-                ),
                 const SizedBox(height: 12),
                 Expanded(
                   child: Container(
@@ -288,11 +276,11 @@ class _PlanFeaturesPageState extends State<PlanFeaturesPage> {
                           ),
                           columns: const [
                             DataColumn(label: Text('Function Name')),
-                            DataColumn(label: Text('FREE')),
-                            DataColumn(label: Text('7 DAYS')),
-                            DataColumn(label: Text('MONTHLY')),
-                            DataColumn(label: Text('YEARLY')),
-                            DataColumn(label: Text('LIFETIME')),
+                            DataColumn(label: Center(child: _LegendChip(label: 'FREE', color: Color(0xFF6B7280)))),
+                            DataColumn(label: Center(child: _LegendChip(label: '7 DAYS', color: Color(0xFFC97A3C)))),
+                            DataColumn(label: Center(child: _LegendChip(label: 'MONTHLY', color: Color(0xFF0F766E)))),
+                            DataColumn(label: Center(child: _LegendChip(label: 'YEARLY', color: Color(0xFF1D4ED8)))),
+                            DataColumn(label: Center(child: _LegendChip(label: 'LIFETIME', color: Color(0xFF7C3AED)))),
                           ],
                           rows: combinedRows
                               .asMap()
