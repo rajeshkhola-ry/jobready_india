@@ -1364,3 +1364,22 @@ Prepared For: JOBREADY
     - Committed + pushed (commit `4519aba`) → confirmed via GitHub REST API that all 3 workflows triggered (Render + Site Lock completed/success, GitHub Pages preview in progress as expected).
 - Owner: Founder + Copilot
 
+### Same day follow-up #12 — Universal zero-click voice auto-execution + homepage layout refinement
+- Overall status: Green (deployed)
+- Completed:
+  - **Voice command architecture map** ✓ — Confirmed Gemini classifies into 11 tools (`compress_pdf`, `pdf_to_word`, `word_to_pdf`, `jpg_to_pdf`, `pdf_to_jpg`, `merge_pdf`, `split_pdf`, `protect_pdf`, `edit_pdf`, `csv_to_excel`, `photo_resizer`), extracting only `target_size_kb`/`preset` (no password, no page ranges - correctly, since dictating a password aloud would be insecure). Found and fixed a pre-existing routing bug: `protect_pdf` was being sent to `PdfEditPage` (text extraction/editing only) instead of `SmartPdfSuitePage` (where protect/unlock actually live, route `/smart-pdf`).
+  - **Core signaling** ✓ — `voice_command_service.dart` gained two sentinel keys (`autoExecuteFlagKey`, `voiceToolKey`) merged into the existing pending-parameters map (no signature changes to `setPendingParameters`/`consumePendingParameters`). `home_page_v1_1.dart`'s `_handleVoiceCommandResult` now always stashes pending parameters (previously skipped when Gemini returned no extra params, which meant merge/split/csv_to_excel never received any signal at all).
+  - **Per-tool auto-navigate → auto-load → auto-run → auto-download wiring** ✓ (all reusing each page's EXISTING upload-context hydration and main action method - none needed new processing logic, only new trigger wiring):
+    - `compression_tool_page.dart` (compress_pdf) and `govt_verifier_page.dart` (photo_resizer) already had partial voice pre-fill; added the auto-execute trigger via `WidgetsBinding.instance.addPostFrameCallback`.
+    - `merge_tool_page.dart` (merge_pdf) and `split_tool_page.dart` (split_pdf) had zero prior voice wiring; added it from scratch.
+    - `csv_to_excel_page.dart` (csv_to_excel) and `convert_tool_page.dart` (pdf_to_word/word_to_pdf/jpg_to_pdf/pdf_to_jpg) normally show a `DownloadResultDialog` requiring a manual click - the auto-execute path now bypasses that and calls `WasmDocumentService.triggerBrowserDownload` directly (plus `DocumentHistoryService`/`UsageQuotaService` logging for consistency with the dialog's own behavior), so the file downloads immediately with no click. `convert_tool_page.dart` also gained a voice-tool-to-output-format map so the correct conversion direction is auto-selected (only overriding the default when the uploaded file's inferred input format actually matches what was spoken, to avoid forcing an invalid format pair).
+    - `smart_pdf_suite_page.dart` (protect_pdf) had zero upload-context hydration or voice wiring at all; added both, plus a password-input modal (`_promptForPassword`) that appears automatically before auto-running Protect PDF, since Gemini never extracts a password - this is the "missing mandatory parameter" fallback the spec asked for.
+    - `pdf_edit_page.dart` (edit_pdf): this page already auto-loads the file and auto-extracts its text from its existing logic. "Editing" has no single well-defined auto-action since it inherently needs user input on what to change, so this was scoped to confirming the voice command via status text rather than faking a full auto-execute - documented as a deliberate, reasonable limitation rather than over-engineering a fake workflow.
+  - **Homepage layout refinement** ✓ — Merged the standalone full-width "About Us" and "Future Plan" sections into one compact `_AboutAndFuturePlanSection` card, placed in a responsive two-column `Row` (58/42 flex split) beside the "Feedback & Rating" card on screens ≥768px wide (stacks vertically below that width), removing the large empty space that used to sit to the left of the feedback card.
+  - **Validation** ✓ — Full project-wide `flutter analyze` shows zero new errors; only the same pre-existing, unrelated baseline errors already present all session remain.
+  - **Build & deploy** ✓
+    - `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` → success.
+    - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success.
+    - Committed + pushed (commit `b4cfee1`) → confirmed via GitHub REST API that all 3 workflows triggered for this commit.
+- Owner: Founder + Copilot
+
