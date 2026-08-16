@@ -1339,3 +1339,16 @@ Prepared For: JOBREADY
     - Committed + pushed (commit `3d7cfcf`) → confirmed via GitHub REST API that all 3 workflows (Enforce Current Site Lock, Deploy Flutter Web Preview, Deploy to Render) triggered for this commit.
 - Owner: Founder + Copilot
 
+### Same day follow-up #10 — Mega-feature spec re-check: correct voice top-up placement + migrate Recent Documents management
+- Overall status: Green (deployed)
+- Context: Re-verified follow-up #9's work against the full original spec text and found two real gaps plus confirmed one item was already satisfied:
+  - **Confirmed already satisfied (no action needed)**: Universal Admin Access already bypasses ALL tool daily/batch quota limits, not just voice - `Widgets/quota_gate.dart`'s `checkQuotaAndProceed()` (used by `compression_tool_page.dart`, `convert_tool_page.dart`, `csv_to_excel_page.dart`, `merge_tool_page.dart`, `split_tool_page.dart`) already calls `OwnerAdminAccessService.isUnlocked` first and returns `true` immediately for admin sessions, bypassing the quota check entirely. This was pre-existing infrastructure, not something added this session.
+  - **Fixed: Voice Top-Up grid was on the wrong page** ✓ — The spec's "Pricing Page Voice Add-on Grid: place right below the main 5 plan cards" refers to the `_PlanCardsSection`/`_UserPaymentPanel` area on the homepage (`home_page_v1_1.dart`), not the `/pricing` route (which is only a feature-comparison table with no plan cards or buy buttons). Moved the Voice Top-Up Pack grid + full Razorpay checkout flow from `plan_features_page.dart` to render directly below the payment panel on the homepage instead. Along the way, fixed a cross-class scope bug: `_openRazorpayAndVerify` (and the helpers it depends on) live in `_UserPaymentPanelState`, not `_HomePageV11State` - the grid/checkout methods and state now live in the correct class. Parameterized `_openRazorpayAndVerify` with optional `verifyPath`/`description` so the existing, proven checkout flow could be reused for top-ups without duplicating the postMessage-bridge implementation a second time. `plan_features_page.dart` reverted to just the comparison table + category grouping + Voice Commands Quota row (its correct scope).
+  - **Fixed: "Recent Documents" management was only partially migrated** ✓ — The dashboard's "Conversion History & Recent Activity" section showed the same `DocumentHistoryService` data as the homepage's removed "Recent Documents" popup, but was read-only. Added the "Clear All" button and "Keep Last N" (20/50/100/200) retention dropdown to that section so the management actions are genuinely available in the User Account drawer, not just the data.
+  - **Validation** ✓ — A full `flutter analyze` (not just `get_errors`, which gave a false negative on the cross-class scope bug) confirmed zero new errors after the fix; only the same pre-existing, unrelated baseline errors remain.
+  - **Build & deploy** ✓
+    - `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` → success.
+    - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success.
+    - Committed + pushed (commit `a1ffa21`).
+- Owner: Founder + Copilot
+
