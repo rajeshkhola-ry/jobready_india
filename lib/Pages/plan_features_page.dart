@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import '../Services/api_config.dart';
 import '../Services/plan_catalog_service.dart';
 
 class PlanFeaturesPage extends StatefulWidget {
@@ -13,8 +14,47 @@ class PlanFeaturesPage extends StatefulWidget {
 }
 
 class _PlanFeaturesPageState extends State<PlanFeaturesPage> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1F2937),
+        iconTheme: const IconThemeData(
+          color: Colors.white,
+          size: 30,
+        ),
+        title: const Text(
+          'Plan Function List',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+          ),
+        ),
+      ),
+      body: const Padding(
+        padding: EdgeInsets.all(14),
+        child: PlanComparisonMatrix(),
+      ),
+    );
+  }
+}
+
+/// Full plan feature/quota comparison table. Used both as the standalone
+/// "Plan Function List" page body and embedded directly elsewhere (via
+/// [embeddedMaxHeight], which swaps the full-height Scaffold-driven layout
+/// for a fixed-height self-contained scroll region).
+class PlanComparisonMatrix extends StatefulWidget {
+  final double? embeddedMaxHeight;
+
+  const PlanComparisonMatrix({super.key, this.embeddedMaxHeight});
+
+  @override
+  State<PlanComparisonMatrix> createState() => _PlanComparisonMatrixState();
+}
+
+class _PlanComparisonMatrixState extends State<PlanComparisonMatrix> {
   late final PlanCatalogConfig _config;
-  bool _isLoading = true;
 
   static const double _nameColumnWidth = 320;
   static const double _planColumnWidth = 120;
@@ -30,7 +70,6 @@ class _PlanFeaturesPageState extends State<PlanFeaturesPage> {
   void initState() {
     super.initState();
     _config = PlanCatalogService.load();
-    _isLoading = false;
     _bodyHorizontalController.addListener(_syncHeaderScroll);
   }
 
@@ -52,9 +91,7 @@ class _PlanFeaturesPageState extends State<PlanFeaturesPage> {
   }
 
   Future<Map<String, dynamic>> _loadComparisonData() async {
-    const defaultBaseUrl = 'https://getreadyjob.onrender.com';
-    const configuredBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: defaultBaseUrl);
-    final uri = Uri.parse('$configuredBaseUrl/api/public/plan-catalog');
+    final uri = Uri.parse('${ApiConfig.baseUrl}/api/public/plan-catalog');
     final response = await http.get(uri);
 
     if (response.statusCode != 200) {
@@ -225,130 +262,116 @@ class _PlanFeaturesPageState extends State<PlanFeaturesPage> {
           }),
         ];
 
-        return Scaffold(
-          appBar: AppBar(
-            backgroundColor: const Color(0xFF1F2937),
-            iconTheme: const IconThemeData(
-              color: Colors.white,
-              size: 30,
+        final infoBox = Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFFEEF6FF), Color(0xFFDCEBFF)],
             ),
-            title: const Text(
-              'Plan Function List',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 22,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFBFDBFE), width: 1.4),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              Text(
+                'Plan Comparison Matrix',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF1E3A8A),
+                ),
               ),
-            ),
-          ),
-          body: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFFEEF6FF), Color(0xFFDCEBFF)],
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFBFDBFE), width: 1.4),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'Plan Comparison Matrix',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF1E3A8A),
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Tick means feature included in that plan. Cross means not included. OCR means Optical Character Recognition.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF1E3A8A),
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'User Quota values are loaded live from the admin quota rules.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF0F766E),
-                        ),
-                      ),
-                    ],
-                  ),
+              SizedBox(height: 4),
+              Text(
+                'Tick means feature included in that plan. Cross means not included. OCR means Optical Character Recognition.',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1E3A8A),
                 ),
-                const SizedBox(height: 12),
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFE5E7EB)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF1D4ED8).withValues(alpha: 0.07),
-                          blurRadius: 14,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
+              ),
+              SizedBox(height: 4),
+              Text(
+                'User Quota values are loaded live from the admin quota rules.',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF0F766E),
+                ),
+              ),
+            ],
+          ),
+        );
+
+        final tableCard = Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF1D4ED8).withValues(alpha: 0.07),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFF),
+                  border: const Border(bottom: BorderSide(color: Color(0xFFE5E7EB), width: 1.4)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
                     ),
-                    clipBehavior: Clip.antiAlias,
+                  ],
+                ),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  controller: _headerHorizontalController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  child: _buildHeaderRow(),
+                ),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    controller: _bodyHorizontalController,
                     child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFF),
-                            border: const Border(bottom: BorderSide(color: Color(0xFFE5E7EB), width: 1.4)),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.06),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            controller: _headerHorizontalController,
-                            physics: const NeverScrollableScrollPhysics(),
-                            child: _buildHeaderRow(),
-                          ),
-                        ),
-                        Expanded(
-                          child: SingleChildScrollView(
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              controller: _bodyHorizontalController,
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  for (final entry in combinedRows.asMap().entries)
-                                    _buildBodyRow(entry.value, entry.key),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
+                        for (final entry in combinedRows.asMap().entries)
+                          _buildBodyRow(entry.value, entry.key),
                       ],
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+        );
+
+        final embeddedMaxHeight = widget.embeddedMaxHeight;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            infoBox,
+            const SizedBox(height: 12),
+            embeddedMaxHeight != null
+                ? SizedBox(height: embeddedMaxHeight, child: tableCard)
+                : Expanded(child: tableCard),
+          ],
         );
       },
     );
