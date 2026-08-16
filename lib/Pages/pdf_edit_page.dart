@@ -15,6 +15,7 @@ import '../Services/file_storage_service.dart';
 import '../Services/pdf_export_formatter.dart';
 import '../Services/pdf_ocr_service.dart';
 import '../Services/upload_context_service.dart';
+import '../Services/voice_command_service.dart';
 import '../Widgets/production_footer.dart';
 import '../Widgets/tool_guidance_panel.dart';
 
@@ -80,6 +81,24 @@ class _PdfEditPageState extends State<PdfEditPage> {
 
     if (_selectedBytes != null) {
       _loadPdfTextIntoEditor();
+    }
+
+    _applyVoiceCommand();
+  }
+
+  // Editing inherently requires the user to decide what to change, so there is
+  // no single well-defined "auto action" to run end-to-end here (unlike
+  // compress/merge/split/etc). We still auto-load the file (above) and extract
+  // its text automatically; this just confirms that to the user and clears
+  // the pending voice-command signal so it doesn't leak into a later page.
+  void _applyVoiceCommand() {
+    final params = VoiceCommandService.consumePendingParameters();
+    if (params.isEmpty) {
+      return;
+    }
+    final autoExecute = params[VoiceCommandService.autoExecuteFlagKey] == true;
+    if (autoExecute && _selectedBytes != null) {
+      _loadStatus = 'Voice command: file loaded and text extracted. Edit the text, then Save & Download.';
     }
   }
 

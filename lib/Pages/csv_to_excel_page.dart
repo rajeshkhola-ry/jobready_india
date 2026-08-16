@@ -9,8 +9,12 @@ import '../Widgets/quota_gate.dart';
 import '../Widgets/tool_guidance_panel.dart';
 import '../Widgets/tool_workspace_shell.dart';
 import '../Services/csv_to_excel_service.dart';
+import '../Services/document_history_service.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/upload_context_service.dart';
+import '../Services/usage_quota_service.dart';
+import '../Services/voice_command_service.dart';
+import '../Services/wasm_document_service.dart';
 
 /// CSV to Excel Tool Page - parses an uploaded .csv file and downloads a
 /// real Microsoft Excel (.xlsx) workbook built from its rows.
@@ -34,6 +38,18 @@ class _CsvToExcelPageState extends State<CsvToExcelPage> {
   void initState() {
     super.initState();
     _hydrateFromHomeUpload();
+    _applyVoiceCommand();
+  }
+
+  void _applyVoiceCommand() {
+    final params = VoiceCommandService.consumePendingParameters();
+    if (params.isEmpty) {
+      return;
+    }
+    final autoExecute = params[VoiceCommandService.autoExecuteFlagKey] == true;
+    if (autoExecute && _selectedFileBytes != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _startConvert(autoExecute: true));
+    }
   }
 
   void _hydrateFromHomeUpload() {
@@ -105,7 +121,7 @@ class _CsvToExcelPageState extends State<CsvToExcelPage> {
     return '$base.xlsx';
   }
 
-  Future<void> _startConvert() async {
+  Future<void> _startConvert({bool autoExecute = false}) async {
     final bytes = _selectedFileBytes;
     final name = _selectedFileName;
     if (bytes == null || name == null) {
@@ -143,6 +159,28 @@ class _CsvToExcelPageState extends State<CsvToExcelPage> {
         _isConverting = false;
         _statusMessage = '✓ Converted $_rowCount row(s) × $_columnCount column(s) — ready for download';
       });
+
+      if (autoExecute) {
+        WasmDocumentService.triggerBrowserDownload(
+          bytes: xlsxBytes,
+          fileName: outputName,
+          mimeType: 'application/octet-stream',
+        );
+        DocumentHistoryService.addEntry(
+          fileName: outputName,
+          outputFormat: 'Excel (.xlsx)',
+          fileSizeBytes: xlsxBytes.length,
+        );
+        UsageQuotaService.recordAction('Excel (.xlsx)');
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Voice command complete. File converted and downloaded automatically.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        return;
+      }
 
       await showDialog(
         context: context,

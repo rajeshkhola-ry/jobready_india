@@ -74,16 +74,22 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
 
   void _applyVoiceCommandTargetSize() {
     final params = VoiceCommandService.consumePendingParameters();
-    final rawTargetKb = params['target_size_kb'];
-    final targetKb = rawTargetKb is num ? rawTargetKb.toInt() : int.tryParse('$rawTargetKb');
-    if (targetKb == null || targetKb <= 0) {
+    if (params.isEmpty) {
       return;
     }
-    setState(() {
-      _targetSizeBytes = targetKb * 1024;
-      _selectedUnit = 'KB';
-      _statusMessage = 'Voice command: target size set to $targetKb KB.';
-    });
+    final rawTargetKb = params['target_size_kb'];
+    final targetKb = rawTargetKb is num ? rawTargetKb.toInt() : int.tryParse('$rawTargetKb');
+    if (targetKb != null && targetKb > 0) {
+      setState(() {
+        _targetSizeBytes = targetKb * 1024;
+        _selectedUnit = 'KB';
+        _statusMessage = 'Voice command: target size set to $targetKb KB.';
+      });
+    }
+    final autoExecute = params[VoiceCommandService.autoExecuteFlagKey] == true;
+    if (autoExecute && _selectedFiles.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _startCompression());
+    }
   }
 
   void _applyDefaultTargetSize(int sourceBytes) {

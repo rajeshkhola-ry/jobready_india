@@ -7,6 +7,7 @@ import '../Widgets/tool_guidance_panel.dart';
 import '../Widgets/tool_workspace_shell.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/upload_context_service.dart';
+import '../Services/voice_command_service.dart';
 import '../Services/wasm_document_service.dart';
 
 /// Merge Tool Page - Combine multiple PDFs into one
@@ -29,6 +30,7 @@ class _MergeToolPageState extends State<MergeToolPage> {
   void initState() {
     super.initState();
     _hydrateFromHomeUpload();
+    _applyVoiceCommand();
   }
 
   void _hydrateFromHomeUpload() {
@@ -41,6 +43,17 @@ class _MergeToolPageState extends State<MergeToolPage> {
     _selectedFileBytes = files.map((f) => f.bytes).toList();
     _selectedFileSizes = files.map((f) => f.size).toList();
     _statusMessage = '✓ ${files.length} PDF file(s) loaded from workspace';
+  }
+
+  void _applyVoiceCommand() {
+    final params = VoiceCommandService.consumePendingParameters();
+    if (params.isEmpty) {
+      return;
+    }
+    final autoExecute = params[VoiceCommandService.autoExecuteFlagKey] == true;
+    if (autoExecute && _selectedFiles.length >= 2) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _startMerge());
+    }
   }
 
   @override

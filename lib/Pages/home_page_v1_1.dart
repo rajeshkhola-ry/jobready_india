@@ -1429,13 +1429,31 @@ class _HomePageV11State extends State<HomePageV11> {
                   },
                 ),
                 const SizedBox(height: 10),
-                const _AboutUsSection(),
-                const SizedBox(height: 10),
-                const _FuturePlanSection(),
-                const SizedBox(height: 10),
-                _FeedbackAndRatingSection(
-                  onSuggestionTap: () {
-                    _showSuggestionDialog();
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final infoCard = const _AboutAndFuturePlanSection();
+                    final feedbackCard = _FeedbackAndRatingSection(
+                      onSuggestionTap: () {
+                        _showSuggestionDialog();
+                      },
+                    );
+                    if (constraints.maxWidth >= 768) {
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(flex: 58, child: infoCard),
+                          const SizedBox(width: 14),
+                          Expanded(flex: 42, child: feedbackCard),
+                        ],
+                      );
+                    }
+                    return Column(
+                      children: [
+                        infoCard,
+                        const SizedBox(height: 10),
+                        feedbackCard,
+                      ],
+                    );
                   },
                 ),
                 const SizedBox(height: 16),
@@ -5711,8 +5729,8 @@ class _OwnerOfferManagerPanelState extends State<_OwnerOfferManagerPanel> {
   }
 }
 
-class _AboutUsSection extends StatelessWidget {
-  const _AboutUsSection();
+class _AboutAndFuturePlanSection extends StatelessWidget {
+  const _AboutAndFuturePlanSection();
 
   @override
   Widget build(BuildContext context) {
@@ -5727,45 +5745,18 @@ class _AboutUsSection extends StatelessWidget {
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('About Us', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1F2937))),
+          Text('About Us', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF1F2937))),
           SizedBox(height: 6),
           Text(
             'GETREADYJOB helps users process documents faster with reliable tools for conversion, compression, and premium workflow automation. We focus on simple steps, stable output quality, and practical productivity for individuals and teams.',
-            style: TextStyle(fontSize: 13, height: 1.4, color: Color(0xFF4B5563)),
+            style: TextStyle(fontSize: 12.5, height: 1.4, color: Color(0xFF4B5563)),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FuturePlanSection extends StatelessWidget {
-  const _FuturePlanSection();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFCF8),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF0F172A).withOpacity(0.06),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Future Plan', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1F2937))),
+          Divider(height: 22),
+          Text('Future Plan', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF1F2937))),
           SizedBox(height: 6),
           Text(
             'Our new Version 2 will deliver a cleaner workspace, stronger payment and plan controls, deeper API integrations, and better performance across browsers. It will include smarter sharing options, offer automation, and owner-level controls for promotions and gateway switching. We are also expanding enterprise-ready features with better operational controls and launch runbooks. The goal is a faster, simpler, and more scalable experience for all users.',
-            style: TextStyle(fontSize: 13, height: 1.45, color: Color(0xFF4B5563)),
+            style: TextStyle(fontSize: 12.5, height: 1.45, color: Color(0xFF4B5563)),
           ),
         ],
       ),
@@ -6714,6 +6705,7 @@ void _handleVoiceCommandResult(BuildContext context, VoiceCommandResult result) 
 
   Widget Function(BuildContext)? pageBuilder;
   final isPhotoResizer = result.tool == 'photo_resizer';
+  final isProtectPdf = result.tool == 'protect_pdf';
   switch (result.tool) {
     case 'compress_pdf':
       pageBuilder = (_) => const CompressionToolPage();
@@ -6730,7 +6722,6 @@ void _handleVoiceCommandResult(BuildContext context, VoiceCommandResult result) 
     case 'split_pdf':
       pageBuilder = (_) => const SplitToolPage();
       break;
-    case 'protect_pdf':
     case 'edit_pdf':
       pageBuilder = (_) => const PdfEditPage();
       break;
@@ -6741,7 +6732,7 @@ void _handleVoiceCommandResult(BuildContext context, VoiceCommandResult result) 
       pageBuilder = null;
   }
 
-  if (!isPhotoResizer && pageBuilder == null) {
+  if (!isPhotoResizer && !isProtectPdf && pageBuilder == null) {
     messenger.showSnackBar(
       const SnackBar(
         content: Text('That tool is not available yet.'),
@@ -6751,9 +6742,11 @@ void _handleVoiceCommandResult(BuildContext context, VoiceCommandResult result) 
     return;
   }
 
-  if (result.parameters.isNotEmpty) {
-    VoiceCommandService.setPendingParameters(result.parameters);
-  }
+  VoiceCommandService.setPendingParameters(<String, dynamic>{
+    ...result.parameters,
+    VoiceCommandService.autoExecuteFlagKey: true,
+    VoiceCommandService.voiceToolKey: result.tool,
+  });
 
   final recognized = result.recognizedText.trim();
   messenger.showSnackBar(
@@ -6765,6 +6758,11 @@ void _handleVoiceCommandResult(BuildContext context, VoiceCommandResult result) 
 
   if (isPhotoResizer) {
     Navigator.of(context).pushNamed('/govt-verifier');
+    return;
+  }
+
+  if (isProtectPdf) {
+    Navigator.of(context).pushNamed('/smart-pdf');
     return;
   }
 

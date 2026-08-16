@@ -9,6 +9,7 @@ import '../Widgets/tool_guidance_panel.dart';
 import '../Widgets/tool_workspace_shell.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/upload_context_service.dart';
+import '../Services/voice_command_service.dart';
 import '../Services/wasm_document_service.dart';
 
 /// Split Tool Page - Extract pages from PDF or split into multiple files
@@ -34,7 +35,18 @@ class _SplitToolPageState extends State<SplitToolPage> {
   @override
   void initState() {
     super.initState();
-    _hydrateFromHomeUpload();
+    _hydrateFromHomeUpload().then((_) => _applyVoiceCommand());
+  }
+
+  void _applyVoiceCommand() {
+    final params = VoiceCommandService.consumePendingParameters();
+    if (params.isEmpty) {
+      return;
+    }
+    final autoExecute = params[VoiceCommandService.autoExecuteFlagKey] == true;
+    if (autoExecute && _selectedFiles.isNotEmpty && _pageRanges.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _startSplit());
+    }
   }
 
   Future<void> _hydrateFromHomeUpload() async {

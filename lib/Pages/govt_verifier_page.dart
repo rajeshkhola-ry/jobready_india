@@ -68,20 +68,28 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
 
   void _applyVoiceCommandPreset() {
     final params = VoiceCommandService.consumePendingParameters();
+    if (params.isEmpty) {
+      return;
+    }
     final rawPreset = params['preset'];
-    if (rawPreset == null) {
-      return;
+    final match = rawPreset == null ? null : _matchExamPreset(rawPreset.toString());
+    if (match != null) {
+      setState(() {
+        _selectedPreset = match;
+        _targetKb = match.maxKb;
+        _tabs.index = 1;
+        _resizerStatus = 'Voice command: "${match.label}" preset selected. Upload your photo.';
+      });
     }
-    final match = _matchExamPreset(rawPreset.toString());
-    if (match == null) {
-      return;
+    final autoExecute = params[VoiceCommandService.autoExecuteFlagKey] == true;
+    if (autoExecute) {
+      setState(() => _tabs.index = 1);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _resizerFile != null) {
+          _resizeAndDownload();
+        }
+      });
     }
-    setState(() {
-      _selectedPreset = match;
-      _targetKb = match.maxKb;
-      _tabs.index = 1;
-      _resizerStatus = 'Voice command: "${match.label}" preset selected. Upload your photo.';
-    });
   }
 
   _ExamPreset? _matchExamPreset(String raw) {

@@ -11,9 +11,13 @@ import '../Widgets/quota_gate.dart';
 import '../Widgets/tool_guidance_panel.dart';
 import '../Widgets/tool_workspace_shell.dart';
 import '../Services/conversion_service.dart';
+import '../Services/document_history_service.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/file_storage_service.dart';
 import '../Services/upload_context_service.dart';
+import '../Services/usage_quota_service.dart';
+import '../Services/voice_command_service.dart';
+import '../Services/wasm_document_service.dart';
 import 'compression_tool_page.dart';
 
 /// Convert Tool Page - File format conversion (PDF, Word, Excel, Images, etc.)
@@ -62,11 +66,48 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
     'PowerPoint': ['ppt', 'pptx'],
   };
 
+  // Maps a Gemini-classified voice tool to the specific input/output format
+  // pair it implies, so the correct destination format is auto-selected
+  // instead of just the first default choice for the uploaded file's type.
+  static const Map<String, String> _voiceToolInputFormat = {
+    'pdf_to_word': 'PDF',
+    'word_to_pdf': 'Word',
+    'jpg_to_pdf': 'Image',
+    'pdf_to_jpg': 'PDF',
+  };
+
+  static const Map<String, String> _voiceToolOutputFormat = {
+    'pdf_to_word': 'Word (.docx)',
+    'word_to_pdf': 'PDF (.pdf)',
+    'jpg_to_pdf': 'PDF (.pdf)',
+    'pdf_to_jpg': 'JPG Images',
+  };
+
   @override
   void initState() {
     super.initState();
     _hydrateFromHomeUpload();
     _applyConverterSeoMetadata();
+    _applyVoiceCommand();
+  }
+
+  void _applyVoiceCommand() {
+    final params = VoiceCommandService.consumePendingParameters();
+    if (params.isEmpty) {
+      return;
+    }
+    final voiceTool = params[VoiceCommandService.voiceToolKey]?.toString() ?? '';
+    final requestedInput = _voiceToolInputFormat[voiceTool];
+    final requestedOutput = _voiceToolOutputFormat[voiceTool];
+    if (requestedOutput != null && _selectedInputFormat == requestedInput) {
+      setState(() {
+        _selectedOutputFormat = requestedOutput;
+      });
+    }
+    final autoExecute = params[VoiceCommandService.autoExecuteFlagKey] == true;
+    if (autoExecute && _selectedFile != null && _selectedInputFormat != null && _selectedOutputFormat != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _convertSelectedFile(autoExecute: true));
+    }
   }
 
   void _hydrateFromHomeUpload() {
@@ -1349,7 +1390,7 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
     }
   }
 
-  Future<void> _convertSelectedFile() async {
+  Future<void> _convertSelectedFile({bool autoExecute = false}) async {
     if (_isCompressPdfFlow()) {
       await _openCompressToolWithContext();
       return;
@@ -1497,6 +1538,28 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
         _isConverting = false;
         _statusMessage = '✓ Converted successfully. Download is available.';
       });
+
+      if (autoExecute) {
+        WasmDocumentService.triggerBrowserDownload(
+          bytes: Uint8List.fromList(result.outputBytes!.toList()),
+          fileName: result.outputFileName!,
+          mimeType: _inferMimeType(result.outputFileName!),
+        );
+        DocumentHistoryService.addEntry(
+          fileName: result.outputFileName!,
+          outputFormat: _selectedOutputFormat!,
+          fileSizeBytes: result.outputBytes!.length,
+        );
+        UsageQuotaService.recordAction(_selectedOutputFormat!);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Voice command complete. File converted and downloaded automatically.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        return;
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

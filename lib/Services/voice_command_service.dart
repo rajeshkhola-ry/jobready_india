@@ -46,6 +46,17 @@ class VoiceCommandService {
 
   static Map<String, dynamic> _pendingParameters = const {};
 
+  /// Sentinel key: when present and `true` in the pending-parameters map, the
+  /// destination tool page should run its main action end-to-end (auto-run +
+  /// auto-download) instead of only pre-filling the UI, provided a file is
+  /// already available (via the existing upload-context hydration).
+  static const String autoExecuteFlagKey = '_voice_auto_execute';
+
+  /// Sentinel key: the exact Gemini-classified tool string (e.g.
+  /// 'pdf_to_word') so a single destination page that covers several
+  /// directions (e.g. ConvertToolPage) can tell which one was requested.
+  static const String voiceToolKey = '_voice_tool';
+
   /// Stash parameters extracted from a voice command (e.g. target_size_kb,
   /// preset) so the destination tool page can read + apply them once after
   /// navigation completes.

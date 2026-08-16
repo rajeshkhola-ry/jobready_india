@@ -4,6 +4,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import '../Services/file_picker_service.dart';
+import '../Services/upload_context_service.dart';
+import '../Services/voice_command_service.dart';
 import '../Services/wasm_document_service.dart';
 import '../Widgets/production_footer.dart';
 import '../Widgets/signature_pad_canvas.dart';
@@ -34,6 +36,89 @@ class _SmartPdfSuitePageState extends State<SmartPdfSuitePage> {
   double _signTop = 0.82;
   double _signWidth = 0.28;
   double _signHeight = 0.1;
+
+  @override
+  void initState() {
+    super.initState();
+    _hydrateFromHomeUpload();
+    _applyVoiceCommand();
+  }
+
+  void _hydrateFromHomeUpload() {
+    final files = UploadContextService.getCompatibleFiles(['pdf']);
+    if (files.isEmpty) {
+      return;
+    }
+    _selectedPdf = files.first;
+    _statusMessage = '✓ ${files.first.name} loaded from workspace. Choose a Smart PDF action.';
+  }
+
+  void _applyVoiceCommand() {
+    final params = VoiceCommandService.consumePendingParameters();
+    if (params.isEmpty) {
+      return;
+    }
+    final autoExecute = params[VoiceCommandService.autoExecuteFlagKey] == true;
+    if (autoExecute && _selectedPdf != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        final password = await _promptForPassword();
+        if (password == null || !mounted) {
+          return;
+        }
+        _userPasswordController.text = password;
+        await _protectPdf();
+      });
+    }
+  }
+
+  Future<String?> _promptForPassword() {
+    final controller = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Protect PDF', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Voice command: set a password to protect this PDF.'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              obscureText: true,
+              autofocus: true,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'Password',
+                hintText: 'Enter a password to lock the PDF',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final value = controller.text.trim();
+              if (value.isEmpty) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  const SnackBar(content: Text('Please enter a password.')),
+                );
+                return;
+              }
+              Navigator.pop(dialogContext, value);
+            },
+            child: const Text('Protect'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   void dispose() {
