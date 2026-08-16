@@ -25,6 +25,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
   List<DocumentHistoryEntry> _history = const <DocumentHistoryEntry>[];
   List<Map<String, dynamic>> _purchaseTransactions = const <Map<String, dynamic>>[];
   bool _hasProcessedRouteArgs = false;
+  int _historyRetentionLimit = DocumentHistoryService.getRetentionLimit();
 
   @override
   void initState() {
@@ -51,6 +52,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
       _session = session;
       _profile = UserAccountService.getProfile();
       _history = DocumentHistoryService.getEntries();
+      _historyRetentionLimit = DocumentHistoryService.getRetentionLimit();
     });
     final email = (_session?.email ?? _profile.email).trim();
     if (email.isNotEmpty) {
@@ -274,6 +276,26 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
   void _downloadInvoice(String transactionId) {
     final url = '/api/user/invoice/$transactionId';
     html.window.open(url, '_blank');
+  }
+
+  Future<void> _clearDocumentHistory() async {
+    await DocumentHistoryService.clear();
+    if (!mounted) return;
+    setState(() {
+      _history = DocumentHistoryService.getEntries();
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Conversion history cleared.')),
+    );
+  }
+
+  Future<void> _setHistoryRetentionLimit(int limit) async {
+    await DocumentHistoryService.setRetentionLimit(limit);
+    if (!mounted) return;
+    setState(() {
+      _historyRetentionLimit = limit;
+      _history = DocumentHistoryService.getEntries();
+    });
   }
 
   int _creditsForPlan(String planName) {
@@ -585,7 +607,34 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  const Text('Conversion History & Recent Activity', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'Conversion History & Recent Activity',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                        ),
+                      ),
+                      DropdownButton<int>(
+                        value: _historyRetentionLimit,
+                        underline: const SizedBox.shrink(),
+                        items: const [20, 50, 100, 200]
+                            .map((limit) => DropdownMenuItem<int>(value: limit, child: Text('Keep $limit')))
+                            .toList(),
+                        onChanged: (limit) {
+                          if (limit != null) {
+                            _setHistoryRetentionLimit(limit);
+                          }
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      TextButton.icon(
+                        onPressed: _history.isEmpty ? null : _clearDocumentHistory,
+                        icon: const Icon(Icons.delete_sweep_outlined, size: 18),
+                        label: const Text('Clear All'),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 10),
                   Container(
                     width: double.infinity,
