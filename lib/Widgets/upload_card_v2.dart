@@ -678,6 +678,17 @@ class _UploadCardV2State extends State<UploadCardV2> {
                       height: 1.4,
                     ),
                   ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    '💡 AI Voice Assistant is experimental and may make mistakes. You can always use the manual tools below.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFF94A3B8),
+                      fontWeight: FontWeight.w500,
+                      height: 1.35,
+                    ),
+                  ),
                 ],
                 const SizedBox(height: 10),
                 if (kIsWeb) ...[
