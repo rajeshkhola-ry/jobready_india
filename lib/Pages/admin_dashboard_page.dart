@@ -10,7 +10,6 @@ import '../Services/coupon_service.dart';
 import '../Services/owner_admin_access_service.dart';
 import '../Utils/web_safe_browser.dart';
 import '../Services/plan_catalog_service.dart';
-import '../Services/voice_topup_service.dart';
 import '../Widgets/brand_logo_button.dart';
 
 class AdminDashboardPage extends StatefulWidget {
@@ -693,10 +692,6 @@ class _PricingDialogState extends State<_PricingDialog> {
   late Map<String, TextEditingController> _quotaControllers;
   late Map<String, TextEditingController> _voiceQuotaControllers;
   late Map<String, List<String>> _enabledToolsByPlan;
-  late List<VoiceTopupPack> _topupPacks;
-  late Map<String, TextEditingController> _topupCreditsControllers;
-  late Map<String, TextEditingController> _topupInrControllers;
-  late Map<String, TextEditingController> _topupUsdControllers;
   bool _isLoading = true;
   bool _isSaving = false;
   String? _statusMessage;
@@ -707,7 +702,6 @@ class _PricingDialogState extends State<_PricingDialog> {
     super.initState();
     _selectedPlan = 'Monthly';
     _hydrateFromConfig(widget.initialConfig);
-    _hydrateTopupPacks();
     _loadFromBackend();
   }
 
@@ -725,48 +719,7 @@ class _PricingDialogState extends State<_PricingDialog> {
     for (final controller in _voiceQuotaControllers.values) {
       controller.dispose();
     }
-    for (final controller in _topupCreditsControllers.values) {
-      controller.dispose();
-    }
-    for (final controller in _topupInrControllers.values) {
-      controller.dispose();
-    }
-    for (final controller in _topupUsdControllers.values) {
-      controller.dispose();
-    }
     super.dispose();
-  }
-
-  void _hydrateTopupPacks() {
-    _topupPacks = VoiceTopupService.load();
-    _topupCreditsControllers = {
-      for (final pack in _topupPacks) pack.id: TextEditingController(text: pack.credits.toString())
-    };
-    _topupInrControllers = {
-      for (final pack in _topupPacks) pack.id: TextEditingController(text: pack.priceInr.toStringAsFixed(0))
-    };
-    _topupUsdControllers = {
-      for (final pack in _topupPacks) pack.id: TextEditingController(text: pack.priceUsd.toStringAsFixed(2))
-    };
-  }
-
-  Future<void> _saveTopupPacks() async {
-    final updated = _topupPacks.map((pack) {
-      return pack.copyWith(
-        credits: int.tryParse(_topupCreditsControllers[pack.id]!.text.trim()) ?? pack.credits,
-        priceInr: double.tryParse(_topupInrControllers[pack.id]!.text.trim()) ?? pack.priceInr,
-        priceUsd: double.tryParse(_topupUsdControllers[pack.id]!.text.trim()) ?? pack.priceUsd,
-      );
-    }).toList();
-    await VoiceTopupService.save(updated);
-    setState(() {
-      _topupPacks = updated;
-    });
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Voice top-up pack pricing updated.')),
-      );
-    }
   }
 
   void _hydrateFromConfig(PlanCatalogConfig config) {
@@ -1011,61 +964,6 @@ class _PricingDialogState extends State<_PricingDialog> {
                     },
                   );
                 }).toList(),
-              ),
-              const SizedBox(height: 18),
-              const Divider(),
-              const SizedBox(height: 8),
-              const Text('Voice Command Top-Up Packs', style: TextStyle(fontWeight: FontWeight.w800)),
-              const SizedBox(height: 4),
-              const Text(
-                'Prices and credit counts for the Razorpay voice top-up packs shown on the Pricing page.',
-                style: TextStyle(fontSize: 11.5, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              ..._topupPacks.map((pack) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 70,
-                        child: Text(pack.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5)),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: TextField(
-                          controller: _topupCreditsControllers[pack.id],
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(labelText: 'Credits', isDense: true),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: TextField(
-                          controller: _topupInrControllers[pack.id],
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          decoration: const InputDecoration(labelText: '₹ INR', isDense: true),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: TextField(
-                          controller: _topupUsdControllers[pack.id],
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          decoration: const InputDecoration(labelText: '\$ USD', isDense: true),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-              Align(
-                alignment: Alignment.centerRight,
-                child: OutlinedButton.icon(
-                  onPressed: _saveTopupPacks,
-                  icon: const Icon(Icons.save_outlined, size: 16),
-                  label: const Text('Save Top-Up Packs'),
-                ),
               ),
             ],
           ),
