@@ -1197,3 +1197,20 @@ Prepared For: JOBREADY
     - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success (`getreadyjob-india-1cb34.web.app`).
     - Committed + pushed (commit `66f4842`) → triggers Render + GitHub Pages redeploy of getreadyjob.com.
 - Owner: Founder + Copilot
+
+### Same day follow-up — footer social links + CSV to Excel converter tool
+- Overall status: Green (deployed)
+- Completed:
+  - **Footer social links** ✓
+    - `Services/api_config.dart`: `socialLinks` map updated — LinkedIn now points to the real company page (`https://www.linkedin.com/company/143152999/`); removed `twitter`/`youtube` entries; added `facebook`/`instagram` with `www.` URLs.
+    - `Widgets/production_footer.dart` (`_BusinessAndSocialBlock`): footer row now reads "Social: LinkedIn • Facebook • Instagram" (X/Twitter and YouTube links removed).
+  - **CSV to Excel converter tool** ✓
+    - `Services/csv_to_excel_service.dart` (new): hand-rolled RFC4180 CSV parser (quoted fields with embedded commas/newlines, `""` escaped-quote handling, BOM stripping) + a minimal valid `.xlsx` workbook writer built directly as an OOXML zip via the existing `archive` package dependency (same technique as `word_generator_service.dart`'s `.docx` writer). Plain numbers become real numeric cells; values with leading zeros (zip codes, IDs) stay text so nothing is silently corrupted.
+    - `Pages/csv_to_excel_page.dart` (new): tool workspace page matching the existing tool-page template (`ToolWorkspaceShell`, numbered step panels, `ToolGuidancePanel`, `checkQuotaAndProceed(actionBucket: 'convert')`, `DownloadResultDialog` for the instant `.xlsx` download) — same pattern as `ConvertToolPage`.
+    - `home_page_v1_1.dart`: added a "CSV to Excel" card to the Most Popular Tools 3-column grid, placed right after Edit PDF (fills the previously empty row-3/column-2 slot).
+  - **Validation** ✓ — manual scratch-script check (parsed a CSV with quoted commas/embedded newlines/escaped quotes/leading-zero zip code correctly; produced a valid, `ZipDecoder`-readable `.xlsx` with correct numeric vs. inline-text cell typing) before deleting the scratch file; `get_errors` clean; `flutter analyze` on all 5 touched/new files → 42 pre-existing info/warning lints only (all in `home_page_v1_1.dart`), 0 new issues in the new/modified files.
+  - **Build & deploy** ✓
+    - `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` → success; verified new strings (`CSV to Excel`, new social URLs) present in `build/web/main.dart.js`.
+    - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success.
+    - Committed + pushed (commit `96b85f1`) → triggers Render + GitHub Pages redeploy of getreadyjob.com.
+- Owner: Founder + Copilot
