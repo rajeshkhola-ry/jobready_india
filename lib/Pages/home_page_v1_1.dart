@@ -3123,7 +3123,7 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
       final response = await _requestJsonWithFallback(
         'POST',
         '/api/public/promo-codes/validate',
-        body: {'code': code, 'amount': amountMinor, 'currency': _localCurrency},
+        body: {'code': code, 'amount': amountMinor, 'currency': _localCurrency, 'planId': widget.selectedPlan},
       );
       if (!mounted) return;
       final promo = (response['promo'] as Map?) ?? const {};
@@ -4353,7 +4353,11 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
   }
 
   Widget _buildPromoCodeSection() {
-    final hasOffers = _availableOffers.isNotEmpty;
+    final applicableOffers = _availableOffers.where((offer) {
+      final applicablePlans = (offer['applicablePlans'] as List?)?.map((item) => item.toString()).toList() ?? const <String>[];
+      return applicablePlans.isEmpty || applicablePlans.contains(widget.selectedPlan);
+    }).toList();
+    final hasOffers = applicableOffers.isNotEmpty;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
@@ -4381,7 +4385,7 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
                 fillColor: const Color(0xFFF8FBFF),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               ),
-              items: _availableOffers
+              items: applicableOffers
                   .map(
                     (offer) => DropdownMenuItem<String>(
                       value: offer['code'].toString(),

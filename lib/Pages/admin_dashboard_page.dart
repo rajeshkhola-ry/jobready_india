@@ -2191,6 +2191,15 @@ class _PromoDialogState extends State<_PromoDialog> {
   String? _statusMessage;
   bool _statusIsError = false;
   List<Map<String, dynamic>> _promos = <Map<String, dynamic>>[];
+  final Set<String> _selectedPlans = <String>{};
+
+  static const List<String> _planOptions = <String>['7Days', 'Monthly', 'Yearly', 'Lifetime'];
+  static const Map<String, String> _planLabels = <String, String>{
+    '7Days': '7 Days',
+    'Monthly': 'Monthly',
+    'Yearly': 'Yearly',
+    'Lifetime': 'Lifetime',
+  };
 
   @override
   void initState() {
@@ -2339,6 +2348,7 @@ class _PromoDialogState extends State<_PromoDialog> {
       'validUntil': _expiryDate == null ? '' : _formatDate(_expiryDate!),
       'usageLimit': usageLimit,
       'active': _active,
+      'applicablePlans': _selectedPlans.toList(),
     });
 
     if (mounted && (_statusMessage == 'Saved.')) {
@@ -2349,6 +2359,7 @@ class _PromoDialogState extends State<_PromoDialog> {
       setState(() {
         _expiryDate = null;
         _active = true;
+        _selectedPlans.clear();
       });
     }
   }
@@ -2388,6 +2399,12 @@ class _PromoDialogState extends State<_PromoDialog> {
     if (percent > 0) return '${percent.toStringAsFixed(percent.truncateToDouble() == percent ? 0 : 2)}% off';
     if (flat > 0) return '₹${flat.toStringAsFixed(flat.truncateToDouble() == flat ? 0 : 2)} off';
     return 'No discount set';
+  }
+
+  String _applicablePlansLabel(Map<String, dynamic> promo) {
+    final plans = (promo['applicablePlans'] as List?)?.map((item) => item.toString()).toList() ?? const <String>[];
+    if (plans.isEmpty) return 'All Plans';
+    return plans.map((plan) => _planLabels[plan] ?? plan).join(', ');
   }
 
   @override
@@ -2493,6 +2510,41 @@ class _PromoDialogState extends State<_PromoDialog> {
                 onChanged: (value) => setState(() => _active = value),
               ),
               const SizedBox(height: 8),
+              const Text('Applicable plans', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF16324D))),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  FilterChip(
+                    label: const Text('All Plans'),
+                    selected: _selectedPlans.isEmpty,
+                    onSelected: (_) => setState(() => _selectedPlans.clear()),
+                  ),
+                  ..._planOptions.map((plan) {
+                    final selected = _selectedPlans.contains(plan);
+                    return FilterChip(
+                      label: Text(_planLabels[plan] ?? plan),
+                      selected: selected,
+                      onSelected: (value) {
+                        setState(() {
+                          if (value) {
+                            _selectedPlans.add(plan);
+                          } else {
+                            _selectedPlans.remove(plan);
+                          }
+                        });
+                      },
+                    );
+                  }),
+                ],
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Leave "All Plans" selected to allow this code everywhere, or pick specific plans to restrict it (e.g. exclude Lifetime).',
+                style: TextStyle(fontSize: 10.5, color: Color(0xFF64748B)),
+              ),
+              const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -2501,7 +2553,22 @@ class _PromoDialogState extends State<_PromoDialog> {
                 ),
               ),
               const Divider(height: 24),
-              const Text('Existing promo codes', style: TextStyle(fontWeight: FontWeight.w700)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Existing promo codes', style: TextStyle(fontWeight: FontWeight.w700)),
+                  TextButton.icon(
+                    onPressed: () {
+                      showDialog<void>(
+                        context: context,
+                        builder: (_) => const _PromoUsageReportDialog(),
+                      );
+                    },
+                    icon: const Icon(Icons.bar_chart_rounded, size: 16),
+                    label: const Text('Usage & Sales Report', style: TextStyle(fontSize: 11.5)),
+                  ),
+                ],
+              ),
               const SizedBox(height: 6),
               if (!_isLoading && _promos.isEmpty)
                 const Text('No promo codes yet.')
@@ -2530,6 +2597,10 @@ class _PromoDialogState extends State<_PromoDialog> {
                                 'Used: $used${limit > 0 ? '/$limit' : ''}${expiry.isNotEmpty ? ' • Expires: $expiry' : ' • No expiry'}',
                                 style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
                               ),
+                              Text(
+                                'Plans: ${_applicablePlansLabel(promo)}',
+                                style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                              ),
                             ],
                           ),
                         ),
@@ -2548,6 +2619,281 @@ class _PromoDialogState extends State<_PromoDialog> {
         ),
       ),
       actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
+      ],
+    );
+  }
+}
+
+class _PromoUsageReportDialog extends StatefulWidget {
+  const _PromoUsageReportDialog();
+
+  @override
+  State<_PromoUsageReportDialog> createState() => _PromoUsageReportDialogState();
+}
+
+class _PromoUsageReportDialogState extends State<_PromoUsageReportDialog> {
+  bool _isLoading = true;
+  bool _isDownloading = false;
+  String? _errorMessage;
+  Map<String, dynamic> _totals = const <String, dynamic>{};
+  List<Map<String, dynamic>> _rows = <Map<String, dynamic>>[];
+  final Set<String> _expandedCodes = <String>{};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReport();
+  }
+
+  Future<void> _loadReport() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    final adminToken = AuthRouterService.authToken;
+    if (adminToken.isEmpty) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Admin session is required to view the usage report.';
+      });
+      return;
+    }
+    try {
+      final uri = Uri.https('jobready-india.onrender.com', '/api/admin/promos/usage-report');
+      final response = await http.get(uri, headers: {
+        'Authorization': 'Bearer $adminToken',
+        'Accept': 'application/json',
+      });
+      if (!mounted) return;
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Could not load usage report (${response.statusCode}).';
+        });
+        return;
+      }
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      final report = (decoded['report'] as List?) ?? const [];
+      setState(() {
+        _rows = report.map((item) => Map<String, dynamic>.from(item as Map)).toList();
+        _totals = Map<String, dynamic>.from((decoded['totals'] as Map?) ?? const {});
+        _isLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Could not load usage report. ${error.toString()}';
+      });
+    }
+  }
+
+  Future<void> _downloadCsv() async {
+    setState(() {
+      _isDownloading = true;
+      _errorMessage = null;
+    });
+    final adminToken = AuthRouterService.authToken;
+    if (adminToken.isEmpty) {
+      setState(() {
+        _isDownloading = false;
+        _errorMessage = 'Admin session is required to export the report.';
+      });
+      return;
+    }
+    try {
+      final uri = Uri.https('jobready-india.onrender.com', '/api/admin/promos/usage-report', {'format': 'csv'});
+      final response = await http.get(uri, headers: {
+        'Authorization': 'Bearer $adminToken',
+        'Accept': 'text/csv,text/plain,*/*',
+      });
+      if (!mounted) return;
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        setState(() {
+          _isDownloading = false;
+          _errorMessage = 'Export failed (${response.statusCode}).';
+        });
+        return;
+      }
+      final csvBytes = response.bodyBytes.isNotEmpty ? response.bodyBytes : utf8.encode(response.body);
+      final blob = html.Blob([csvBytes], 'text/csv;charset=utf-8');
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute('download', 'promo_usage_report_${DateTime.now().millisecondsSinceEpoch}.csv')
+        ..style.display = 'none';
+      html.document.body?.append(anchor);
+      anchor.click();
+      anchor.remove();
+      html.Url.revokeObjectUrl(url);
+      setState(() {
+        _isDownloading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isDownloading = false;
+        _errorMessage = 'Export failed. ${error.toString()}';
+      });
+    }
+  }
+
+  String _money(dynamic value) {
+    final number = (value as num?)?.toDouble() ?? 0;
+    return '₹${number.toStringAsFixed(2)}';
+  }
+
+  String _plansLabel(Map<String, dynamic> row) {
+    final plans = (row['applicablePlans'] as List?)?.map((item) => item.toString()).toList() ?? const <String>[];
+    return plans.isEmpty ? 'All Plans' : plans.join(', ');
+  }
+
+  String _plansSoldLabel(Map<String, dynamic> row) {
+    final plansSold = Map<String, dynamic>.from((row['plansSold'] as Map?) ?? const {});
+    if (plansSold.isEmpty) return 'No sales yet';
+    return plansSold.entries.map((entry) => '${entry.key}: ${entry.value}').join(', ');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Promo usage & sales report'),
+      content: SizedBox(
+        width: 560,
+        height: 520,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_isLoading) const LinearProgressIndicator(),
+            if (_errorMessage != null) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF1F2),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFDC2626)),
+                ),
+                child: Text(
+                  _errorMessage!,
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFDC2626)),
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+            if (!_isLoading && _rows.isNotEmpty) ...[
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _SummaryChip(label: 'Total redemptions', value: '${_totals['totalRedemptions'] ?? 0}'),
+                  _SummaryChip(label: 'Gross revenue', value: _money(_totals['totalGrossRevenue'])),
+                  _SummaryChip(label: 'Discount given', value: _money(_totals['totalDiscountGiven'])),
+                ],
+              ),
+              const SizedBox(height: 10),
+            ],
+            Expanded(
+              child: _isLoading
+                  ? const SizedBox.shrink()
+                  : (_rows.isEmpty
+                      ? const Center(child: Text('No promo code activity yet.'))
+                      : ListView.builder(
+                          itemCount: _rows.length,
+                          itemBuilder: (context, index) {
+                            final row = _rows[index];
+                            final code = row['code']?.toString() ?? '';
+                            final expanded = _expandedCodes.contains(code);
+                            final dateBreakdown = (row['dateBreakdown'] as List?) ?? const [];
+                            final statusSuffix = row['deleted'] == true
+                                ? ' (deleted)'
+                                : (row['active'] == true ? '' : ' (inactive)');
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: const Color(0xFFE2E8F0)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          '$code$statusSuffix',
+                                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                                        ),
+                                      ),
+                                      Text('${row['redemptions'] ?? 0} redemptions', style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700)),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text('Plans eligible: ${_plansLabel(row)}', style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                                  Text('Plans sold: ${_plansSoldLabel(row)}', style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                                  Text(
+                                    'Gross revenue: ${_money(row['grossRevenue'])} • Discount given: ${_money(row['discountGiven'])}',
+                                    style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                                  ),
+                                  if (dateBreakdown.isNotEmpty) ...[
+                                    const SizedBox(height: 4),
+                                    TextButton(
+                                      style: TextButton.styleFrom(
+                                        padding: EdgeInsets.zero,
+                                        minimumSize: const Size(0, 0),
+                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      onPressed: () {
+                                        setState(() {
+                                          if (expanded) {
+                                            _expandedCodes.remove(code);
+                                          } else {
+                                            _expandedCodes.add(code);
+                                          }
+                                        });
+                                      },
+                                      child: Text(
+                                        expanded ? 'Hide date breakdown' : 'Show date breakdown (${dateBreakdown.length} days)',
+                                        style: const TextStyle(fontSize: 11),
+                                      ),
+                                    ),
+                                    if (expanded)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 4),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: dateBreakdown.map((entry) {
+                                            final map = Map<String, dynamic>.from(entry as Map);
+                                            return Padding(
+                                              padding: const EdgeInsets.symmetric(vertical: 1.5),
+                                              child: Text(
+                                                '${map['date']}: ${map['redemptions']} used • ${_money(map['grossRevenue'])} gross • ${_money(map['discountGiven'])} discount',
+                                                style: const TextStyle(fontSize: 10.5, color: Color(0xFF475569)),
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ),
+                                      ),
+                                  ],
+                                ],
+                              ),
+                            );
+                          },
+                        )),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton.icon(
+          onPressed: _isDownloading ? null : _downloadCsv,
+          icon: _isDownloading
+              ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Icon(Icons.download_outlined, size: 16),
+          label: Text(_isDownloading ? 'Exporting...' : 'Download CSV'),
+        ),
         TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
       ],
     );
