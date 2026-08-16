@@ -1454,3 +1454,17 @@ Prepared For: JOBREADY
     - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success.
     - Committed + pushed (commit `f638196`) → GitHub Actions triggered for this commit ("Enforce Current Site Lock", "Deploy to Render", "Deploy Flutter Web Preview (GitHub Pages)").
 - Owner: Founder + Copilot
+
+### Same day follow-up #18 — Removed Voice Top-Up Packs, embedded Plan Comparison Matrix directly on homepage
+- Overall status: Green (deployed)
+- Completed:
+  - **Voice Top-Up Packs removed entirely** ✓ — Deleted `_VoiceTopupPacksSection`/`_VoiceTopupPacksSectionState` from `home_page_v1_1.dart`, including its whole standalone checkout flow (`_requestJson`, `_purchaseVoiceTopup`, `_openTopupCheckoutAndVerify`, `_decodeBridgeMessage`, the Razorpay JS-eval bridge and its `window.onMessage` listener). Removed the now-unused `Services/voice_topup_service.dart` import from the file. `VoiceTopupPack`/`VoiceTopupService` themselves are left untouched since `admin_dashboard_page.dart` still manages top-up pack pricing there - flagged to the founder as now-orphaned admin UI, not removed (out of the requested scope). Voice commands now strictly consume the user's active plan quota (`voice_quotas_by_plan`, configured via Admin), enforced the same way as before via `VoiceQuotaService.applyPlanQuotaAllocation()`.
+  - **Plan Comparison Matrix embedded directly on homepage** ✓ — Refactored `plan_features_page.dart`: extracted the sticky-header comparison table into a new reusable `PlanComparisonMatrix` widget (accepts optional `embeddedMaxHeight` - fixed-height `SizedBox` instead of `Expanded` when set, so it works embedded anywhere, not just inside a full-screen `Scaffold`). `PlanFeaturesPage` now just wraps it in its existing Scaffold/AppBar - standalone "Plan Function List" page behavior unchanged. Also fixed `_loadComparisonData`'s hardcoded wrong backend domain (`https://getreadyjob.onrender.com`) to use `ApiConfig.baseUrl`, which was silently breaking the "live" pull of User Quota/Voice Commands Quota rows from `/api/public/plan-catalog`. Added new `_EmbeddedPlanComparisonMatrixSection` in `home_page_v1_1.dart` (same white/rounded card style as the rest of the homepage) rendering the matrix directly below the plan cards.
+  - **"View Full Function List" banner removed** ✓ — Deleted `_buildFeatureListCta` and both its call sites in `_PlanCardsSection` since the matrix is now inline; the unrelated ad-space tap-through in `_FixedAdSpaceState` that also opens `PlanFeaturesPage` was left untouched (separate concern, not part of this request).
+  - **Section hierarchy confirmed** ✓ — Plan Cards → embedded Plan Comparison Matrix → Payment Gateway & Currency Selector (`_UserPaymentPanel`) → About Us/Future Plan & Feedback row (unchanged, already last).
+  - **Validation** ✓ — `get_errors` clean on both files. Full terminal `flutter analyze lib/Pages/home_page_v1_1.dart lib/Pages/plan_features_page.dart` → 44 issues, all pre-existing baseline `info`/`warning` level (zero new issues; caught and removed one transient unused `_isLoading` field surfaced by the refactor).
+  - **Build & deploy** ✓
+    - `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` → success.
+    - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success.
+    - Committed + pushed (commit `82d6f6c`) → GitHub Actions triggered for this commit ("Enforce Current Site Lock", "Deploy to Render", "Deploy Flutter Web Preview (GitHub Pages)").
+- Owner: Founder + Copilot
