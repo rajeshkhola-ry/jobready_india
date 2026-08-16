@@ -973,6 +973,10 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
   String _filterMode = 'all';
   String? _csvExportError;
   bool _isCsvExporting = false;
+  bool _isExcelExporting = false;
+  String? _excelExportError;
+  Map<String, dynamic>? _reconciliationSummary;
+  bool _isLoadingSummary = false;
   final TextEditingController _invoiceQueryController = TextEditingController();
   final TextEditingController _stateController = TextEditingController(text: 'Delhi');
   final TextEditingController _gstinController = TextEditingController();
@@ -998,6 +1002,14 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
       : '/api/admin/sales-orders-report/export';
 
   String get _exportFilePrefix => _isGstMode ? 'GSTR1_Report' : 'Sales_Orders_Report';
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isGstMode) {
+      _loadReconciliationSummary();
+    }
+  }
 
   String get _filterLabel {
     switch (_filterMode) {
@@ -1088,6 +1100,37 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
     }
 
     return params;
+  }
+
+  Future<void> _loadReconciliationSummary() async {
+    setState(() {
+      _isLoadingSummary = true;
+    });
+
+    try {
+      final queryParams = Map<String, String>.from(_buildExportQueryParams())..['format'] = 'json';
+      final response = await _authedRequest('GET', '/api/admin/gst-report/export', queryParams: queryParams);
+      if (!mounted) return;
+
+      if (response == null || response.statusCode != 200) {
+        setState(() {
+          _isLoadingSummary = false;
+        });
+        return;
+      }
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      final report = (decoded['report'] as Map?) ?? {};
+      setState(() {
+        _isLoadingSummary = false;
+        _reconciliationSummary = (report['summary'] as Map?)?.cast<String, dynamic>();
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingSummary = false;
+      });
+    }
   }
 
   Future<void> _runTransactionDiagnostics() async {
@@ -1468,6 +1511,116 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
       setState(() {
         _isCsvExporting = false;
         _csvExportError = 'Unable to download the CSV export. Please retry. ${error.toString()}';
+      });
+    }
+  }
+
+  Future<void> _downloadExcelReport({bool retryAfterRefresh = false}) async {
+    setState(() {
+      _excelExportError = null;
+      _isExcelExporting = true;
+    });
+
+    final params = _buildExportQueryParams();
+    final fromDate = params['fromDate'] ?? params['from'];
+    final toDate = params['toDate'] ?? params['to'];
+    final normalizedFilter = params['filter'] ?? 'All';
+
+    final exportParams = <String, String>{
+      'range': 'custom',
+      'filter': normalizedFilter,
+      if (fromDate != null && fromDate.isNotEmpty) 'from': fromDate,
+      if (toDate != null && toDate.isNotEmpty) 'to': toDate,
+      if (fromDate != null && fromDate.isNotEmpty) 'fromDate': fromDate,
+      if (toDate != null && toDate.isNotEmpty) 'toDate': toDate,
+    };
+
+    final typeFilter = params['transactionType'];
+    if (typeFilter != null && typeFilter.isNotEmpty) {
+      exportParams['transactionType'] = typeFilter;
+    }
+
+    final stateFilter = params['state'];
+    if (stateFilter != null && stateFilter.isNotEmpty) {
+      exportParams['state'] = stateFilter;
+    }
+
+    final gstinFilter = params['gstin'];
+    if (gstinFilter != null && gstinFilter.isNotEmpty) {
+      exportParams['gstin'] = gstinFilter;
+    }
+
+    final sezFilter = params['sezStatus'];
+    if (sezFilter != null && sezFilter.isNotEmpty) {
+      exportParams['sezStatus'] = sezFilter;
+    }
+
+    final uri = Uri.https(
+      'jobready-india.onrender.com',
+      '/api/admin/gst-report/export-excel',
+      exportParams,
+    );
+
+    final adminToken = AuthRouterService.authToken;
+    if (adminToken.isEmpty) {
+      setState(() {
+        _isExcelExporting = false;
+        _excelExportError = 'Admin session is required to export the GSTR-1 Excel workbook.';
+      });
+      return;
+    }
+
+    try {
+      final response = await http.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $adminToken',
+          'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,*/*',
+        },
+      );
+
+      final isExpiredTokenResponse = response.statusCode == 401 || response.body.contains('Token expired');
+      if (isExpiredTokenResponse && !retryAfterRefresh) {
+        final refreshed = await _refreshExpiredAdminSession();
+        if (refreshed) {
+          await _downloadExcelReport(retryAfterRefresh: true);
+          return;
+        }
+        throw Exception('Admin session expired. Please sign in again to export.');
+      }
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw Exception('Export request failed with status ${response.statusCode}.');
+      }
+
+      if (response.bodyBytes.isEmpty) {
+        setState(() {
+          _isExcelExporting = false;
+          _excelExportError = 'The Excel export is empty.';
+        });
+        return;
+      }
+
+      final blob = html.Blob(
+        [response.bodyBytes],
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute('download', 'GSTR1_MultiTab_${DateTime.now().millisecondsSinceEpoch}.xlsx')
+        ..style.display = 'none';
+      html.document.body?.append(anchor);
+      anchor.click();
+      anchor.remove();
+      html.Url.revokeObjectUrl(url);
+
+      setState(() {
+        _isExcelExporting = false;
+      });
+    } catch (error) {
+      setState(() {
+        _isExcelExporting = false;
+        _excelExportError = 'Unable to download the Excel export. Please retry. ${error.toString()}';
       });
     }
   }
@@ -1950,6 +2103,12 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
                   ],
                 ),
                 const SizedBox(height: 12),
+                _ReconciliationSummaryCard(
+                  isLoading: _isLoadingSummary,
+                  summary: _reconciliationSummary,
+                  onRefresh: _isLoadingSummary ? null : _loadReconciliationSummary,
+                ),
+                const SizedBox(height: 12),
                 const Text('Invoice search & amendment', style: TextStyle(fontWeight: FontWeight.w800)),
                 const SizedBox(height: 8),
                 TextField(
@@ -1973,27 +2132,46 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
                     style: const TextStyle(color: Color(0xFF991B1B), fontSize: 12, fontWeight: FontWeight.w600),
                   ),
                 ),
-              Row(
+              if (_excelExportError != null)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF1F2),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFDC2626)),
+                  ),
+                  child: Text(
+                    _excelExportError!,
+                    style: const TextStyle(color: Color(0xFF991B1B), fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
                 children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _isCsvExporting ? null : _downloadCsvReport,
-                      icon: _isCsvExporting
-                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Icon(Icons.download_outlined),
-                      label: Text(_isCsvExporting ? 'Exporting...' : (_isGstMode ? 'Export GST CSV' : 'Export Orders CSV')),
-                    ),
+                  OutlinedButton.icon(
+                    onPressed: _isCsvExporting ? null : _downloadCsvReport,
+                    icon: _isCsvExporting
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.download_outlined),
+                    label: Text(_isCsvExporting ? 'Exporting...' : (_isGstMode ? 'Export GST CSV' : 'Export Orders CSV')),
                   ),
                   if (_isGstMode) ...[
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _isSearching ? null : _searchInvoices,
-                        icon: _isSearching
-                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                            : const Icon(Icons.search_outlined),
-                        label: Text(_isSearching ? 'Searching...' : 'Search Invoice'),
-                      ),
+                    OutlinedButton.icon(
+                      onPressed: _isExcelExporting ? null : _downloadExcelReport,
+                      icon: _isExcelExporting
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.grid_on_outlined),
+                      label: Text(_isExcelExporting ? 'Exporting...' : 'Export GSTR-1 Excel (Multi-Tab)'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _isSearching ? null : _searchInvoices,
+                      icon: _isSearching
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.search_outlined),
+                      label: Text(_isSearching ? 'Searching...' : 'Search Invoice'),
                     ),
                   ],
                 ],
@@ -2164,6 +2342,111 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
       actions: [
         TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
       ],
+    );
+  }
+}
+
+/// Simple GST reconciliation overview for the selected filing period: total
+/// taxable sales, the output CGST/SGST/IGST breakdown, and a reminder to
+/// cross-check against GSTR-2B (auto-drafted ITC statement, usually available
+/// on the GST portal by the 14th of each month) before filing GSTR-3B.
+class _ReconciliationSummaryCard extends StatelessWidget {
+  const _ReconciliationSummaryCard({
+    required this.isLoading,
+    required this.summary,
+    required this.onRefresh,
+  });
+
+  final bool isLoading;
+  final Map<String, dynamic>? summary;
+  final VoidCallback? onRefresh;
+
+  String _money(dynamic value) {
+    final amount = (value is num) ? value.toDouble() : double.tryParse('$value') ?? 0;
+    return '₹${amount.toStringAsFixed(2)}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final taxableValue = summary?['netTaxableValue'] ?? summary?['totalTaxableValue'] ?? 0;
+    final cgst = summary?['netCgstAmount'] ?? summary?['totalCgstAmount'] ?? 0;
+    final sgst = summary?['netSgstAmount'] ?? summary?['totalSgstAmount'] ?? 0;
+    final igst = summary?['netIgstAmount'] ?? summary?['totalIgstAmount'] ?? 0;
+    final totalOutputGst = (cgst is num ? cgst : 0) + (sgst is num ? sgst : 0) + (igst is num ? igst : 0);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0FDF4),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFBBF7D0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.calculate_outlined, size: 18, color: Color(0xFF166534)),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Reconciliation & ITC Helper',
+                  style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF166534)),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                tooltip: 'Refresh summary for the selected filters',
+                onPressed: onRefresh,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              ),
+            ],
+          ),
+          if (isLoading) ...[
+            const SizedBox(height: 8),
+            const LinearProgressIndicator(minHeight: 3),
+          ] else if (summary == null) ...[
+            const SizedBox(height: 6),
+            const Text(
+              'Tap refresh to load the reconciliation summary for the selected filters.',
+              style: TextStyle(fontSize: 12, color: Color(0xFF166534)),
+            ),
+          ] else ...[
+            const SizedBox(height: 8),
+            Text('Total Taxable Sales: ${_money(taxableValue)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
+            const SizedBox(height: 4),
+            Text(
+              'Output GST: CGST ${_money(cgst)} + SGST ${_money(sgst)} + IGST ${_money(igst)} = ${_money(totalOutputGst)}',
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFBEB),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFFDE68A)),
+              ),
+              child: const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.info_outline, size: 16, color: Color(0xFF92400E)),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Reminder: cross-check this Output GST against your GSTR-2B (auto-drafted ITC statement) before filing GSTR-3B - it is usually available on the GST portal by the 14th of each month.',
+                      style: TextStyle(fontSize: 11.5, height: 1.4, color: Color(0xFF92400E), fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
