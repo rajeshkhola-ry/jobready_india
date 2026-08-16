@@ -1383,3 +1383,17 @@ Prepared For: JOBREADY
     - Committed + pushed (commit `b4cfee1`) → confirmed via GitHub REST API that all 3 workflows triggered for this commit.
 - Owner: Founder + Copilot
 
+### Same day follow-up #13 — Dynamic voice quota sync, sticky matrix header, relocated top-up packs, currency-only pricing
+- Overall status: Green (deployed)
+- Completed:
+  - **Dynamic Admin voice quota sync** ✓ — Root cause: `voice_quotas_by_plan` existed on the client's `PlanCatalogConfig` and was sent by the admin dashboard's save request, but `compression_server.js` silently dropped it (not in `defaultPlanCatalogConfig`, not read back from disk, not accepted by `POST /api/admin/plan-catalog`) - so it was never actually persisted server-side. Fixed all three spots. Also switched `plan_features_page.dart`'s `_loadComparisonData()` from `/api/public/plan-matrix` (a separately-generated comparison whose merge-only-if-empty rule rarely actually overrode anything) to `/api/public/plan-catalog` (the raw, admin-saved config), and now apply the server value unconditionally for both the User Quota and Voice Commands Quota rows once fetched - an admin update on any device now reflects immediately for every visitor instead of only ever showing that visitor's own cached copy.
+  - **Sticky/frozen Plan Function Matrix header** ✓ — Replaced the `DataTable` (whose header scrolled away with the body) with a manual fixed-width `Row`/`Column` table: a non-interactively-scrollable header container sits above the body, its horizontal scroll position mirrored from the body's `ScrollController` via a listener, so both stay perfectly column-aligned while only the body scrolls vertically and the header stays pinned with a solid background and a subtle shadow.
+  - **Relocated Voice Command Top-Up Packs container** ✓ — Moved from the end of the payment panel to sit directly between the plan cards + "View Full Function List" banner and the payment gateway/currency section (`home_page_v1_1.dart`), matching the requested hierarchy. Extracted into its own self-contained `_VoiceTopupPacksSection` widget (own Razorpay checkout flow) since it's now a sibling of the payment panel rather than nested inside it.
+  - **Dynamic currency-only pricing** ✓ — Each top-up pack now shows only the price matching the homepage's currently selected currency (INR or USD), dropping the previous "₹29 / $0.99" slash format, and updates immediately when the currency dropdown changes (the section rebuilds with the new `selectedCurrency` value on every homepage state update).
+  - **Validation** ✓ — Full project-wide `flutter analyze` and `node --check` both show zero new errors; only the same pre-existing, unrelated baseline errors already present all session remain.
+  - **Build & deploy** ✓
+    - `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` → success.
+    - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success.
+    - Committed + pushed (commit `a32e4bd`) → confirmed via GitHub REST API that all 3 workflows triggered for this commit.
+- Owner: Founder + Copilot
+
