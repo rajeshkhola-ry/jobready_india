@@ -35,6 +35,22 @@ class VoiceQuotaService {
     return UserAccountService.getProfile().voiceCommandsBalance > 0;
   }
 
+  /// Friendly, user-facing reason why voice commands are blocked right now
+  /// (empty string if they are currently allowed). Distinguishes a plan
+  /// configured with a "0" voice quota from a balance simply run out, so the
+  /// prompt always points the user toward a top-up or plan upgrade.
+  static String blockedReasonMessage() {
+    if (canUseVoiceCommand()) {
+      return '';
+    }
+    final profile = UserAccountService.getProfile();
+    final planQuotaIsZero = _rawQuotaForPlan(profile.activePlan).trim() == '0';
+    if (planQuotaIsZero && profile.voiceCommandsBalance <= 0) {
+      return 'Voice commands are not included in your current plan. Please purchase a top-up pack or upgrade your plan to use AI voice commands.';
+    }
+    return 'Voice quota exhausted for your plan. Please upgrade or top up to continue using AI voice commands.';
+  }
+
   /// User-facing label for the account/profile UI - "Unlimited" for admin or
   /// an unlimited plan, otherwise "XX / Total".
   static String remainingLabel() {

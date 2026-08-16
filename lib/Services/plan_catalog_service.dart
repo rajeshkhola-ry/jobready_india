@@ -269,9 +269,12 @@ class PlanCatalogConfig {
       final merged = <String, String>{...fallback};
       for (final entry in raw.entries) {
         final key = entry.key.toString();
-        final value = entry.value?.toString() ?? '';
-        if (value.trim().isNotEmpty) {
-          merged[key] = value;
+        final rawValue = entry.value;
+        // Explicit existence check (not a truthy check) - a legitimate "0"
+        // quota must be preserved, only a genuinely missing/blank value
+        // should fall back to the previous entry.
+        if (rawValue != null && rawValue.toString().trim().isNotEmpty) {
+          merged[key] = rawValue.toString().trim();
         }
       }
       return merged;

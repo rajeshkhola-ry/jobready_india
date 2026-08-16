@@ -80,8 +80,8 @@ class _VoiceCommandButtonState extends State<VoiceCommandButton>
   Future<void> _startListening() async {
     if (!VoiceQuotaService.canUseVoiceCommand()) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Voice quota exhausted for your plan. Please upgrade or top up to continue using AI voice commands.'),
+        SnackBar(
+          content: Text(VoiceQuotaService.blockedReasonMessage()),
           backgroundColor: Colors.red,
         ),
       );

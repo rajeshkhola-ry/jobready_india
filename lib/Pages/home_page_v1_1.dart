@@ -129,6 +129,34 @@ String resolvePreferredPaymentCurrency({
   return isIndia ? 'INR' : 'USD';
 }
 
+/// Never surfaces a raw, non-human-readable object (e.g. a minified JS
+/// interop error whose default toString() is "Instance of 'xyz'") to the
+/// user - every caller gets a clean, safe string back no matter what was
+/// thrown, instead of an uncaught-looking exception banner. Top-level so it
+/// is usable from any State class in this file without duplication.
+String _safeErrorText(Object? error, {String fallback = 'Unable to complete request. Please try again.'}) {
+  if (error == null) {
+    return fallback;
+  }
+  if (error is String) {
+    final trimmed = error.trim();
+    return trimmed.isEmpty ? fallback : trimmed;
+  }
+  String raw;
+  try {
+    raw = error.toString();
+  } catch (_) {
+    return fallback;
+  }
+  raw = raw.replaceFirst('Exception: ', '').trim();
+  final looksOpaque = raw.isEmpty ||
+      raw.startsWith('Instance of ') ||
+      raw.contains('minified:') ||
+      raw.contains('ProgressEvent') ||
+      raw.contains('[object ');
+  return looksOpaque ? fallback : raw;
+}
+
 class HomePageV11 extends StatefulWidget {
   const HomePageV11({super.key});
 
@@ -3477,7 +3505,7 @@ class _VoiceTopupPacksSectionState extends State<_VoiceTopupPacksSection> {
       );
     } catch (error) {
       if (!mounted) return;
-      final message = error.toString().replaceFirst('Exception: ', '');
+      final message = _safeErrorText(error);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     } finally {
       if (mounted) {
@@ -3834,7 +3862,7 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
         _promoValidating = false;
         _appliedPromo = null;
         _promoMessageIsError = true;
-        _promoMessage = error.toString().replaceFirst('Exception: ', '');
+        _promoMessage = _safeErrorText(error);
       });
     }
   }
@@ -4035,9 +4063,10 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
   }
 
   String _friendlyCheckoutError(Object? error, String path) {
-    final raw = (error?.toString() ?? 'Unknown payment error')
-        .replaceFirst('Exception: ', '')
-        .trim();
+    final raw = _safeErrorText(
+      error,
+      fallback: 'Payment request failed before checkout opened. Please refresh and try again.',
+    );
     if (raw.contains('HTTP 404') || raw.contains('Unable to reach payment API')) {
       return 'Payment service endpoint is not reachable for $path. Please retry in 1 minute.';
     }
@@ -4046,9 +4075,6 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
     }
     if (raw.contains('Recurring digits in customer contact are disallowed')) {
       return 'Please update your mobile number in account profile and try payment again.';
-    }
-    if (raw.contains('minified:') || raw.contains('ProgressEvent')) {
-      return 'Payment request failed before checkout opened. Please refresh and try again.';
     }
     return raw;
   }
@@ -4656,6 +4682,7 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
           toolsUnlimited: selectedPlan == 'Lifetime' || selectedPlan == 'Yearly' || selectedPlan == 'Monthly',
         );
         await UserAccountService.saveProfile(paidProfile);
+        await VoiceQuotaService.applyPlanQuotaAllocation(selectedPlan);
 
         if (mounted) {
           setState(() {});
@@ -4719,6 +4746,7 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
         toolsUnlimited: selectedPlan == 'Lifetime' || selectedPlan == 'Yearly' || selectedPlan == 'Monthly',
       );
       await UserAccountService.saveProfile(paidProfile);
+      await VoiceQuotaService.applyPlanQuotaAllocation(selectedPlan);
 
       if (mounted) {
         setState(() {});

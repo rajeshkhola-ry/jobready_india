@@ -174,9 +174,12 @@ class RazorpayPaymentService {
         message: 'Razorpay checkout opened.',
       );
     } catch (error) {
+      // Never surface a raw JS interop error object (e.g. "Instance of
+      // 'minified:xx'") directly to the user.
+      final safeMessage = error is String ? error : 'Unable to open Razorpay checkout. Please try again.';
       return RazorpayCheckoutResult(
         success: false,
-        message: 'Failed to open Razorpay checkout: $error',
+        message: safeMessage,
       );
     }
   }

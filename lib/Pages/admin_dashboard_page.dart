@@ -828,7 +828,11 @@ class _PricingDialogState extends State<_PricingDialog> {
           'inr_prices': catalog['inr_prices'],
           'usd_prices': catalog['usd_prices'],
           'enabled_tools_by_plan': widget.initialConfig.enabledToolsByPlan.map((k, v) => MapEntry(k, v)),
-          'user_quotas_by_plan': widget.initialConfig.userQuotasByPlan,
+          // Use the fresh server values (not the possibly-stale initialConfig)
+          // so an admin-saved "0" quota isn't silently reset back to the
+          // hardcoded defaults every time this dialog re-opens.
+          'user_quotas_by_plan': catalog['user_quotas_by_plan'] ?? widget.initialConfig.userQuotasByPlan,
+          'voice_quotas_by_plan': catalog['voice_quotas_by_plan'] ?? widget.initialConfig.voiceQuotasByPlan,
         });
         setState(() {
           _hydrateFromConfig(serverConfig);
