@@ -1352,3 +1352,15 @@ Prepared For: JOBREADY
     - Committed + pushed (commit `a1ffa21`).
 - Owner: Founder + Copilot
 
+### Same day follow-up #11 — Plan Comparison Matrix column alignment fix
+- Overall status: Green (deployed)
+- Completed:
+  - **Root cause** ✓ — `plan_features_page.dart`'s plan-name badges (FREE/7 DAYS/MONTHLY/YEARLY/LIFETIME) were rendered as a standalone `Wrap` of `_LegendChip` pills sitting in their own `Container` above the `DataTable`, with no layout relationship to the DataTable's actual column widths - a completely separate widget/layout system from the checkmark columns below it.
+  - **Fix** ✓ — Removed the standalone legend `Wrap`. The same colored `_LegendChip` badge widgets are now used directly as the `DataColumn` labels (wrapped in `Center`) for the FREE/7 DAYS/MONTHLY/YEARLY/LIFETIME columns, so they render inside the DataTable's own header row and share the exact same column width/position as the checkmark cells beneath them (which were already centered via the existing `_buildAvailabilityIcon`). "Function Name" remains left-aligned (DataTable's default for non-numeric columns). The existing horizontal + vertical `SingleChildScrollView`s around the table were left in place, preserving responsive scrolling on smaller screens.
+  - **Validation** ✓ — `flutter analyze` on the file shows only the same pre-existing, unrelated `_isLoading` unused-field warning; no new errors.
+  - **Build & deploy** ✓
+    - `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` → success.
+    - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success.
+    - Committed + pushed (commit `4519aba`) → confirmed via GitHub REST API that all 3 workflows triggered (Render + Site Lock completed/success, GitHub Pages preview in progress as expected).
+- Owner: Founder + Copilot
+
