@@ -1240,3 +1240,15 @@ Prepared For: JOBREADY
   - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success.
   - Committed + pushed (commit `97202c3`) → triggers Render + GitHub Pages redeploy of getreadyjob.com.
 - Owner: Founder + Copilot
+
+### Same day follow-up #4 — Micro-Canva header contrast fix + redundant footer block removal
+- Overall status: Green (deployed)
+- Completed:
+  - **Micro-Canva header contrast** ✓ — `Pages/micro_canva_utilities_page.dart`'s `AppBar` now sets explicit `iconTheme: IconThemeData(color: Colors.white, size: 28)`, `titleTextStyle` (white, w800), and a custom `leading` `IconButton` with a white `Icons.arrow_back_rounded`, matching the same robust pattern already used by Merge/Split/Compress/Convert tool pages — guarantees the title and back arrow read as pure white against the `#1F2937` dark bar regardless of theme defaults.
+  - **Removed redundant footer block** ✓ — `Pages/home_page_v1_1.dart`: deleted the round `GlowingLogoBadge` + `_FooterInfoRow` "Website: www.getreadyjob.com" / "Support: hello@getreadyjob.com" cards that floated directly above `ProductionFooter` (that info is already shown in the footer bar itself). Removed the now fully-unused `_FooterInfoRow` class and the `glowing_logo_badge.dart` import; page now flows straight from the daily-usage/admin quick-access card into `ProductionFooter`.
+- **Validation** ✓ — `get_errors` clean; `flutter analyze` on both files → 45 pre-existing info/warning lints only (unrelated to the touched lines), 0 new issues; confirmed via clean analyze (no unused-import/undefined-identifier errors) that no other code still referenced `GlowingLogoBadge`/`_FooterInfoRow`.
+- **Build & deploy** ✓
+  - `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` → success.
+  - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success.
+  - Committed + pushed (commit `b795914`) → triggers Render + GitHub Pages redeploy of getreadyjob.com.
+- Owner: Founder + Copilot
