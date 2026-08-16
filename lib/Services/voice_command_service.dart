@@ -99,6 +99,120 @@ class VoiceCommandService {
 
   String get _combinedSttTranscript => ('$_sttFinalTranscript $_sttInterimTranscript').trim();
 
+  /// Zero-latency local fast-path: matches common phrasing via keyword/regex
+  /// against the browser's own live Web Speech transcript, mirroring the
+  /// backend's tryLocalIntentMatch() in compression_server.js, so routine
+  /// commands execute instantly and never depend on reaching the network
+  /// classifier at all (works even while the backend is cold-starting or
+  /// briefly unreachable). Returns null for anything ambiguous, letting the
+  /// caller fall through to the network classifier for extra nuance.
+  VoiceCommandResult? _tryLocalIntentMatch(String transcriptRaw) {
+    final transcript = transcriptRaw.trim().toLowerCase();
+    if (transcript.isEmpty) {
+      return null;
+    }
+
+    int? targetSizeKb;
+    final kbMatch = RegExp(r'(\d+(?:\.\d+)?)\s*kb\b').firstMatch(transcript);
+    final mbMatch = RegExp(r'(\d+(?:\.\d+)?)\s*mb\b').firstMatch(transcript);
+    if (kbMatch != null) {
+      targetSizeKb = double.parse(kbMatch.group(1)!).round();
+    } else if (mbMatch != null) {
+      targetSizeKb = (double.parse(mbMatch.group(1)!) * 1024).round();
+    }
+
+    const presetKeywords = ['ssc', 'upsc', 'ibps', 'rrb', 'jee', 'neet', 'aadhaar', 'passport'];
+    String? matchedPreset;
+    for (final keyword in presetKeywords) {
+      if (transcript.contains(keyword)) {
+        matchedPreset = keyword;
+        break;
+      }
+    }
+
+    VoiceCommandResult buildResult(String tool, String action) {
+      return VoiceCommandResult(
+        success: true,
+        tool: tool,
+        action: action,
+        parameters: <String, dynamic>{'target_size_kb': targetSizeKb, 'preset': matchedPreset},
+        recognizedText: transcriptRaw.trim(),
+        confidence: 0.92,
+      );
+    }
+
+    if (matchedPreset != null && RegExp(r'\b(ssc|upsc|ibps|rrb|jee|neet|exam|photo|signature)\b').hasMatch(transcript)) {
+      return buildResult('photo_resizer', 'resize');
+    }
+
+    if (RegExp(r'\b(protect|lock|encrypt|password)\b').hasMatch(transcript)) {
+      return buildResult('protect_pdf', 'protect');
+    }
+
+    if (RegExp(r'\b(merge|combine)\b').hasMatch(transcript)) {
+      return buildResult('merge_pdf', 'merge');
+    }
+
+    if (RegExp(r'\bsplit\b').hasMatch(transcript)) {
+      return buildResult('split_pdf', 'split');
+    }
+    if (RegExp(r'\bextract\b').hasMatch(transcript)) {
+      return buildResult('split_pdf', 'extract');
+    }
+
+    if (RegExp(r'\b(compress|reduce|shrink)\b').hasMatch(transcript) || targetSizeKb != null) {
+      return buildResult('compress_pdf', 'compress');
+    }
+
+    if (RegExp(r'\bconvert\b').hasMatch(transcript)) {
+      // Look at what's mentioned AFTER "to" (the target format) so phrasing
+      // like "convert pdf to jpg" (both formats named) resolves correctly
+      // instead of being treated as ambiguous.
+      final toIndex = transcript.indexOf(' to ');
+      final targetPart = toIndex != -1 ? transcript.substring(toIndex + 4) : transcript;
+
+      final targetMentionsWord = RegExp(r'\b(word|docx|doc)\b').hasMatch(targetPart);
+      final targetMentionsExcelCsv = RegExp(r'\b(excel|xlsx|csv|spreadsheet)\b').hasMatch(targetPart);
+      final targetMentionsImage = RegExp(r'\b(image|photo|jpg|jpeg|png)\b').hasMatch(targetPart);
+      final targetMentionsPdf = RegExp(r'\bpdf\b').hasMatch(targetPart);
+
+      if (targetMentionsExcelCsv) {
+        return buildResult('csv_to_excel', 'convert');
+      }
+      if (targetMentionsWord) {
+        return buildResult('pdf_to_word', 'convert');
+      }
+      if (targetMentionsPdf) {
+        return buildResult('jpg_to_pdf', 'convert');
+      }
+      if (targetMentionsImage) {
+        return buildResult('pdf_to_jpg', 'convert');
+      }
+      // No recognizable target format after "to" - let the network
+      // classifier use the full audio for extra nuance rather than
+      // guessing here.
+      return null;
+    }
+
+    return null;
+  }
+
+  /// Never leaves the user with a bare technical error when the backend is
+  /// unreachable/cold-starting - reflects back what was heard (if anything)
+  /// with actionable guidance instead of a scary generic message.
+  VoiceCommandResult _offlineFallbackResult(String transcriptHint, [String? baseMessage]) {
+    final trimmed = transcriptHint.trim();
+    if (trimmed.isEmpty) {
+      return VoiceCommandResult.failure(
+        baseMessage ?? 'AI assistant is temporarily busy. Please try speaking your command again in a moment.',
+      );
+    }
+    return VoiceCommandResult.failure(
+      'AI assistant is temporarily busy. I heard: "$trimmed" - try a clear command like '
+      '"Convert to Word", "Compress to 50 KB", or "Merge PDF", or try again in a moment.',
+    );
+  }
+
   Map<String, dynamic>? _decodeBridgeMessage(dynamic data) {
     dynamic normalized = data;
     if (normalized is String) {
@@ -316,6 +430,16 @@ class VoiceCommandService {
     final transcriptHint = _combinedSttTranscript;
     _stopLiveTranscription();
 
+    // Zero-latency local fast-path: if the browser's own live transcript
+    // confidently matches a known command, execute it immediately - never
+    // waits on (or even attempts) the network classifier, so voice commands
+    // keep working even while the backend is cold-starting or unreachable.
+    final localMatch = _tryLocalIntentMatch(transcriptHint);
+    if (localMatch != null) {
+      _chunks.clear();
+      return localMatch;
+    }
+
     if (_chunks.isEmpty) {
       return VoiceCommandResult.failure('No audio captured. Please try again.');
     }
@@ -324,7 +448,7 @@ class VoiceCommandService {
       final parts = <JSAny>[for (final chunk in _chunks) chunk].toJS;
       final blob = web.Blob(parts, web.BlobPropertyBag(type: _mimeType));
       final bytes = await _blobToBytes(blob);
-      return _uploadAndClassify(bytes, transcriptHint: transcriptHint);
+      return await _uploadAndClassify(bytes, transcriptHint: transcriptHint);
     } catch (_) {
       return VoiceCommandResult.failure('Could not process the recording. Please try again.');
     } finally {
@@ -386,14 +510,14 @@ class VoiceCommandService {
         request.fields['transcript_hint'] = transcriptHint.trim();
       }
 
-      final streamed = await request.send().timeout(const Duration(seconds: 30));
+      final streamed = await request.send().timeout(const Duration(seconds: 35));
       final response = await http.Response.fromStream(streamed);
 
       Map<String, dynamic> decoded;
       try {
         decoded = jsonDecode(response.body) as Map<String, dynamic>;
       } catch (_) {
-        return VoiceCommandResult.failure('Voice command service returned an unreadable response.');
+        return _offlineFallbackResult(transcriptHint, 'Voice command service returned an unreadable response.');
       }
 
       if (response.statusCode != 200 || decoded['success'] != true) {
@@ -412,9 +536,9 @@ class VoiceCommandService {
         confidence: (decoded['confidence'] as num?)?.toDouble() ?? 0,
       );
     } on TimeoutException {
-      return VoiceCommandResult.failure('Voice command timed out. Please check your connection.');
+      return _offlineFallbackResult(transcriptHint, 'Voice command timed out. Please check your connection.');
     } catch (_) {
-      return VoiceCommandResult.failure('Could not reach the voice command service.');
+      return _offlineFallbackResult(transcriptHint, 'Could not reach the voice command service.');
     }
   }
 }
