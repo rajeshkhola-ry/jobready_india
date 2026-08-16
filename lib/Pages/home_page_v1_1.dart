@@ -1405,6 +1405,8 @@ class _HomePageV11State extends State<HomePageV11> {
                   onPlanSelected: _handlePlanSelection,
                 ),
                 const SizedBox(height: 12),
+                _VoiceTopupPacksSection(selectedCurrency: _selectedPaymentCurrency),
+                const SizedBox(height: 12),
                 _UserPaymentPanel(
                   activeGateway: _activeGateway,
                   selectedPlan: _selectedPlanForPayment,
@@ -2900,6 +2902,419 @@ class _OwnerIntegrationHubPanelState extends State<_OwnerIntegrationHubPanel> {
   }
 }
 
+/// Standalone so it can sit between the plan cards and the payment panel
+/// (independent of _UserPaymentPanelState's own Razorpay flow for plan
+/// purchases) - has its own self-contained checkout flow for voice top-ups.
+class _VoiceTopupPacksSection extends StatefulWidget {
+  final String selectedCurrency;
+
+  const _VoiceTopupPacksSection({required this.selectedCurrency});
+
+  @override
+  State<_VoiceTopupPacksSection> createState() => _VoiceTopupPacksSectionState();
+}
+
+class _VoiceTopupPacksSectionState extends State<_VoiceTopupPacksSection> {
+  late List<VoiceTopupPack> _topupPacks;
+  String? _purchasingPackId;
+
+  @override
+  void initState() {
+    super.initState();
+    _topupPacks = VoiceTopupService.load();
+  }
+
+  bool get _isIndia => widget.selectedCurrency.trim().toUpperCase() != 'USD';
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Voice Command Top-Up Packs',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'No Expiry \u2022 Instant AI Voice Credits \u2022 Works Across All Plans',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF0F766E)),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: _topupPacks.map(_buildTopupCard).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopupCard(VoiceTopupPack pack) {
+    final isBusy = _purchasingPackId == pack.id;
+    final priceText = _isIndia ? '\u20b9${pack.priceInr.toStringAsFixed(0)}' : '\$${pack.priceUsd.toStringAsFixed(2)}';
+    return Container(
+      width: 200,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: pack.isPopular ? const Color(0xFFEFF6FF) : const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: pack.isPopular ? const Color(0xFF2563EB) : const Color(0xFFE5E7EB),
+          width: pack.isPopular ? 1.6 : 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (pack.isPopular)
+            Container(
+              margin: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(color: const Color(0xFF2563EB), borderRadius: BorderRadius.circular(999)),
+              child: const Text(
+                'POPULAR',
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white),
+              ),
+            ),
+          Text(
+            pack.name,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF111827)),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${pack.credits} Voice Commands',
+            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF4B5563)),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            priceText,
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: isBusy ? null : () => _purchaseVoiceTopup(pack),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2563EB),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: isBusy
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Text('Buy Now / Recharge', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<Map<String, dynamic>> _requestJson(String method, String path, {Map<String, dynamic>? body}) async {
+    const defaultBaseUrl = 'https://getreadyjob.onrender.com';
+    const configuredBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: defaultBaseUrl);
+    final response = await html.HttpRequest.request(
+      '$configuredBaseUrl$path',
+      method: method,
+      sendData: body == null ? null : jsonEncode(body),
+      requestHeaders: const {'Content-Type': 'application/json', 'Accept': 'application/json'},
+    );
+    final raw = response.responseText ?? '{}';
+    final decoded = raw.trim().isEmpty ? <String, dynamic>{} : jsonDecode(raw);
+    if (decoded is! Map<String, dynamic>) {
+      throw Exception('Unexpected response from $path.');
+    }
+    return decoded;
+  }
+
+  Future<void> _purchaseVoiceTopup(VoiceTopupPack pack) async {
+    final profile = UserAccountService.getProfile();
+    final email = profile.email.trim();
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please add your email in your account profile before purchasing a voice top-up.')),
+      );
+      return;
+    }
+
+    setState(() => _purchasingPackId = pack.id);
+
+    try {
+      final keyResponse = await _requestJson('GET', '/api/config');
+      final keyId = keyResponse['key_id']?.toString().trim() ?? '';
+      if (keyId.isEmpty) {
+        throw Exception('Payment gateway is not configured. Please try again later.');
+      }
+
+      final billing = <String, dynamic>{
+        'name': profile.displayName.trim().isNotEmpty ? profile.displayName.trim() : 'User',
+        'email': email,
+        'mobile': profile.mobileNumber.trim(),
+        'country': profile.country.trim().isEmpty ? 'India' : profile.country.trim(),
+      };
+
+      final amountPaise = (pack.priceInr * 100).round();
+
+      final orderResponse = await _requestJson(
+        'POST',
+        '/api/voice-topup/create-order',
+        body: {
+          'packId': pack.id,
+          'packName': pack.name,
+          'credits': pack.credits,
+          'amount': amountPaise,
+          'currency': 'INR',
+          'billing': billing,
+        },
+      );
+      if (orderResponse['success'] != true) {
+        throw Exception(orderResponse['error']?.toString() ?? 'Unable to create top-up order.');
+      }
+
+      final orderId = orderResponse['order_id']?.toString() ?? '';
+      final orderAmountRaw = orderResponse['amount'];
+      final orderAmount = orderAmountRaw is int ? orderAmountRaw : int.tryParse(orderAmountRaw.toString()) ?? amountPaise;
+      final orderCurrency = orderResponse['currency']?.toString() ?? 'INR';
+
+      final verifyResult = await _openTopupCheckoutAndVerify(
+        keyId: keyId,
+        orderId: orderId,
+        amount: orderAmount,
+        currency: orderCurrency,
+        billing: billing,
+        packName: pack.name,
+      );
+
+      final creditsAdded = int.tryParse(verifyResult['creditsAdded']?.toString() ?? '') ?? pack.credits;
+      await VoiceQuotaService.addTopUp(
+        credits: creditsAdded,
+        packName: pack.name,
+        amountPaid: pack.priceInr,
+        currency: 'INR',
+        invoiceUrl: verifyResult['invoiceUrl']?.toString(),
+        transactionId: verifyResult['transactionId']?.toString(),
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$creditsAdded voice command credits added! New balance: ${VoiceQuotaService.remainingLabel()}')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      final message = error.toString().replaceFirst('Exception: ', '');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    } finally {
+      if (mounted) {
+        setState(() => _purchasingPackId = null);
+      }
+    }
+  }
+
+  Future<Map<String, dynamic>> _openTopupCheckoutAndVerify({
+    required String keyId,
+    required String orderId,
+    required int amount,
+    required String currency,
+    required Map<String, dynamic> billing,
+    required String packName,
+  }) async {
+    final initialized = await RazorpayPaymentService.instance.initialize();
+    if (!initialized) {
+      throw Exception('Unable to load Razorpay checkout SDK.');
+    }
+
+    final completer = Completer<Map<String, String>>();
+    final bridgeToken = 'rzp_topup_${DateTime.now().microsecondsSinceEpoch}';
+
+    final options = <String, dynamic>{
+      'key': keyId,
+      'amount': amount,
+      'currency': currency,
+      'name': 'GetReadyJob',
+      'description': 'Voice Command Top-Up - $packName',
+      'order_id': orderId,
+      'prefill': {
+        'name': billing['name']?.toString() ?? 'User',
+        'email': billing['email']?.toString() ?? '',
+        'contact': billing['mobile']?.toString() ?? '',
+      },
+      'theme': {'color': '#0F172A'},
+    };
+
+    final messageSubscription = html.window.onMessage.listen((event) {
+      final data = _decodeBridgeMessage(event.data);
+      if (data == null) {
+        return;
+      }
+      final source = data['source']?.toString() ?? '';
+      final token = data['token']?.toString() ?? '';
+      if (source != 'jobready_razorpay_topup' || token != bridgeToken) {
+        return;
+      }
+
+      final type = data['type']?.toString() ?? '';
+      if (type == 'success') {
+        final payloadRaw = data['payload'];
+        if (payloadRaw is Map && !completer.isCompleted) {
+          completer.complete({
+            'order_id': payloadRaw['order_id']?.toString() ?? '',
+            'payment_id': payloadRaw['payment_id']?.toString() ?? '',
+            'signature': payloadRaw['signature']?.toString() ?? '',
+          });
+        }
+      } else if (type == 'dismiss') {
+        if (!completer.isCompleted) {
+          completer.completeError(Exception('Payment cancelled by user.'));
+        }
+      } else if (type == 'failed') {
+        final payloadRaw = data['payload'];
+        final message = payloadRaw is Map ? payloadRaw['message']?.toString().trim() : null;
+        if (!completer.isCompleted) {
+          completer.completeError(
+            Exception(message?.isNotEmpty == true ? message : 'Razorpay checkout could not be opened.'),
+          );
+        }
+      }
+    });
+
+    final optionsJson = jsonEncode(options);
+    final script = '''
+(function() {
+  if (!window.Razorpay) {
+    window.postMessage({ source: 'jobready_razorpay_topup', token: '$bridgeToken', type: 'dismiss' }, window.location.origin);
+    return;
+  }
+  const opts = $optionsJson;
+  opts.handler = function(response) {
+    window.postMessage({
+      source: 'jobready_razorpay_topup',
+      token: '$bridgeToken',
+      type: 'success',
+      payload: {
+        order_id: response.razorpay_order_id || '',
+        payment_id: response.razorpay_payment_id || '',
+        signature: response.razorpay_signature || ''
+      }
+    }, window.location.origin);
+  };
+  opts.modal = {
+    ondismiss: function() {
+      window.postMessage({ source: 'jobready_razorpay_topup', token: '$bridgeToken', type: 'dismiss' }, window.location.origin);
+    }
+  };
+  const checkout = new window.Razorpay(opts);
+  if (checkout && typeof checkout.on === 'function') {
+    checkout.on('payment.failed', function(response) {
+      const message = response && response.error && response.error.description
+        ? response.error.description
+        : 'Razorpay payment failed before confirmation.';
+      window.postMessage({
+        source: 'jobready_razorpay_topup',
+        token: '$bridgeToken',
+        type: 'failed',
+        payload: { message: message }
+      }, window.location.origin);
+    });
+  }
+  try {
+    checkout.open();
+  } catch (error) {
+    window.postMessage({
+      source: 'jobready_razorpay_topup',
+      token: '$bridgeToken',
+      type: 'failed',
+      payload: { message: 'Razorpay checkout did not open. Please allow popups and try again.' }
+    }, window.location.origin);
+    return;
+  }
+  setTimeout(function() {
+    const hasFrame = !!document.querySelector('.razorpay-container, iframe[src*="razorpay"]');
+    if (!hasFrame) {
+      window.postMessage({
+        source: 'jobready_razorpay_topup',
+        token: '$bridgeToken',
+        type: 'failed',
+        payload: { message: 'Razorpay checkout did not open. Please allow popups/cookies and try again.' }
+      }, window.location.origin);
+    }
+  }, 2200);
+})();
+''';
+
+    js.context.callMethod('eval', [script]);
+
+    late final Map<String, String> paymentResult;
+    try {
+      paymentResult = await completer.future.timeout(
+        const Duration(minutes: 10),
+        onTimeout: () => throw TimeoutException('Payment confirmation timed out.'),
+      );
+    } finally {
+      await messageSubscription.cancel();
+    }
+
+    final verifyResponse = await _requestJson(
+      'POST',
+      '/api/voice-topup/verify',
+      body: {
+        'order_id': paymentResult['order_id'],
+        'payment_id': paymentResult['payment_id'],
+        'signature': paymentResult['signature'],
+      },
+    );
+    if (verifyResponse['success'] != true) {
+      throw Exception(verifyResponse['error']?.toString() ?? 'Payment verification failed.');
+    }
+
+    return verifyResponse;
+  }
+
+  Map<String, dynamic>? _decodeBridgeMessage(dynamic data) {
+    dynamic normalized = data;
+
+    if (normalized is String) {
+      final candidate = normalized.trim();
+      if (candidate.isNotEmpty) {
+        try {
+          normalized = jsonDecode(candidate);
+        } catch (_) {
+          return null;
+        }
+      }
+    }
+
+    if (normalized is Map) {
+      return Map<String, dynamic>.from(normalized);
+    }
+
+    try {
+      final dartified = (normalized as js_interop.JSAny?).dartify();
+      if (dartified is Map) {
+        return Map<String, dynamic>.from(dartified);
+      }
+    } catch (_) {
+      return null;
+    }
+
+    return null;
+  }
+}
+
 class _UserPaymentPanel extends StatefulWidget {
   final String activeGateway;
   final String selectedPlan;
@@ -2947,8 +3362,6 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
   String? _promoMessage;
   bool _promoMessageIsError = false;
   bool _promoValidating = false;
-  late List<VoiceTopupPack> _topupPacks;
-  String? _purchasingTopupPackId;
 
   static const Duration _checkoutTimeout = Duration(minutes: 10);
 
@@ -2963,7 +3376,6 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
     _checkoutCompanyController = TextEditingController(text: profile.companyName);
     _checkoutBillingEmailController = TextEditingController();
     _promoCodeController = TextEditingController();
-    _topupPacks = VoiceTopupService.load();
     _loadAvailableOffers();
   }
 
@@ -3581,187 +3993,6 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
       ...verifyResponse,
       ...paymentResult,
     };
-  }
-
-  Widget _buildVoiceTopupSection() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Voice Command Top-Up Packs',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'No Expiry \u2022 Instant AI Voice Credits \u2022 Works Across All Plans',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF0F766E)),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: _topupPacks.map(_buildTopupCard).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTopupCard(VoiceTopupPack pack) {
-    final isBusy = _purchasingTopupPackId == pack.id;
-    return Container(
-      width: 200,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: pack.isPopular ? const Color(0xFFEFF6FF) : const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: pack.isPopular ? const Color(0xFF2563EB) : const Color(0xFFE5E7EB),
-          width: pack.isPopular ? 1.6 : 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (pack.isPopular)
-            Container(
-              margin: const EdgeInsets.only(bottom: 6),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(color: const Color(0xFF2563EB), borderRadius: BorderRadius.circular(999)),
-              child: const Text(
-                'POPULAR',
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white),
-              ),
-            ),
-          Text(
-            pack.name,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF111827)),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '${pack.credits} Voice Commands',
-            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF4B5563)),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '\u20b9${pack.priceInr.toStringAsFixed(0)} / \$${pack.priceUsd.toStringAsFixed(2)}',
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF111827)),
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: isBusy ? null : () => _purchaseVoiceTopup(pack),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2563EB),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              child: isBusy
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Text('Buy Now / Recharge', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _purchaseVoiceTopup(VoiceTopupPack pack) async {
-    final profile = UserAccountService.getProfile();
-    final email = profile.email.trim();
-    if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please add your email in your account profile before purchasing a voice top-up.')),
-      );
-      return;
-    }
-
-    setState(() => _purchasingTopupPackId = pack.id);
-
-    try {
-      final keyResponse = await _requestJsonWithFallback('GET', '/api/config');
-      final keyId = keyResponse['key_id']?.toString().trim() ?? '';
-      if (keyId.isEmpty) {
-        throw Exception('Payment gateway is not configured. Please try again later.');
-      }
-
-      final billing = <String, dynamic>{
-        'name': profile.displayName.trim().isNotEmpty ? profile.displayName.trim() : 'User',
-        'email': email,
-        'mobile': profile.mobileNumber.trim(),
-        'country': profile.country.trim().isEmpty ? 'India' : profile.country.trim(),
-      };
-
-      final amountPaise = (pack.priceInr * 100).round();
-
-      final orderResponse = await _requestJsonWithFallback(
-        'POST',
-        '/api/voice-topup/create-order',
-        body: {
-          'packId': pack.id,
-          'packName': pack.name,
-          'credits': pack.credits,
-          'amount': amountPaise,
-          'currency': 'INR',
-          'billing': billing,
-        },
-      );
-      if (orderResponse['success'] != true) {
-        throw Exception(orderResponse['error']?.toString() ?? 'Unable to create top-up order.');
-      }
-
-      final orderId = orderResponse['order_id']?.toString() ?? '';
-      final orderAmountRaw = orderResponse['amount'];
-      final orderAmount = orderAmountRaw is int ? orderAmountRaw : int.tryParse(orderAmountRaw.toString()) ?? amountPaise;
-      final orderCurrency = orderResponse['currency']?.toString() ?? 'INR';
-
-      final verifyResult = await _openRazorpayAndVerify(
-        keyId: keyId,
-        orderId: orderId,
-        amount: orderAmount,
-        currency: orderCurrency,
-        billing: billing,
-        verifyPath: '/api/voice-topup/verify',
-        description: 'Voice Command Top-Up - ${pack.name}',
-      );
-
-      final creditsAdded = int.tryParse(verifyResult['creditsAdded']?.toString() ?? '') ?? pack.credits;
-      await VoiceQuotaService.addTopUp(
-        credits: creditsAdded,
-        packName: pack.name,
-        amountPaid: pack.priceInr,
-        currency: 'INR',
-        invoiceUrl: verifyResult['invoiceUrl']?.toString(),
-        transactionId: verifyResult['transactionId']?.toString(),
-      );
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$creditsAdded voice command credits added! New balance: ${VoiceQuotaService.remainingLabel()}')),
-      );
-    } catch (error) {
-      if (!mounted) return;
-      final message = error.toString().replaceFirst('Exception: ', '');
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-    } finally {
-      if (mounted) {
-        setState(() => _purchasingTopupPackId = null);
-      }
-    }
   }
 
   Future<void> _showPaymentSuccessFlow({required String plan}) async {
@@ -4858,8 +5089,6 @@ class _UserPaymentPanelState extends State<_UserPaymentPanel> {
               color: Color(0xFF475569),
             ),
           ),
-          const SizedBox(height: 14),
-          _buildVoiceTopupSection(),
         ],
       ),
     );

@@ -16,17 +16,45 @@ class _PlanFeaturesPageState extends State<PlanFeaturesPage> {
   late final PlanCatalogConfig _config;
   bool _isLoading = true;
 
+  static const double _nameColumnWidth = 320;
+  static const double _planColumnWidth = 120;
+
+  // Header stays fixed while the body scrolls; the header's horizontal
+  // position is mirrored from the body's controller (see _syncHeaderScroll)
+  // so both stay perfectly aligned during horizontal scrolling.
+  final ScrollController _headerHorizontalController = ScrollController();
+  final ScrollController _bodyHorizontalController = ScrollController();
+  bool _isSyncingHeaderScroll = false;
+
   @override
   void initState() {
     super.initState();
     _config = PlanCatalogService.load();
     _isLoading = false;
+    _bodyHorizontalController.addListener(_syncHeaderScroll);
+  }
+
+  void _syncHeaderScroll() {
+    if (_isSyncingHeaderScroll || !_headerHorizontalController.hasClients) {
+      return;
+    }
+    _isSyncingHeaderScroll = true;
+    _headerHorizontalController.jumpTo(_bodyHorizontalController.offset);
+    _isSyncingHeaderScroll = false;
+  }
+
+  @override
+  void dispose() {
+    _bodyHorizontalController.removeListener(_syncHeaderScroll);
+    _headerHorizontalController.dispose();
+    _bodyHorizontalController.dispose();
+    super.dispose();
   }
 
   Future<Map<String, dynamic>> _loadComparisonData() async {
     const defaultBaseUrl = 'https://getreadyjob.onrender.com';
     const configuredBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: defaultBaseUrl);
-    final uri = Uri.parse('$configuredBaseUrl/api/public/plan-matrix');
+    final uri = Uri.parse('$configuredBaseUrl/api/public/plan-catalog');
     final response = await http.get(uri);
 
     if (response.statusCode != 200) {
@@ -39,6 +67,32 @@ class _PlanFeaturesPageState extends State<PlanFeaturesPage> {
     }
 
     return decoded;
+  }
+
+  // Server plan keys ('Free'/'7Days'/...) map to the display labels used by the
+  // quota value maps below ('FREE'/'7 DAYS'/...). The admin-saved backend
+  // config is authoritative once fetched successfully, so it overrides the
+  // locally-cached config unconditionally (not just when empty) - this is
+  // what makes an admin update on one device/browser show up immediately for
+  // every visitor, instead of only ever showing the browser's own cached copy.
+  static const Map<String, String> _planKeyToLabel = {
+    'Free': 'FREE',
+    '7Days': '7 DAYS',
+    'Monthly': 'MONTHLY',
+    'Yearly': 'YEARLY',
+    'Lifetime': 'LIFETIME',
+  };
+
+  static void _applyServerQuotaMap(Object? serverMap, Map<String, String> target) {
+    if (serverMap is! Map) {
+      return;
+    }
+    _planKeyToLabel.forEach((planKey, label) {
+      final value = serverMap[planKey];
+      if (value != null && value.toString().trim().isNotEmpty) {
+        target[label] = value.toString().trim();
+      }
+    });
   }
 
   @override
@@ -81,21 +135,10 @@ class _PlanFeaturesPageState extends State<PlanFeaturesPage> {
           'LIFETIME': _config.voiceQuotasByPlan['Lifetime'] ?? '',
         };
         if (snapshot.hasData && snapshot.data != null) {
-          final comparison = snapshot.data!['comparison'];
-          if (comparison is Map<String, dynamic>) {
-            final values = comparison['values'];
-            if (values is List) {
-              for (final entry in values) {
-                if (entry is Map<String, dynamic>) {
-                  final label = entry['label']?.toString() ?? '';
-                  final value = entry['value']?.toString() ?? '';
-                  final normalizedLabel = label.trim().toUpperCase();
-                  if (normalizedLabel.isNotEmpty && (quotaValues[normalizedLabel] == null || quotaValues[normalizedLabel]!.isEmpty)) {
-                    quotaValues[normalizedLabel] = value;
-                  }
-                }
-              }
-            }
+          final catalog = snapshot.data!['catalog'];
+          if (catalog is Map<String, dynamic>) {
+            _applyServerQuotaMap(catalog['user_quotas_by_plan'], quotaValues);
+            _applyServerQuotaMap(catalog['voice_quotas_by_plan'], voiceQuotaValues);
           }
         }
 
@@ -262,89 +305,44 @@ class _PlanFeaturesPageState extends State<PlanFeaturesPage> {
                         ),
                       ],
                     ),
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: SingleChildScrollView(
-                        child: DataTable(
-                          headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFF)),
-                          dataRowMinHeight: 44,
-                          dataRowMaxHeight: 58,
-                          headingTextStyle: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF111827),
-                          ),
-                          columns: const [
-                            DataColumn(label: Text('Function Name')),
-                            DataColumn(label: Center(child: _LegendChip(label: 'FREE', color: Color(0xFF6B7280)))),
-                            DataColumn(label: Center(child: _LegendChip(label: '7 DAYS', color: Color(0xFFC97A3C)))),
-                            DataColumn(label: Center(child: _LegendChip(label: 'MONTHLY', color: Color(0xFF0F766E)))),
-                            DataColumn(label: Center(child: _LegendChip(label: 'YEARLY', color: Color(0xFF1D4ED8)))),
-                            DataColumn(label: Center(child: _LegendChip(label: 'LIFETIME', color: Color(0xFF7C3AED)))),
-                          ],
-                          rows: combinedRows
-                              .asMap()
-                              .entries
-                              .map((entry) {
-                            final index = entry.key;
-                            final feature = entry.value;
-
-                            if (feature.isCategoryHeader) {
-                              return DataRow(
-                                color: WidgetStateProperty.all(const Color(0xFFEFF4FF)),
-                                cells: [
-                                  DataCell(
-                                    SizedBox(
-                                      width: 320,
-                                      child: Text(
-                                        feature.name,
-                                        style: const TextStyle(
-                                          fontSize: 12.5,
-                                          fontWeight: FontWeight.w900,
-                                          color: Color(0xFF1D4ED8),
-                                          letterSpacing: 0.3,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const DataCell(SizedBox.shrink()),
-                                  const DataCell(SizedBox.shrink()),
-                                  const DataCell(SizedBox.shrink()),
-                                  const DataCell(SizedBox.shrink()),
-                                  const DataCell(SizedBox.shrink()),
-                                ],
-                              );
-                            }
-
-                            return DataRow(
-                              color: WidgetStateProperty.all(
-                                index.isEven ? const Color(0xFFFFFFFF) : const Color(0xFFFAFCFF),
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFF),
+                            border: const Border(bottom: BorderSide(color: Color(0xFFE5E7EB), width: 1.4)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.06),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
                               ),
-                              cells: [
-                                DataCell(
-                                  SizedBox(
-                                    width: 320,
-                                    child: Text(
-                                      feature.name,
-                                      style: const TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w700,
-                                        color: Color(0xFF374151),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                DataCell(_buildAvailabilityCell(feature.free, feature.freeValue)),
-                                DataCell(_buildAvailabilityCell(feature.sevenDay, feature.sevenDayValue)),
-                                DataCell(_buildAvailabilityCell(feature.monthly, feature.monthlyValue)),
-                                DataCell(_buildAvailabilityCell(feature.yearly, feature.yearlyValue)),
-                                DataCell(_buildAvailabilityCell(feature.lifetime, feature.lifetimeValue)),
-                              ],
-                            );
-                          })
-                              .toList(),
+                            ],
+                          ),
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            controller: _headerHorizontalController,
+                            physics: const NeverScrollableScrollPhysics(),
+                            child: _buildHeaderRow(),
+                          ),
                         ),
-                      ),
+                        Expanded(
+                          child: SingleChildScrollView(
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              controller: _bodyHorizontalController,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  for (final entry in combinedRows.asMap().entries)
+                                    _buildBodyRow(entry.value, entry.key),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -353,6 +351,90 @@ class _PlanFeaturesPageState extends State<PlanFeaturesPage> {
           ),
         );
       },
+    );
+  }
+
+  static Widget _buildHeaderRow() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: const [
+        SizedBox(
+          width: _nameColumnWidth,
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Text(
+              'Function Name',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF111827)),
+            ),
+          ),
+        ),
+        SizedBox(width: _planColumnWidth, child: Center(child: _LegendChip(label: 'FREE', color: Color(0xFF6B7280)))),
+        SizedBox(width: _planColumnWidth, child: Center(child: _LegendChip(label: '7 DAYS', color: Color(0xFFC97A3C)))),
+        SizedBox(width: _planColumnWidth, child: Center(child: _LegendChip(label: 'MONTHLY', color: Color(0xFF0F766E)))),
+        SizedBox(width: _planColumnWidth, child: Center(child: _LegendChip(label: 'YEARLY', color: Color(0xFF1D4ED8)))),
+        SizedBox(width: _planColumnWidth, child: Center(child: _LegendChip(label: 'LIFETIME', color: Color(0xFF7C3AED)))),
+      ],
+    );
+  }
+
+  static Widget _buildBodyRow(_PlanFeature feature, int index) {
+    if (feature.isCategoryHeader) {
+      return Container(
+        width: _nameColumnWidth + _planColumnWidth * 5,
+        decoration: const BoxDecoration(
+          color: Color(0xFFEFF4FF),
+          border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: _nameColumnWidth,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: Text(
+                  feature.name,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF1D4ED8),
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: _planColumnWidth * 5),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      width: _nameColumnWidth + _planColumnWidth * 5,
+      decoration: BoxDecoration(
+        color: index.isEven ? const Color(0xFFFFFFFF) : const Color(0xFFFAFCFF),
+        border: const Border(bottom: BorderSide(color: Color(0xFFF1F5F9))),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: _nameColumnWidth,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Text(
+                feature.name,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF374151)),
+              ),
+            ),
+          ),
+          SizedBox(height: 52, width: _planColumnWidth, child: _buildAvailabilityCell(feature.free, feature.freeValue)),
+          SizedBox(height: 52, width: _planColumnWidth, child: _buildAvailabilityCell(feature.sevenDay, feature.sevenDayValue)),
+          SizedBox(height: 52, width: _planColumnWidth, child: _buildAvailabilityCell(feature.monthly, feature.monthlyValue)),
+          SizedBox(height: 52, width: _planColumnWidth, child: _buildAvailabilityCell(feature.yearly, feature.yearlyValue)),
+          SizedBox(height: 52, width: _planColumnWidth, child: _buildAvailabilityCell(feature.lifetime, feature.lifetimeValue)),
+        ],
+      ),
     );
   }
 
