@@ -14,6 +14,7 @@ import '../Services/file_picker_service.dart';
 import '../Services/file_storage_service.dart';
 import '../Services/pdf_export_formatter.dart';
 import '../Services/pdf_ocr_service.dart';
+import '../Services/upload_context_service.dart';
 import '../Widgets/production_footer.dart';
 import '../Widgets/tool_guidance_panel.dart';
 
@@ -57,7 +58,17 @@ class _PdfEditPageState extends State<PdfEditPage> {
     _selectedBytes = widget.initialBytes;
     _selectedName = widget.initialFileName;
 
-    // If no initial file provided, check for previously uploaded files
+    // Prefer a file dropped/browsed on the Homepage upload zone.
+    if (_selectedBytes == null) {
+      final cached = UploadContextService.getFirstCompatibleFile(['pdf']);
+      if (cached != null) {
+        _selectedBytes = cached.bytes;
+        _selectedName = cached.name;
+        _loadStatus = '✓ ${cached.name} loaded from workspace upload';
+      }
+    }
+
+    // If still nothing, check for previously uploaded files
     if (_selectedBytes == null) {
       final storedFile = FileStorageService.getLatestFile();
       if (storedFile != null && _isPdfFile(storedFile.name)) {
@@ -582,12 +593,20 @@ class _PdfEditPageState extends State<PdfEditPage> {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: const Color(0xFFBFDBFE)),
                   ),
-                  child: Text(
-                    'Editing: $_selectedName',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1E3A8A),
-                    ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.check_circle_rounded, size: 16, color: Color(0xFF16A34A)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Editing: $_selectedName${_selectedBytes != null ? ' (${_formatFileSize(_selectedBytes!.length)})' : ''} • Ready',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1E3A8A),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               const SizedBox(height: 8),
@@ -839,5 +858,11 @@ class _PdfEditPageState extends State<PdfEditPage> {
 
   bool _isPdfFile(String fileName) {
     return fileName.toLowerCase().endsWith('.pdf');
+  }
+
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(2)} KB';
+    return '${(bytes / 1024 / 1024).toStringAsFixed(2)} MB';
   }
 }

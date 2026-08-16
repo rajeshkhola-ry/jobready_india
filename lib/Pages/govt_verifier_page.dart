@@ -9,6 +9,7 @@ import 'package:image/image.dart' as img;
 
 import '../Services/analytics_service.dart';
 import '../Services/file_picker_service.dart';
+import '../Services/upload_context_service.dart';
 import '../Services/wasm_document_service.dart';
 
 class GovtVerifierPage extends StatefulWidget {
@@ -60,6 +61,35 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
     _nameCtrl.addListener(() => setState(() {}));
     _dopCtrl.addListener(() => setState(() {}));
     AnalyticsService.trackToolOpen('govt_verifier');
+    _hydrateFromUploadContext();
+  }
+
+  void _hydrateFromUploadContext() {
+    final resizerImage = UploadContextService.getFirstCompatibleFile(['jpg', 'jpeg', 'png']);
+    if (resizerImage != null) {
+      _resizerFile = resizerImage;
+      _resizerStatus = '✓ ${resizerImage.name} loaded from workspace upload. Tap "Resize & Download".';
+    }
+
+    final overlayImage = UploadContextService.getFirstCompatibleFile(['jpg', 'jpeg', 'png']);
+    if (overlayImage != null) {
+      unawaited(_decodeOverlayImage(overlayImage));
+    }
+  }
+
+  Future<void> _decodeOverlayImage(PickedFileData picked) async {
+    final codec = await ui.instantiateImageCodec(picked.bytes);
+    final frame = await codec.getNextFrame();
+    if (!mounted) {
+      frame.image.dispose();
+      return;
+    }
+    _overlayImage?.dispose();
+    setState(() {
+      _overlayFile = picked;
+      _overlayImage = frame.image;
+      _overlayStatus = '✓ ${picked.name} loaded from workspace upload. Enter your name and DOP, then download.';
+    });
   }
 
   @override
@@ -321,7 +351,7 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
                   if (_overlayFile == null)
                     _dropZone('Upload a passport photo (JPG / PNG)', onTap: _pickOverlayImage)
                   else
-                    _fileRow(_overlayFile!.name, Icons.image_rounded),
+                    _fileRow(_overlayFile!.name, Icons.image_rounded, sizeBytes: _overlayFile!.size),
                   const SizedBox(height: 10),
                   ElevatedButton.icon(
                     onPressed: _pickOverlayImage,
@@ -558,7 +588,7 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
                   if (_resizerFile == null)
                     _dropZone('Upload photo or signature image', onTap: _pickResizerImage)
                   else
-                    _fileRow(_resizerFile!.name, Icons.image_rounded),
+                    _fileRow(_resizerFile!.name, Icons.image_rounded, sizeBytes: _resizerFile!.size),
                   const SizedBox(height: 10),
                   ElevatedButton.icon(
                     onPressed: _pickResizerImage,
@@ -810,13 +840,28 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
         ),
       );
 
-  Widget _fileRow(String name, IconData icon) => Row(children: [
+  Widget _fileRow(String name, IconData icon, {int? sizeBytes}) => Row(children: [
         Icon(icon, size: 16, color: const Color(0xFF0E3A66)),
         const SizedBox(width: 8),
         Expanded(
-          child: Text(name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis),
+              if (sizeBytes != null)
+                Text(_formatFileSize(sizeBytes), style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
+            ],
+          ),
         ),
+        const SizedBox(width: 8),
+        const Icon(Icons.check_circle_rounded, size: 16, color: Color(0xFF16A34A)),
       ]);
+
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(2)} KB';
+    return '${(bytes / 1024 / 1024).toStringAsFixed(2)} MB';
+  }
 
   Widget _statusRow(String message) => Container(
         width: double.infinity,
