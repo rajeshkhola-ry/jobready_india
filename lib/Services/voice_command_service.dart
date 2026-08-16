@@ -4,6 +4,7 @@ import 'dart:js_interop';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:web/web.dart' as web;
 
 import 'api_config.dart';
@@ -190,11 +191,17 @@ class VoiceCommandService {
           : ApiConfig.baseUrl;
       final uri = Uri.parse('$base/api/voice-command');
 
-      final extension = _mimeType.contains('ogg')
-          ? 'ogg'
-          : (_mimeType.contains('mp4') ? 'm4a' : 'webm');
+      final isOgg = _mimeType.contains('ogg');
+      final isMp4 = _mimeType.contains('mp4');
+      final extension = isOgg ? 'ogg' : (isMp4 ? 'm4a' : 'webm');
+      final audioSubtype = isOgg ? 'ogg' : (isMp4 ? 'mp4' : 'webm');
       final request = http.MultipartRequest('POST', uri)
-        ..files.add(http.MultipartFile.fromBytes('audio', bytes, filename: 'voice_command.$extension'));
+        ..files.add(http.MultipartFile.fromBytes(
+          'audio',
+          bytes,
+          filename: 'voice_command.$extension',
+          contentType: MediaType('audio', audioSubtype),
+        ));
 
       final streamed = await request.send().timeout(const Duration(seconds: 30));
       final response = await http.Response.fromStream(streamed);

@@ -30,6 +30,7 @@ class UploadCardV2 extends StatefulWidget {
 class _UploadCardV2State extends State<UploadCardV2> {
   List<PickedFileData> _selectedFiles = const [];
   bool _dragging = false;
+  bool _voiceListening = false;
 
   StreamSubscription<html.MouseEvent>? _webDragOverSub;
   StreamSubscription<html.MouseEvent>? _webDragLeaveSub;
@@ -406,6 +407,24 @@ class _UploadCardV2State extends State<UploadCardV2> {
     return '${(bytes / 1024 / 1024).toStringAsFixed(2)} MB';
   }
 
+  /// Domestic (India) vs international audience heuristic - mirrors the
+  /// country/browser-language signals already used for currency detection
+  /// in home_page_v1_1.dart's resolvePreferredPaymentCurrency().
+  bool _isIndiaAudience() {
+    final profile = UserAccountService.getProfile();
+    final country = profile.country.trim().toLowerCase();
+    final countryCode = profile.countryCode.trim().toUpperCase();
+    final language = html.window.navigator.language.trim().toLowerCase();
+
+    return country.contains('india') ||
+        countryCode == 'IN' ||
+        language == 'hi' ||
+        language.startsWith('hi-') ||
+        language.contains('en-in') ||
+        language.endsWith('-in') ||
+        language.contains('-in');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -522,9 +541,47 @@ class _UploadCardV2State extends State<UploadCardV2> {
                       ),
                     ),
                     if (kIsWeb && widget.onVoiceCommandResult != null)
-                      VoiceCommandButton(onResult: widget.onVoiceCommandResult!),
+                      VoiceCommandButton(
+                        onResult: widget.onVoiceCommandResult!,
+                        onListeningChanged: (listening) {
+                          if (mounted) setState(() => _voiceListening = listening);
+                        },
+                      ),
                   ],
                 ),
+                if (kIsWeb && widget.onVoiceCommandResult != null) ...[
+                  const SizedBox(height: 8),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    child: _voiceListening
+                        ? Row(
+                            key: const ValueKey('voice-hint-listening'),
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Icon(Icons.graphic_eq_rounded, size: 15, color: Color(0xFFDC2626)),
+                              SizedBox(width: 6),
+                              Text(
+                                'Listening... speak your command now',
+                                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFFDC2626)),
+                              ),
+                            ],
+                          )
+                        : Text(
+                            key: const ValueKey('voice-hint-idle'),
+                            _isIndiaAudience()
+                                ? '🎙️ Voice Command: Try saying "Compress to 50 KB", "Convert to Word", या "SSC Photo bana do"'
+                                : '🎙️ Voice Command: Try saying "Compress PDF to 50 KB", "Convert to Word", or "Merge documents"',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 12.5,
+                              color: Color(0xFF64748B),
+                              fontWeight: FontWeight.w600,
+                              height: 1.4,
+                            ),
+                          ),
+                  ),
+                ],
                 const SizedBox(height: 10),
                 if (kIsWeb) ...[
                   Container(

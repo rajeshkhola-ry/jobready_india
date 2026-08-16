@@ -17,10 +17,15 @@ class VoiceCommandButton extends StatefulWidget {
   const VoiceCommandButton({
     super.key,
     required this.onResult,
+    this.onListeningChanged,
     this.maxRecordingSeconds = 5,
   });
 
   final ValueChanged<VoiceCommandResult> onResult;
+
+  /// Called with `true` when recording starts and `false` when it stops, so
+  /// the caller can drive its own UI (e.g. a hint-text listening animation).
+  final ValueChanged<bool>? onListeningChanged;
   final int maxRecordingSeconds;
 
   @override
@@ -49,6 +54,7 @@ class _VoiceCommandButtonState extends State<VoiceCommandButton>
     _pulseController.dispose();
     if (_state == _VoiceButtonState.listening) {
       _service.cancelRecording();
+      widget.onListeningChanged?.call(false);
     }
     super.dispose();
   }
@@ -77,6 +83,7 @@ class _VoiceCommandButtonState extends State<VoiceCommandButton>
     }
 
     setState(() => _state = _VoiceButtonState.listening);
+    widget.onListeningChanged?.call(true);
     _pulseController.repeat(reverse: true);
     _autoStopTimer = Timer(Duration(seconds: widget.maxRecordingSeconds), () {
       if (_state == _VoiceButtonState.listening) {
@@ -90,6 +97,7 @@ class _VoiceCommandButtonState extends State<VoiceCommandButton>
     _pulseController.stop();
     if (!mounted) return;
     setState(() => _state = _VoiceButtonState.processing);
+    widget.onListeningChanged?.call(false);
 
     final result = await _service.stopRecordingAndClassify();
     if (!mounted) return;
