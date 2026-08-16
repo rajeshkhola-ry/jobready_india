@@ -1226,3 +1226,17 @@ Prepared For: JOBREADY
     - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success.
     - Committed + pushed (commit `46ae0bf`) → triggers Render + GitHub Pages redeploy of getreadyjob.com.
 - Owner: Founder + Copilot
+
+### Same day follow-up #3 — universal Homepage-upload pre-loading audit
+- Overall status: Green (deployed)
+- Audited all 9 tools listed for auto-loading a Homepage-uploaded compatible file via `UploadContextService`:
+  - Already compliant, no changes needed: PDF to Word / JPG to PDF (`convert_tool_page.dart`), Compress PDF (`compression_tool_page.dart`), Merge PDF (`merge_tool_page.dart`), Split PDF (`split_tool_page.dart`), CSV to Excel (`csv_to_excel_page.dart`), HD Photo/passport (`Pages/v2/photo/photo_hd_workspace_page.dart`) — all already hydrate from `UploadContextService` in `initState()` and show name/size/ready status plus a Replace/Change control.
+  - **Fixed** ✓ `pdf_edit_page.dart` (Protect PDF + Edit PDF cards): had zero `UploadContextService` integration (only checked `widget.initialBytes` then `FileStorageService`). Added a `UploadContextService.getFirstCompatibleFile(['pdf'])` check ahead of the `FileStorageService` fallback; the "Editing: ..." status card now also shows file size and a green Ready check icon.
+  - **Fixed** ✓ `govt_verifier_page.dart` (Photo/Signature Resizer — Govt Exam/Passport, reached via `ToolSelectorV2`/`/govt-verifier`): the passport-photo overlay tab and the exact-KB photo/signature resizer tab (which has explicit SSC/IBPS "Signature" presets alongside photo presets) now both auto-load a compatible `.jpg`/`.jpeg`/`.png` from `UploadContextService` on open; `_fileRow` now shows file size plus a Ready check icon.
+  - Confirmed AI Resume Builder and Canvas/Poster editors intentionally excluded (not touched), per the explicit "no forced document imports" instruction.
+- **Validation** ✓ — `get_errors` clean on both changed files; `flutter analyze` across all 8 involved tool pages → 42 pre-existing info/warning lints only (deprecated `withOpacity`/`value`/`activeColor`, unused fields/elements, unnecessary imports/braces — all predate this change), 0 new issues introduced.
+- **Build & deploy** ✓
+  - `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` → success; verified new hydration status strings present in `build/web/main.dart.js` (both files land in the main bundle since `Widgets/tool_selector_v2.dart` reaches `GovtVerifierPage` via a non-deferred import even though `main_v1_1.dart`'s own import of it is `deferred`).
+  - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success.
+  - Committed + pushed (commit `97202c3`) → triggers Render + GitHub Pages redeploy of getreadyjob.com.
+- Owner: Founder + Copilot
