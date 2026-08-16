@@ -1479,3 +1479,18 @@ Prepared For: JOBREADY
     - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success.
     - Committed + pushed (commit `3505d1a`) → GitHub Actions triggered for this commit ("Enforce Current Site Lock", "Deploy to Render", "Deploy Flutter Web Preview (GitHub Pages)").
 - Owner: Founder + Copilot
+
+### Same day follow-up #20 — File-extension-first context-aware voice intent routing matrix
+- Overall status: Green (deployed)
+- Completed:
+  - **Root cause** ✓ — Voice "convert" commands were routed purely from spoken keywords (e.g. hearing "excel" always meant `csv_to_excel`), ignoring the actual uploaded file's extension - so an uploaded `.xlsx` file plus a spoken "convert to pdf"/"convert to excel" command could mis-route to `csv_to_excel`, which only ever accepts a real `.csv` file, producing "Please upload a CSV file first."
+  - **Context-aware routing matrix implemented** ✓ — `voice_command_service.dart` gained `_activeUploadedFileExtension()` (reads the currently uploaded file's extension from `UploadContextService`) and `_tryLocalIntentMatch`'s "convert" branch now checks that extension FIRST: Excel source (`xlsx`/`xls`) → pdf or csv target only, never `csv_to_excel`; CSV source → `csv_to_excel` (excel target) or general convert (pdf target); PDF source → word, excel, or jpg/image target; Word source (`docx`/`doc`) → pdf target only; Image source → pdf target only. No file uploaded yet falls back to the previous keyword-only guess, with `csv_to_excel` now requiring an explicit "csv to excel" phrase rather than just the word "excel"/"csv" appearing anywhere.
+  - **New conversion capability** ✓ — Added an `'excel (.xlsx)'` output format to `ConversionService` (passes through an already-Excel source, parses real CSV columns for a `.csv` source, and falls back to one row per extracted text line for PDF/Word sources) and two new in-place voice tool ids in `home_page_v1_1.dart`: `pdf_to_excel` (PDF → Excel) and `excel_to_csv` (Excel → CSV), wired into the existing `ConversionService`-backed dispatch group, source-extension map, output-format map, and status labels. Widened `word_to_pdf`'s accepted sources to also cover `xlsx`/`xls`/`csv`.
+  - **Fallback safety guard** ✓ — Added a `default:` case to `_executeVoiceCommandInPlace`'s switch so an unrecognized tool id always shows a clean, friendly notification instead of silently doing nothing.
+  - **Backend mirrored** ✓ — `compression_server.js`'s own `tryLocalIntentMatch` now accepts and uses the active file extension the same way, registered `pdf_to_excel`/`excel_to_csv` in `VOICE_COMMAND_TOOLS` (auto-included in the Gemini prompt), and `/api/voice-command` now reads `req.body.active_file_extension` (sent by `_uploadAndClassify`) and passes it through.
+  - **Validation** ✓ — `get_errors` clean on all 4 changed files. Full terminal `flutter analyze` on the 3 changed Dart files → 46 issues, all pre-existing baseline across `home_page_v1_1.dart`/`voice_command_service.dart` (zero new); `conversion_service.dart` fully clean. `node --check compression_server.js` clean.
+  - **Build & deploy** ✓
+    - `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` → success.
+    - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success.
+    - Committed + pushed (commit `d19607c`) → GitHub Actions triggered for this commit ("Enforce Current Site Lock", "Deploy to Render", "Deploy Flutter Web Preview (GitHub Pages)").
+- Owner: Founder + Copilot
