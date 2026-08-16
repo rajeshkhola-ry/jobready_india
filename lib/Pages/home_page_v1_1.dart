@@ -1608,6 +1608,8 @@ class _HomePageV11State extends State<HomePageV11> {
       'word_to_pdf',
       'jpg_to_pdf',
       'pdf_to_jpg',
+      'pdf_to_excel',
+      'excel_to_csv',
       'merge_pdf',
       'split_pdf',
       'csv_to_excel',
@@ -1718,6 +1720,8 @@ class _HomePageV11State extends State<HomePageV11> {
       case 'word_to_pdf':
       case 'jpg_to_pdf':
       case 'pdf_to_jpg':
+      case 'pdf_to_excel':
+      case 'excel_to_csv':
         await runWithStatus(_conversionStatusLabel(tool), () async {
           final file = UploadContextService.getFirstCompatibleFile(_sourceExtensionsForConversion(tool));
           if (file == null) {
@@ -1832,6 +1836,12 @@ class _HomePageV11State extends State<HomePageV11> {
           _showVoiceSnackBar('✓ Resized and downloaded successfully!');
         });
         break;
+
+      default:
+        // Safety guard: an unrecognized tool id should never fail silently
+        // or throw a raw exception - tell the user plainly instead.
+        _showVoiceSnackBar('That voice command is not supported yet. Please try again or use the tool page.', isError: true);
+        break;
     }
   }
 
@@ -1866,9 +1876,12 @@ class _HomePageV11State extends State<HomePageV11> {
     switch (tool) {
       case 'pdf_to_word':
       case 'pdf_to_jpg':
+      case 'pdf_to_excel':
         return const ['pdf'];
       case 'word_to_pdf':
-        return const ['doc', 'docx'];
+        return const ['doc', 'docx', 'xlsx', 'xls', 'csv'];
+      case 'excel_to_csv':
+        return const ['xlsx', 'xls'];
       case 'jpg_to_pdf':
         return const ['jpg', 'jpeg', 'png', 'webp', 'bmp'];
       default:
@@ -1885,6 +1898,10 @@ class _HomePageV11State extends State<HomePageV11> {
         return 'pdf (.pdf)';
       case 'pdf_to_jpg':
         return 'jpg images';
+      case 'pdf_to_excel':
+        return 'excel (.xlsx)';
+      case 'excel_to_csv':
+        return 'csv (.csv)';
       default:
         return 'pdf (.pdf)';
     }
@@ -1900,6 +1917,10 @@ class _HomePageV11State extends State<HomePageV11> {
         return 'Processing: Converting Image to PDF...';
       case 'pdf_to_jpg':
         return 'Processing: Converting PDF to Images...';
+      case 'pdf_to_excel':
+        return 'Processing: Converting PDF to Excel...';
+      case 'excel_to_csv':
+        return 'Processing: Converting Excel to CSV...';
       default:
         return 'Processing: Converting your file...';
     }

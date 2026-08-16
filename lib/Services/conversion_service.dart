@@ -9,6 +9,7 @@ import 'package:pdf_render/pdf_render.dart' as pdf_render;
 import 'package:syncfusion_flutter_pdf/pdf.dart' as sfpdf;
 
 import 'compression_service.dart';
+import 'csv_to_excel_service.dart';
 import 'pdf_ocr_service.dart';
 import 'word_generator_service.dart';
 
@@ -186,6 +187,9 @@ class ConversionService {
         case 'csv (.csv)':
           return _convertToCsv(inputBytes, inputFileName);
 
+        case 'excel (.xlsx)':
+          return await _convertToExcel(inputBytes, inputFileName);
+
         case 'jpg images':
           return await _convertToImage(inputBytes, inputFileName, 'jpg');
 
@@ -336,6 +340,52 @@ class ConversionService {
     return const ConversionResult(
       success: false,
       message: 'CSV conversion supports .csv and .xlsx files.',
+    );
+  }
+
+  /// Best-effort Excel export for non-spreadsheet sources: an already-XLSX
+  /// file passes through unchanged; a genuine CSV is parsed into real
+  /// columns; anything else (PDF, Word, etc.) falls back to one row per
+  /// extracted line of text, since there is no reliable table structure to
+  /// recover from those formats.
+  Future<ConversionResult> _convertToExcel(
+    Uint8List inputBytes,
+    String inputFileName,
+  ) async {
+    final lowerName = inputFileName.toLowerCase();
+
+    if (lowerName.endsWith('.xlsx') || lowerName.endsWith('.xls')) {
+      return ConversionResult(
+        success: true,
+        message: 'Excel file is already ready.',
+        outputBytes: inputBytes,
+        outputFileName: _changeExtension(inputFileName, 'xlsx'),
+      );
+    }
+
+    final text = await _extractAnyText(inputBytes, inputFileName);
+    final rows = lowerName.endsWith('.csv')
+        ? CsvToExcelService.parseCsv(text)
+        : text
+            .split('\n')
+            .map((line) => line.trim())
+            .where((line) => line.isNotEmpty)
+            .map((line) => <String>[line])
+            .toList();
+
+    if (rows.isEmpty) {
+      return const ConversionResult(
+        success: false,
+        message: 'Unable to extract any content to build an Excel file.',
+      );
+    }
+
+    final xlsxBytes = CsvToExcelService.buildXlsxBytes(rows);
+    return ConversionResult(
+      success: true,
+      message: 'Excel file created successfully.',
+      outputBytes: xlsxBytes,
+      outputFileName: _changeExtension(inputFileName, 'xlsx'),
     );
   }
 

@@ -10,6 +10,7 @@ import 'package:universal_html/html.dart' as html;
 import 'package:web/web.dart' as web;
 
 import 'api_config.dart';
+import 'upload_context_service.dart';
 
 /// Result of a single voice-command recording + Gemini classification round trip.
 class VoiceCommandResult {
@@ -99,6 +100,23 @@ class VoiceCommandService {
 
   String get _combinedSttTranscript => ('$_sttFinalTranscript $_sttInterimTranscript').trim();
 
+  /// Extension (lowercase, no dot) of the most recently uploaded file, or
+  /// null if nothing is uploaded yet - the routing matrix below always
+  /// checks this FIRST, before falling back to guessing from the spoken
+  /// target format alone.
+  String? _activeUploadedFileExtension() {
+    final file = UploadContextService.getLastPickedFile();
+    if (file == null) {
+      return null;
+    }
+    final name = file.name.toLowerCase();
+    final dotIndex = name.lastIndexOf('.');
+    if (dotIndex < 0 || dotIndex == name.length - 1) {
+      return null;
+    }
+    return name.substring(dotIndex + 1);
+  }
+
   /// Zero-latency local fast-path: matches common phrasing via keyword/regex
   /// against the browser's own live Web Speech transcript, mirroring the
   /// backend's tryLocalIntentMatch() in compression_server.js, so routine
@@ -172,12 +190,60 @@ class VoiceCommandService {
       final targetPart = toIndex != -1 ? transcript.substring(toIndex + 4) : transcript;
 
       final targetMentionsWord = RegExp(r'\b(word|docx|doc)\b').hasMatch(targetPart);
-      final targetMentionsExcelCsv = RegExp(r'\b(excel|xlsx|csv|spreadsheet)\b').hasMatch(targetPart);
+      final targetMentionsExcel = RegExp(r'\b(excel|xlsx|xls|spreadsheet)\b').hasMatch(targetPart);
+      final targetMentionsCsv = RegExp(r'\bcsv\b').hasMatch(targetPart);
       final targetMentionsImage = RegExp(r'\b(image|photo|jpg|jpeg|png)\b').hasMatch(targetPart);
       final targetMentionsPdf = RegExp(r'\bpdf\b').hasMatch(targetPart);
 
-      if (targetMentionsExcelCsv) {
-        return buildResult('csv_to_excel', 'convert');
+      // STEP 1: inspect the uploaded file's extension first - the spoken
+      // target format alone is never enough to pick the right tool (e.g.
+      // saying "excel" must never route an already-.xlsx file to
+      // csv_to_excel, which only ever accepts a real .csv source).
+      final sourceExtension = _activeUploadedFileExtension();
+      const imageExtensions = {'jpg', 'jpeg', 'png', 'webp', 'bmp'};
+
+      // STEP 2: context-aware routing matrix (source extension + spoken
+      // target). Each branch only offers the conversions that make sense
+      // for that actual source file.
+      if (sourceExtension == 'xlsx' || sourceExtension == 'xls') {
+        // A. Excel source - never csv_to_excel.
+        if (targetMentionsPdf) return buildResult('word_to_pdf', 'convert');
+        if (targetMentionsCsv) return buildResult('excel_to_csv', 'convert');
+        return null;
+      }
+      if (sourceExtension == 'csv') {
+        // B. CSV source.
+        if (targetMentionsExcel) return buildResult('csv_to_excel', 'convert');
+        if (targetMentionsPdf) return buildResult('word_to_pdf', 'convert');
+        return null;
+      }
+      if (sourceExtension == 'pdf') {
+        // C. PDF source.
+        if (targetMentionsWord) return buildResult('pdf_to_word', 'convert');
+        if (targetMentionsExcel) return buildResult('pdf_to_excel', 'convert');
+        if (targetMentionsImage) return buildResult('pdf_to_jpg', 'convert');
+        return null;
+      }
+      if (sourceExtension == 'docx' || sourceExtension == 'doc') {
+        // D. Word source.
+        if (targetMentionsPdf) return buildResult('word_to_pdf', 'convert');
+        return null;
+      }
+      if (sourceExtension != null && imageExtensions.contains(sourceExtension)) {
+        // E. Image source.
+        if (targetMentionsPdf) return buildResult('jpg_to_pdf', 'convert');
+        return null;
+      }
+
+      // Nothing uploaded yet (or an extension this matrix doesn't cover) -
+      // fall back to guessing from the spoken target format alone, same as
+      // before. csv_to_excel still requires an explicit "csv to excel"
+      // phrase here since there is no source file to confirm it against.
+      if (targetMentionsExcel || targetMentionsCsv) {
+        if (RegExp(r'\bcsv\s+to\s+excel\b').hasMatch(transcript)) {
+          return buildResult('csv_to_excel', 'convert');
+        }
+        return null;
       }
       if (targetMentionsWord) {
         return buildResult('pdf_to_word', 'convert');
@@ -200,8 +266,7 @@ class VoiceCommandService {
   /// Never leaves the user with a bare technical error when the backend is
   /// unreachable/cold-starting - reflects back what was heard (if anything)
   /// with actionable guidance instead of a scary generic message.
-  VoiceCommandResult _offlineFallbackResult(String transcriptHint, [String? baseMessage]) {
-    final trimmed = transcriptHint.trim();
+  VoiceCommandResult _offlineFallbackResult(String transcriptHint, [String? baseMessage]) {    final trimmed = transcriptHint.trim();
     if (trimmed.isEmpty) {
       return VoiceCommandResult.failure(
         baseMessage ?? 'AI assistant is temporarily busy. Please try speaking your command again in a moment.',
@@ -508,6 +573,10 @@ class VoiceCommandService {
         ));
       if (transcriptHint.trim().isNotEmpty) {
         request.fields['transcript_hint'] = transcriptHint.trim();
+      }
+      final activeExtension = _activeUploadedFileExtension();
+      if (activeExtension != null && activeExtension.isNotEmpty) {
+        request.fields['active_file_extension'] = activeExtension;
       }
 
       final streamed = await request.send().timeout(const Duration(seconds: 35));
