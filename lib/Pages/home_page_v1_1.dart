@@ -31,6 +31,7 @@ import 'ai_resume_builder_page.dart';
 import 'compression_benchmark_page.dart';
 import 'compression_tool_page.dart';
 import 'convert_tool_page.dart';
+import 'csv_to_excel_page.dart';
 import 'launch_readiness_page.dart';
 import 'launch_runbook_page.dart';
 import 'merge_tool_page.dart';
@@ -7316,6 +7317,15 @@ class _MostPopularToolsCard extends StatelessWidget {
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const PdfEditPage()),
+                  ),
+                ),
+                _PopularToolRow(
+                  icon: Icons.table_chart_rounded,
+                  label: 'CSV to Excel',
+                  description: 'Convert CSV data sheets into clean Microsoft Excel (.xlsx) files.',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CsvToExcelPage()),
                   ),
                 ),
               ];

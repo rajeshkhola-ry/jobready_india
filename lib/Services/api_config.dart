@@ -114,11 +114,9 @@ class ApiConfig {
   static const Map<String, String> socialLinks = {
     'website': 'https://getreadyjob.com',
     'email': 'hello@getreadyjob.com',
-    'twitter': 'https://twitter.com/getreadyjob',
-    'facebook': 'https://facebook.com/getreadyjob',
-    'instagram': 'https://instagram.com/getreadyjob',
-    'linkedin': 'https://linkedin.com/company/getreadyjob',
-    'youtube': 'https://youtube.com/@getreadyjob',
+    'facebook': 'https://www.facebook.com/getreadyjob',
+    'instagram': 'https://www.instagram.com/getreadyjob',
+    'linkedin': 'https://www.linkedin.com/company/143152999/',
   };
 
   // ==================== CRASH REPORTING ====================
