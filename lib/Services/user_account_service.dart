@@ -24,6 +24,8 @@ class UserAccountProfile {
   final String companyName;
   final String billingState;
   final String planExpiresAt;
+  final int voiceCommandsBalance;
+  final int voiceCommandsTotal;
 
   const UserAccountProfile({
     required this.displayName,
@@ -47,6 +49,8 @@ class UserAccountProfile {
     this.companyName = '',
     this.billingState = '',
     this.planExpiresAt = '',
+    this.voiceCommandsBalance = 0,
+    this.voiceCommandsTotal = 0,
   });
 
   factory UserAccountProfile.initial() {
@@ -72,6 +76,8 @@ class UserAccountProfile {
       companyName: '',
       billingState: '',
       planExpiresAt: '',
+      voiceCommandsBalance: 5,
+      voiceCommandsTotal: 5,
     );
   }
 
@@ -97,6 +103,8 @@ class UserAccountProfile {
     String? companyName,
     String? billingState,
     String? planExpiresAt,
+    int? voiceCommandsBalance,
+    int? voiceCommandsTotal,
   }) {
     return UserAccountProfile(
       displayName: displayName ?? this.displayName,
@@ -120,6 +128,8 @@ class UserAccountProfile {
       companyName: companyName ?? this.companyName,
       billingState: billingState ?? this.billingState,
       planExpiresAt: planExpiresAt ?? this.planExpiresAt,
+      voiceCommandsBalance: voiceCommandsBalance ?? this.voiceCommandsBalance,
+      voiceCommandsTotal: voiceCommandsTotal ?? this.voiceCommandsTotal,
     );
   }
 
@@ -146,6 +156,8 @@ class UserAccountProfile {
       'company_name': companyName,
       'billing_state': billingState,
       'plan_expires_at': planExpiresAt,
+      'voice_commands_balance': voiceCommandsBalance,
+      'voice_commands_total': voiceCommandsTotal,
     };
   }
 
@@ -176,6 +188,8 @@ class UserAccountProfile {
       companyName: map['company_name']?.toString() ?? map['company']?.toString() ?? '',
       billingState: map['billing_state']?.toString() ?? map['state']?.toString() ?? '',
       planExpiresAt: map['plan_expires_at']?.toString() ?? '',
+      voiceCommandsBalance: int.tryParse(map['voice_commands_balance']?.toString() ?? '') ?? 0,
+      voiceCommandsTotal: int.tryParse(map['voice_commands_total']?.toString() ?? '') ?? 0,
     );
   }
 }

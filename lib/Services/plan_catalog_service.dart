@@ -26,6 +26,9 @@ class PlanCatalogConfig {
     'Edit PDF',
     'OCR',
     'History',
+    'CSV to Excel',
+    'AI Voice Command',
+    'Govt Exam Photo & Signature Resizer (SSC, IBPS, Passport)',
     'PDF Compress (Single File) - set exact KB or MB target',
     'Batch Compress (Multiple Files) - process many files',
     'Micro-Canva (Background remover, passport resize, upscale, PNG to SVG)',
@@ -51,12 +54,14 @@ class PlanCatalogConfig {
   final Map<String, double> usdPrices;
   final Map<String, List<String>> enabledToolsByPlan;
   final Map<String, String> userQuotasByPlan;
+  final Map<String, String> voiceQuotasByPlan;
 
   const PlanCatalogConfig({
     required this.inrPrices,
     required this.usdPrices,
     required this.enabledToolsByPlan,
     this.userQuotasByPlan = const <String, String>{},
+    this.voiceQuotasByPlan = const <String, String>{},
   });
 
   factory PlanCatalogConfig.defaults() {
@@ -82,6 +87,9 @@ class PlanCatalogConfig {
           'Merge',
           'Split',
           'Extract',
+          'CSV to Excel',
+          'AI Voice Command',
+          'Govt Exam Photo & Signature Resizer (SSC, IBPS, Passport)',
           'PDF Compress (Single File) - set exact KB or MB target',
           'HD Photo Studio',
           resumeBuilderToolName,
@@ -94,6 +102,9 @@ class PlanCatalogConfig {
           'Extract',
           'Edit PDF',
           'OCR',
+          'CSV to Excel',
+          'AI Voice Command',
+          'Govt Exam Photo & Signature Resizer (SSC, IBPS, Passport)',
           'PDF Compress (Single File) - set exact KB or MB target',
           'HD Photo Studio',
           resumeBuilderToolName,
@@ -106,6 +117,9 @@ class PlanCatalogConfig {
           'Extract',
           'Edit PDF',
           'OCR',
+          'CSV to Excel',
+          'AI Voice Command',
+          'Govt Exam Photo & Signature Resizer (SSC, IBPS, Passport)',
           'PDF Compress (Single File) - set exact KB or MB target',
           'Batch Compress (Multiple Files) - process many files',
           'Micro-Canva (Background remover, passport resize, upscale, PNG to SVG)',
@@ -125,6 +139,9 @@ class PlanCatalogConfig {
           'Edit PDF',
           'OCR',
           'History',
+          'CSV to Excel',
+          'AI Voice Command',
+          'Govt Exam Photo & Signature Resizer (SSC, IBPS, Passport)',
           'PDF Compress (Single File) - set exact KB or MB target',
           'Batch Compress (Multiple Files) - process many files',
           'Micro-Canva (Background remover, passport resize, upscale, PNG to SVG)',
@@ -144,6 +161,9 @@ class PlanCatalogConfig {
           'Edit PDF',
           'OCR',
           'History',
+          'CSV to Excel',
+          'AI Voice Command',
+          'Govt Exam Photo & Signature Resizer (SSC, IBPS, Passport)',
           'PDF Compress (Single File) - set exact KB or MB target',
           'Batch Compress (Multiple Files) - process many files',
           'Micro-Canva (Background remover, passport resize, upscale, PNG to SVG)',
@@ -160,6 +180,13 @@ class PlanCatalogConfig {
         '7Days': 'Unlimited',
         'Monthly': 'Unlimited',
         'Yearly': 'Unlimited',
+        'Lifetime': 'Unlimited',
+      },
+      voiceQuotasByPlan: {
+        'Free': '5',
+        '7Days': '50',
+        'Monthly': '200',
+        'Yearly': '1000',
         'Lifetime': 'Unlimited',
       },
     );
@@ -192,6 +219,7 @@ class PlanCatalogConfig {
       'usd_prices': usdPrices,
       'enabled_tools_by_plan': enabledToolsByPlan,
       'user_quotas_by_plan': userQuotasByPlan,
+      'voice_quotas_by_plan': voiceQuotasByPlan,
     };
   }
 
@@ -254,6 +282,7 @@ class PlanCatalogConfig {
       usdPrices: readPriceMap(map['usd_prices'], defaults.usdPrices),
       enabledToolsByPlan: readToolsMap(map['enabled_tools_by_plan'], defaults.enabledToolsByPlan),
       userQuotasByPlan: readQuotaMap(map['user_quotas_by_plan'], defaults.userQuotasByPlan),
+      voiceQuotasByPlan: readQuotaMap(map['voice_quotas_by_plan'], defaults.voiceQuotasByPlan),
     );
   }
 }

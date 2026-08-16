@@ -1431,97 +1431,10 @@ class _HomePageV11State extends State<HomePageV11> {
                 const SizedBox(height: 10),
                 const _FuturePlanSection(),
                 const SizedBox(height: 10),
-                const _UserRatingSection(),
-                const SizedBox(height: 10),
-                _SuggestionSection(
-                  onTap: () {
+                _FeedbackAndRatingSection(
+                  onSuggestionTap: () {
                     _showSuggestionDialog();
                   },
-                ),
-                const SizedBox(height: 10),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFCFEFF),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFDCE7F3)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF1F2937).withValues(alpha: 0.05),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      PopupMenuButton<String>(
-                        tooltip: 'Daily usage options',
-                        onSelected: _handleUsageMenu,
-                        itemBuilder: (_) => const [
-                          PopupMenuItem<String>(
-                            value: 'view',
-                            child: Text('Open Daily Usage'),
-                          ),
-                          PopupMenuItem<String>(
-                            value: 'reset',
-                            child: Text('Reset Today Counters'),
-                          ),
-                        ],
-                        child: _QuickAccessButton(
-                          icon: Icons.tune_rounded,
-                          label: 'Daily Usage',
-                          accent: const Color(0xFF0F172A),
-                        ),
-                      ),
-                      PopupMenuButton<String>(
-                        tooltip: 'Recent documents options',
-                        onSelected: _handleRecentDocumentsMenu,
-                        itemBuilder: (_) => const [
-                          PopupMenuItem<String>(
-                            value: 'open',
-                            child: Text('Open Recent Documents'),
-                          ),
-                          PopupMenuItem<String>(
-                            value: 'clear',
-                            child: Text('Clear Recent Documents'),
-                          ),
-                          PopupMenuItem<String>(
-                            value: 'keep:20',
-                            child: Text('Keep 20'),
-                          ),
-                          PopupMenuItem<String>(
-                            value: 'keep:50',
-                            child: Text('Keep 50'),
-                          ),
-                          PopupMenuItem<String>(
-                            value: 'keep:100',
-                            child: Text('Keep 100'),
-                          ),
-                          PopupMenuItem<String>(
-                            value: 'keep:200',
-                            child: Text('Keep 200'),
-                          ),
-                        ],
-                        child: _QuickAccessButton(
-                          icon: Icons.keyboard_arrow_down_rounded,
-                          label: 'Recent Documents',
-                          accent: const Color(0xFF0F766E),
-                        ),
-                      ),
-                      _QuickAccessActionButton(
-                        icon: Icons.admin_panel_settings_outlined,
-                        label: 'Admin Login',
-                        accent: const Color(0xFFB45309),
-                        onTap: () {
-                          Navigator.of(context).pushNamed('/admin');
-                        },
-                      ),
-                    ],
-                  ),
                 ),
                 const SizedBox(height: 16),
                 const ProductionFooter(),
@@ -5670,38 +5583,16 @@ class _FuturePlanSection extends StatelessWidget {
   }
 }
 
-class _SuggestionSection extends StatelessWidget {
-  final VoidCallback onTap;
+class _FeedbackAndRatingSection extends StatefulWidget {
+  final VoidCallback onSuggestionTap;
 
-  const _SuggestionSection({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: onTap,
-        icon: const Icon(Icons.feedback_outlined),
-        label: const Text('Send Suggestion'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF0F172A),
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        ),
-      ),
-    );
-  }
-}
-
-class _UserRatingSection extends StatefulWidget {
-  const _UserRatingSection();
+  const _FeedbackAndRatingSection({required this.onSuggestionTap});
 
   @override
-  State<_UserRatingSection> createState() => _UserRatingSectionState();
+  State<_FeedbackAndRatingSection> createState() => _FeedbackAndRatingSectionState();
 }
 
-class _UserRatingSectionState extends State<_UserRatingSection> {
+class _FeedbackAndRatingSectionState extends State<_FeedbackAndRatingSection> {
   int _selectedStars = 5;
   UserRatingSummary _summary = UserRatingService.getSummary();
 
@@ -5722,8 +5613,7 @@ class _UserRatingSectionState extends State<_UserRatingSection> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
+    final card = Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -5734,21 +5624,21 @@ class _UserRatingSectionState extends State<_UserRatingSection> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'User Rating',
+            'Feedback & Rating',
             style: TextStyle(
-              fontSize: 17,
+              fontSize: 15,
               fontWeight: FontWeight.w800,
               color: Color(0xFF1F2937),
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           const Text(
             'Rate your experience from 1 to 5 stars.',
             style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Wrap(
-            spacing: 4,
+            spacing: 2,
             children: List.generate(5, (index) {
               final star = index + 1;
               return IconButton(
@@ -5769,7 +5659,7 @@ class _UserRatingSectionState extends State<_UserRatingSection> {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: _submit,
-              icon: const Icon(Icons.rate_review_outlined),
+              icon: const Icon(Icons.rate_review_outlined, size: 18),
               label: const Text('Submit Rating'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF0F172A),
@@ -5777,7 +5667,7 @@ class _UserRatingSectionState extends State<_UserRatingSection> {
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             _summary.publicVisible
                 ? (_summary.totalCount == 0
@@ -5790,8 +5680,38 @@ class _UserRatingSectionState extends State<_UserRatingSection> {
               color: Color(0xFF334155),
             ),
           ),
+          const Divider(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: widget.onSuggestionTap,
+              icon: const Icon(Icons.feedback_outlined, size: 18),
+              label: const Text('Send Suggestion'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF0F172A),
+                side: const BorderSide(color: Color(0xFF0F172A)),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
         ],
       ),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth >= 700) {
+          return Align(
+            alignment: Alignment.centerRight,
+            child: FractionallySizedBox(
+              widthFactor: 0.5,
+              child: card,
+            ),
+          );
+        }
+        return SizedBox(width: double.infinity, child: card);
+      },
     );
   }
 }

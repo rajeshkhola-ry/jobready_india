@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../Services/voice_command_service.dart';
+import '../Services/voice_quota_service.dart';
 
 enum _VoiceButtonState { idle, listening, processing }
 
@@ -69,6 +70,16 @@ class _VoiceCommandButtonState extends State<VoiceCommandButton>
   }
 
   Future<void> _startListening() async {
+    if (!VoiceQuotaService.canUseVoiceCommand()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Voice quota exhausted for your plan. Please upgrade or top up to continue using AI voice commands.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     final started = await _service.startRecording();
     if (!mounted) return;
 
@@ -101,6 +112,10 @@ class _VoiceCommandButtonState extends State<VoiceCommandButton>
 
     final result = await _service.stopRecordingAndClassify();
     if (!mounted) return;
+
+    if (result.success) {
+      await VoiceQuotaService.recordUsage();
+    }
 
     setState(() => _state = _VoiceButtonState.idle);
     widget.onResult(result);

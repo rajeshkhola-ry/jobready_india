@@ -64,6 +64,7 @@ class ProductionFooter extends StatelessWidget {
               _FooterRouteLink(label: 'Cookie Policy', route: '/cookie-policy'),
               _FooterRouteLink(label: 'Disclaimer', route: '/disclaimer'),
               _FooterRouteLink(label: 'Customer Reviews / Testimonials', route: '/testimonials'),
+              _FooterRouteLink(label: 'Admin Login', route: '/admin'),
             ],
           ),
           const SizedBox(height: 16),

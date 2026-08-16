@@ -4,9 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:universal_html/html.dart' as html;
 
 import '../Services/document_history_service.dart';
+import '../Services/owner_admin_access_service.dart';
 import '../Services/plan_catalog_service.dart';
+import '../Services/usage_quota_service.dart';
 import '../Services/user_account_service.dart';
 import '../Services/user_auth_service.dart';
+import '../Services/voice_quota_service.dart';
 import '../Widgets/user_auth_dialog.dart';
 
 class UserDashboardPage extends StatefulWidget {
@@ -458,6 +461,30 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                           ],
                         ),
                         const SizedBox(height: 18),
+                        if (OwnerAdminAccessService.isUnlocked) ...[
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFECFDF5),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: const Color(0xFF6EE7B7)),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.verified_user_rounded, color: Color(0xFF047857)),
+                                SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    'Admin Universal Access - unlimited access to every tool and voice command, no plan/quota restrictions apply.',
+                                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Color(0xFF047857)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                        ],
                         LayoutBuilder(
                           builder: (context, constraints) {
                             final availableWidth = constraints.maxWidth;
@@ -487,15 +514,78 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                                 ),
                                 _dashboardMetric('Remaining Quota', credits, Icons.stars_rounded, const Color(0xFF7C3AED)),
                                 _dashboardMetric('Converted Files', convertedFiles.toString(), Icons.file_download_done_rounded, const Color(0xFF0F766E)),
+                                _dashboardMetric('Voice Commands Left', VoiceQuotaService.remainingLabel(), Icons.mic_rounded, const Color(0xFFDC2626)),
                               ],
                             );
                           },
+                        ),
+                        const SizedBox(height: 10),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: OutlinedButton.icon(
+                            onPressed: () => Navigator.of(context).pushNamed('/pricing'),
+                            icon: const Icon(Icons.add_circle_outline_rounded, size: 16),
+                            label: const Text('+ Top-Up Voice Commands'),
+                          ),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 18),
-                  const Text('Conversion History & Downloads', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+                  const Text('Usage & Quota', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Builder(
+                      builder: (context) {
+                        if (OwnerAdminAccessService.isUnlocked) {
+                          return const Text(
+                            'Admin session: daily usage counters do not apply - all tools are unlimited.',
+                            style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                          );
+                        }
+                        final usage = UsageQuotaService.getTodaySummary();
+                        return Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: [
+                            _dashboardMetric(
+                              'Conversions Today',
+                              usage.conversionLimit < 0 ? '${usage.conversions} / Unlimited' : '${usage.conversions} / ${usage.conversionLimit}',
+                              Icons.swap_horiz_rounded,
+                              const Color(0xFF2563EB),
+                            ),
+                            _dashboardMetric(
+                              'Compressions Today',
+                              usage.compressionLimit < 0 ? '${usage.compressions} / Unlimited' : '${usage.compressions} / ${usage.compressionLimit}',
+                              Icons.compress_rounded,
+                              const Color(0xFF0F766E),
+                            ),
+                            _dashboardMetric(
+                              'Merges Today',
+                              usage.mergeLimit < 0 ? '${usage.merges} / Unlimited' : '${usage.merges} / ${usage.mergeLimit}',
+                              Icons.merge_type_rounded,
+                              const Color(0xFFB45309),
+                            ),
+                            _dashboardMetric(
+                              'Splits Today',
+                              usage.splitLimit < 0 ? '${usage.splits} / Unlimited' : '${usage.splits} / ${usage.splitLimit}',
+                              Icons.call_split_rounded,
+                              const Color(0xFF7C3AED),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  const Text('Conversion History & Recent Activity', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
                   const SizedBox(height: 10),
                   Container(
                     width: double.infinity,
@@ -585,6 +675,62 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                                   .toList(),
                             ),
                           ),
+                  ),
+                  const SizedBox(height: 18),
+                  const Text('Voice Command Top-Up History', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Builder(
+                      builder: (context) {
+                        final topUps = VoiceQuotaService.getTopUpHistory();
+                        if (topUps.isEmpty) {
+                          return const Text(
+                            'No voice top-ups yet. Purchases will appear here with date, amount paid, and credits added.',
+                            style: TextStyle(color: Color(0xFF64748B)),
+                          );
+                        }
+                        return SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: DataTable(
+                            headingTextStyle: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                            dataTextStyle: const TextStyle(color: Color(0xFF334155)),
+                            columns: const [
+                              DataColumn(label: Text('Date')),
+                              DataColumn(label: Text('Pack')),
+                              DataColumn(label: Text('Amount Paid')),
+                              DataColumn(label: Text('Credits Added')),
+                              DataColumn(label: Text('Invoice')),
+                            ],
+                            rows: topUps.map((entry) {
+                              final date = DateTime.tryParse(entry['date']?.toString() ?? '');
+                              final transactionId = entry['transactionId']?.toString() ?? '';
+                              return DataRow(cells: [
+                                DataCell(Text(date == null ? '' : date.toLocal().toString().split('.').first)),
+                                DataCell(Text(entry['packName']?.toString() ?? '')),
+                                DataCell(Text('${entry['amountPaid'] ?? 0} ${entry['currency'] ?? 'INR'}')),
+                                DataCell(Text('+${entry['creditsAdded'] ?? 0}')),
+                                DataCell(
+                                  transactionId.isEmpty
+                                      ? const Text('-')
+                                      : TextButton.icon(
+                                          onPressed: () => _downloadInvoice(transactionId),
+                                          icon: const Icon(Icons.download_rounded, size: 16),
+                                          label: const Text('Invoice'),
+                                        ),
+                                ),
+                              ]);
+                            }).toList(),
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ],
               ),
