@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:js' as js;
 import 'dart:js_interop';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+import 'package:universal_html/html.dart' as html;
 import 'package:web/web.dart' as web;
 
 import 'api_config.dart';
@@ -76,6 +78,166 @@ class VoiceCommandService {
   final List<web.Blob> _chunks = [];
   String _mimeType = 'audio/webm';
 
+  // --- Live transcription (Web Speech API), run in parallel with the audio
+  // recording above so the UI can show live captions AND the backend can
+  // attempt a zero-latency local intent match before ever calling Gemini.
+  // No typed dart:js_interop bindings exist for SpeechRecognition (it is
+  // non-standard), so this reuses the same proven "JS eval + postMessage
+  // bridge" pattern already used elsewhere in this app (Google Sign-In,
+  // Razorpay checkout).
+  final StreamController<String> _liveTranscriptController = StreamController<String>.broadcast();
+
+  /// Emits the best-effort combined (final + interim) transcript text as the
+  /// user speaks. Widgets may subscribe to show live captions; this is best
+  /// effort only (empty stream on browsers without SpeechRecognition support).
+  Stream<String> get liveTranscriptStream => _liveTranscriptController.stream;
+
+  String _sttToken = '';
+  StreamSubscription<html.MessageEvent>? _sttSubscription;
+  String _sttFinalTranscript = '';
+  String _sttInterimTranscript = '';
+
+  String get _combinedSttTranscript => ('$_sttFinalTranscript $_sttInterimTranscript').trim();
+
+  Map<String, dynamic>? _decodeBridgeMessage(dynamic data) {
+    dynamic normalized = data;
+    if (normalized is String) {
+      final candidate = normalized.trim();
+      if (candidate.isEmpty) {
+        return null;
+      }
+      try {
+        normalized = jsonDecode(candidate);
+      } catch (_) {
+        return null;
+      }
+    }
+    if (normalized is Map) {
+      return Map<String, dynamic>.from(normalized);
+    }
+    try {
+      final dartified = (normalized as JSAny?).dartify();
+      if (dartified is Map) {
+        return Map<String, dynamic>.from(dartified);
+      }
+    } catch (_) {
+      return null;
+    }
+    return null;
+  }
+
+  void _startLiveTranscription() {
+    _sttFinalTranscript = '';
+    _sttInterimTranscript = '';
+    final token = 'stt_${DateTime.now().microsecondsSinceEpoch}';
+    _sttToken = token;
+
+    _sttSubscription?.cancel();
+    _sttSubscription = html.window.onMessage.listen((event) {
+      final data = _decodeBridgeMessage(event.data);
+      if (data == null) return;
+      if (data['source'] != 'jobready_stt' || data['token'] != token) return;
+
+      final type = data['type'] as String?;
+      if (type == 'transcript') {
+        final finalText = (data['finalText'] as String?) ?? '';
+        final interimText = (data['interimText'] as String?) ?? '';
+        if (finalText.isNotEmpty) {
+          _sttFinalTranscript = ('$_sttFinalTranscript $finalText').trim();
+        }
+        _sttInterimTranscript = interimText;
+        if (!_liveTranscriptController.isClosed) {
+          _liveTranscriptController.add(_combinedSttTranscript);
+        }
+      }
+      // 'unavailable' / 'error' / 'end' types are silently ignored here -
+      // live captions are a best-effort enhancement, not a hard requirement,
+      // and Gemini remains the fallback classifier regardless.
+    });
+
+    final script =
+        '''
+(function() {
+  var Ctor = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!Ctor) {
+    window.postMessage({ source: 'jobready_stt', token: '$token', type: 'unavailable' }, window.location.origin);
+    return;
+  }
+  try {
+    var recognition = new Ctor();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-IN';
+    window.__jobreadySttInstances = window.__jobreadySttInstances || {};
+    window.__jobreadySttInstances['$token'] = recognition;
+
+    recognition.onresult = function (event) {
+      var finalText = '';
+      var interimText = '';
+      for (var i = event.resultIndex; i < event.results.length; i++) {
+        var result = event.results[i];
+        if (result.isFinal) {
+          finalText += result[0].transcript;
+        } else {
+          interimText += result[0].transcript;
+        }
+      }
+      window.postMessage({
+        source: 'jobready_stt',
+        token: '$token',
+        type: 'transcript',
+        finalText: finalText,
+        interimText: interimText
+      }, window.location.origin);
+    };
+
+    recognition.onerror = function (event) {
+      window.postMessage({ source: 'jobready_stt', token: '$token', type: 'error', error: (event && event.error) || 'unknown' }, window.location.origin);
+    };
+
+    recognition.onend = function () {
+      window.postMessage({ source: 'jobready_stt', token: '$token', type: 'end' }, window.location.origin);
+    };
+
+    recognition.start();
+  } catch (e) {
+    window.postMessage({ source: 'jobready_stt', token: '$token', type: 'error', error: 'start_failed' }, window.location.origin);
+  }
+})();
+''';
+    try {
+      js.context.callMethod('eval', [script]);
+    } catch (_) {
+      // Ignore - live captions/local matching are best-effort only.
+    }
+  }
+
+  void _stopLiveTranscription() {
+    if (_sttToken.isEmpty) {
+      return;
+    }
+    final token = _sttToken;
+    final script =
+        '''
+(function() {
+  var instances = window.__jobreadySttInstances;
+  var recognition = instances && instances['$token'];
+  if (recognition) {
+    try { recognition.stop(); } catch (e) {}
+    delete instances['$token'];
+  }
+})();
+''';
+    try {
+      js.context.callMethod('eval', [script]);
+    } catch (_) {
+      // ignore
+    }
+    _sttSubscription?.cancel();
+    _sttSubscription = null;
+    _sttToken = '';
+  }
+
   /// Requests microphone access and starts recording. Returns true if
   /// recording actually started (false if unsupported, denied, or failed).
   Future<bool> startRecording() async {
@@ -101,6 +263,7 @@ class VoiceCommandService {
       }).toJS;
 
       recorder.start();
+      _startLiveTranscription();
       return true;
     } catch (_) {
       _releaseStream();
@@ -148,6 +311,11 @@ class VoiceCommandService {
       _releaseStream();
     }
 
+    // Give the speech recognizer a brief moment to flush its final result
+    // event (it fires asynchronously, shortly after recognition.stop()).
+    final transcriptHint = _combinedSttTranscript;
+    _stopLiveTranscription();
+
     if (_chunks.isEmpty) {
       return VoiceCommandResult.failure('No audio captured. Please try again.');
     }
@@ -156,7 +324,7 @@ class VoiceCommandService {
       final parts = <JSAny>[for (final chunk in _chunks) chunk].toJS;
       final blob = web.Blob(parts, web.BlobPropertyBag(type: _mimeType));
       final bytes = await _blobToBytes(blob);
-      return _uploadAndClassify(bytes);
+      return _uploadAndClassify(bytes, transcriptHint: transcriptHint);
     } catch (_) {
       return VoiceCommandResult.failure('Could not process the recording. Please try again.');
     } finally {
@@ -171,6 +339,7 @@ class VoiceCommandService {
     } catch (_) {
       // ignore
     }
+    _stopLiveTranscription();
     _releaseStream();
     _chunks.clear();
   }
@@ -195,7 +364,7 @@ class VoiceCommandService {
     return arrayBuffer.toDart.asUint8List();
   }
 
-  Future<VoiceCommandResult> _uploadAndClassify(Uint8List bytes) async {
+  Future<VoiceCommandResult> _uploadAndClassify(Uint8List bytes, {String transcriptHint = ''}) async {
     try {
       final base = ApiConfig.baseUrl.endsWith('/')
           ? ApiConfig.baseUrl.substring(0, ApiConfig.baseUrl.length - 1)
@@ -213,6 +382,9 @@ class VoiceCommandService {
           filename: 'voice_command.$extension',
           contentType: MediaType('audio', audioSubtype),
         ));
+      if (transcriptHint.trim().isNotEmpty) {
+        request.fields['transcript_hint'] = transcriptHint.trim();
+      }
 
       final streamed = await request.send().timeout(const Duration(seconds: 30));
       final response = await http.Response.fromStream(streamed);

@@ -19,6 +19,7 @@ class VoiceCommandButton extends StatefulWidget {
     super.key,
     required this.onResult,
     this.onListeningChanged,
+    this.onLiveTranscript,
     this.maxRecordingSeconds = 5,
   });
 
@@ -27,6 +28,11 @@ class VoiceCommandButton extends StatefulWidget {
   /// Called with `true` when recording starts and `false` when it stops, so
   /// the caller can drive its own UI (e.g. a hint-text listening animation).
   final ValueChanged<bool>? onListeningChanged;
+
+  /// Called with the live (best-effort) Web Speech API transcript text as
+  /// the user speaks, so the caller can show a "did I hear you right" live
+  /// caption. May never fire on browsers without SpeechRecognition support.
+  final ValueChanged<String>? onLiveTranscript;
   final int maxRecordingSeconds;
 
   @override
@@ -39,6 +45,7 @@ class _VoiceCommandButtonState extends State<VoiceCommandButton>
   late final AnimationController _pulseController;
   _VoiceButtonState _state = _VoiceButtonState.idle;
   Timer? _autoStopTimer;
+  StreamSubscription<String>? _liveTranscriptSubscription;
 
   @override
   void initState() {
@@ -52,6 +59,7 @@ class _VoiceCommandButtonState extends State<VoiceCommandButton>
   @override
   void dispose() {
     _autoStopTimer?.cancel();
+    _liveTranscriptSubscription?.cancel();
     _pulseController.dispose();
     if (_state == _VoiceButtonState.listening) {
       _service.cancelRecording();
@@ -95,6 +103,10 @@ class _VoiceCommandButtonState extends State<VoiceCommandButton>
 
     setState(() => _state = _VoiceButtonState.listening);
     widget.onListeningChanged?.call(true);
+    _liveTranscriptSubscription?.cancel();
+    if (widget.onLiveTranscript != null) {
+      _liveTranscriptSubscription = _service.liveTranscriptStream.listen(widget.onLiveTranscript);
+    }
     _pulseController.repeat(reverse: true);
     _autoStopTimer = Timer(Duration(seconds: widget.maxRecordingSeconds), () {
       if (_state == _VoiceButtonState.listening) {
@@ -105,6 +117,8 @@ class _VoiceCommandButtonState extends State<VoiceCommandButton>
 
   Future<void> _stopAndClassify() async {
     _autoStopTimer?.cancel();
+    _liveTranscriptSubscription?.cancel();
+    _liveTranscriptSubscription = null;
     _pulseController.stop();
     if (!mounted) return;
     setState(() => _state = _VoiceButtonState.processing);

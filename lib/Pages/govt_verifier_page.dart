@@ -37,7 +37,7 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
 
   // ── Tab 2: Exact KB & Dimension Resizer ───────────────────────────────────
   PickedFileData? _resizerFile;
-  _ExamPreset _selectedPreset = _kExamPresets.first;
+  GovtPhotoPreset _selectedPreset = kGovtPhotoPresets.first;
   late int _targetKb;
   bool _isResizing = false;
   String _resizerStatus = 'Select an exam/portal preset and upload your photo.';
@@ -92,22 +92,22 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
     }
   }
 
-  _ExamPreset? _matchExamPreset(String raw) {
+  GovtPhotoPreset? _matchExamPreset(String raw) {
     final normalized = raw.trim().toLowerCase().replaceAll(RegExp(r'[\s-]+'), '_');
     if (normalized.isEmpty) {
       return null;
     }
-    for (final preset in _kExamPresets) {
+    for (final preset in kGovtPhotoPresets) {
       if (preset.id == normalized) {
         return preset;
       }
     }
-    for (final preset in _kExamPresets) {
+    for (final preset in kGovtPhotoPresets) {
       if (preset.id.startsWith(normalized)) {
         return preset;
       }
     }
-    for (final preset in _kExamPresets) {
+    for (final preset in kGovtPhotoPresets) {
       final normalizedLabel = preset.label.toLowerCase().replaceAll(RegExp(r'[\s-]+'), '_');
       if (normalizedLabel.contains(normalized)) {
         return preset;
@@ -215,8 +215,8 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
     setState(() { _isResizing = true; _achievedSize = null; _resizerStatus = 'Resizing…'; });
     try {
       final result = await compute(
-        _computeResize,
-        _ResizeArgs(
+        computeGovtPhotoResize,
+        GovtPhotoResizeArgs(
           bytes: _resizerFile!.bytes,
           width: _selectedPreset.width,
           height: _selectedPreset.height,
@@ -552,7 +552,7 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: _kExamPresets.map((preset) {
+                    children: kGovtPhotoPresets.map((preset) {
                       final active = preset.id == _selectedPreset.id;
                       return GestureDetector(
                         onTap: () => setState(() {
@@ -1045,15 +1045,15 @@ class _H extends StatelessWidget {
 
 // ── Resize compute isolate ─────────────────────────────────────────────────────
 
-class _ResizeArgs {
+class GovtPhotoResizeArgs {
   final Uint8List bytes;
   final int width;
   final int height;
   final int targetKb;
-  const _ResizeArgs({required this.bytes, required this.width, required this.height, required this.targetKb});
+  const GovtPhotoResizeArgs({required this.bytes, required this.width, required this.height, required this.targetKb});
 }
 
-Uint8List _computeResize(_ResizeArgs args) {
+Uint8List computeGovtPhotoResize(GovtPhotoResizeArgs args) {
   final src = img.decodeImage(args.bytes);
   if (src == null) throw Exception('Cannot decode image.');
 
@@ -1082,7 +1082,7 @@ Uint8List _computeResize(_ResizeArgs args) {
 
 // ── Exam presets ───────────────────────────────────────────────────────────────
 
-class _ExamPreset {
+class GovtPhotoPreset {
   final String id;
   final String label;
   final int width;
@@ -1091,7 +1091,7 @@ class _ExamPreset {
   final int maxKb;
   final String notes;
 
-  const _ExamPreset({
+  const GovtPhotoPreset({
     required this.id,
     required this.label,
     required this.width,
@@ -1102,57 +1102,57 @@ class _ExamPreset {
   });
 }
 
-const List<_ExamPreset> _kExamPresets = [
-  _ExamPreset(
+const List<GovtPhotoPreset> kGovtPhotoPresets = [
+  GovtPhotoPreset(
     id: 'ssc_photo',
     label: 'SSC Photo',
     width: 200, height: 230,
     minKb: 20, maxKb: 50,
     notes: 'SSC CGL/CHSL/MTS: 3.5×4.5 cm, 20–50 KB, JPG/JPEG. White or light background.',
   ),
-  _ExamPreset(
+  GovtPhotoPreset(
     id: 'ssc_signature',
     label: 'SSC Signature',
     width: 140, height: 60,
     minKb: 10, maxKb: 20,
     notes: 'SSC CGL/CHSL/MTS: 3.5×1.5 cm, 10–20 KB, JPG/JPEG. Black ink on white background.',
   ),
-  _ExamPreset(
+  GovtPhotoPreset(
     id: 'upsc_photo',
     label: 'UPSC Photo',
     width: 300, height: 400,
     minKb: 20, maxKb: 300,
     notes: 'UPSC CSE/IFoS: 3.5×4.5 cm, max 300 KB, JPG. Must show full face, light background.',
   ),
-  _ExamPreset(
+  GovtPhotoPreset(
     id: 'ibps_photo',
     label: 'IBPS / Bank Photo',
     width: 200, height: 230,
     minKb: 20, maxKb: 50,
     notes: 'IBPS PO/Clerk/SO: approx 200×230 px, 20–50 KB, JPG. Plain white background.',
   ),
-  _ExamPreset(
+  GovtPhotoPreset(
     id: 'ibps_signature',
     label: 'IBPS Signature',
     width: 140, height: 60,
     minKb: 10, maxKb: 20,
     notes: 'IBPS PO/Clerk/SO: approx 140×60 px, 10–20 KB, JPG. Blue/black ink on white.',
   ),
-  _ExamPreset(
+  GovtPhotoPreset(
     id: 'rrb_photo',
     label: 'RRB / Railway Photo',
     width: 200, height: 230,
     minKb: 15, maxKb: 100,
     notes: 'RRB NTPC/Group-D/ALP: 3.5×4.5 cm, 15–100 KB, JPG. Light background, no cap.',
   ),
-  _ExamPreset(
+  GovtPhotoPreset(
     id: 'jee_photo',
     label: 'JEE / NEET Photo',
     width: 144, height: 192,
     minKb: 10, maxKb: 100,
     notes: 'JEE Main/NEET-UG: approx 3.5×4.5 cm, 10–100 KB, JPG. Plain white background.',
   ),
-  _ExamPreset(
+  GovtPhotoPreset(
     id: 'aadhaar_photo_update',
     label: 'Aadhaar Photo Update',
     width: 200, height: 200,

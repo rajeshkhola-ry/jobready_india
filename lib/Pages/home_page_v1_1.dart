@@ -5,6 +5,7 @@ import 'dart:js_interop' as js_interop;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:syncfusion_flutter_pdf/pdf.dart' as sfpdf;
 import 'package:universal_html/html.dart' as html;
 
 import '../Widgets/why_choose_card.dart';
@@ -12,12 +13,16 @@ import '../Widgets/upload_card_v2.dart';
 import '../Widgets/tool_selector_v2.dart';
 import '../Services/public_brand_config.dart';
 import '../Services/api_config.dart';
+import '../Services/compression_service.dart';
+import '../Services/conversion_service.dart';
 import '../Services/coupon_service.dart';
+import '../Services/csv_to_excel_service.dart';
 import '../Services/document_history_service.dart';
 import '../Services/integration_hub_service.dart';
 import '../Services/owner_admin_access_service.dart';
 import '../Services/plan_catalog_service.dart';
 import '../Services/support_ticket_service.dart';
+import '../Services/upload_context_service.dart';
 import '../Services/user_rating_service.dart';
 import '../Services/user_account_service.dart';
 import '../Services/user_auth_service.dart';
@@ -26,6 +31,7 @@ import '../Services/razorpay_service.dart';
 import '../Services/voice_command_service.dart';
 import '../Services/voice_quota_service.dart';
 import '../Services/voice_topup_service.dart';
+import '../Services/wasm_document_service.dart';
 import '../Widgets/user_auth_dialog.dart';
 import '../Widgets/brand_logo_button.dart';
 import '../Widgets/production_footer.dart';
@@ -34,6 +40,7 @@ import 'compression_benchmark_page.dart';
 import 'compression_tool_page.dart';
 import 'convert_tool_page.dart';
 import 'csv_to_excel_page.dart';
+import 'govt_verifier_page.dart';
 import 'launch_readiness_page.dart';
 import 'launch_runbook_page.dart';
 import 'merge_tool_page.dart';
@@ -140,6 +147,8 @@ class _HomePageV11State extends State<HomePageV11> {
   String? _selectedUsageType;
   bool _showCookieConsentBanner = false;
   bool _pwaInstallAvailable = false;
+  bool _isVoiceProcessing = false;
+  String _voiceProcessingStatus = '';
   late PlanCatalogConfig _planCatalog;
   bool get _showAdminControls => OwnerAdminAccessService.isUnlocked;
 
@@ -1224,7 +1233,11 @@ class _HomePageV11State extends State<HomePageV11> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                _V2Column(onVoiceCommandResult: (result) => _handleVoiceCommandResult(context, result)),
+                _V2Column(
+                  onVoiceCommandResult: _handleVoiceCommandResult,
+                  isVoiceProcessing: _isVoiceProcessing,
+                  voiceProcessingStatus: _voiceProcessingStatus,
+                ),
                 const SizedBox(height: 10),
                 const SizedBox(height: 12),
                 const SizedBox(height: 4),
@@ -1533,6 +1546,354 @@ class _HomePageV11State extends State<HomePageV11> {
         ],
       ),
     );
+  }
+
+  // ── Voice command execution (in-place, no tool-page redirect) ────────────
+
+  void _showVoiceSnackBar(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : const Color(0xFF166534),
+      ),
+    );
+  }
+
+  /// Routes a voice command after Gemini/local classification (POST
+  /// /api/voice-command). Tools that can run end-to-end from the currently
+  /// uploaded file execute IN PLACE on the home page (no navigation) via
+  /// [_executeVoiceCommandInPlace] with a live processing overlay. Only
+  /// tools that need manual input first (protect_pdf's password prompt,
+  /// edit_pdf's text-editing UI) fall back to opening their full tool page.
+  void _handleVoiceCommandResult(VoiceCommandResult result) {
+    if (!result.success) {
+      _showVoiceSnackBar(
+        result.error ?? 'Could not understand that voice command. Please try again.',
+        isError: true,
+      );
+      return;
+    }
+
+    const inPlaceTools = {
+      'compress_pdf',
+      'pdf_to_word',
+      'word_to_pdf',
+      'jpg_to_pdf',
+      'pdf_to_jpg',
+      'merge_pdf',
+      'split_pdf',
+      'csv_to_excel',
+      'photo_resizer',
+    };
+
+    if (inPlaceTools.contains(result.tool)) {
+      unawaited(_executeVoiceCommandInPlace(result));
+      return;
+    }
+
+    Widget Function(BuildContext)? pageBuilder;
+    final isProtectPdf = result.tool == 'protect_pdf';
+    if (result.tool == 'edit_pdf') {
+      pageBuilder = (_) => const PdfEditPage();
+    }
+
+    if (!isProtectPdf && pageBuilder == null) {
+      _showVoiceSnackBar('That tool is not available yet.', isError: true);
+      return;
+    }
+
+    VoiceCommandService.setPendingParameters(<String, dynamic>{
+      ...result.parameters,
+      VoiceCommandService.autoExecuteFlagKey: true,
+      VoiceCommandService.voiceToolKey: result.tool,
+    });
+
+    final recognized = result.recognizedText.trim();
+    _showVoiceSnackBar(
+      recognized.isEmpty ? 'Voice command understood. Opening tool...' : 'Heard: "$recognized" - opening tool...',
+    );
+
+    if (isProtectPdf) {
+      Navigator.of(context).pushNamed('/smart-pdf');
+      return;
+    }
+
+    Navigator.of(context).push(MaterialPageRoute(builder: pageBuilder!));
+  }
+
+  /// Executes compress/convert/merge/split/csv/photo-resize voice commands
+  /// directly against the already-uploaded file(s), no navigation - shows a
+  /// live status overlay on the upload card, then auto-downloads the result.
+  Future<void> _executeVoiceCommandInPlace(VoiceCommandResult result) async {
+    final tool = result.tool;
+    final params = result.parameters;
+
+    Future<void> runWithStatus(String status, Future<void> Function() action) async {
+      if (!mounted) return;
+      setState(() {
+        _isVoiceProcessing = true;
+        _voiceProcessingStatus = status;
+      });
+      try {
+        await action();
+      } catch (_) {
+        _showVoiceSnackBar('Could not complete that action. Please try again or use the tool page.', isError: true);
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isVoiceProcessing = false;
+            _voiceProcessingStatus = '';
+          });
+        }
+      }
+    }
+
+    int? targetSizeKbFromParams() {
+      final raw = params['target_size_kb'];
+      if (raw is num) return raw.round();
+      if (raw is String) return int.tryParse(raw);
+      return null;
+    }
+
+    switch (tool) {
+      case 'compress_pdf':
+        await runWithStatus('Processing: Compressing your file...', () async {
+          final file = UploadContextService.getFirstCompatibleFile(['pdf', 'jpg', 'jpeg', 'png']);
+          if (file == null) {
+            _showVoiceSnackBar('Please upload a file first, then try the voice command again.', isError: true);
+            return;
+          }
+          final lowerName = file.name.toLowerCase();
+          final targetKb = targetSizeKbFromParams() ?? ((file.size / 1024) * 0.5).clamp(50, 100000).round();
+          final targetBytes = targetKb * 1024;
+
+          if (lowerName.endsWith('.pdf')) {
+            final compressionResult = await const CompressionService().compressPdfSmart(file.bytes, targetBytes, file.name);
+            WasmDocumentService.triggerBrowserDownload(
+              bytes: compressionResult.bytes,
+              fileName: _withSuffix(file.name, '_compressed'),
+              mimeType: 'application/pdf',
+            );
+          } else {
+            final compressedBytes = const CompressionService().compressImage(file.bytes, targetBytes, file.name);
+            WasmDocumentService.triggerBrowserDownload(
+              bytes: compressedBytes,
+              fileName: _withSuffix(file.name, '_compressed'),
+              mimeType: lowerName.endsWith('.png') ? 'image/png' : 'image/jpeg',
+            );
+          }
+          _showVoiceSnackBar('✓ Compressed and downloaded successfully!');
+        });
+        break;
+
+      case 'pdf_to_word':
+      case 'word_to_pdf':
+      case 'jpg_to_pdf':
+      case 'pdf_to_jpg':
+        await runWithStatus(_conversionStatusLabel(tool), () async {
+          final file = UploadContextService.getFirstCompatibleFile(_sourceExtensionsForConversion(tool));
+          if (file == null) {
+            _showVoiceSnackBar('Please upload a compatible file first, then try the voice command again.', isError: true);
+            return;
+          }
+          final conversionResult = await const ConversionService().convert(
+            inputBytes: file.bytes,
+            inputFileName: file.name,
+            outputFormat: _outputFormatForConversion(tool),
+          );
+          if (!conversionResult.success || conversionResult.outputBytes == null) {
+            _showVoiceSnackBar(
+              conversionResult.message.isNotEmpty ? conversionResult.message : 'Conversion failed. Please try again.',
+              isError: true,
+            );
+            return;
+          }
+          final outputFileName = conversionResult.outputFileName ?? file.name;
+          WasmDocumentService.triggerBrowserDownload(
+            bytes: conversionResult.outputBytes!,
+            fileName: outputFileName,
+            mimeType: _mimeTypeForFileName(outputFileName),
+          );
+          _showVoiceSnackBar('✓ Converted and downloaded successfully!');
+        });
+        break;
+
+      case 'merge_pdf':
+        await runWithStatus('Processing: Merging your PDFs...', () async {
+          final files = UploadContextService.getCompatibleFiles(['pdf']);
+          if (files.length < 2) {
+            _showVoiceSnackBar('Please upload at least 2 PDF files first, then try the voice command again.', isError: true);
+            return;
+          }
+          final merged = await WasmDocumentService.mergePdfDocuments(files.map((f) => f.bytes).toList());
+          WasmDocumentService.triggerBrowserDownload(
+            bytes: merged,
+            fileName: 'merged_document.pdf',
+            mimeType: 'application/pdf',
+          );
+          _showVoiceSnackBar('✓ Merged and downloaded successfully!');
+        });
+        break;
+
+      case 'split_pdf':
+        await runWithStatus('Processing: Splitting your PDF...', () async {
+          final file = UploadContextService.getFirstCompatibleFile(['pdf']);
+          if (file == null) {
+            _showVoiceSnackBar('Please upload a PDF file first, then try the voice command again.', isError: true);
+            return;
+          }
+          var totalPages = 1;
+          try {
+            final doc = sfpdf.PdfDocument(inputBytes: file.bytes);
+            totalPages = doc.pages.count;
+            doc.dispose();
+          } catch (_) {
+            // Fall back to a single-page split below.
+          }
+          final endPage = totalPages < 5 ? totalPages : 5;
+          final splitBytes = await WasmDocumentService.splitPdfRange(
+            pdfBytes: file.bytes,
+            startPage: 1,
+            endPage: endPage < 1 ? 1 : endPage,
+          );
+          WasmDocumentService.triggerBrowserDownload(
+            bytes: splitBytes,
+            fileName: 'split_pages_1-$endPage.pdf',
+            mimeType: 'application/pdf',
+          );
+          _showVoiceSnackBar('✓ Split and downloaded successfully!');
+        });
+        break;
+
+      case 'csv_to_excel':
+        await runWithStatus('Processing: Converting CSV to Excel...', () async {
+          final file = UploadContextService.getFirstCompatibleFile(['csv']);
+          if (file == null) {
+            _showVoiceSnackBar('Please upload a CSV file first, then try the voice command again.', isError: true);
+            return;
+          }
+          final csvText = utf8.decode(file.bytes, allowMalformed: true);
+          final rows = CsvToExcelService.parseCsv(csvText);
+          final xlsxBytes = CsvToExcelService.buildXlsxBytes(rows);
+          WasmDocumentService.triggerBrowserDownload(
+            bytes: xlsxBytes,
+            fileName: _withExtension(file.name, 'xlsx'),
+            mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          );
+          _showVoiceSnackBar('✓ Converted and downloaded successfully!');
+        });
+        break;
+
+      case 'photo_resizer':
+        await runWithStatus('Processing: Resizing your photo...', () async {
+          final file = UploadContextService.getFirstCompatibleFile(['jpg', 'jpeg', 'png', 'webp', 'bmp']);
+          if (file == null) {
+            _showVoiceSnackBar('Please upload a photo first, then try the voice command again.', isError: true);
+            return;
+          }
+          final preset = _matchGovtPresetForVoice(params['preset']?.toString());
+          final resized = await compute(
+            computeGovtPhotoResize,
+            GovtPhotoResizeArgs(bytes: file.bytes, width: preset.width, height: preset.height, targetKb: preset.maxKb),
+          );
+          WasmDocumentService.triggerBrowserDownload(
+            bytes: resized,
+            fileName: 'govt_photo_${preset.id}.jpg',
+            mimeType: 'image/jpeg',
+          );
+          _showVoiceSnackBar('✓ Resized and downloaded successfully!');
+        });
+        break;
+    }
+  }
+
+  String _withSuffix(String fileName, String suffix) {
+    final dotIndex = fileName.lastIndexOf('.');
+    if (dotIndex <= 0) return '$fileName$suffix';
+    return '${fileName.substring(0, dotIndex)}$suffix${fileName.substring(dotIndex)}';
+  }
+
+  String _withExtension(String fileName, String newExtension) {
+    final dotIndex = fileName.lastIndexOf('.');
+    final base = dotIndex > 0 ? fileName.substring(0, dotIndex) : fileName;
+    return '$base.$newExtension';
+  }
+
+  String _mimeTypeForFileName(String fileName) {
+    final lower = fileName.toLowerCase();
+    if (lower.endsWith('.pdf')) return 'application/pdf';
+    if (lower.endsWith('.docx')) return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    if (lower.endsWith('.xlsx')) return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    if (lower.endsWith('.pptx')) return 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+    if (lower.endsWith('.zip')) return 'application/zip';
+    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+    if (lower.endsWith('.png')) return 'image/png';
+    if (lower.endsWith('.webp')) return 'image/webp';
+    if (lower.endsWith('.csv')) return 'text/csv';
+    if (lower.endsWith('.txt')) return 'text/plain';
+    return 'application/octet-stream';
+  }
+
+  List<String> _sourceExtensionsForConversion(String tool) {
+    switch (tool) {
+      case 'pdf_to_word':
+      case 'pdf_to_jpg':
+        return const ['pdf'];
+      case 'word_to_pdf':
+        return const ['doc', 'docx'];
+      case 'jpg_to_pdf':
+        return const ['jpg', 'jpeg', 'png', 'webp', 'bmp'];
+      default:
+        return const ['pdf'];
+    }
+  }
+
+  String _outputFormatForConversion(String tool) {
+    switch (tool) {
+      case 'pdf_to_word':
+        return 'word (.docx)';
+      case 'word_to_pdf':
+      case 'jpg_to_pdf':
+        return 'pdf (.pdf)';
+      case 'pdf_to_jpg':
+        return 'jpg images';
+      default:
+        return 'pdf (.pdf)';
+    }
+  }
+
+  String _conversionStatusLabel(String tool) {
+    switch (tool) {
+      case 'pdf_to_word':
+        return 'Processing: Converting PDF to Word...';
+      case 'word_to_pdf':
+        return 'Processing: Converting Word to PDF...';
+      case 'jpg_to_pdf':
+        return 'Processing: Converting Image to PDF...';
+      case 'pdf_to_jpg':
+        return 'Processing: Converting PDF to Images...';
+      default:
+        return 'Processing: Converting your file...';
+    }
+  }
+
+  GovtPhotoPreset _matchGovtPresetForVoice(String? raw) {
+    final normalized = (raw ?? '').trim().toLowerCase().replaceAll(RegExp(r'[\s-]+'), '_');
+    if (normalized.isEmpty) {
+      return kGovtPhotoPresets.first;
+    }
+    for (final preset in kGovtPhotoPresets) {
+      if (preset.id == normalized) return preset;
+    }
+    for (final preset in kGovtPhotoPresets) {
+      if (preset.id.startsWith(normalized)) return preset;
+    }
+    for (final preset in kGovtPhotoPresets) {
+      final normalizedLabel = preset.label.toLowerCase().replaceAll(RegExp(r'[\s-]+'), '_');
+      if (normalizedLabel.contains(normalized)) return preset;
+    }
+    return kGovtPhotoPresets.first;
   }
 }
 
@@ -6874,16 +7235,26 @@ class _CouponControlPanelState extends State<_CouponControlPanel> {
 }
 
 class _V2Column extends StatelessWidget {
-  const _V2Column({required this.onVoiceCommandResult});
+  const _V2Column({
+    required this.onVoiceCommandResult,
+    this.isVoiceProcessing = false,
+    this.voiceProcessingStatus = '',
+  });
 
   final ValueChanged<VoiceCommandResult> onVoiceCommandResult;
+  final bool isVoiceProcessing;
+  final String voiceProcessingStatus;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        UploadCardV2(onVoiceCommandResult: onVoiceCommandResult),
+        UploadCardV2(
+          onVoiceCommandResult: onVoiceCommandResult,
+          isVoiceProcessing: isVoiceProcessing,
+          voiceProcessingStatus: voiceProcessingStatus,
+        ),
         const SizedBox(height: 12),
         Container(
           width: double.infinity,
@@ -6913,89 +7284,6 @@ class _V2Column extends StatelessWidget {
       ],
     );
   }
-}
-
-/// Routes to the correct tool page after a voice command is classified by
-/// Gemini Flash (POST /api/voice-command). Any extracted [parameters] (e.g.
-/// target_size_kb, preset) are stashed via [VoiceCommandService] so the
-/// destination page can read + apply them once in its own initState().
-void _handleVoiceCommandResult(BuildContext context, VoiceCommandResult result) {
-  final messenger = ScaffoldMessenger.of(context);
-
-  if (!result.success) {
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(result.error ?? 'Could not understand that voice command. Please try again.'),
-        backgroundColor: Colors.red,
-      ),
-    );
-    return;
-  }
-
-  Widget Function(BuildContext)? pageBuilder;
-  final isPhotoResizer = result.tool == 'photo_resizer';
-  final isProtectPdf = result.tool == 'protect_pdf';
-  switch (result.tool) {
-    case 'compress_pdf':
-      pageBuilder = (_) => const CompressionToolPage();
-      break;
-    case 'pdf_to_word':
-    case 'word_to_pdf':
-    case 'jpg_to_pdf':
-    case 'pdf_to_jpg':
-      pageBuilder = (_) => const ConvertToolPage();
-      break;
-    case 'merge_pdf':
-      pageBuilder = (_) => const MergeToolPage();
-      break;
-    case 'split_pdf':
-      pageBuilder = (_) => const SplitToolPage();
-      break;
-    case 'edit_pdf':
-      pageBuilder = (_) => const PdfEditPage();
-      break;
-    case 'csv_to_excel':
-      pageBuilder = (_) => const CsvToExcelPage();
-      break;
-    default:
-      pageBuilder = null;
-  }
-
-  if (!isPhotoResizer && !isProtectPdf && pageBuilder == null) {
-    messenger.showSnackBar(
-      const SnackBar(
-        content: Text('That tool is not available yet.'),
-        backgroundColor: Colors.red,
-      ),
-    );
-    return;
-  }
-
-  VoiceCommandService.setPendingParameters(<String, dynamic>{
-    ...result.parameters,
-    VoiceCommandService.autoExecuteFlagKey: true,
-    VoiceCommandService.voiceToolKey: result.tool,
-  });
-
-  final recognized = result.recognizedText.trim();
-  messenger.showSnackBar(
-    SnackBar(
-      content: Text(recognized.isEmpty ? 'Voice command understood. Opening tool...' : 'Heard: "$recognized" - opening tool...'),
-      backgroundColor: const Color(0xFF166534),
-    ),
-  );
-
-  if (isPhotoResizer) {
-    Navigator.of(context).pushNamed('/govt-verifier');
-    return;
-  }
-
-  if (isProtectPdf) {
-    Navigator.of(context).pushNamed('/smart-pdf');
-    return;
-  }
-
-  Navigator.of(context).push(MaterialPageRoute(builder: pageBuilder!));
 }
 
 class _WhyChooseSection extends StatelessWidget {

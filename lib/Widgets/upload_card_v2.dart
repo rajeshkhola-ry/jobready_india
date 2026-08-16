@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
@@ -16,12 +17,26 @@ import 'voice_command_button.dart';
 const int _maxUploadBytes = 500 * 1024 * 1024; // Hard safety cap.
 
 class UploadCardV2 extends StatefulWidget {
-  const UploadCardV2({super.key, this.onVoiceCommandResult});
+  const UploadCardV2({
+    super.key,
+    this.onVoiceCommandResult,
+    this.isVoiceProcessing = false,
+    this.voiceProcessingStatus = '',
+  });
 
   /// Called with the raw classification result whenever a voice command
   /// recording finishes (success or failure). Navigation/error handling is
   /// left to the caller (see home_page_v1_1.dart).
   final ValueChanged<VoiceCommandResult>? onVoiceCommandResult;
+
+  /// True while the parent (home page) is executing a voice command in place
+  /// (e.g. compressing/converting), so this card can show a blocking overlay
+  /// instead of allowing another upload/voice action mid-execution.
+  final bool isVoiceProcessing;
+
+  /// Short status line shown inside the overlay while [isVoiceProcessing] is
+  /// true, e.g. "Processing: Converting PDF to Word...".
+  final String voiceProcessingStatus;
 
   @override
   State<UploadCardV2> createState() => _UploadCardV2State();
@@ -31,6 +46,8 @@ class _UploadCardV2State extends State<UploadCardV2> {
   List<PickedFileData> _selectedFiles = const [];
   bool _dragging = false;
   bool _voiceListening = false;
+  bool _voiceClassifying = false;
+  String _voiceLiveTranscript = '';
 
   StreamSubscription<html.MouseEvent>? _webDragOverSub;
   StreamSubscription<html.MouseEvent>? _webDragLeaveSub;
@@ -76,6 +93,90 @@ class _UploadCardV2State extends State<UploadCardV2> {
         ? 'Paid plan active'
         : 'Free plan active';
     return 'Maximum file size: $maxMb MB ($suffix)';
+  }
+
+  void _handleVoiceResult(VoiceCommandResult result) {
+    if (mounted) {
+      setState(() {
+        _voiceClassifying = false;
+        _voiceLiveTranscript = '';
+      });
+    }
+    widget.onVoiceCommandResult?.call(result);
+  }
+
+  /// Beside-the-mic status pill: "Listening... 🎙️" + waveform (no speech
+  /// yet) -> live transcript as the user speaks -> "⚡ Processing your
+  /// request..." once recording stops and classification is in flight.
+  /// Returns null (nothing shown) when idle.
+  Widget? _buildVoiceStatusPill() {
+    if (_voiceClassifying) {
+      return _voicePill(
+        key: const ValueKey('voice-pill-classifying'),
+        background: const Color(0xFFEAF3FF),
+        border: const Color(0xFFBFD7F2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            SizedBox(
+              width: 13,
+              height: 13,
+              child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF123A63))),
+            ),
+            SizedBox(width: 7),
+            Text('⚡ Processing your request...', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Color(0xFF123A63))),
+          ],
+        ),
+      );
+    }
+
+    if (_voiceListening) {
+      final transcript = _voiceLiveTranscript.trim();
+      if (transcript.isNotEmpty) {
+        return _voicePill(
+          key: const ValueKey('voice-pill-transcript'),
+          background: const Color(0xFFECFDF3),
+          border: const Color(0xFFB7F1C7),
+          child: Text(
+            '🗣️ "$transcript"',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF166534)),
+          ),
+        );
+      }
+      return _voicePill(
+        key: const ValueKey('voice-pill-listening'),
+        background: const Color(0xFFFEF2F2),
+        border: const Color(0xFFFCA5A5),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Text('Listening... 🎙️', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Color(0xFFDC2626))),
+            SizedBox(width: 8),
+            _ListeningWaveform(),
+          ],
+        ),
+      );
+    }
+
+    return null;
+  }
+
+  Widget _voicePill({required Key key, required Color background, required Color border, required Widget child}) {
+    return ConstrainedBox(
+      key: key,
+      constraints: const BoxConstraints(maxWidth: 260),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: border),
+        ),
+        child: child,
+      ),
+    );
   }
 
   Future<void> _showUpgradePromptForLargeFile({
@@ -427,7 +528,7 @@ class _UploadCardV2State extends State<UploadCardV2> {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
+    final card = Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: _pickFile,
@@ -542,44 +643,40 @@ class _UploadCardV2State extends State<UploadCardV2> {
                     ),
                     if (kIsWeb && widget.onVoiceCommandResult != null)
                       VoiceCommandButton(
-                        onResult: widget.onVoiceCommandResult!,
+                        onResult: _handleVoiceResult,
                         onListeningChanged: (listening) {
-                          if (mounted) setState(() => _voiceListening = listening);
+                          if (!mounted) return;
+                          setState(() {
+                            _voiceListening = listening;
+                            if (!listening) {
+                              _voiceClassifying = true;
+                            }
+                          });
                         },
+                        onLiveTranscript: (transcript) {
+                          if (mounted) setState(() => _voiceLiveTranscript = transcript);
+                        },
+                      ),
+                    if (kIsWeb && widget.onVoiceCommandResult != null && _buildVoiceStatusPill() != null)
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 220),
+                        child: _buildVoiceStatusPill(),
                       ),
                   ],
                 ),
-                if (kIsWeb && widget.onVoiceCommandResult != null) ...[
+                if (kIsWeb && widget.onVoiceCommandResult != null && !_voiceListening && !_voiceClassifying) ...[
                   const SizedBox(height: 8),
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    child: _voiceListening
-                        ? Row(
-                            key: const ValueKey('voice-hint-listening'),
-                            mainAxisSize: MainAxisSize.min,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Icon(Icons.graphic_eq_rounded, size: 15, color: Color(0xFFDC2626)),
-                              SizedBox(width: 6),
-                              Text(
-                                'Listening... speak your command now',
-                                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFFDC2626)),
-                              ),
-                            ],
-                          )
-                        : Text(
-                            key: const ValueKey('voice-hint-idle'),
-                            _isIndiaAudience()
-                                ? '🎙️ Voice Command: Try saying "Compress to 50 KB", "Convert to Word", या "SSC Photo bana do"'
-                                : '🎙️ Voice Command: Try saying "Compress PDF to 50 KB", "Convert to Word", or "Merge documents"',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 12.5,
-                              color: Color(0xFF64748B),
-                              fontWeight: FontWeight.w600,
-                              height: 1.4,
-                            ),
-                          ),
+                  Text(
+                    _isIndiaAudience()
+                        ? '🎙️ Voice Command: Try saying "Compress to 50 KB", "Convert to Word", या "SSC Photo bana do"'
+                        : '🎙️ Voice Command: Try saying "Compress PDF to 50 KB", "Convert to Word", or "Merge documents"',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      color: Color(0xFF64748B),
+                      fontWeight: FontWeight.w600,
+                      height: 1.4,
+                    ),
                   ),
                 ],
                 const SizedBox(height: 10),
@@ -768,6 +865,54 @@ class _UploadCardV2State extends State<UploadCardV2> {
         ),
       ),
     );
+
+    if (!widget.isVoiceProcessing) {
+      return card;
+    }
+
+    return Stack(
+      children: [
+        card,
+        Positioned.fill(
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.92),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(
+                    width: 46,
+                    height: 46,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3.6,
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF123A63)),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 28),
+                    child: Text(
+                      widget.voiceProcessingStatus.isNotEmpty
+                          ? widget.voiceProcessingStatus
+                          : 'Processing your request...',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF123A63),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -779,4 +924,58 @@ class _PlanFileFilterOutcome {
     required this.accepted,
     required this.rejected,
   });
+}
+
+/// Small 4-bar animated waveform shown beside the "Listening..." pill while
+/// no speech has been transcribed yet. Deliberately lightweight (a single
+/// repeating AnimationController driving a sine-wave phase per bar) rather
+/// than pulling in a dedicated waveform package for this small effect.
+class _ListeningWaveform extends StatefulWidget {
+  const _ListeningWaveform();
+
+  @override
+  State<_ListeningWaveform> createState() => _ListeningWaveformState();
+}
+
+class _ListeningWaveformState extends State<_ListeningWaveform> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(4, (i) {
+            final phase = (_controller.value * 2 * math.pi) + (i * 1.05);
+            final heightFactor = 0.35 + 0.65 * (0.5 + 0.5 * math.sin(phase));
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 1.4),
+              child: Container(
+                width: 3.2,
+                height: 14 * heightFactor,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDC2626),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            );
+          }),
+        );
+      },
+    );
+  }
 }
