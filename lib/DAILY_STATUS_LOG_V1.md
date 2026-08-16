@@ -1425,3 +1425,17 @@ Prepared For: JOBREADY
     - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success.
     - Committed + pushed (commit `c34958a`) → confirmed via GitHub REST API that "Deploy to Render" and "Enforce Current Site Lock" both succeeded for this commit.
 - Owner: Founder + Copilot
+
+### Same day follow-up #16 — Client-side instant voice intent execution (sub-second, bypasses network for common commands)
+- Overall status: Green (deployed)
+- Completed:
+  - **Client-side instant intent matcher** ✓ — `voice_command_service.dart` gained `_tryLocalIntentMatch(transcript)`, a Dart port of the backend's `tryLocalIntentMatch()` in `compression_server.js`, matching the same phrasing: "convert ... to word/excel/csv/pdf/image" (direction resolved from what's named after "to"), "compress/reduce/shrink ... NN kb/mb" (extracts target size), "merge/combine", "split"/"extract", "protect/lock/encrypt", and govt exam preset keywords (ssc/upsc/ibps/rrb/jee/neet/aadhaar/passport) → `photo_resizer`. Verified against 13 representative phrases via a standalone Dart smoke test before wiring in (all passed).
+  - **Network bypass for confident matches** ✓ — `stopRecordingAndClassify()` now runs this matcher against the browser's own live Web Speech transcript immediately after recording stops, *before* building the audio blob or attempting the `/api/voice-command` call at all. A confident match returns immediately (sub-second, no HTTP round trip) and is handed straight to the existing `_handleVoiceCommandResult` → `_executeVoiceCommandInPlace` pipeline unchanged. The network call remains as the secondary fallback only for phrasing the local matcher can't confidently resolve (e.g. "convert my image to pdf" style sentences naming both formats ambiguously).
+  - **No changes needed in `home_page_v1_1.dart`** ✓ — confirmed `_handleVoiceCommandResult`/`_executeVoiceCommandInPlace` already react to whatever `VoiceCommandResult` they receive regardless of source (instant local match vs. network), so the "execute immediately" requirement is fully satisfied at the service layer alone.
+  - **Resilience carried over from the previous checkpoint** ✓ — HTTP POST timeout is 35s and any network failure (timeout/unreachable/unreadable response) returns a friendly, transcript-inclusive fallback message via `_offlineFallbackResult()` instead of a bare technical error.
+  - **Validation** ✓ — `flutter analyze` on the voice-command files clean (zero new errors, only the same pre-existing baseline issues). Standalone Dart smoke test of the intent matcher confirmed all 13 phrases classify correctly.
+  - **Build & deploy** ✓
+    - `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` → success.
+    - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success.
+    - Committed + pushed (commit `faafbef`) → GitHub Actions triggered for this commit ("Enforce Current Site Lock", "Deploy to Render", "Deploy Flutter Web Preview (GitHub Pages)").
+- Owner: Founder + Copilot
