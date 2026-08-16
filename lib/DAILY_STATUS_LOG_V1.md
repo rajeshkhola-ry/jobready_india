@@ -1287,3 +1287,18 @@ Prepared For: JOBREADY
     - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success.
     - Committed + pushed (commit `9e4e49f`) → confirmed via GitHub REST API that all 3 workflows triggered for this commit.
 - Owner: Founder + Copilot
+
+### Same day follow-up #7 — Voice command audio MIME type fix + localized hint text
+- Overall status: Green (deployed)
+- Completed:
+  - **Audio MIME type fix** ✓ — Live testing found the browser sometimes reports recorded audio as generic `application/octet-stream`, which `compression_server.js`'s `/api/voice-command` `fileFilter` hard-rejected ("Invalid audio type"). Fixed:
+    - `compression_server.js`: `fileFilter` now normalizes mimetypes via a new `baseMimeType()` (strips `;codecs=...` params) and accepts `application/octet-stream`. New `resolveAudioMimeType()` sniffs the real container from magic bytes (WebM/EBML `1A 45 DF A3`, OGG `OggS`, WAV/RIFF, MP4/`ftyp`) before falling back to filename-extension guessing, then `audio/webm` — so Gemini always gets a real `audio/*` mimeType instead of the generic one.
+    - `Services/voice_command_service.dart`: `_uploadAndClassify` now explicitly sets `contentType: MediaType('audio', <webm|ogg|mp4>)` (new `http_parser` direct dependency) on the `MultipartFile`, instead of letting `package:http` guess from the filename alone (which was producing octet-stream).
+    - Validated end-to-end locally: sent a real WAV file with an explicit `application/octet-stream` content-type override to the running server and confirmed it now sniffs `audio/wav` and returns a successful Gemini classification (previously hard-rejected).
+  - **Localized hint text UI** ✓ — `Widgets/upload_card_v2.dart`: new hint line directly below the Browse Files/Mic buttons — India/Hindi-aware copy (`...या "SSC Photo bana do"`) vs a plain-English international variant, chosen via a new `_isIndiaAudience()` heuristic (profile country/countryCode + browser language, mirroring the existing currency-detection logic in `home_page_v1_1.dart`'s `resolvePreferredPaymentCurrency`). `Widgets/voice_command_button.dart` gained an `onListeningChanged` callback so the hint smoothly crossfades (`AnimatedSwitcher`) to a "Listening... speak your command now" message while the mic is actively recording.
+  - **Validation** ✓ — `flutter analyze` clean on all touched Dart files (fixed one redundant-null-check warning along the way); `node --check` clean on `compression_server.js`.
+  - **Build & deploy** ✓
+    - `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` → success.
+    - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success.
+    - Committed + pushed (commit `bc31629`) → confirmed via GitHub REST API that all 3 workflows triggered for this commit.
+- Owner: Founder + Copilot
