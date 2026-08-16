@@ -1175,3 +1175,25 @@ Prepared For: JOBREADY
   git push origin main
   ```
 - Owner: Founder + Copilot
+
+---
+
+### Day - 2026-08-16 — Promo code plan eligibility + usage/sales report
+- Overall status: Green (deployed)
+- Completed today:
+  - **Plan eligibility selector for promo codes** ✓
+    - `compression_server.js`: promo codes now support `applicablePlans` (`7Days`/`Monthly`/`Yearly`/`Lifetime`, empty = All Plans). New `normalizePlanKey`/`normalizeApplicablePlans`/`isPlanEligibleForPromo` helpers collapse every planId spelling used in this file onto one token per tier.
+    - `applyPromoCode(code, amount, currency, planId)` now rejects with `"This promo code is not valid for the selected plan."` when the code is plan-restricted and the given plan isn't in the list.
+    - `/api/public/promo-codes/validate`, `/api/checkout/apply-promo`, `/api/validate-promo` all pass `planId` through. `/api/create-order` now hard-rejects (400) if a submitted `promoCode` fails validation for any reason (previously it silently ignored a bad code and charged full price).
+    - `/api/public/promo-codes` echoes `applicablePlans` per offer and supports an optional `?planId=` server-side filter.
+    - `admin_dashboard_page.dart` (`_PromoDialog`): new "Applicable plans" `FilterChip` selector (All Plans + 7 Days/Monthly/Yearly/Lifetime), wired into create/update payload; existing-codes list now shows "Plans: ...".
+    - `home_page_v1_1.dart` (`_UserPaymentPanel`): promo validation now sends `planId`; "Available Offers" dropdown filters to codes applicable to the currently selected plan; re-validates automatically (existing logic) if the code becomes invalid after a plan switch.
+  - **Promo usage & sales report** ✓
+    - `compression_server.js`: new `GET /api/admin/promos/usage-report` (supports `?format=csv|json`, optional `range`/`fromDate`/`toDate`) built by `buildPromoUsageReport`/`buildPromoUsageReportCsv` — per code: redemptions, plans-sold breakdown, gross revenue, discount given, per-day date breakdown; includes zero-redemption and deleted codes.
+    - `admin_dashboard_page.dart`: new "Usage & Sales Report" button in the Promo codes dialog opens `_PromoUsageReportDialog` — totals chips, per-code expandable date breakdown, and a "Download CSV" button (same authenticated-fetch + Blob pattern as the existing GST/Sales CSV export).
+  - **Validation** ✓ — `node --check` clean; `get_errors` clean on all 3 files; `flutter analyze lib/Pages/admin_dashboard_page.dart lib/Pages/home_page_v1_1.dart` → 54 pre-existing info/warning lints only, 0 new issues, 0 errors.
+  - **Build & deploy** ✓
+    - `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` → success.
+    - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success (`getreadyjob-india-1cb34.web.app`).
+    - Committed + pushed (commit `66f4842`) → triggers Render + GitHub Pages redeploy of getreadyjob.com.
+- Owner: Founder + Copilot
