@@ -1468,3 +1468,14 @@ Prepared For: JOBREADY
     - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success.
     - Committed + pushed (commit `82d6f6c`) → GitHub Actions triggered for this commit ("Enforce Current Site Lock", "Deploy to Render", "Deploy Flutter Web Preview (GitHub Pages)").
 - Owner: Founder + Copilot
+
+### Same day follow-up #19 — Removed orphaned Voice Top-Up Packs pricing UI from Admin Dashboard
+- Overall status: Green (deployed)
+- Completed:
+  - **Orphaned admin pricing UI cleaned up** ✓ — Follow-up to the previous checkpoint's homepage removal of the user-facing voice top-up checkout flow. `_PricingDialogState` (`admin_dashboard_page.dart`) still had a full "Voice Command Top-Up Packs" section (per-pack credits/INR/USD price fields + a "Save Top-Up Packs" button backed by `VoiceTopupService`) that no longer published anywhere on the live site. Removed the `_topupPacks`/`_topupCreditsControllers`/`_topupInrControllers`/`_topupUsdControllers` fields, the `_hydrateTopupPacks()`/`_saveTopupPacks()` methods, their `initState()`/`dispose()` wiring, and the whole "Voice Command Top-Up Packs" UI block (divider, header, per-pack fields, save button) from `build()`. Removed the now-unused `Services/voice_topup_service.dart` import. The rest of the Pricing dialog (per-plan INR/USD price, User Quota, Voice Commands Quota, tool access) is untouched.
+  - **Validation** ✓ — `get_errors` clean. Full terminal `flutter analyze lib/Pages/admin_dashboard_page.dart` → 12 issues, all pre-existing baseline `info`/`warning` level (zero new issues).
+  - **Build & deploy** ✓
+    - `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` → success.
+    - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success.
+    - Committed + pushed (commit `3505d1a`) → GitHub Actions triggered for this commit ("Enforce Current Site Lock", "Deploy to Render", "Deploy Flutter Web Preview (GitHub Pages)").
+- Owner: Founder + Copilot
