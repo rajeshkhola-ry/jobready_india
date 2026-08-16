@@ -204,7 +204,7 @@ class _FooterMetaBlock extends StatelessWidget {
         ),
         SizedBox(height: 6),
         Text(
-          'Copyright 2026 GETREADYJOB. All rights reserved.',
+          'Patent Pending (Indian Patent App No. 202611096315) • Copyright 2026 GETREADYJOB. All rights reserved.',
           style: TextStyle(
             color: Color(0xFFCBD5E1),
             fontSize: 12,
