@@ -10,6 +10,7 @@ import 'package:image/image.dart' as img;
 import '../Services/analytics_service.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/upload_context_service.dart';
+import '../Services/voice_command_service.dart';
 import '../Services/wasm_document_service.dart';
 
 class GovtVerifierPage extends StatefulWidget {
@@ -61,7 +62,50 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
     _nameCtrl.addListener(() => setState(() {}));
     _dopCtrl.addListener(() => setState(() {}));
     AnalyticsService.trackToolOpen('govt_verifier');
+    _applyVoiceCommandPreset();
     _hydrateFromUploadContext();
+  }
+
+  void _applyVoiceCommandPreset() {
+    final params = VoiceCommandService.consumePendingParameters();
+    final rawPreset = params['preset'];
+    if (rawPreset == null) {
+      return;
+    }
+    final match = _matchExamPreset(rawPreset.toString());
+    if (match == null) {
+      return;
+    }
+    setState(() {
+      _selectedPreset = match;
+      _targetKb = match.maxKb;
+      _tabs.index = 1;
+      _resizerStatus = 'Voice command: "${match.label}" preset selected. Upload your photo.';
+    });
+  }
+
+  _ExamPreset? _matchExamPreset(String raw) {
+    final normalized = raw.trim().toLowerCase().replaceAll(RegExp(r'[\s-]+'), '_');
+    if (normalized.isEmpty) {
+      return null;
+    }
+    for (final preset in _kExamPresets) {
+      if (preset.id == normalized) {
+        return preset;
+      }
+    }
+    for (final preset in _kExamPresets) {
+      if (preset.id.startsWith(normalized)) {
+        return preset;
+      }
+    }
+    for (final preset in _kExamPresets) {
+      final normalizedLabel = preset.label.toLowerCase().replaceAll(RegExp(r'[\s-]+'), '_');
+      if (normalizedLabel.contains(normalized)) {
+        return preset;
+      }
+    }
+    return null;
   }
 
   void _hydrateFromUploadContext() {

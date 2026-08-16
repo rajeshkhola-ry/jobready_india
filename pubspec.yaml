@@ -51,6 +51,7 @@ dependencies:
   pdfrx: ^1.0.0
   qr_flutter: ^4.1.0
   syncfusion_flutter_pdf: ^25.2.7
+  web: ^1.1.1
 
 dependency_overrides:
   archive: 3.5.0

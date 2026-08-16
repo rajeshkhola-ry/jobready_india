@@ -11,6 +11,7 @@ import '../Widgets/tool_workspace_shell.dart';
 import '../Services/compression_service.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/upload_context_service.dart';
+import '../Services/voice_command_service.dart';
 import '../Services/wasm_document_service.dart';
 import 'dart:typed_data';
 
@@ -68,6 +69,21 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
   void initState() {
     super.initState();
     _hydrateFromHomeUpload();
+    _applyVoiceCommandTargetSize();
+  }
+
+  void _applyVoiceCommandTargetSize() {
+    final params = VoiceCommandService.consumePendingParameters();
+    final rawTargetKb = params['target_size_kb'];
+    final targetKb = rawTargetKb is num ? rawTargetKb.toInt() : int.tryParse('$rawTargetKb');
+    if (targetKb == null || targetKb <= 0) {
+      return;
+    }
+    setState(() {
+      _targetSizeBytes = targetKb * 1024;
+      _selectedUnit = 'KB';
+      _statusMessage = 'Voice command: target size set to $targetKb KB.';
+    });
   }
 
   void _applyDefaultTargetSize(int sourceBytes) {

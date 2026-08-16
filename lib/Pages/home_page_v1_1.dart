@@ -23,6 +23,7 @@ import '../Services/user_account_service.dart';
 import '../Services/user_auth_service.dart';
 import '../Services/usage_quota_service.dart';
 import '../Services/razorpay_service.dart';
+import '../Services/voice_command_service.dart';
 import '../Widgets/user_auth_dialog.dart';
 import '../Widgets/brand_logo_button.dart';
 import '../Widgets/production_footer.dart';
@@ -1221,7 +1222,7 @@ class _HomePageV11State extends State<HomePageV11> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                const _V2Column(),
+                _V2Column(onVoiceCommandResult: (result) => _handleVoiceCommandResult(context, result)),
                 const SizedBox(height: 10),
                 const SizedBox(height: 12),
                 const SizedBox(height: 4),
@@ -6543,14 +6544,16 @@ class _CouponControlPanelState extends State<_CouponControlPanel> {
 }
 
 class _V2Column extends StatelessWidget {
-  const _V2Column();
+  const _V2Column({required this.onVoiceCommandResult});
+
+  final ValueChanged<VoiceCommandResult> onVoiceCommandResult;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const UploadCardV2(),
+        UploadCardV2(onVoiceCommandResult: onVoiceCommandResult),
         const SizedBox(height: 12),
         Container(
           width: double.infinity,
@@ -6580,6 +6583,82 @@ class _V2Column extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Routes to the correct tool page after a voice command is classified by
+/// Gemini Flash (POST /api/voice-command). Any extracted [parameters] (e.g.
+/// target_size_kb, preset) are stashed via [VoiceCommandService] so the
+/// destination page can read + apply them once in its own initState().
+void _handleVoiceCommandResult(BuildContext context, VoiceCommandResult result) {
+  final messenger = ScaffoldMessenger.of(context);
+
+  if (!result.success) {
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(result.error ?? 'Could not understand that voice command. Please try again.'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+
+  Widget Function(BuildContext)? pageBuilder;
+  final isPhotoResizer = result.tool == 'photo_resizer';
+  switch (result.tool) {
+    case 'compress_pdf':
+      pageBuilder = (_) => const CompressionToolPage();
+      break;
+    case 'pdf_to_word':
+    case 'word_to_pdf':
+    case 'jpg_to_pdf':
+    case 'pdf_to_jpg':
+      pageBuilder = (_) => const ConvertToolPage();
+      break;
+    case 'merge_pdf':
+      pageBuilder = (_) => const MergeToolPage();
+      break;
+    case 'split_pdf':
+      pageBuilder = (_) => const SplitToolPage();
+      break;
+    case 'protect_pdf':
+    case 'edit_pdf':
+      pageBuilder = (_) => const PdfEditPage();
+      break;
+    case 'csv_to_excel':
+      pageBuilder = (_) => const CsvToExcelPage();
+      break;
+    default:
+      pageBuilder = null;
+  }
+
+  if (!isPhotoResizer && pageBuilder == null) {
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('That tool is not available yet.'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+
+  if (result.parameters.isNotEmpty) {
+    VoiceCommandService.setPendingParameters(result.parameters);
+  }
+
+  final recognized = result.recognizedText.trim();
+  messenger.showSnackBar(
+    SnackBar(
+      content: Text(recognized.isEmpty ? 'Voice command understood. Opening tool...' : 'Heard: "$recognized" - opening tool...'),
+      backgroundColor: const Color(0xFF166534),
+    ),
+  );
+
+  if (isPhotoResizer) {
+    Navigator.of(context).pushNamed('/govt-verifier');
+    return;
+  }
+
+  Navigator.of(context).push(MaterialPageRoute(builder: pageBuilder!));
 }
 
 class _WhyChooseSection extends StatelessWidget {

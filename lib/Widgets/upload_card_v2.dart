@@ -10,11 +10,18 @@ import '../Services/file_storage_service.dart';
 import '../Services/plan_catalog_service.dart';
 import '../Services/upload_context_service.dart';
 import '../Services/user_account_service.dart';
+import '../Services/voice_command_service.dart';
+import 'voice_command_button.dart';
 
 const int _maxUploadBytes = 500 * 1024 * 1024; // Hard safety cap.
 
 class UploadCardV2 extends StatefulWidget {
-  const UploadCardV2({super.key});
+  const UploadCardV2({super.key, this.onVoiceCommandResult});
+
+  /// Called with the raw classification result whenever a voice command
+  /// recording finishes (success or failure). Navigation/error handling is
+  /// left to the caller (see home_page_v1_1.dart).
+  final ValueChanged<VoiceCommandResult>? onVoiceCommandResult;
 
   @override
   State<UploadCardV2> createState() => _UploadCardV2State();
@@ -486,27 +493,37 @@ class _UploadCardV2State extends State<UploadCardV2> {
                   ),
                 ],
                 const SizedBox(height: 10),
-                SizedBox(
-                  width: 220,
-                  height: 46,
-                  child: ElevatedButton.icon(
-                    onPressed: _pickFile,
-                    icon: const Icon(Icons.folder_open_rounded, size: 18),
-                    label: const Text(
-                      'Browse Files',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF123A63),
-                      foregroundColor: Colors.white,
-                      elevation: 1,
-                      shadowColor: const Color(0xFF123A63).withValues(alpha: 0.28),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 12,
+                  runSpacing: 10,
+                  children: [
+                    SizedBox(
+                      width: 220,
+                      height: 46,
+                      child: ElevatedButton.icon(
+                        onPressed: _pickFile,
+                        icon: const Icon(Icons.folder_open_rounded, size: 18),
+                        label: const Text(
+                          'Browse Files',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF123A63),
+                          foregroundColor: Colors.white,
+                          elevation: 1,
+                          shadowColor: const Color(0xFF123A63).withValues(alpha: 0.28),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                    if (kIsWeb && widget.onVoiceCommandResult != null)
+                      VoiceCommandButton(onResult: widget.onVoiceCommandResult!),
+                  ],
                 ),
                 const SizedBox(height: 10),
                 if (kIsWeb) ...[
