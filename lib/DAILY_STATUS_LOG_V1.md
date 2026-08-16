@@ -1214,3 +1214,15 @@ Prepared For: JOBREADY
     - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success.
     - Committed + pushed (commit `96b85f1`) → triggers Render + GitHub Pages redeploy of getreadyjob.com.
 - Owner: Founder + Copilot
+
+### Same day follow-up #2 — Indian Patent Pending notice (footer + Terms & Conditions)
+- Overall status: Green (deployed)
+- Completed:
+  - **Footer** ✓ — `Widgets/production_footer.dart` (`_FooterMetaBlock`) copyright line now reads "Patent Pending (Indian Patent App No. 202611096315) • Copyright 2026 GETREADYJOB. All rights reserved."
+  - **Terms & Conditions** ✓ — `Pages/terms_conditions_page.dart` section 7 ("Intellectual Property Rights") now also includes the full Patent Notice paragraph: Indian Patent Application No. 202611096315, Filing Ref TEMP/E-1/106210/2026-DEL, title "Voice Enabled Multilingual Job Preparation Platform with Automated Language Converter Tools", filed by Rajesh Kumar Yadav, plus the anti-duplication/reverse-engineering/scraping warning. Bumped the page's "Last updated" date to 2026-08-16.
+  - **Validation** ✓ — `get_errors` clean; `flutter analyze` on both files → 1 pre-existing unrelated `withOpacity` info lint only, 0 new issues.
+  - **Build & deploy** ✓
+    - `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` → success; verified the patent app number, filing ref, and patent title strings are present in `build/web/main.dart.js`.
+    - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success.
+    - Committed + pushed (commit `46ae0bf`) → triggers Render + GitHub Pages redeploy of getreadyjob.com.
+- Owner: Founder + Copilot
