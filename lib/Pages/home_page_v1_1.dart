@@ -3313,6 +3313,16 @@ class _VoiceTopupPacksSectionState extends State<_VoiceTopupPacksSection> {
     _topupPacks = VoiceTopupService.load();
   }
 
+  @override
+  void didUpdateWidget(covariant _VoiceTopupPacksSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedCurrency != widget.selectedCurrency) {
+      // A currency switch mid-checkout invalidates any error still shown
+      // for the previous currency's attempt.
+      ScaffoldMessenger.of(context).clearSnackBars();
+    }
+  }
+
   bool get _isIndia => widget.selectedCurrency.trim().toUpperCase() != 'USD';
 
   @override
@@ -3415,33 +3425,72 @@ class _VoiceTopupPacksSectionState extends State<_VoiceTopupPacksSection> {
   }
 
   Future<Map<String, dynamic>> _requestJson(String method, String path, {Map<String, dynamic>? body}) async {
-    const defaultBaseUrl = 'https://getreadyjob.onrender.com';
-    const configuredBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: defaultBaseUrl);
-    final response = await html.HttpRequest.request(
-      '$configuredBaseUrl$path',
-      method: method,
-      sendData: body == null ? null : jsonEncode(body),
-      requestHeaders: const {'Content-Type': 'application/json', 'Accept': 'application/json'},
-    );
-    final raw = response.responseText ?? '{}';
-    final decoded = raw.trim().isEmpty ? <String, dynamic>{} : jsonDecode(raw);
-    if (decoded is! Map<String, dynamic>) {
-      throw Exception('Unexpected response from $path.');
+    final base = ApiConfig.baseUrl.endsWith('/')
+        ? ApiConfig.baseUrl.substring(0, ApiConfig.baseUrl.length - 1)
+        : ApiConfig.baseUrl;
+    final url = '$base$path';
+
+    html.HttpRequest response;
+    try {
+      response = await html.HttpRequest.request(
+        url,
+        method: method,
+        sendData: body == null ? null : jsonEncode(body),
+        requestHeaders: const {'Content-Type': 'application/json', 'Accept': 'application/json'},
+      );
+    } catch (error) {
+      debugPrint('Voice top-up request failed (network/CORS) for $url: $error');
+      throw Exception('Unable to reach the voice top-up service at $path.');
     }
+
+    final raw = response.responseText ?? '{}';
+    Map<String, dynamic> decoded;
+    try {
+      final parsed = raw.trim().isEmpty ? <String, dynamic>{} : jsonDecode(raw);
+      if (parsed is! Map) {
+        throw const FormatException('Unexpected response shape.');
+      }
+      decoded = Map<String, dynamic>.from(parsed);
+    } catch (_) {
+      debugPrint('Voice top-up request to $url returned unreadable body: $raw');
+      throw Exception('Voice top-up service returned an unreadable response.');
+    }
+
+    final status = response.status ?? 0;
+    if (status < 200 || status >= 300) {
+      final backendError = decoded['error']?.toString().trim() ?? '';
+      debugPrint('Voice top-up request to $url failed with HTTP $status: $backendError');
+      throw Exception(backendError.isNotEmpty ? backendError : 'Voice top-up service returned HTTP $status.');
+    }
+
     return decoded;
   }
 
   Future<void> _purchaseVoiceTopup(VoiceTopupPack pack) async {
     final profile = UserAccountService.getProfile();
     final email = profile.email.trim();
+    // Clears any snackbar left over from a previous failed attempt so a
+    // retry (or switching to a different pack) never looks like a
+    // permanently-stuck error banner.
+    ScaffoldMessenger.of(context).clearSnackBars();
     if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please add your email in your account profile before purchasing a voice top-up.')),
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('Please add your email in your account profile before purchasing a voice top-up.'),
+        ),
       );
       return;
     }
 
     setState(() => _purchasingPackId = pack.id);
+
+    final useInr = _isIndia;
+    final chargeCurrency = useInr ? 'INR' : 'USD';
+    final chargeAmount = useInr ? pack.priceInr : pack.priceUsd;
+    final amountMinorUnits = (chargeAmount * 100).round();
+    final session = UserAuthService.getSession();
+    debugPrint('Voice top-up: requesting pack=${pack.id} amount=$amountMinorUnits currency=$chargeCurrency uid=${session?.uid ?? 'guest'}');
 
     try {
       final keyResponse = await _requestJson('GET', '/api/config');
@@ -3457,8 +3506,6 @@ class _VoiceTopupPacksSectionState extends State<_VoiceTopupPacksSection> {
         'country': profile.country.trim().isEmpty ? 'India' : profile.country.trim(),
       };
 
-      final amountPaise = (pack.priceInr * 100).round();
-
       final orderResponse = await _requestJson(
         'POST',
         '/api/voice-topup/create-order',
@@ -3466,8 +3513,10 @@ class _VoiceTopupPacksSectionState extends State<_VoiceTopupPacksSection> {
           'packId': pack.id,
           'packName': pack.name,
           'credits': pack.credits,
-          'amount': amountPaise,
-          'currency': 'INR',
+          'amount': amountMinorUnits,
+          'currency': chargeCurrency,
+          'userId': session?.uid ?? '',
+          'email': email,
           'billing': billing,
         },
       );
@@ -3477,8 +3526,8 @@ class _VoiceTopupPacksSectionState extends State<_VoiceTopupPacksSection> {
 
       final orderId = orderResponse['order_id']?.toString() ?? '';
       final orderAmountRaw = orderResponse['amount'];
-      final orderAmount = orderAmountRaw is int ? orderAmountRaw : int.tryParse(orderAmountRaw.toString()) ?? amountPaise;
-      final orderCurrency = orderResponse['currency']?.toString() ?? 'INR';
+      final orderAmount = orderAmountRaw is int ? orderAmountRaw : int.tryParse(orderAmountRaw.toString()) ?? amountMinorUnits;
+      final orderCurrency = orderResponse['currency']?.toString() ?? chargeCurrency;
 
       final verifyResult = await _openTopupCheckoutAndVerify(
         keyId: keyId,
@@ -3493,20 +3542,33 @@ class _VoiceTopupPacksSectionState extends State<_VoiceTopupPacksSection> {
       await VoiceQuotaService.addTopUp(
         credits: creditsAdded,
         packName: pack.name,
-        amountPaid: pack.priceInr,
-        currency: 'INR',
+        amountPaid: chargeAmount,
+        currency: chargeCurrency,
         invoiceUrl: verifyResult['invoiceUrl']?.toString(),
         transactionId: verifyResult['transactionId']?.toString(),
       );
 
       if (!mounted) return;
+      ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$creditsAdded voice command credits added! New balance: ${VoiceQuotaService.remainingLabel()}')),
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 4),
+          content: Text('$creditsAdded voice command credits added! New balance: ${VoiceQuotaService.remainingLabel()}'),
+        ),
       );
     } catch (error) {
+      debugPrint('Voice top-up checkout failed for pack=${pack.id}: $error');
       if (!mounted) return;
       final message = _safeErrorText(error);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 4),
+          content: Text(message),
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _purchasingPackId = null);
