@@ -1494,3 +1494,14 @@ Prepared For: JOBREADY
     - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success.
     - Committed + pushed (commit `d19607c`) → GitHub Actions triggered for this commit ("Enforce Current Site Lock", "Deploy to Render", "Deploy Flutter Web Preview (GitHub Pages)").
 - Owner: Founder + Copilot
+
+### Same day follow-up #21 — Subtle AI Voice Assistant disclaimer note
+- Overall status: Green (deployed)
+- Completed:
+  - **Disclaimer added** ✓ — `Widgets/upload_card_v2.dart` now shows a small centered note directly below the existing "🎙️ Voice Command: Try saying..." hint text: "💡 AI Voice Assistant is experimental and may make mistakes. You can always use the manual tools below." (11px, soft grey `Color(0xFF94A3B8)`, centered, only shown alongside the existing hint - i.e. web, voice command enabled, not currently listening/classifying).
+  - **Validation** ✓ — `get_errors` clean. Full terminal `flutter analyze` on `upload_card_v2.dart` + `home_page_v1_1.dart` → 44 issues, all pre-existing baseline (zero new; `upload_card_v2.dart` itself fully clean).
+  - **Build & deploy** ✓
+    - `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` → success.
+    - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success.
+    - Committed + pushed (commit `b4a24e4`) → GitHub Actions triggered for this commit ("Enforce Current Site Lock", "Deploy to Render", "Deploy Flutter Web Preview (GitHub Pages)").
+- Owner: Founder + Copilot
