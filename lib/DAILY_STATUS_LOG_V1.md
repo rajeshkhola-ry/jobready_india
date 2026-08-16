@@ -1302,3 +1302,20 @@ Prepared For: JOBREADY
     - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success.
     - Committed + pushed (commit `bc31629`) → confirmed via GitHub REST API that all 3 workflows triggered for this commit.
 - Owner: Founder + Copilot
+
+### Same day follow-up #8 — Official GSTR-1 multi-tab Excel exporter + Reconciliation/ITC helper card
+- Overall status: Green (deployed)
+- Completed:
+  - **GSTR-1 multi-tab Excel export** ✓ — New `GET /api/admin/gst-report/export-excel` in `compression_server.js` builds an official GST Offline Tool schema workbook (via new `exceljs` dependency) reusing the existing `buildSalesReportData()` rows that already power the GSTR-1 CSV export:
+    - `b2cs` — B2C Small/Others, aggregated per Place of Supply + Rate (`Type` OE, `07-Delhi` style Place of Supply, Applicable % of Tax Rate, Taxable Value, Cess Amount, blank E-Commerce GSTIN).
+    - `b2b` — one row per B2B invoice with a valid recipient GSTIN (GSTIN/UIN, Receiver Name, Invoice Number/date/Value, Place Of Supply, Reverse Charge N, blank notified-rate field, Invoice Type Regular, Rate, Taxable Value, Cess Amount).
+    - `hsn` — single aggregated row for this business's one SAC (998313, reused from the existing `invoiceSellerProfile.sacCode`), UQC OTH, with total quantity/value/taxable value and IGST/CGST/SGST totals.
+    - `doc_issue` — Sr. No. From/To/Total Number/Cancelled/Net Issued per document series (Invoices for outward supply, Credit Note, Debit Note), computed from ALL transactions/notes issued in the period (including cancelled invoices, which the revenue sheets correctly exclude) by parsing the trailing sequence number out of the branded `GRJ/{INV|CN|DN}/FY/nnnn` document numbers.
+    - Ran `npm audit fix` after adding `exceljs` (fixed the `brace-expansion` DoS advisory with no breaking change; left the pre-existing `sharp`/libvips advisory and the transitive `uuid` advisory alone since both fixes require breaking major-version changes unrelated to this feature and aren't reachable via this feature's usage pattern of trusted server-side data).
+  - **Reconciliation & ITC Helper card** ✓ — `admin_dashboard_page.dart`'s GST Report dialog gained a summary card (Total Taxable Sales, Output GST breakdown CGST+SGST+IGST, and a reminder to cross-check against GSTR-2B by the 14th of each month before filing GSTR-3B), sourced from the GST report endpoint's existing `format=json` mode - no new backend data needed. Also added the "Export GSTR-1 Excel (Multi-Tab)" button next to the existing "Export GST CSV"/"Search Invoice" actions (converted that button row to a `Wrap` for the extra button).
+  - **Validation** ✓ — Wrote an isolated test fixture (3 sample transactions: 1 B2B/Delhi, 1 B2C/Maharashtra, 1 cancelled B2C/Delhi with its credit note) pointed at via env var overrides, logged in as admin locally, downloaded the real XLSX from the new endpoint, and read it back with `exceljs` to confirm all 4 sheet names/headers/rows - including the cancelled invoice correctly appearing in `doc_issue`'s Total/Cancelled/Net Issued counts while correctly being excluded from `b2cs`/`b2b`/`hsn`. `flutter analyze` clean on `admin_dashboard_page.dart` (only pre-existing, unrelated issues remain); `node --check` clean on `compression_server.js`.
+  - **Build & deploy** ✓
+    - `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` → success.
+    - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success.
+    - Committed + pushed (commit `69b0c6c`) → confirmed via GitHub REST API that all 3 workflows triggered for this commit.
+- Owner: Founder + Copilot
