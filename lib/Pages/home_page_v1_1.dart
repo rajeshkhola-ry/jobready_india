@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:universal_html/html.dart' as html;
 
 import '../Widgets/why_choose_card.dart';
-import '../Widgets/glowing_logo_badge.dart';
 import '../Widgets/upload_card_v2.dart';
 import '../Widgets/tool_selector_v2.dart';
 import '../Services/public_brand_config.dart';
@@ -1523,26 +1522,7 @@ class _HomePageV11State extends State<HomePageV11> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    GlowingLogoBadge(size: 32, circular: true),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                _FooterInfoRow(
-                  icon: Icons.language_rounded,
-                  label: 'Website',
-                  value: PublicBrandConfig.websiteDomain,
-                ),
-                const SizedBox(height: 8),
-                _FooterInfoRow(
-                  icon: Icons.email_outlined,
-                  label: 'Support',
-                  value: PublicBrandConfig.supportEmail,
-                ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 const ProductionFooter(),
                 const SizedBox(height: 6),
               ],
@@ -5946,69 +5926,6 @@ class _FooterBadge extends StatelessWidget {
           letterSpacing: 0.8,
           color: Color(0xFF0F172A),
         ),
-      ),
-    );
-  }
-}
-
-class _FooterInfoRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-
-  const _FooterInfoRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.85),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF4CC),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, size: 18, color: const Color(0xFFFFC72C)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF6B7280),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF0F172A),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

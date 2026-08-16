@@ -32,6 +32,25 @@ class _MicroCanvaUtilitiesPageState extends State<MicroCanvaUtilitiesPage> {
         title: const Text('Micro-Canva Utilities'),
         backgroundColor: const Color(0xFF1F2937),
         foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white, size: 28),
+        titleTextStyle: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w800,
+          fontSize: 18,
+          letterSpacing: 0.2,
+        ),
+        leading: IconButton(
+          tooltip: 'Back',
+          onPressed: () {
+            final navigator = Navigator.of(context);
+            if (navigator.canPop()) {
+              navigator.pop();
+            } else {
+              navigator.pushNamedAndRemoveUntil('/home', (route) => false);
+            }
+          },
+          icon: const Icon(Icons.arrow_back_rounded),
+        ),
       ),
       body: Container(
         decoration: const BoxDecoration(
