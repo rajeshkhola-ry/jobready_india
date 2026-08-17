@@ -989,7 +989,8 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
         fileName: 'jobready_compressed_files.zip',
         mimeType: 'application/zip',
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('COMPRESSION ERROR: $e \nSTACK: $stackTrace');
       if (!mounted) return;
       final errorMessage = e.toString().replaceFirst('Exception: ', '').trim();
       setState(() {
@@ -1007,39 +1008,51 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
   }
 
   Future<_CompressionOutcome> _compressSingleFile(PickedFileData file, {required int targetBytes}) async {
+    if (file.bytes.isEmpty) {
+      throw Exception('Unable to read file buffer from browser memory. Please re-select the file.');
+    }
+
     final lowerName = file.name.toLowerCase();
-    if (lowerName.endsWith('.pdf')) {
+    final isPdf = lowerName.endsWith('.pdf');
+    final isImage = lowerName.endsWith('.jpg') ||
+        lowerName.endsWith('.jpeg') ||
+        lowerName.endsWith('.png') ||
+        lowerName.endsWith('.webp') ||
+        lowerName.endsWith('.bmp');
+
+    if (!isPdf && !isImage) {
+      throw Exception('Unsupported file for compression: ${file.name}');
+    }
+
+    if (kIsWeb) {
+      // Web: all heavy compression runs on the server - never in browser memory.
+      final remote = isPdf
+          ? await const RemoteCompressionService().compressPdf(
+              bytes: file.bytes,
+              fileName: file.name,
+              targetBytes: targetBytes,
+              mode: _selectedCompressionMode,
+              pipelineMode: _pipelineMode,
+            )
+          : await const RemoteCompressionService().compressImage(
+              bytes: file.bytes,
+              fileName: file.name,
+              targetBytes: targetBytes,
+            );
+
+      return _CompressionOutcome(
+        bytes: remote.bytes,
+        aggressiveUsed: !remote.targetMet,
+        reductionPercent: _reductionPercent(file.size, remote.bytes.length),
+        targetMet: remote.targetMet,
+        note: remote.message,
+      );
+    }
+
+    if (isPdf) {
       await _yieldToUi();
-
-      var workingBytes = file.bytes;
-      var usedRemote = false;
-      try {
-        final remote = await const RemoteCompressionService().compressPdf(
-          bytes: file.bytes,
-          fileName: file.name,
-          targetBytes: targetBytes,
-          mode: _selectedCompressionMode,
-          pipelineMode: _pipelineMode,
-        );
-        if (remote.bytes.length < workingBytes.length) {
-          workingBytes = remote.bytes;
-          usedRemote = true;
-        }
-        if (remote.targetMet) {
-          return _CompressionOutcome(
-            bytes: remote.bytes,
-            aggressiveUsed: false,
-            reductionPercent: _reductionPercent(file.size, remote.bytes.length),
-            targetMet: true,
-            note: remote.message,
-          );
-        }
-      } catch (_) {
-        // Remote server unreachable/busy/failed - continue with the local pipeline below.
-      }
-
       final wasmCompressed = await WasmDocumentService.compressPdfDocument(
-        pdfBytes: workingBytes,
+        pdfBytes: file.bytes,
         targetBytes: targetBytes,
       );
       if (wasmCompressed.length <= targetBytes) {
@@ -1048,9 +1061,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
           aggressiveUsed: false,
           reductionPercent: _reductionPercent(file.size, wasmCompressed.length),
           targetMet: true,
-          note: usedRemote
-              ? 'Target achieved combining server and local WASM PDF pipelines.'
-              : 'Target achieved with local WASM PDF pipeline.',
+          note: 'Target achieved with local WASM PDF pipeline.',
         );
       }
 
@@ -1090,7 +1101,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
       );
     }
 
-    if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg') || lowerName.endsWith('.png')) {
+    {
       await _yieldToUi();
       final primary = await WasmDocumentService.compressImage(
         imageBytes: file.bytes,
@@ -1108,7 +1119,6 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
         );
       }
 
-      final aggressiveTarget = (targetBytes / 2).round().clamp(1, targetBytes);
       await _yieldToUi();
       final aggressive = await WasmDocumentService.compressImage(
         imageBytes: primary,
@@ -1127,52 +1137,38 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
             : 'Requested target could not be reached without unacceptable quality loss. Returning best possible output.',
       );
     }
-
-    if (lowerName.endsWith('.webp') || lowerName.endsWith('.bmp')) {
-      await _yieldToUi();
-      final primary = await WasmDocumentService.compressImage(
-        imageBytes: file.bytes,
-        quality: 78,
-        maxWidth: 2200,
-        maxHeight: 2200,
-      );
-      if (primary.length <= targetBytes) {
-        return _CompressionOutcome(
-          bytes: primary,
-          aggressiveUsed: false,
-          reductionPercent: _reductionPercent(file.size, primary.length),
-          targetMet: true,
-          note: 'Target achieved.',
-        );
-      }
-
-      final aggressiveTarget = (targetBytes / 2).round().clamp(1, targetBytes);
-      await _yieldToUi();
-      final aggressive = await WasmDocumentService.compressImage(
-        imageBytes: primary,
-        quality: 58,
-        maxWidth: 1600,
-        maxHeight: 1600,
-      );
-      final best = aggressive.length < primary.length ? aggressive : primary;
-      return _CompressionOutcome(
-        bytes: best,
-        aggressiveUsed: true,
-        reductionPercent: _reductionPercent(file.size, best.length),
-        targetMet: best.length <= targetBytes,
-        note: best.length <= targetBytes
-            ? 'Target achieved after additional pass.'
-            : 'Requested target could not be reached without unacceptable quality loss. Returning best possible output.',
-      );
-    }
-
-    throw Exception('Unsupported file for compression: ${file.name}');
   }
 
   Future<Uint8List> _forceCompressSingleFile(PickedFileData file, Uint8List currentBytes, {required int targetBytes}) async {
     final lowerName = file.name.toLowerCase();
+    final isPdf = lowerName.endsWith('.pdf');
 
-    if (lowerName.endsWith('.pdf')) {
+    if (kIsWeb) {
+      // Web: push the server pipeline harder with a tighter target instead of
+      // falling back to any local rendering/encoding.
+      final aggressiveTarget = (targetBytes * 0.7).round().clamp(1, targetBytes);
+      try {
+        final remote = isPdf
+            ? await const RemoteCompressionService().compressPdf(
+                bytes: currentBytes,
+                fileName: file.name,
+                targetBytes: aggressiveTarget,
+                mode: PdfCompressionMode.smallSize,
+                pipelineMode: _pipelineMode,
+              )
+            : await const RemoteCompressionService().compressImage(
+                bytes: currentBytes,
+                fileName: file.name,
+                targetBytes: aggressiveTarget,
+              );
+        return remote.bytes.length < currentBytes.length ? remote.bytes : currentBytes;
+      } catch (_) {
+        // Already have a valid (if larger-than-target) result - keep it rather than fail.
+        return currentBytes;
+      }
+    }
+
+    if (isPdf) {
       final wasmForced = await WasmDocumentService.compressPdfDocument(
         pdfBytes: currentBytes,
         targetBytes: targetBytes,
@@ -1191,7 +1187,6 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
 
     if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg') || lowerName.endsWith('.png') ||
         lowerName.endsWith('.webp') || lowerName.endsWith('.bmp')) {
-      final tighterTarget = (targetBytes * 0.35).round().clamp(1, targetBytes);
       await _yieldToUi();
       final pass1 = await WasmDocumentService.compressImage(
         imageBytes: currentBytes,

@@ -320,6 +320,16 @@ class CompressionService {
       likelyLowColorScan: false,
     ),
   }) async {
+    // `pdf_render` bridges to a JS/WASM PDF engine on Flutter Web. For some
+    // PDFs (larger/more complex files in particular) that bridge can throw an
+    // error outside Dart's normal synchronous try/catch reach, surfacing to
+    // the UI as an uncaught PlatformException instead of being absorbed by
+    // the caller's `catch (_) { continue }` retry loop. Never touch it on
+    // web - the Syncfusion-based passes (and the server-side multi-pass
+    // pipeline) already cover this tier safely.
+    if (kIsWeb) {
+      throw UnsupportedError('Rendering-based PDF compression is disabled on Flutter Web.');
+    }
 
     final pdfDoc = await pdf_render.PdfDocument.openData(bytes);
     try {

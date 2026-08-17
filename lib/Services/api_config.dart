@@ -143,6 +143,7 @@ class ApiConfig {
   static const String conversionEndpoint = '/files/convert';
   static const String conversionStatusEndpoint = '/files/convert/status';
   static const String convertPdfToDocxEndpoint = '/api/convert-pdf-to-docx';
+  static const String convertGenericEndpoint = '/api/convert';
 
   /// Merge Service Endpoints
   static const String mergeEndpoint = '/files/merge';

@@ -414,29 +414,24 @@ class ConversionService {
 
     if (lowerName.endsWith('.pdf')) {
       if (kIsWeb) {
+        // Web: PDF page rasterization always runs on the server - never in browser memory.
         try {
-          final extractedText = await _extractTextFromPdf(inputBytes, inputFileName);
-          final imageBytes = _createImageFromTextSummary(
-            title: inputFileName,
-            text: extractedText,
-            targetType: targetType,
+          final zipBytes = await const RemoteConversionService().convertPdfToImages(
+            bytes: inputBytes,
+            fileName: inputFileName,
+            targetFormat: targetType == 'jpg' ? 'jpg' : 'png',
           );
-          final archive = Archive();
-          final extension = targetType == 'jpg' ? 'jpg' : 'png';
-          final fallbackName = '${_baseName(inputFileName)}_summary.$extension';
-          archive.addFile(ArchiveFile(fallbackName, imageBytes.length, imageBytes));
-          final zip = ZipEncoder().encode(archive);
 
           return ConversionResult(
             success: true,
-            message: '${targetType.toUpperCase()} summary image created in web compatibility mode.',
-            outputBytes: zip == null ? imageBytes : Uint8List.fromList(zip),
+            message: '${targetType.toUpperCase()} pages exported from PDF.',
+            outputBytes: zipBytes,
             outputFileName: '${_baseName(inputFileName)}_${targetType}_pages.zip',
           );
         } catch (e) {
           return ConversionResult(
             success: false,
-            message: 'Unable to export PDF pages as ${targetType.toUpperCase()} images on web. Please try a smaller PDF or split it first.',
+            message: 'Unable to export PDF pages as ${targetType.toUpperCase()} images right now. Please check your connection and try again.',
           );
         }
       }
