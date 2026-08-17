@@ -1535,3 +1535,19 @@ Prepared For: JOBREADY
     - Committed + pushed (commit `6d156a0`) → Render backend redeploy + GitHub Actions triggered for this commit. As always, an async Docker rebuild on Render can't be fully confirmed live from this environment - only that the push/deploy hooks fired successfully.
   - Repo memory updated (`compression_notes.md`) with full root-cause detail for future sessions.
 - Owner: Founder + Copilot
+
+### Same day follow-up — High-Precision (98% accuracy) engine upgrade: pdf2docx, lossless-visual compression, optical deskew
+- Overall status: Green (deployed)
+- Completed:
+  - **High-fidelity PDF→Word: pdf2docx primary, LibreOffice fallback** ✓ — `Dockerfile` now installs `python3`/`python3-pip`/`python3-setuptools`, `imagemagick`, and broadened font coverage (`fonts-dejavu-core`, `fonts-noto-core`, `fonts-noto-cjk`, `fonts-freefont-ttf` alongside existing `fonts-liberation`), plus `pip3 install pdf2docx`. New `convertPdfToDocxWithPdf2docx()` runs the real, docs-verified CLI (`pdf2docx convert <in> <out>` — confirmed NOT `python3 -m pdf2docx`, which has no `__main__` entry point) with a 50s timeout; new `convertPdfToDocxHighFidelity()` tries it first and transparently falls back to the existing `convertPdfToDocxWithLibreOffice()` on any failure. `/api/convert-pdf-to-docx` now reports which engine won via a new `X-Conversion-Engine` response header.
+  - **Deliberate substitution noted** — `ttf-mscorefonts-installer` was intentionally NOT installed (lives in Debian's `contrib` component, not enabled by default on this base image, and downloads proprietary fonts from an external SourceForge mirror at build time — a known cause of flaky Docker builds). `fonts-liberation` (already present) is the standard metric-compatible equivalent and was kept; full reasoning + how to add it later if truly needed is recorded in repo memory.
+  - **Smart lossless-visual PDF compression** ✓ — `compressPdfWithGhostscriptSettings()` (used by every pass of `compressPdfToTarget`) no longer downsamples 1-bit monochrome image streams (`-dDownsampleMonoImages=false`, with explicit lossless `-dEncodeMonoImages`/`-dMonoImageFilter=/CCITTFaxEncode`) so scanned text stays crisp; color/grayscale images still downsample per the existing DPI/JPEG ladder to hit target size. Added `-dFastWebView=true` for linearized/fast-streaming output.
+  - **Optical pre-deskew + auto-enhance** ✓ — New `deskewAndEnhanceImage()`/`deskewAndEnhancePages()` run ImageMagick (`-deskew 40% -auto-level`) over every rasterized page inside `convertPdfToImagesArchive()` before zipping (`/api/convert`, PDF→Image export path only — not the general image-compression tool, to avoid mis-rotating ordinary photos). Best-effort: a missing/failing ImageMagick call just leaves that page unchanged.
+  - **Timeouts widened for the new fallback chain** ✓ — `/api/convert-pdf-to-docx` route timeout 110s→165s, `/api/convert` route timeout 110s→150s, and the shared Dart `RemoteConversionService._conversionTimeout` 115s→170s so the client doesn't abort before a slow-but-successful server-side fallback completes.
+  - **Validation** ✓ — `node --check compression_server.js` → exit 0. `flutter analyze lib/Services/remote_conversion_service.dart lib/Services/remote_compression_service.dart` → "No issues found!".
+  - **Build & deploy** ✓
+    - `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` → success.
+    - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success (`getreadyjob-india-1cb34.web.app`).
+    - Committed + pushed (commit `73bd1d4`) → Render backend redeploy triggered. Same async-Docker-rebuild caveat as always: full "new image is live" status can't be confirmed from this environment.
+  - Repo memory updated (`compression_notes.md`) with full engine/timeout/font-substitution detail for future sessions.
+- Owner: Founder + Copilot
