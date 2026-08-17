@@ -11,6 +11,7 @@ import 'package:syncfusion_flutter_pdf/pdf.dart' as sfpdf;
 import 'compression_service.dart';
 import 'csv_to_excel_service.dart';
 import 'pdf_ocr_service.dart';
+import 'remote_conversion_service.dart';
 import 'word_generator_service.dart';
 
 class ConversionResult {
@@ -46,6 +47,21 @@ class ConversionService {
           if (lowerName.endsWith('.pdf')) {
             final ocrService = const PdfOcrService();
             if (kIsWeb) {
+              try {
+                final remoteDocxBytes = await const RemoteConversionService().convertPdfToDocx(
+                  bytes: inputBytes,
+                  fileName: inputFileName,
+                );
+                return ConversionResult(
+                  success: true,
+                  message: 'Word document created with layout-preserved structure (tables, fonts, and columns retained).',
+                  outputBytes: remoteDocxBytes,
+                  outputFileName: _changeExtension(inputFileName, 'docx'),
+                );
+              } catch (_) {
+                // Remote high-fidelity conversion unavailable/failed - fall back below.
+              }
+
               final ocrResult = await ocrService.extractText(
                 pdfBytes: inputBytes,
                 fileName: inputFileName,

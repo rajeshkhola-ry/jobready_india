@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:file_picker/file_picker.dart';
 
 const int _maxFileSizeBytes = 500 * 1024 * 1024; // 500 MB — matches ApiConfig.maxFileSize
@@ -80,13 +81,18 @@ class FilePickerService {
   static FileSelectionReport get lastSelectionReport => _lastSelectionReport;
 
   static Future<PlatformFile?> pickFile({List<String>? allowedExtensions}) async {
-    final result = await FilePicker.platform.pickFiles(
-      allowMultiple: false,
-      withData: true,
-      withReadStream: _enableReadStream,
-      type: allowedExtensions == null ? FileType.any : FileType.custom,
-      allowedExtensions: allowedExtensions,
-    );
+    FilePickerResult? result;
+    try {
+      result = await FilePicker.platform.pickFiles(
+        allowMultiple: false,
+        withData: true,
+        withReadStream: _enableReadStream,
+        type: allowedExtensions == null ? FileType.any : FileType.custom,
+        allowedExtensions: allowedExtensions,
+      );
+    } on PlatformException {
+      result = null;
+    }
 
     if (result == null || result.files.isEmpty) {
       _lastSelectionReport = const FileSelectionReport(
@@ -113,13 +119,18 @@ class FilePickerService {
   }
 
   static Future<PickedFileData?> pickFileData({List<String>? allowedExtensions}) async {
-    final result = await FilePicker.platform.pickFiles(
-      allowMultiple: false,
-      withData: true,
-      withReadStream: _enableReadStream,
-      type: allowedExtensions == null ? FileType.any : FileType.custom,
-      allowedExtensions: allowedExtensions,
-    );
+    FilePickerResult? result;
+    try {
+      result = await FilePicker.platform.pickFiles(
+        allowMultiple: false,
+        withData: true,
+        withReadStream: _enableReadStream,
+        type: allowedExtensions == null ? FileType.any : FileType.custom,
+        allowedExtensions: allowedExtensions,
+      );
+    } on PlatformException {
+      result = null;
+    }
 
     if (result == null || result.files.isEmpty) {
       _lastSelectionReport = const FileSelectionReport(
@@ -174,13 +185,18 @@ class FilePickerService {
   static Future<List<PickedFileData>> pickMultipleFileData({
     List<String>? allowedExtensions,
   }) async {
-    final result = await FilePicker.platform.pickFiles(
-      allowMultiple: true,
-      withData: true,
-      withReadStream: _enableReadStream,
-      type: allowedExtensions == null ? FileType.any : FileType.custom,
-      allowedExtensions: allowedExtensions,
-    );
+    FilePickerResult? result;
+    try {
+      result = await FilePicker.platform.pickFiles(
+        allowMultiple: true,
+        withData: true,
+        withReadStream: _enableReadStream,
+        type: allowedExtensions == null ? FileType.any : FileType.custom,
+        allowedExtensions: allowedExtensions,
+      );
+    } on PlatformException {
+      result = null;
+    }
 
     if (result == null || result.files.isEmpty) {
       _lastSelectionReport = const FileSelectionReport(
@@ -243,15 +259,21 @@ class FilePickerService {
       return null;
     }
 
-    final chunks = <int>[];
-    await for (final chunk in stream) {
-      chunks.addAll(chunk);
-    }
+    try {
+      final builder = BytesBuilder(copy: false);
+      await for (final chunk in stream) {
+        builder.add(chunk);
+      }
 
-    if (chunks.isEmpty) {
+      if (builder.isEmpty) {
+        return null;
+      }
+
+      return builder.takeBytes();
+    } catch (_) {
+      // Large/corrupt streams can throw mid-read (e.g. browser memory pressure) -
+      // treat as unreadable instead of propagating a crash.
       return null;
     }
-
-    return Uint8List.fromList(chunks);
   }
 }

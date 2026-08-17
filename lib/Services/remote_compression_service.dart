@@ -20,6 +20,8 @@ class RemoteCompressionException implements Exception {
 class RemoteCompressionService {
   const RemoteCompressionService();
 
+  static const Duration _compressionTimeout = Duration(seconds: 110);
+
   Future<PdfCompressionResult> compressPdf({
     required Uint8List bytes,
     required String fileName,
@@ -36,11 +38,12 @@ class RemoteCompressionService {
           uri: endpoints[i],
           bytes: bytes,
           fileName: fileName,
+          targetBytes: targetBytes,
           mode: mode,
           pipelineMode: pipelineMode,
         );
 
-        final streamed = await request.send().timeout(ApiConfig.receiveTimeout);
+        final streamed = await request.send().timeout(_compressionTimeout);
         response = await http.Response.fromStream(streamed);
 
         // Retry once on legacy endpoint if the preferred endpoint is not found.
@@ -110,12 +113,14 @@ class RemoteCompressionService {
     required Uri uri,
     required Uint8List bytes,
     required String fileName,
+    required int targetBytes,
     required PdfCompressionMode mode,
     required CompressionPipelineMode pipelineMode,
   }) {
     return http.MultipartRequest('POST', uri)
       ..fields['quality'] = _qualityFor(mode, pipelineMode).toString()
       ..fields['format'] = 'jpeg'
+      ..fields['targetBytes'] = targetBytes.toString()
       ..fields['compressionMode'] =
           pipelineMode == CompressionPipelineMode.highCompressionImageOnly
               ? 'high-compression'

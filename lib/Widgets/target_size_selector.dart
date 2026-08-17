@@ -13,6 +13,7 @@ class TargetSizeSelector extends StatefulWidget {
   final int sourceBytes;
   final int? initialValue;
   final String? initialUnit;
+  final bool enabled;
 
   const TargetSizeSelector({
     super.key,
@@ -21,6 +22,7 @@ class TargetSizeSelector extends StatefulWidget {
     required this.sourceBytes,
     this.initialValue,
     this.initialUnit = 'MB',
+    this.enabled = true,
   });
 
   @override
@@ -172,7 +174,11 @@ class _TargetSizeSelectorState extends State<TargetSizeSelector> {
     final bgColor =
         isDarkMode ? Colors.grey.shade800 : Colors.grey.shade100;
 
-    return Container(
+    return IgnorePointer(
+      ignoring: !widget.enabled,
+      child: Opacity(
+        opacity: widget.enabled ? 1.0 : 0.55,
+        child: Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: bgColor,
@@ -393,6 +399,8 @@ class _TargetSizeSelectorState extends State<TargetSizeSelector> {
               ),
             ),
         ],
+      ),
+        ),
       ),
     );
   }

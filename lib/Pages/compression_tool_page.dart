@@ -10,6 +10,7 @@ import '../Widgets/tool_guidance_panel.dart';
 import '../Widgets/tool_workspace_shell.dart';
 import '../Services/compression_service.dart';
 import '../Services/file_picker_service.dart';
+import '../Services/remote_compression_service.dart';
 import '../Services/upload_context_service.dart';
 import '../Services/voice_command_service.dart';
 import '../Services/wasm_document_service.dart';
@@ -73,22 +74,26 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
   }
 
   void _applyVoiceCommandTargetSize() {
-    final params = VoiceCommandService.consumePendingParameters();
-    if (params.isEmpty) {
-      return;
-    }
-    final rawTargetKb = params['target_size_kb'];
-    final targetKb = rawTargetKb is num ? rawTargetKb.toInt() : int.tryParse('$rawTargetKb');
-    if (targetKb != null && targetKb > 0) {
-      setState(() {
-        _targetSizeBytes = targetKb * 1024;
-        _selectedUnit = 'KB';
-        _statusMessage = 'Voice command: target size set to $targetKb KB.';
-      });
-    }
-    final autoExecute = params[VoiceCommandService.autoExecuteFlagKey] == true;
-    if (autoExecute && _selectedFiles.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _startCompression());
+    try {
+      final params = VoiceCommandService.consumePendingParameters();
+      if (params.isEmpty) {
+        return;
+      }
+      final rawTargetKb = params['target_size_kb'];
+      final targetKb = rawTargetKb is num ? rawTargetKb.toInt() : int.tryParse('$rawTargetKb');
+      if (targetKb != null && targetKb > 0) {
+        setState(() {
+          _targetSizeBytes = targetKb * 1024;
+          _selectedUnit = 'KB';
+          _statusMessage = 'Voice command: target size set to $targetKb KB.';
+        });
+      }
+      final autoExecute = params[VoiceCommandService.autoExecuteFlagKey] == true;
+      if (autoExecute && _selectedFiles.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _startCompression());
+      }
+    } catch (_) {
+      // Voice-command pre-fill is a convenience only - ignore failures and keep manual flow usable.
     }
   }
 
@@ -107,33 +112,37 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
   }
 
   void _hydrateFromHomeUpload() {
-    final files = UploadContextService.getCompatibleFiles([
-      'pdf',
-      'jpg',
-      'jpeg',
-      'png',
-      'webp',
-      'bmp',
-    ]);
+    try {
+      final files = UploadContextService.getCompatibleFiles([
+        'pdf',
+        'jpg',
+        'jpeg',
+        'png',
+        'webp',
+        'bmp',
+      ]);
 
-    if (files.isEmpty) {
-      return;
+      if (files.isEmpty) {
+        return;
+      }
+
+      final first = files.first;
+      setState(() {
+        _selectedFiles = files;
+        _selectedFile = first.bytes;
+        _selectedFileName = first.name;
+        _originalFileSize = first.size;
+        _compressedFileSize = null;
+          _filesAboveTarget = [];
+          _qualityImpactNotes = [];
+        _applyDefaultTargetSize(first.size);
+        _statusMessage = files.length == 1
+            ? '✓ ${first.name} loaded from Home upload. Ready to compress.'
+            : '✓ ${files.length} file(s) loaded from Home upload. Ready to compress.';
+      });
+    } catch (_) {
+      // Home-upload pre-fill is a convenience only - ignore failures and keep manual selection usable.
     }
-
-    final first = files.first;
-    setState(() {
-      _selectedFiles = files;
-      _selectedFile = first.bytes;
-      _selectedFileName = first.name;
-      _originalFileSize = first.size;
-      _compressedFileSize = null;
-        _filesAboveTarget = [];
-        _qualityImpactNotes = [];
-      _applyDefaultTargetSize(first.size);
-      _statusMessage = files.length == 1
-          ? '✓ ${first.name} loaded from Home upload. Ready to compress.'
-          : '✓ ${files.length} file(s) loaded from Home upload. Ready to compress.';
-    });
   }
 
   @override
@@ -212,7 +221,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
                     AppleButton(
                       label: 'Choose File(s)',
                       icon: Icons.upload_file,
-                      onPressed: _selectFile,
+                      onPressed: _isCompressing ? null : _selectFile,
                       isPrimary: true,
                       isFullWidth: true,
                     )
@@ -264,7 +273,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
                               ),
                               AppleButton(
                                 label: 'Change',
-                                onPressed: _selectFile,
+                                onPressed: _isCompressing ? null : _selectFile,
                                 isPrimary: false,
                                 height: 36,
                               ),
@@ -363,6 +372,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
                     ),
                     const SizedBox(height: 12),
                     TargetSizeSelector(
+                      enabled: !_isCompressing,
                       onTargetSet: (targetBytes, unit) {
                         setState(() {
                           _targetSizeBytes = targetBytes;
@@ -772,6 +782,8 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
   Future<void> _startCompression() async {
     if (_selectedFile == null || _targetSizeBytes == null || _selectedFiles.isEmpty) return;
 
+    final targetBytes = _targetSizeBytes!;
+
     final allowed = await checkQuotaAndProceed(
       context: context,
       actionBucket: 'compress',
@@ -791,26 +803,26 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
     try {
       if (_selectedFiles.length == 1) {
         final selected = _selectedFiles.first;
-        var outcome = await _compressSingleFile(selected);
+        var outcome = await _compressSingleFile(selected, targetBytes: targetBytes);
         var compressed = outcome.bytes;
 
-        if (compressed.length > _targetSizeBytes!) {
+        if (compressed.length > targetBytes) {
           final allowForce = await _confirmForceQualityReduction(
             fileName: selected.name,
-            targetBytes: _targetSizeBytes!,
+            targetBytes: targetBytes,
             currentBytes: compressed.length,
           );
 
           if (allowForce) {
-            final forced = await _forceCompressSingleFile(selected, compressed);
+            final forced = await _forceCompressSingleFile(selected, compressed, targetBytes: targetBytes);
             if (forced.length < compressed.length) {
               compressed = forced;
               outcome = _CompressionOutcome(
                 bytes: forced,
                 aggressiveUsed: true,
                 reductionPercent: _reductionPercent(selected.size, forced.length),
-                targetMet: forced.length <= _targetSizeBytes!,
-                note: forced.length <= _targetSizeBytes!
+                targetMet: forced.length <= targetBytes,
+                note: forced.length <= targetBytes
                     ? 'Target achieved after force compression.'
                     : 'Requested target could not be reached without unacceptable quality loss. Returning best possible output.',
                 usedLocalFallback: outcome.usedLocalFallback,
@@ -827,16 +839,16 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
           _compressionRatio = compressed.length / selected.size;
           _lastOutputBytes = compressed;
           _lastOutputName = selected.name;
-          _filesAboveTarget = compressed.length <= _targetSizeBytes!
+          _filesAboveTarget = compressed.length <= targetBytes
               ? const []
               : ['${selected.name}: max reduced to ${_formatBytes(compressed.length)} only'];
-          _qualityImpactNotes = outcome.aggressiveUsed && compressed.length <= _targetSizeBytes!
-              ? ['${selected.name}: quality may reduce by about ${outcome.reductionPercent.toStringAsFixed(0)}% to reach ${_formatBytes(_targetSizeBytes!)}']
+          _qualityImpactNotes = outcome.aggressiveUsed && compressed.length <= targetBytes
+              ? ['${selected.name}: quality may reduce by about ${outcome.reductionPercent.toStringAsFixed(0)}% to reach ${_formatBytes(targetBytes)}']
               : const [];
           _isCompressing = false;
             _statusMessage = outcome.usedLocalFallback
               ? '✓ ${outcome.note}'
-              : compressed.length <= _targetSizeBytes!
+              : compressed.length <= targetBytes
               ? (outcome.aggressiveUsed
                   ? '✓ Compressed to ${_formatBytes(compressed.length)} (target met with quality reduction)'
                   : '✓ Compressed to ${_formatBytes(compressed.length)} (target met)')
@@ -878,16 +890,16 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
         }
         await _yieldToUi();
 
-        final outcome = await _compressSingleFile(file);
+        final outcome = await _compressSingleFile(file, targetBytes: targetBytes);
         final compressed = outcome.bytes;
         compressedByName[file.name] = compressed;
         originalByName[file.name] = file;
         totalOriginal += file.size;
         totalCompressed += compressed.length;
-        if (compressed.length > _targetSizeBytes!) {
+        if (compressed.length > targetBytes) {
           aboveTarget.add('${file.name}: max reduced to ${_formatBytes(compressed.length)} only');
         } else if (outcome.aggressiveUsed) {
-          qualityNotes.add('${file.name}: quality may reduce by about ${outcome.reductionPercent.toStringAsFixed(0)}% to reach ${_formatBytes(_targetSizeBytes!)}');
+          qualityNotes.add('${file.name}: quality may reduce by about ${outcome.reductionPercent.toStringAsFixed(0)}% to reach ${_formatBytes(targetBytes)}');
         }
         if (outcome.usedLocalFallback) {
           fallbackCount += 1;
@@ -896,7 +908,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
 
       if (aboveTarget.isNotEmpty) {
         final allowForce = await _confirmForceQualityReductionForBatch(
-          targetBytes: _targetSizeBytes!,
+          targetBytes: targetBytes,
           aboveTargetCount: aboveTarget.length,
         );
 
@@ -918,17 +930,17 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
             await _yieldToUi();
 
             final current = compressedByName[file.name] ?? file.bytes;
-            final forced = await _forceCompressSingleFile(file, current);
+            final forced = await _forceCompressSingleFile(file, current, targetBytes: targetBytes);
             final best = forced.length < current.length ? forced : current;
             compressedByName[file.name] = best;
 
             totalOriginal += file.size;
             totalCompressed += best.length;
 
-            if (best.length > _targetSizeBytes!) {
+            if (best.length > targetBytes) {
               aboveTarget.add('${file.name}: max reduced to ${_formatBytes(best.length)} only');
             } else {
-              qualityNotes.add('${file.name}: quality reduced to reach ${_formatBytes(_targetSizeBytes!)}');
+              qualityNotes.add('${file.name}: quality reduced to reach ${_formatBytes(targetBytes)}');
             }
           }
         }
@@ -961,7 +973,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
             ? '⚠ Best effort only: one or more files could not be reduced to the requested size in the browser.'
             : (qualityNotes.isNotEmpty
               ? '✓ ${_selectedFiles.length} files compressed (target met, quality reduced for ${qualityNotes.length} file(s))'
-              : '✓ ${_selectedFiles.length} files compressed (each met ${_formatBytes(_targetSizeBytes!)})');
+              : '✓ ${_selectedFiles.length} files compressed (each met ${_formatBytes(targetBytes)})');
       });
 
       if (!mounted) return;
@@ -994,27 +1006,57 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
     }
   }
 
-  Future<_CompressionOutcome> _compressSingleFile(PickedFileData file) async {
+  Future<_CompressionOutcome> _compressSingleFile(PickedFileData file, {required int targetBytes}) async {
     final lowerName = file.name.toLowerCase();
     if (lowerName.endsWith('.pdf')) {
       await _yieldToUi();
+
+      var workingBytes = file.bytes;
+      var usedRemote = false;
+      try {
+        final remote = await const RemoteCompressionService().compressPdf(
+          bytes: file.bytes,
+          fileName: file.name,
+          targetBytes: targetBytes,
+          mode: _selectedCompressionMode,
+          pipelineMode: _pipelineMode,
+        );
+        if (remote.bytes.length < workingBytes.length) {
+          workingBytes = remote.bytes;
+          usedRemote = true;
+        }
+        if (remote.targetMet) {
+          return _CompressionOutcome(
+            bytes: remote.bytes,
+            aggressiveUsed: false,
+            reductionPercent: _reductionPercent(file.size, remote.bytes.length),
+            targetMet: true,
+            note: remote.message,
+          );
+        }
+      } catch (_) {
+        // Remote server unreachable/busy/failed - continue with the local pipeline below.
+      }
+
       final wasmCompressed = await WasmDocumentService.compressPdfDocument(
-        pdfBytes: file.bytes,
-        targetBytes: _targetSizeBytes,
+        pdfBytes: workingBytes,
+        targetBytes: targetBytes,
       );
-      if (wasmCompressed.length <= _targetSizeBytes!) {
+      if (wasmCompressed.length <= targetBytes) {
         return _CompressionOutcome(
           bytes: wasmCompressed,
           aggressiveUsed: false,
           reductionPercent: _reductionPercent(file.size, wasmCompressed.length),
           targetMet: true,
-          note: 'Target achieved with local WASM PDF pipeline.',
+          note: usedRemote
+              ? 'Target achieved combining server and local WASM PDF pipelines.'
+              : 'Target achieved with local WASM PDF pipeline.',
         );
       }
 
       final smart = await _compressionService.compressPdfSmart(
         wasmCompressed,
-        _targetSizeBytes!,
+        targetBytes,
         file.name,
         mode: _selectedCompressionMode,
         pipelineMode: _pipelineMode,
@@ -1032,7 +1074,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
 
       final aggressive = await _compressionService.forceCompressPdfToTarget(
         smart.bytes,
-        _targetSizeBytes!,
+        targetBytes,
         file.name,
         pipelineMode: _pipelineMode,
       );
@@ -1041,8 +1083,8 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
         bytes: best,
         aggressiveUsed: true,
         reductionPercent: _reductionPercent(file.size, best.length),
-        targetMet: best.length <= _targetSizeBytes!,
-        note: best.length <= _targetSizeBytes!
+        targetMet: best.length <= targetBytes,
+        note: best.length <= targetBytes
             ? 'Target achieved after force compression.'
             : 'Requested target could not be reached without unacceptable quality loss. Returning best possible output.',
       );
@@ -1056,7 +1098,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
         maxWidth: 2400,
         maxHeight: 2400,
       );
-      if (primary.length <= _targetSizeBytes!) {
+      if (primary.length <= targetBytes) {
         return _CompressionOutcome(
           bytes: primary,
           aggressiveUsed: false,
@@ -1066,7 +1108,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
         );
       }
 
-      final aggressiveTarget = (_targetSizeBytes! / 2).round().clamp(1, _targetSizeBytes!);
+      final aggressiveTarget = (targetBytes / 2).round().clamp(1, targetBytes);
       await _yieldToUi();
       final aggressive = await WasmDocumentService.compressImage(
         imageBytes: primary,
@@ -1079,8 +1121,8 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
         bytes: best,
         aggressiveUsed: true,
         reductionPercent: _reductionPercent(file.size, best.length),
-        targetMet: best.length <= _targetSizeBytes!,
-        note: best.length <= _targetSizeBytes!
+        targetMet: best.length <= targetBytes,
+        note: best.length <= targetBytes
             ? 'Target achieved after additional pass.'
             : 'Requested target could not be reached without unacceptable quality loss. Returning best possible output.',
       );
@@ -1094,7 +1136,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
         maxWidth: 2200,
         maxHeight: 2200,
       );
-      if (primary.length <= _targetSizeBytes!) {
+      if (primary.length <= targetBytes) {
         return _CompressionOutcome(
           bytes: primary,
           aggressiveUsed: false,
@@ -1104,7 +1146,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
         );
       }
 
-      final aggressiveTarget = (_targetSizeBytes! / 2).round().clamp(1, _targetSizeBytes!);
+      final aggressiveTarget = (targetBytes / 2).round().clamp(1, targetBytes);
       await _yieldToUi();
       final aggressive = await WasmDocumentService.compressImage(
         imageBytes: primary,
@@ -1117,8 +1159,8 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
         bytes: best,
         aggressiveUsed: true,
         reductionPercent: _reductionPercent(file.size, best.length),
-        targetMet: best.length <= _targetSizeBytes!,
-        note: best.length <= _targetSizeBytes!
+        targetMet: best.length <= targetBytes,
+        note: best.length <= targetBytes
             ? 'Target achieved after additional pass.'
             : 'Requested target could not be reached without unacceptable quality loss. Returning best possible output.',
       );
@@ -1127,13 +1169,13 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
     throw Exception('Unsupported file for compression: ${file.name}');
   }
 
-  Future<Uint8List> _forceCompressSingleFile(PickedFileData file, Uint8List currentBytes) async {
+  Future<Uint8List> _forceCompressSingleFile(PickedFileData file, Uint8List currentBytes, {required int targetBytes}) async {
     final lowerName = file.name.toLowerCase();
 
     if (lowerName.endsWith('.pdf')) {
       final wasmForced = await WasmDocumentService.compressPdfDocument(
         pdfBytes: currentBytes,
-        targetBytes: _targetSizeBytes,
+        targetBytes: targetBytes,
       );
       if (wasmForced.length < currentBytes.length) {
         return wasmForced;
@@ -1141,7 +1183,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
 
       return _compressionService.forceCompressPdfToTarget(
         currentBytes,
-        _targetSizeBytes!,
+        targetBytes,
         file.name,
         pipelineMode: _pipelineMode,
       );
@@ -1149,7 +1191,7 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
 
     if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg') || lowerName.endsWith('.png') ||
         lowerName.endsWith('.webp') || lowerName.endsWith('.bmp')) {
-      final tighterTarget = (_targetSizeBytes! * 0.35).round().clamp(1, _targetSizeBytes!);
+      final tighterTarget = (targetBytes * 0.35).round().clamp(1, targetBytes);
       await _yieldToUi();
       final pass1 = await WasmDocumentService.compressImage(
         imageBytes: currentBytes,

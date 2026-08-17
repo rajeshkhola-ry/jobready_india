@@ -2,14 +2,23 @@ FROM node:18-bullseye-slim
 
 WORKDIR /app
 
-# Install system dependencies (ghostscript for PDF→JPEG conversion)
+# Install system dependencies:
+#  - ghostscript: PDF->JPEG conversion and multi-pass PDF compression
+#  - libreoffice-writer + libreoffice-impress: headless PDF -> DOCX structural conversion
+#    (preserves tables/layout/fonts far better than image embedding or plain text extraction)
+#  - fonts-liberation: metric-compatible substitutes for common Word fonts so converted
+#    documents keep sane line-wrapping/pagination even when the original fonts aren't embedded
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ghostscript \
+    libreoffice-writer \
+    libreoffice-impress \
+    fonts-liberation \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Verify ghostscript installation
+# Verify ghostscript and LibreOffice installation
 RUN which gs && gs --version
+RUN which soffice && soffice --version
 
 # Install dependencies
 COPY package*.json ./
