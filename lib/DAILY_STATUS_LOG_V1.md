@@ -1551,3 +1551,18 @@ Prepared For: JOBREADY
     - Committed + pushed (commit `73bd1d4`) → Render backend redeploy triggered. Same async-Docker-rebuild caveat as always: full "new image is live" status can't be confirmed from this environment.
   - Repo memory updated (`compression_notes.md`) with full engine/timeout/font-substitution detail for future sessions.
 - Owner: Founder + Copilot
+
+### Same day follow-up — MIME-type octet-stream 400 fix + server-side XLSX→CSV/PDF conversion
+- Overall status: Green (deployed)
+- Completed:
+  - **Fixed the `Invalid file type: application/octet-stream` 400 error** ✓ — Root cause: the shared multer `upload` instance (used by `/api/compress`, `/api/convert-pdf-to-docx`, `/api/convert`) only allow-listed 4 raw browser-reported mimetypes, so any file arriving as `application/octet-stream` (common for XLSX, occasionally PDFs) was rejected before reaching route logic. New `resolveUploadMimeType()` infers the real type from the file extension whenever the browser reports a generic/ambiguous type, stashes it as `req.file.resolvedMimeType`, and every affected route (`/api/compress`, `/api/convert-pdf-to-docx`, `/api/convert`) now reads that resolved type instead of the raw one. `fileFilter`'s allow-list was expanded to include XLSX/XLS/CSV.
+  - **Dart clients now set explicit `contentType`** ✓ — `remote_compression_service.dart` and `remote_conversion_service.dart` attach a `MediaType` (package:http_parser) to every multipart upload, resolved from the file extension (PDF/JPEG/PNG/WEBP/XLSX/XLS/CSV), instead of relying on implicit browser/http-package inference.
+  - **New server-side Excel conversion** ✓ — `convertSpreadsheetWithLibreOffice()` converts XLSX/XLS → CSV or PDF via headless LibreOffice (reusing the same isolated-profile-dir + concurrency-semaphore pattern as PDF→DOCX), wired into `/api/convert` alongside the existing PDF→Image path. New `RemoteConversionService.convertSpreadsheet()` calls it from Dart; `conversion_service.dart`'s `_convertToCsv`/`_convertToPdf` now try the server first on web for `.xlsx`/`.xls`, falling back to local extraction on failure.
+  - **Independently found and fixed the true root cause of "Unable to parse XLSX data..."** ✓ — `_extractCsvFromXlsx`'s regexes used an over-escaped `[\\s\\S]` raw-string character class (matches only literal `\`/`s`/`S` characters instead of "any character"), so real XLSX cell data essentially never matched regardless of file size. Fixed all 5 occurrences to the correct `[\s\S]` form - confirmed the correct idiom was already used correctly elsewhere in the same file for DOCX parsing, so this was an isolated bug, not a convention issue.
+  - **Validation** ✓ — `node --check compression_server.js` → exit 0. `flutter analyze lib/Services/remote_conversion_service.dart lib/Services/remote_compression_service.dart lib/Services/conversion_service.dart` → "No issues found!".
+  - **Build & deploy** ✓
+    - `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` → success.
+    - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success (`getreadyjob-india-1cb34.web.app`).
+    - Committed + pushed (commit `389fe90`) → Render backend redeploy triggered. Same async-Docker-rebuild caveat as always applies.
+  - Repo memory updated (`compression_notes.md`) with full root-cause/fix detail for future sessions.
+- Owner: Founder + Copilot
