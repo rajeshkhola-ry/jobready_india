@@ -933,6 +933,7 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
     });
 
     final artifacts = <ConversionArtifact>[];
+    final failureMessages = <String>[];
     try {
       for (final file in _selectedFiles) {
         final result = await _conversionService.convert(
@@ -941,6 +942,7 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
           outputFormat: outputFormat,
         );
         if (!result.success || result.outputBytes == null || result.outputFileName == null) {
+          failureMessages.add('${file.name}: ${result.message}');
           continue;
         }
         artifacts.add(
@@ -957,7 +959,9 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
       if (!mounted) return;
       setState(() {
         _isConverting = false;
-        _statusMessage = artifacts.isEmpty ? 'No files were converted successfully.' : 'Conversion completed.';
+        _statusMessage = artifacts.isEmpty
+            ? '✗ ${failureMessages.isNotEmpty ? failureMessages.first : 'No files were converted successfully.'}'
+            : 'Conversion completed.';
       });
 
       if (artifacts.isNotEmpty) {
@@ -966,11 +970,11 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
           builder: (_) => AdvancedConversionResultDialog(artifacts: artifacts),
         );
       }
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       setState(() {
         _isConverting = false;
-        _statusMessage = 'Conversion could not be completed.';
+        _statusMessage = '✗ ${e.toString().replaceFirst('Exception: ', '')}';
       });
     }
   }
@@ -1612,14 +1616,16 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
     } catch (e) {
       if (!mounted) return;
 
+      final errorDetail = e.toString().replaceFirst('Exception: ', '');
+
       setState(() {
         _isConverting = false;
-        _statusMessage = '✗ Conversion failed. Please try again with a supported file.';
+        _statusMessage = '✗ $errorDetail';
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Conversion failed. Please try again or use a smaller/simpler file.'),
+        SnackBar(
+          content: Text(errorDetail),
           backgroundColor: Colors.red,
         ),
       );

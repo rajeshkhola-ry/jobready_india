@@ -47,6 +47,7 @@ class ConversionService {
           if (lowerName.endsWith('.pdf')) {
             final ocrService = const PdfOcrService();
             if (kIsWeb) {
+              Object? remoteError;
               try {
                 final remoteDocxBytes = await const RemoteConversionService().convertPdfToDocx(
                   bytes: inputBytes,
@@ -58,28 +59,36 @@ class ConversionService {
                   outputBytes: remoteDocxBytes,
                   outputFileName: _changeExtension(inputFileName, 'docx'),
                 );
-              } catch (_) {
+              } catch (e) {
+                remoteError = e;
                 // Remote high-fidelity conversion unavailable/failed - fall back below.
               }
 
-              final ocrResult = await ocrService.extractText(
-                pdfBytes: inputBytes,
-                fileName: inputFileName,
-                mode: PdfExtractionMode.tableAware,
-              );
-              final fallbackWordBytes = await const WordGeneratorService().createWordDocument(
-                pdfFileName: inputFileName,
-                extractedText: ocrResult.text,
-              );
+              try {
+                final ocrResult = await ocrService.extractText(
+                  pdfBytes: inputBytes,
+                  fileName: inputFileName,
+                  mode: PdfExtractionMode.tableAware,
+                );
+                final fallbackWordBytes = await const WordGeneratorService().createWordDocument(
+                  pdfFileName: inputFileName,
+                  extractedText: ocrResult.text,
+                );
 
-              return ConversionResult(
-                success: true,
-                message: ocrResult.usedBackendOcr
-                    ? 'Word document created in web mode with OCR-assisted text reconstruction.'
-                    : 'Word document created in web compatibility mode with structured text reconstruction.',
-                outputBytes: fallbackWordBytes,
-                outputFileName: _changeExtension(inputFileName, 'docx'),
-              );
+                return ConversionResult(
+                  success: true,
+                  message: ocrResult.usedBackendOcr
+                      ? 'Word document created in web mode with OCR-assisted text reconstruction.'
+                      : 'Word document created in web compatibility mode with structured text reconstruction.',
+                  outputBytes: fallbackWordBytes,
+                  outputFileName: _changeExtension(inputFileName, 'docx'),
+                );
+              } catch (_) {
+                return ConversionResult(
+                  success: false,
+                  message: 'PDF to Word conversion failed. ${_describeConversionError(remoteError)}',
+                );
+              }
             }
 
             try {
@@ -926,6 +935,21 @@ ${List<String>.generate(slideGroups.length, (index) => '  <Relationship Id="rId$
     }
 
     return '${fileName.substring(0, dotIndex)}.$newExtension';
+  }
+
+  /// Formats an error for direct display in the UI - surfaces the real
+  /// server status code/message for a [RemoteConversionException] instead of
+  /// a generic "please try again" string, so failures can be diagnosed
+  /// immediately from the on-screen error banner.
+  String _describeConversionError(Object? error) {
+    if (error == null) {
+      return 'Unknown error.';
+    }
+    if (error is RemoteConversionException) {
+      final code = error.statusCode;
+      return code != null ? 'Server Error ($code): ${error.message}' : error.message;
+    }
+    return error.toString().replaceFirst('Exception: ', '');
   }
 
   Future<String> _extractTextFromPdf(

@@ -36,15 +36,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # table bounding-box detection, multi-column text flow, and embedded shapes - tried before
 # the headless LibreOffice fallback. openpyxl reads every sheet of an XLSX workbook in
 # streaming/read-only mode (no row-count ceiling, handles 50,000+ row billing sheets)
-# for the multi-sheet -> per-sheet-CSV export.
-RUN pip3 install --no-cache-dir pdf2docx openpyxl
+# for the multi-sheet -> per-sheet-CSV export. python-docx builds a real Word document
+# directly from page images for the final scanned-PDF fallback tier (more reliable than
+# LibreOffice's HTML image import in headless mode).
+RUN pip3 install --no-cache-dir pdf2docx openpyxl python-docx
 
-# Verify ghostscript, LibreOffice, ImageMagick, pdf2docx and openpyxl installation
+# Verify ghostscript, LibreOffice, ImageMagick, pdf2docx, openpyxl and python-docx installation
 RUN which gs && gs --version
 RUN which soffice && soffice --version
 RUN which convert && convert --version
 RUN which pdf2docx
 RUN python3 -c "import openpyxl; print('openpyxl', openpyxl.__version__)"
+RUN python3 -c "import docx; print('python-docx OK')"
 
 # Install dependencies
 COPY package*.json ./
@@ -53,6 +56,7 @@ RUN npm ci --only=production
 # Copy application files
 COPY compression_server.js .
 COPY xlsx_to_csv.py .
+COPY rasterize_to_docx.py .
 COPY public/ ./public/
 
 # Create upload directory
