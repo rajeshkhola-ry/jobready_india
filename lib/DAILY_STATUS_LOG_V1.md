@@ -1505,3 +1505,18 @@ Prepared For: JOBREADY
     - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success.
     - Committed + pushed (commit `b4a24e4`) → GitHub Actions triggered for this commit ("Enforce Current Site Lock", "Deploy to Render", "Deploy Flutter Web Preview (GitHub Pages)").
 - Owner: Founder + Copilot
+
+### Day - 2026-08-17 — Dedicated CheckoutPage extraction, removed duplicate inline Homepage payment panel
+- Overall status: Green (deployed)
+- Completed:
+  - **Removed inline payment panel from Homepage** ✓ — `home_page_v1_1.dart` no longer embeds `_UserPaymentPanel` (Promo Code, GSTIN/billing, Choose Plan dropdown, Continue to Payment, Generate Razorpay Payment Link) directly on the page below the Plan Cards/Comparison Matrix. That whole widget (~1780 lines) was extracted into a brand-new dedicated page.
+  - **New `lib/Pages/checkout_page.dart` (`CheckoutPage`)** ✓ — Full-page checkout (real `Scaffold` + AppBar "Checkout" + a new `_buildOrderSummaryHeader()` showing Plan/Billing/Amount/Currency) containing all the same Promo Code, GSTIN/billing, plan switch, Continue to Payment, and Generate Razorpay Payment Link functionality as before, unchanged behavior-wise. It now owns its own `_selectedPlan`/currency state internally (no more parent callbacks) and no longer offers "Free" as an in-page plan option.
+  - **Streamlined "Select Plan" action** ✓ — `_HomePageV11State._openCheckoutFlow(plan)` now does `Navigator.push` to `CheckoutPage` (passing `planId`/`billingPeriod`/`amount`/`currency` plus gateway/usage-type/plan-amount context) instead of opening a `Dialog` wrapping the old panel. Selecting the **Free** plan never opens checkout at all - new `_activateFreePlan()` directly activates the free tier (`UserAccountService.saveProfile` + `VoiceQuotaService.applyPlanQuotaAllocation('Free')` + confirmation SnackBar). The existing usage-type-required and sign-in-required gating (`_handlePlanSelection`) is unchanged and applies to both paths.
+  - **Resulting section order confirmed** ✓ — Upload/Voice Command card → Plan Cards → embedded Plan Comparison Matrix → About Us/Future Plan & Feedback row (no reordering needed; removing the inline panel naturally produced this).
+  - **Housekeeping noted, not touched (out of scope)** — `_HomePageV11State._showPaymentSuccessFlow` (~line 670) and `_showCoreToolsAccessNotice` (~line 915) were found to be pre-existing dead/unreferenced code (confirmed unrelated to this change, predate it) - flagged for a future cleanup checkpoint rather than folded into this one.
+  - **Validation** ✓ — `get_errors` clean on both files. Full terminal `flutter analyze lib/Pages/home_page_v1_1.dart lib/Pages/checkout_page.dart` → 48 issues, all pre-existing baseline `info`/`warning` level (deprecated `withOpacity`/`value`/`dart:js`, unused pre-existing elements, etc.), 0 new issues, 0 errors.
+  - **Build & deploy** ✓
+    - `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` → success.
+    - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success (`getreadyjob-india-1cb34.web.app`).
+    - Committed + pushed (commit `ffc9570`) → GitHub Actions triggered for this commit ("Enforce Current Site Lock" success, "Deploy to Render" success, "Deploy Flutter Web Preview (GitHub Pages)" in progress at check time, as expected for the heaviest workflow).
+- Owner: Founder + Copilot
