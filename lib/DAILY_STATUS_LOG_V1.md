@@ -1581,3 +1581,16 @@ Prepared For: JOBREADY
     - Committed + pushed (commit `6069156`) → Render backend redeploy triggered. Same async-Docker-rebuild caveat as always applies.
   - Repo memory updated (`compression_notes.md`) with full root-cause/fix detail for future sessions.
 - Owner: Founder + Copilot
+
+### Same day follow-up — Append (not overwrite) incremental file picks + Convert-page auto-hydrate fix
+- Overall status: Green (deployed)
+- Completed:
+  - **Fixed "picking File 1 then File 2 overwrites the selection"** ✓ — Root cause: `upload_card_v2.dart`'s `_applyUploadedFiles()` already had full append-merge logic, but the button-triggered picker (`_pickFile()`) was the one call site not passing `append: true` (drag-and-drop already did). Fixed the call site, and added `_mergeFilesWithoutDuplicates()` (keyed by name+size) so re-picking the same file no longer duplicates it - benefits both the button picker and drag-and-drop since they share the same merge path. Left the "Clear All" and per-file "remove" handlers untouched (intentional user-initiated removals, not part of the picking flow).
+  - **Auto-hydrate Convert page from Home uploads** ✓ — `convert_tool_page.dart` (the real convert UI file - no `convert_file_page.dart` exists) already had `_hydrateFromHomeUpload()` reading `UploadContextService`/`FileStorageService` and auto-selecting the input tab from the cached file's inferred format; the reported "empty state" was very likely a downstream effect of the append bug above (Home was only ever handing off the last picked file). Hardened the hydration further: if Home held files of more than one format, only files matching the auto-selected input tab are now attached, instead of a possibly-mismatched mix.
+  - **Validation** ✓ — `flutter analyze lib/Widgets/upload_card_v2.dart lib/Pages/convert_tool_page.dart lib/Services/upload_context_service.dart` → 11 issues, all pre-existing baseline info/warning outside the changed code; `upload_card_v2.dart` and `upload_context_service.dart` fully clean. Zero errors.
+  - **Build & deploy** ✓
+    - `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` → success.
+    - `firebase deploy --only hosting --project getreadyjob-india-1cb34` → success (`getreadyjob-india-1cb34.web.app`).
+    - Committed + pushed (commit `014d3a8`) → Render backend redeploy triggered. Same async-Docker-rebuild caveat as always applies. The pre-existing unrelated disclaimer-text edit in `upload_card_v2.dart` was temporarily reverted for a clean commit, then reapplied afterward so the working tree still has it uncommitted, exactly as before.
+  - Repo memory updated (`compression_notes.md`) with full root-cause/fix detail, including the revert/commit/reapply pattern for editing `upload_card_v2.dart` safely in the future.
+- Owner: Founder + Copilot
