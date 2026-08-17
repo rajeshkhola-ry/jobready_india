@@ -1616,3 +1616,13 @@ Prepared For: JOBREADY
   - **Build & deploy** ✓ — `flutter build web --release` success; `firebase deploy --only hosting --project getreadyjob-india-1cb34` success; committed + pushed (commit `2791933`).
   - Repo memory created (`plan_catalog_notes.md`) with full root-cause/fix detail and the flagged gaps.
 - Owner: Founder + Copilot
+
+### Same day follow-up — Synced PlanCatalogConfig.defaults() quota maps (closed flagged gap)
+- Overall status: Green (deployed)
+- Completed:
+  - **Closed the flagged quota-defaults gap** ✓ — `lib/Services/plan_catalog_service.dart` (the real file; no `Models/plan_catalog_config.dart` exists) is where `PlanCatalogConfig.defaults()` lives - the fallback a fresh browser (no admin-synced localStorage yet) actually uses. Updated `userQuotasByPlan` to `Free: '5', 7Days: '50', Monthly: '1200', Yearly: '2000', Lifetime: '10000'` and `voiceQuotasByPlan` to `Free: '0', 7Days: '50', Monthly: '200', Yearly: '1000', Lifetime: '10000'`, matching the pricing table's displayed values exactly for every visitor now, not just admin-synced ones. Aligned the pricing widget's inline Free fallback from `'5/day'` to plain `'5'` for consistency.
+  - **Confirmed downstream propagation** ✓ — `VoiceQuotaService._rawQuotaForPlan()` already falls back to `PlanCatalogConfig.defaults().voiceQuotasByPlan`, so this fix also correctly updates real voice-quota allocation (Free plan now grants 0 voice commands, not 5) with no separate change needed.
+  - **Validation** ✓ — `flutter analyze lib/Services/plan_catalog_service.dart lib/Pages/plan_features_page.dart` → "No issues found!".
+  - **Build & deploy** ✓ — `flutter build web --release` success; `firebase deploy --only hosting --project getreadyjob-india-1cb34` success; committed + pushed (commit `b4ebc21`).
+  - Repo memory updated (`plan_catalog_notes.md`) marking this gap resolved. The other flagged gap (Max Single File Size Limit being display-only, not tied to real upload enforcement) remains open, not part of this request.
+- Owner: Founder + Copilot
