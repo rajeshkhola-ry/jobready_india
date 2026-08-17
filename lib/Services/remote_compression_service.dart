@@ -34,32 +34,22 @@ class RemoteCompressionService {
     }
 
     try {
-      final endpoints = _buildEndpointCandidates();
-      http.Response? response;
+      final base = ApiConfig.baseUrl.endsWith('/')
+          ? ApiConfig.baseUrl.substring(0, ApiConfig.baseUrl.length - 1)
+          : ApiConfig.baseUrl;
+      final uri = Uri.parse('$base${ApiConfig.compressionEndpoint}');
 
-      for (var i = 0; i < endpoints.length; i++) {
-        final request = _buildRequest(
-          uri: endpoints[i],
-          bytes: bytes,
-          fileName: fileName,
-          targetBytes: targetBytes,
-          mode: mode,
-          pipelineMode: pipelineMode,
-        );
+      final request = _buildRequest(
+        uri: uri,
+        bytes: bytes,
+        fileName: fileName,
+        targetBytes: targetBytes,
+        mode: mode,
+        pipelineMode: pipelineMode,
+      );
 
-        final streamed = await request.send().timeout(_compressionTimeout);
-        response = await http.Response.fromStream(streamed);
-
-        // Retry once on legacy endpoint if the preferred endpoint is not found.
-        if (response.statusCode == 404 && i < endpoints.length - 1) {
-          continue;
-        }
-        break;
-      }
-
-      if (response == null) {
-        throw const RemoteCompressionException('Remote compression did not return a response.');
-      }
+      final streamed = await request.send().timeout(_compressionTimeout);
+      final response = await http.Response.fromStream(streamed);
 
       if (response.statusCode != 200) {
         throw RemoteCompressionException(
@@ -179,16 +169,6 @@ class RemoteCompressionService {
         'Remote image compression failed: $error',
       );
     }
-  }
-
-  List<Uri> _buildEndpointCandidates() {
-    final base = ApiConfig.baseUrl.endsWith('/')
-        ? ApiConfig.baseUrl.substring(0, ApiConfig.baseUrl.length - 1)
-        : ApiConfig.baseUrl;
-    return [
-      Uri.parse('$base/compress-pdf'),
-      Uri.parse('$base${ApiConfig.compressionEndpoint}'),
-    ];
   }
 
   http.MultipartRequest _buildRequest({
