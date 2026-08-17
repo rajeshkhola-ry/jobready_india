@@ -143,19 +143,29 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
     final cached = cachedFiles.first;
 
     final inferredInput = _inferInputFormat(cached.name);
+    final inputExtensionsForFormat = inferredInput == null
+        ? const <String>[]
+        : (inputExtensions[inferredInput] ?? const <String>[]);
+    // Only attach files matching the auto-selected input tab, so a mixed
+    // Home upload (e.g. a PDF alongside an image) never leaves the page in
+    // an inconsistent "tab selected, mismatched files attached" state.
+    final matchingFiles = inputExtensionsForFormat.isEmpty
+        ? cachedFiles
+        : cachedFiles.where((file) => _isSupportedFormat(file.name, inputExtensionsForFormat)).toList();
+    final filesToAttach = matchingFiles.isNotEmpty ? matchingFiles : cachedFiles;
     final outputChoices = inferredInput == null
         ? const <String>[]
         : (formatConversions[inferredInput] ?? const <String>[]);
 
     setState(() {
-      _selectedFiles = cachedFiles;
+      _selectedFiles = filesToAttach;
       _selectedFile = cached.bytes;
       _selectedFileName = cached.name;
       _selectedInputFormat = inferredInput;
       _selectedOutputFormat = outputChoices.isNotEmpty ? outputChoices.first : null;
-      _statusMessage = cachedFiles.length == 1
+      _statusMessage = filesToAttach.length == 1
           ? '✓ File loaded from Home: ${cached.name}'
-          : '✓ ${cachedFiles.length} file(s) loaded from Home upload';
+          : '✓ ${filesToAttach.length} file(s) loaded from Home upload';
     });
   }
 

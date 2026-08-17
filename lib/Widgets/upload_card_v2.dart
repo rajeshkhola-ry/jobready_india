@@ -395,13 +395,32 @@ class _UploadCardV2State extends State<UploadCardV2> {
     return 'application/octet-stream';
   }
 
+  List<PickedFileData> _mergeFilesWithoutDuplicates(
+    List<PickedFileData> existing,
+    List<PickedFileData> incoming,
+  ) {
+    final merged = <PickedFileData>[...existing];
+    final seenKeys = <String>{
+      for (final file in existing) '${file.name}|${file.size}',
+    };
+
+    for (final file in incoming) {
+      final key = '${file.name}|${file.size}';
+      if (seenKeys.add(key)) {
+        merged.add(file);
+      }
+    }
+
+    return merged;
+  }
+
   void _applyUploadedFiles(List<PickedFileData> files, {bool append = false}) {
     if (files.isEmpty) {
       return;
     }
 
     final merged = append
-        ? <PickedFileData>[..._selectedFiles, ...files]
+        ? _mergeFilesWithoutDuplicates(_selectedFiles, files)
         : List<PickedFileData>.from(files);
 
     setState(() {
@@ -478,7 +497,7 @@ class _UploadCardV2State extends State<UploadCardV2> {
         return;
       }
 
-      _applyUploadedFiles(filtered.accepted);
+      _applyUploadedFiles(filtered.accepted, append: true);
 
       if (report.hasFilteredFiles && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
