@@ -59,6 +59,16 @@ class _PlanComparisonMatrixState extends State<PlanComparisonMatrix> {
   static const double _nameColumnWidth = 320;
   static const double _planColumnWidth = 120;
 
+  // Registry names for the few rows below that stay live-configurable via
+  // the admin panel's per-plan tool toggles (see _toolEnabledForPlan).
+  static const String _govtResizerToolName = 'Govt Exam Photo & Signature Resizer (SSC, IBPS, Passport)';
+  static const String _resumeCanvasToolName = 'Resume Canvas (Template canvas for resumes, cover letters, SOP drafts)';
+  static const String _posterStudioToolName = 'Poster Studio (Canvas-based poster, banner, flyer, and local print)';
+
+  bool _toolEnabledForPlan(String toolName, String planKey) {
+    return _config.enabledToolsByPlan[planKey]?.contains(toolName) ?? false;
+  }
+
   // Header stays fixed while the body scrolls; the header's horizontal
   // position is mirrored from the body's controller (see _syncHeaderScroll)
   // so both stay perfectly aligned during horizontal scrolling.
@@ -134,26 +144,6 @@ class _PlanComparisonMatrixState extends State<PlanComparisonMatrix> {
 
   @override
   Widget build(BuildContext context) {
-    final features = <_PlanFeature>[
-      const _PlanFeature(name: 'PDF Compress (Single File) - set exact KB or MB target', free: true, sevenDay: true, monthly: true, yearly: true, lifetime: true),
-      const _PlanFeature(name: 'Batch Compress (Multiple Files) - process many files in one session', free: false, sevenDay: false, monthly: true, yearly: true, lifetime: true),
-      const _PlanFeature(name: 'Convert PDF / Word / Image - core conversion workspace', free: true, sevenDay: true, monthly: true, yearly: true, lifetime: true),
-      const _PlanFeature(name: 'PDF to Word - layout-first document export', free: true, sevenDay: true, monthly: true, yearly: true, lifetime: true),
-      const _PlanFeature(name: 'Merge PDFs - combine documents in one output file', free: true, sevenDay: true, monthly: true, yearly: true, lifetime: true),
-      const _PlanFeature(name: 'Split PDFs - divide pages by range or extract method', free: true, sevenDay: true, monthly: true, yearly: true, lifetime: true),
-      const _PlanFeature(name: 'Extract PDF Text & Images - pull readable content from documents', free: true, sevenDay: true, monthly: true, yearly: true, lifetime: true),
-      const _PlanFeature(name: 'PDF to PDF Edit Tools - edit, save, and download updated PDF files', free: false, sevenDay: true, monthly: true, yearly: true, lifetime: true),
-      const _PlanFeature(name: 'OCR (Optical Character Recognition) - read scanned PDF text where possible', free: false, sevenDay: true, monthly: true, yearly: true, lifetime: true),
-      const _PlanFeature(name: 'Issue / Suggestion / Query Ticket Number Support', free: true, sevenDay: true, monthly: true, yearly: true, lifetime: true),
-      const _PlanFeature(name: 'Multi-Currency Payment Display - top 20 currencies with INR rate card support', free: false, sevenDay: true, monthly: true, yearly: true, lifetime: true),
-      const _PlanFeature(name: 'Higher Daily Usage Limit', free: false, sevenDay: true, monthly: true, yearly: true, lifetime: true),
-      const _PlanFeature(name: 'Priority Processing Queue', free: false, sevenDay: false, monthly: true, yearly: true, lifetime: true),
-      const _PlanFeature(name: 'Advanced Quality Controls', free: false, sevenDay: false, monthly: true, yearly: true, lifetime: true),
-      const _PlanFeature(name: 'AI-Assisted Document Workflows', free: false, sevenDay: false, monthly: false, yearly: true, lifetime: true),
-      const _PlanFeature(name: 'Enterprise Security & Compliance', free: false, sevenDay: false, monthly: false, yearly: true, lifetime: true),
-      const _PlanFeature(name: 'Priority Support', free: false, sevenDay: true, monthly: true, yearly: true, lifetime: true),
-    ];
-
     return FutureBuilder<Map<String, dynamic>>(
       future: _loadComparisonData(),
       builder: (context, snapshot) {
@@ -179,19 +169,22 @@ class _PlanComparisonMatrixState extends State<PlanComparisonMatrix> {
           }
         }
 
-        final tableRows = <_PlanFeature>[
+        // Single canonical, deduplicated feature list - each tool/limit
+        // appears exactly once, grouped under one of 5 fixed categories.
+        final combinedRows = <_PlanFeature>[
+          _PlanFeature.categoryHeader('Quota & System Limits'),
           _PlanFeature(
-            name: 'User Quota',
+            name: 'Daily Usage Quota',
             free: true,
             sevenDay: true,
             monthly: true,
             yearly: true,
             lifetime: true,
-            freeValue: quotaValues['FREE']?.isNotEmpty == true ? quotaValues['FREE'] : '2',
+            freeValue: quotaValues['FREE']?.isNotEmpty == true ? quotaValues['FREE'] : '5/day',
             sevenDayValue: quotaValues['7 DAYS']?.isNotEmpty == true ? quotaValues['7 DAYS'] : '50',
-            monthlyValue: quotaValues['MONTHLY']?.isNotEmpty == true ? quotaValues['MONTHLY'] : '200',
-            yearlyValue: quotaValues['YEARLY']?.isNotEmpty == true ? quotaValues['YEARLY'] : '1000',
-            lifetimeValue: quotaValues['LIFETIME']?.isNotEmpty == true ? quotaValues['LIFETIME'] : 'Unlimited',
+            monthlyValue: quotaValues['MONTHLY']?.isNotEmpty == true ? quotaValues['MONTHLY'] : '1200',
+            yearlyValue: quotaValues['YEARLY']?.isNotEmpty == true ? quotaValues['YEARLY'] : '2000',
+            lifetimeValue: quotaValues['LIFETIME']?.isNotEmpty == true ? quotaValues['LIFETIME'] : '10000',
           ),
           _PlanFeature(
             name: 'Voice Commands Quota',
@@ -200,14 +193,36 @@ class _PlanComparisonMatrixState extends State<PlanComparisonMatrix> {
             monthly: true,
             yearly: true,
             lifetime: true,
-            freeValue: voiceQuotaValues['FREE']?.isNotEmpty == true ? voiceQuotaValues['FREE'] : '5',
+            freeValue: voiceQuotaValues['FREE']?.isNotEmpty == true ? voiceQuotaValues['FREE'] : '0',
             sevenDayValue: voiceQuotaValues['7 DAYS']?.isNotEmpty == true ? voiceQuotaValues['7 DAYS'] : '50',
             monthlyValue: voiceQuotaValues['MONTHLY']?.isNotEmpty == true ? voiceQuotaValues['MONTHLY'] : '200',
             yearlyValue: voiceQuotaValues['YEARLY']?.isNotEmpty == true ? voiceQuotaValues['YEARLY'] : '1000',
-            lifetimeValue: voiceQuotaValues['LIFETIME']?.isNotEmpty == true ? voiceQuotaValues['LIFETIME'] : 'Unlimited',
+            lifetimeValue: voiceQuotaValues['LIFETIME']?.isNotEmpty == true ? voiceQuotaValues['LIFETIME'] : '10000',
           ),
           const _PlanFeature(
-            name: 'HD Photo Studio (1 time usage is free under Free plan)',
+            name: 'Max Single File Size Limit',
+            free: true,
+            sevenDay: true,
+            monthly: true,
+            yearly: true,
+            lifetime: true,
+            freeValue: '25 MB',
+            sevenDayValue: '50 MB',
+            monthlyValue: '50 MB',
+            yearlyValue: '100 MB',
+            lifetimeValue: '100 MB',
+          ),
+          const _PlanFeature(
+            name: 'Priority Processing Queue',
+            free: false,
+            sevenDay: false,
+            monthly: true,
+            yearly: true,
+            lifetime: true,
+          ),
+          _PlanFeature.categoryHeader('Core Conversion & Office Tools'),
+          const _PlanFeature(
+            name: 'All-in-One File Converter (PDF, Word, Excel, CSV, PPT, Images)',
             free: true,
             sevenDay: true,
             monthly: true,
@@ -215,51 +230,144 @@ class _PlanComparisonMatrixState extends State<PlanComparisonMatrix> {
             lifetime: true,
           ),
           const _PlanFeature(
-            name: 'AI Resume Builder (1 time usage is free under Free plan)',
+            name: 'Excel & CSV Multi-Sheet Converter (XLSX <-> CSV, CSV -> PDF/JSON)',
             free: true,
             sevenDay: true,
             monthly: true,
             yearly: true,
             lifetime: true,
           ),
-          ...features,
-        ];
-
-        final toolNames = PlanCatalogConfig.registeredToolNames.toList()
-          ..sort((a, b) => _toolCategory(a).compareTo(_toolCategory(b)));
-        final matrixRows = <_PlanFeature>[];
-        String? lastCategory;
-        for (final toolName in toolNames) {
-          final category = _toolCategory(toolName);
-          if (category != lastCategory) {
-            matrixRows.add(_PlanFeature.categoryHeader(category));
-            lastCategory = category;
-          }
-          final free = _config.enabledToolsByPlan['Free']?.contains(toolName) ?? false;
-          final sevenDay = _config.enabledToolsByPlan['7Days']?.contains(toolName) ?? false;
-          final monthly = _config.enabledToolsByPlan['Monthly']?.contains(toolName) ?? false;
-          final yearly = _config.enabledToolsByPlan['Yearly']?.contains(toolName) ?? false;
-          final lifetime = _config.enabledToolsByPlan['Lifetime']?.contains(toolName) ?? false;
-          matrixRows.add(_PlanFeature(
-            name: toolName,
-            free: free,
-            sevenDay: sevenDay,
-            monthly: monthly,
-            yearly: yearly,
-            lifetime: lifetime,
-          ));
-        }
-
-        final combinedRows = <_PlanFeature>[
-          ...tableRows,
-          ...matrixRows.where((row) {
-            final normalized = row.name.trim().toLowerCase();
-            final isPriorityTool = normalized.contains('hd photo studio') || normalized.contains('ai resume builder');
-            if (isPriorityTool) {
-              return false;
-            }
-            return !tableRows.any((existing) => existing.name == row.name);
-          }),
+          const _PlanFeature(
+            name: 'High-Fidelity PDF to Word (.docx)',
+            free: true,
+            sevenDay: true,
+            monthly: true,
+            yearly: true,
+            lifetime: true,
+          ),
+          _PlanFeature.categoryHeader('Core PDF Workflow Tools'),
+          const _PlanFeature(
+            name: 'PDF Single File Target Compression (Set exact KB / MB)',
+            free: true,
+            sevenDay: true,
+            monthly: true,
+            yearly: true,
+            lifetime: true,
+          ),
+          const _PlanFeature(
+            name: 'Batch File Compression (Multiple files in one go)',
+            free: false,
+            sevenDay: false,
+            monthly: true,
+            yearly: true,
+            lifetime: true,
+          ),
+          const _PlanFeature(
+            name: 'Merge & Split PDFs',
+            free: true,
+            sevenDay: true,
+            monthly: true,
+            yearly: true,
+            lifetime: true,
+          ),
+          const _PlanFeature(
+            name: 'PDF Content Extractor (Text, Images & Pages)',
+            free: true,
+            sevenDay: true,
+            monthly: true,
+            yearly: true,
+            lifetime: true,
+          ),
+          const _PlanFeature(
+            name: 'PDF Editor & Annotator',
+            free: false,
+            sevenDay: true,
+            monthly: true,
+            yearly: true,
+            lifetime: true,
+          ),
+          const _PlanFeature(
+            name: 'Optical Character Recognition (OCR) Engine',
+            free: false,
+            sevenDay: true,
+            monthly: true,
+            yearly: true,
+            lifetime: true,
+          ),
+          _PlanFeature.categoryHeader('AI & Resume Studio'),
+          const _PlanFeature(
+            name: 'AI Resume Builder',
+            free: true,
+            sevenDay: true,
+            monthly: true,
+            yearly: true,
+            lifetime: true,
+          ),
+          _PlanFeature(
+            name: 'AI Voice Command Assistant',
+            free: _toolEnabledForPlan('AI Voice Command', 'Free'),
+            sevenDay: _toolEnabledForPlan('AI Voice Command', '7Days'),
+            monthly: _toolEnabledForPlan('AI Voice Command', 'Monthly'),
+            yearly: _toolEnabledForPlan('AI Voice Command', 'Yearly'),
+            lifetime: _toolEnabledForPlan('AI Voice Command', 'Lifetime'),
+          ),
+          const _PlanFeature(
+            name: 'HD Photo Studio & Background Remover',
+            free: true,
+            sevenDay: true,
+            monthly: true,
+            yearly: true,
+            lifetime: true,
+          ),
+          _PlanFeature(
+            name: 'Govt Exam Photo & Signature Resizer (SSC, IBPS, Passport presets)',
+            free: _toolEnabledForPlan(_govtResizerToolName, 'Free'),
+            sevenDay: _toolEnabledForPlan(_govtResizerToolName, '7Days'),
+            monthly: _toolEnabledForPlan(_govtResizerToolName, 'Monthly'),
+            yearly: _toolEnabledForPlan(_govtResizerToolName, 'Yearly'),
+            lifetime: _toolEnabledForPlan(_govtResizerToolName, 'Lifetime'),
+          ),
+          _PlanFeature(
+            name: 'Resume & Poster Canvas Studio',
+            free: _toolEnabledForPlan(_resumeCanvasToolName, 'Free') || _toolEnabledForPlan(_posterStudioToolName, 'Free'),
+            sevenDay: _toolEnabledForPlan(_resumeCanvasToolName, '7Days') || _toolEnabledForPlan(_posterStudioToolName, '7Days'),
+            monthly: _toolEnabledForPlan(_resumeCanvasToolName, 'Monthly') || _toolEnabledForPlan(_posterStudioToolName, 'Monthly'),
+            yearly: _toolEnabledForPlan(_resumeCanvasToolName, 'Yearly') || _toolEnabledForPlan(_posterStudioToolName, 'Yearly'),
+            lifetime: _toolEnabledForPlan(_resumeCanvasToolName, 'Lifetime') || _toolEnabledForPlan(_posterStudioToolName, 'Lifetime'),
+          ),
+          _PlanFeature.categoryHeader('Support & Enterprise'),
+          _PlanFeature(
+            name: 'Conversion History & Download Vault',
+            free: _toolEnabledForPlan('History', 'Free'),
+            sevenDay: _toolEnabledForPlan('History', '7Days'),
+            monthly: _toolEnabledForPlan('History', 'Monthly'),
+            yearly: _toolEnabledForPlan('History', 'Yearly'),
+            lifetime: _toolEnabledForPlan('History', 'Lifetime'),
+          ),
+          const _PlanFeature(
+            name: 'Priority Support & Query Ticket System',
+            free: false,
+            sevenDay: true,
+            monthly: true,
+            yearly: true,
+            lifetime: true,
+          ),
+          const _PlanFeature(
+            name: 'Multi-Currency Payment Display (INR + Top 20 Global Currencies)',
+            free: false,
+            sevenDay: true,
+            monthly: true,
+            yearly: true,
+            lifetime: true,
+          ),
+          const _PlanFeature(
+            name: 'Enterprise Security & Privacy Compliance',
+            free: false,
+            sevenDay: false,
+            monthly: false,
+            yearly: true,
+            lifetime: true,
+          ),
         ];
 
         final infoBox = Container(
@@ -495,20 +603,6 @@ class _PlanComparisonMatrixState extends State<PlanComparisonMatrix> {
       ),
     );
   }
-
-  static const Map<String, String> _toolCategories = <String, String>{
-    'AI Voice Command': 'AI & Voice Tools',
-    PlanCatalogConfig.resumeBuilderToolName: 'AI & Voice Tools',
-    'Convert': 'Document Converters',
-    'Govt Exam Photo & Signature Resizer (SSC, IBPS, Passport)': 'Govt Exam Tools',
-    'CSV to Excel': 'Data Tools',
-    'Micro-Canva (Background remover, passport resize, upscale, PNG to SVG)': 'Design & Media',
-    'Resume Canvas (Template canvas for resumes, cover letters, SOP drafts)': 'Design & Media',
-    'Poster Studio (Canvas-based poster, banner, flyer, and local print)': 'Design & Media',
-    'HD Photo Studio': 'Design & Media',
-  };
-
-  static String _toolCategory(String toolName) => _toolCategories[toolName] ?? 'PDF Tools';
 }
 
 class _LegendChip extends StatelessWidget {
