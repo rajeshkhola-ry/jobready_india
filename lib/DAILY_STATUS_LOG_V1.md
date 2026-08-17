@@ -1637,3 +1637,13 @@ Prepared For: JOBREADY
   - **Build & deploy** ✓ — `flutter build web --release` success; `firebase deploy --only hosting --project getreadyjob-india-1cb34` success; committed + pushed (commit `565f8ac`).
   - Repo memory updated (`compression_notes.md`) with full root-cause/fix detail, including the deliberate scope decision to embed page images (not run real OCR) for this pass.
 - Owner: Founder + Copilot
+
+### Same day follow-up — Hardened Tier 3 packaging + real backend error surfacing
+- Overall status: Green (deployed)
+- Completed:
+  - **Fixed Tier 3 still failing on a real 23-page/8.2MB scanned PDF** ✓ — Root cause: Tier 3's HTML+`<img>`+LibreOffice packaging could fail to embed `file://`/relative image URIs headlessly. Replaced with a direct `python-docx` script (`lib/rasterize_to_docx.py`) that builds the `.docx` deterministically (no LibreOffice involved for this tier). Added detailed `console.error` logging at every tier transition and the route's final/unhandled error paths so failures are traceable from server logs.
+  - **UI no longer hides real server errors** ✓ — `conversion_service.dart`'s web PDF→Word path now captures the actual `RemoteConversionException` and returns it (via new `_describeConversionError()`, e.g. "Server Error (500): ...") instead of the old generic "Please try again with a supported file." message. `convert_tool_page.dart`'s error banners now show the real exception text everywhere the generic message used to appear.
+  - **Validation** ✓ — `node --check`/`py_compile` clean; `flutter analyze` on both requested files → 11 issues, all pre-existing baseline in `convert_tool_page.dart`; `conversion_service.dart` fully clean (self-caught and fixed one dead-code warning I introduced before finalizing).
+  - **Build & deploy** ✓ — `flutter build web --release` success; `firebase deploy --only hosting --project getreadyjob-india-1cb34` success; committed + pushed (commit `da34c46`).
+  - Repo memory updated (`compression_notes.md`).
+- Owner: Founder + Copilot
