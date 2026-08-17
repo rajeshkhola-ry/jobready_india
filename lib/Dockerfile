@@ -48,6 +48,7 @@ RUN which convert && convert --version
 RUN which pdf2docx
 RUN python3 -c "import openpyxl; print('openpyxl', openpyxl.__version__)"
 RUN python3 -c "import docx; print('python-docx OK')"
+RUN python3 -c "import fitz; print('PyMuPDF', fitz.version)"
 
 # Install dependencies
 COPY package*.json ./
@@ -57,6 +58,7 @@ RUN npm ci --only=production
 COPY compression_server.js .
 COPY xlsx_to_csv.py .
 COPY rasterize_to_docx.py .
+COPY check_pdf_text.py .
 COPY public/ ./public/
 
 # Create upload directory

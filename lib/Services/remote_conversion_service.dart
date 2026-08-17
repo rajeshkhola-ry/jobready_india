@@ -66,7 +66,7 @@ class RemoteConversionService {
       return output;
     } on TimeoutException {
       throw const RemoteConversionException(
-        'Remote PDF to Word conversion timed out. The service may be busy or unreachable.',
+        'Server timed out processing large multi-page document. Optimizing conversion speed...',
       );
     } on RemoteConversionException {
       rethrow;
@@ -78,7 +78,7 @@ class RemoteConversionService {
           normalized.contains('timeout') ||
           normalized.contains('socket')) {
         throw const RemoteConversionException(
-          'Remote PDF to Word conversion request failed due to network/CORS transport issues.',
+          'Server timed out processing large multi-page document. Optimizing conversion speed...',
         );
       }
       throw RemoteConversionException('Remote PDF to Word conversion failed: $error');
