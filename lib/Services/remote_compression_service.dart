@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 import 'api_config.dart';
 import 'compression_service.dart';
@@ -123,6 +124,7 @@ class RemoteCompressionService {
             'file',
             bytes,
             filename: fileName,
+            contentType: _mediaTypeForFileName(fileName),
           ),
         );
 
@@ -194,8 +196,18 @@ class RemoteCompressionService {
           'file',
           bytes,
           filename: fileName,
+          contentType: _mediaTypeForFileName(fileName),
         ),
       );
+  }
+
+  MediaType _mediaTypeForFileName(String fileName) {
+    final lower = fileName.toLowerCase();
+    if (lower.endsWith('.pdf')) return MediaType('application', 'pdf');
+    if (lower.endsWith('.png')) return MediaType('image', 'png');
+    if (lower.endsWith('.webp')) return MediaType('image', 'webp');
+    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return MediaType('image', 'jpeg');
+    return MediaType('application', 'octet-stream');
   }
 
   int _qualityFor(

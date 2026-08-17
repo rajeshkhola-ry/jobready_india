@@ -201,7 +201,7 @@ class ConversionService {
           return await _convertToPdf(inputBytes, inputFileName);
 
         case 'csv (.csv)':
-          return _convertToCsv(inputBytes, inputFileName);
+          return await _convertToCsv(inputBytes, inputFileName);
 
         case 'excel (.xlsx)':
           return await _convertToExcel(inputBytes, inputFileName);
@@ -305,6 +305,26 @@ class ConversionService {
       );
     }
 
+    if (lowerName.endsWith('.xlsx') || lowerName.endsWith('.xls')) {
+      if (kIsWeb) {
+        try {
+          final spreadsheetPdfBytes = await const RemoteConversionService().convertSpreadsheet(
+            bytes: inputBytes,
+            fileName: inputFileName,
+            targetFormat: 'pdf',
+          );
+          return ConversionResult(
+            success: true,
+            message: 'PDF created from Excel spreadsheet with layout-preserved structure.',
+            outputBytes: spreadsheetPdfBytes,
+            outputFileName: _changeExtension(inputFileName, 'pdf'),
+          );
+        } catch (_) {
+          // Remote conversion unavailable/failed - fall back to the plain-text PDF below.
+        }
+      }
+    }
+
     final text = await _extractAnyText(inputBytes, inputFileName);
     final pdfBytes = await _createPdfFromText(inputFileName, text);
     return ConversionResult(
@@ -315,10 +335,10 @@ class ConversionService {
     );
   }
 
-  ConversionResult _convertToCsv(
+  Future<ConversionResult> _convertToCsv(
     Uint8List inputBytes,
     String inputFileName,
-  ) {
+  ) async {
     final lowerName = inputFileName.toLowerCase();
 
     if (lowerName.endsWith('.csv')) {
@@ -330,7 +350,25 @@ class ConversionService {
       );
     }
 
-    if (lowerName.endsWith('.xlsx')) {
+    if (lowerName.endsWith('.xlsx') || lowerName.endsWith('.xls')) {
+      if (kIsWeb) {
+        try {
+          final remoteCsvBytes = await const RemoteConversionService().convertSpreadsheet(
+            bytes: inputBytes,
+            fileName: inputFileName,
+            targetFormat: 'csv',
+          );
+          return ConversionResult(
+            success: true,
+            message: 'CSV file created successfully via server-side conversion.',
+            outputBytes: remoteCsvBytes,
+            outputFileName: _changeExtension(inputFileName, 'csv'),
+          );
+        } catch (_) {
+          // Remote conversion unavailable/failed - fall back to local extraction below.
+        }
+      }
+
       final csv = _extractCsvFromXlsx(inputBytes);
       if (csv.isEmpty) {
         return const ConversionResult(
@@ -933,10 +971,10 @@ ${List<String>.generate(slideGroups.length, (index) => '  <Relationship Id="rId$
       final sharedStrings = <String>[];
       if (sharedFile.isNotEmpty) {
         final sharedXml = utf8.decode(sharedFile.first.content as List<int>, allowMalformed: true);
-        final sharedMatches = RegExp(r'<si[^>]*>([\\s\\S]*?)</si>').allMatches(sharedXml);
+        final sharedMatches = RegExp(r'<si[^>]*>([\s\S]*?)</si>').allMatches(sharedXml);
         for (final match in sharedMatches) {
           final si = match.group(1) ?? '';
-          final textMatches = RegExp(r'<t[^>]*>([\\s\\S]*?)</t>').allMatches(si);
+          final textMatches = RegExp(r'<t[^>]*>([\s\S]*?)</t>').allMatches(si);
           final value = textMatches.map((m) => _decodeXmlEntities(m.group(1) ?? '')).join();
           sharedStrings.add(value);
         }
@@ -950,12 +988,12 @@ ${List<String>.generate(slideGroups.length, (index) => '  <Relationship Id="rId$
       );
 
       final sheetXml = utf8.decode(sheet.content as List<int>, allowMalformed: true);
-      final rows = RegExp(r'<row[^>]*>([\\s\\S]*?)</row>').allMatches(sheetXml);
+      final rows = RegExp(r'<row[^>]*>([\s\S]*?)</row>').allMatches(sheetXml);
       final csvRows = <String>[];
 
       for (final row in rows) {
         final rowXml = row.group(1) ?? '';
-        final cells = RegExp(r'<c([^>]*)>([\\s\\S]*?)</c>').allMatches(rowXml);
+        final cells = RegExp(r'<c([^>]*)>([\s\S]*?)</c>').allMatches(rowXml);
 
         final ordered = <int, String>{};
         var maxCol = 0;
@@ -968,7 +1006,7 @@ ${List<String>.generate(slideGroups.length, (index) => '  <Relationship Id="rId$
           maxCol = max(maxCol, colIndex);
 
           final type = RegExp(r't="([^"]+)"').firstMatch(attrs)?.group(1) ?? '';
-          final v = RegExp(r'<v[^>]*>([\\s\\S]*?)</v>').firstMatch(body)?.group(1) ?? '';
+          final v = RegExp(r'<v[^>]*>([\s\S]*?)</v>').firstMatch(body)?.group(1) ?? '';
 
           String value;
           if (type == 's') {
