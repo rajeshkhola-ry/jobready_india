@@ -1626,3 +1626,14 @@ Prepared For: JOBREADY
   - **Build & deploy** ✓ — `flutter build web --release` success; `firebase deploy --only hosting --project getreadyjob-india-1cb34` success; committed + pushed (commit `b4ebc21`).
   - Repo memory updated (`plan_catalog_notes.md`) marking this gap resolved. The other flagged gap (Max Single File Size Limit being display-only, not tied to real upload enforcement) remains open, not part of this request.
 - Owner: Founder + Copilot
+
+### Same day follow-up — 3-Tier PDF-to-Word fallback for scanned/image-only PDFs
+- Overall status: Green (deployed)
+- Completed:
+  - **Fixed "Conversion failed. Please try again with a supported file." on scanned/CamScanner-style multi-page PDFs** ✓ — Root cause: these PDFs have no embedded text stream, so `pdf2docx` (Tier 1) fails/throws, and for some scanner-app files LibreOffice's native PDF import (Tier 2) also failed - with nothing left to fall back to, the error propagated all the way to the client's outermost catch-all message.
+  - **New Tier 3 fallback** ✓ — `convertPdfToDocxFromRasterizedImages()` rasterizes every page to a JPEG via Ghostscript, builds a minimal HTML document (one image per page, forced page breaks), then converts that HTML to DOCX via the same LibreOffice binary already used for Tier 2 - no new dependencies. `convertPdfToDocxHighFidelity()` now chains pdf2docx → LibreOffice(PDF) → this rasterized-image fallback, so the endpoint always returns a valid, openable Word document (page images, not searchable text, since there's no text in a pure scan) instead of a hard failure. `X-Conversion-Engine: scanned-image-fallback` reports when this tier was used.
+  - **Timeouts widened for the new worst case** ✓ — `/api/convert-pdf-to-docx` route timeout 165s → 340s; client `RemoteConversionService._conversionTimeout` 170s → 350s, so the client never aborts before the server's full 3-tier chain could complete. Most real conversions still succeed at Tier 1/2 well within the old window - the full worst case is a rare last-resort path.
+  - **Validation** ✓ — `node --check compression_server.js` → exit 0. `flutter analyze lib/Services/remote_conversion_service.dart` → "No issues found!".
+  - **Build & deploy** ✓ — `flutter build web --release` success; `firebase deploy --only hosting --project getreadyjob-india-1cb34` success; committed + pushed (commit `565f8ac`).
+  - Repo memory updated (`compression_notes.md`) with full root-cause/fix detail, including the deliberate scope decision to embed page images (not run real OCR) for this pass.
+- Owner: Founder + Copilot
