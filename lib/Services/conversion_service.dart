@@ -206,6 +206,9 @@ class ConversionService {
         case 'excel (.xlsx)':
           return await _convertToExcel(inputBytes, inputFileName);
 
+        case 'json (.json)':
+          return _convertToJson(inputBytes, inputFileName);
+
         case 'jpg images':
           return await _convertToImage(inputBytes, inputFileName, 'jpg');
 
@@ -325,6 +328,26 @@ class ConversionService {
       }
     }
 
+    if (lowerName.endsWith('.csv')) {
+      if (kIsWeb) {
+        try {
+          final csvPdfBytes = await const RemoteConversionService().convertSpreadsheet(
+            bytes: inputBytes,
+            fileName: inputFileName,
+            targetFormat: 'pdf',
+          );
+          return ConversionResult(
+            success: true,
+            message: 'PDF created from CSV data with table layout preserved.',
+            outputBytes: csvPdfBytes,
+            outputFileName: _changeExtension(inputFileName, 'pdf'),
+          );
+        } catch (_) {
+          // Remote conversion unavailable/failed - fall back to the plain-text PDF below.
+        }
+      }
+    }
+
     final text = await _extractAnyText(inputBytes, inputFileName);
     final pdfBytes = await _createPdfFromText(inputFileName, text);
     return ConversionResult(
@@ -417,6 +440,24 @@ class ConversionService {
       );
     }
 
+    if (lowerName.endsWith('.csv') && kIsWeb) {
+      try {
+        final remoteXlsxBytes = await const RemoteConversionService().convertSpreadsheet(
+          bytes: inputBytes,
+          fileName: inputFileName,
+          targetFormat: 'xlsx',
+        );
+        return ConversionResult(
+          success: true,
+          message: 'Excel file created successfully via server-side conversion.',
+          outputBytes: remoteXlsxBytes,
+          outputFileName: _changeExtension(inputFileName, 'xlsx'),
+        );
+      } catch (_) {
+        // Remote conversion unavailable/failed - fall back to local CSV parsing below.
+      }
+    }
+
     final text = await _extractAnyText(inputBytes, inputFileName);
     final rows = lowerName.endsWith('.csv')
         ? CsvToExcelService.parseCsv(text)
@@ -440,6 +481,51 @@ class ConversionService {
       message: 'Excel file created successfully.',
       outputBytes: xlsxBytes,
       outputFileName: _changeExtension(inputFileName, 'xlsx'),
+    );
+  }
+
+  /// Converts a CSV file to a JSON array of row objects, keyed by the
+  /// header row. Pure local text parsing (reuses CsvToExcelService's CSV
+  /// parser) - no server round-trip needed for this lightweight format.
+  ConversionResult _convertToJson(
+    Uint8List inputBytes,
+    String inputFileName,
+  ) {
+    final lowerName = inputFileName.toLowerCase();
+
+    if (!lowerName.endsWith('.csv')) {
+      return const ConversionResult(
+        success: false,
+        message: 'JSON conversion currently supports .csv files only.',
+      );
+    }
+
+    final csvText = utf8.decode(inputBytes, allowMalformed: true);
+    final rows = CsvToExcelService.parseCsv(csvText);
+    if (rows.isEmpty) {
+      return const ConversionResult(
+        success: false,
+        message: 'Unable to parse any rows from this CSV file.',
+      );
+    }
+
+    final header = rows.first;
+    final dataRows = rows.length > 1 ? rows.sublist(1) : const <List<String>>[];
+    final records = dataRows.map((row) {
+      final record = <String, String>{};
+      for (var i = 0; i < header.length; i++) {
+        record[header[i]] = i < row.length ? row[i] : '';
+      }
+      return record;
+    }).toList();
+
+    final jsonText = const JsonEncoder.withIndent('  ').convert(records);
+    final jsonBytes = Uint8List.fromList(utf8.encode(jsonText));
+    return ConversionResult(
+      success: true,
+      message: 'JSON file created successfully.',
+      outputBytes: jsonBytes,
+      outputFileName: _changeExtension(inputFileName, 'json'),
     );
   }
 

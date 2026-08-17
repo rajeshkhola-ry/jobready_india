@@ -24,7 +24,10 @@ import 'compression_tool_page.dart';
 /// User selects input format → Output format → Converts
 /// NO size picker (conversion only, not compression)
 class ConvertToolPage extends StatefulWidget {
-  const ConvertToolPage({super.key});
+  final String? initialInputFormat;
+  final String? initialOutputFormat;
+
+  const ConvertToolPage({super.key, this.initialInputFormat, this.initialOutputFormat});
 
   @override
   State<ConvertToolPage> createState() => _ConvertToolPageState();
@@ -54,6 +57,7 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
     ],
     'Word': ['PDF (.pdf)', 'Text (.txt)', 'PowerPoint (.pptx)'],
     'Excel': ['PDF (.pdf)', 'CSV (.csv)', 'PowerPoint (.pptx)'],
+    'CSV': ['Excel (.xlsx)', 'PDF (.pdf)', 'JSON (.json)'],
     'Image': ['PDF (.pdf)', 'JPG Images', 'PNG Images', 'WebP (.webp)', 'PowerPoint (.pptx)'],
     'PowerPoint': ['PDF (.pdf)', 'Word (.docx)'],
   };
@@ -61,7 +65,8 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
   static const Map<String, List<String>> inputExtensions = {
     'PDF': ['pdf'],
     'Word': ['doc', 'docx'],
-    'Excel': ['xls', 'xlsx', 'csv'],
+    'Excel': ['xls', 'xlsx'],
+    'CSV': ['csv'],
     'Image': ['jpg', 'jpeg', 'png', 'webp', 'bmp'],
     'PowerPoint': ['ppt', 'pptx'],
   };
@@ -86,6 +91,11 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialInputFormat != null) {
+      _selectedInputFormat = widget.initialInputFormat;
+      final defaultOutputs = formatConversions[widget.initialInputFormat!] ?? const <String>[];
+      _selectedOutputFormat = widget.initialOutputFormat ?? (defaultOutputs.isNotEmpty ? defaultOutputs.first : null);
+    }
     _hydrateFromHomeUpload();
     _applyConverterSeoMetadata();
     _applyVoiceCommand();
@@ -821,6 +831,12 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
           'Excel to JSON',
           'Clean Data',
         ];
+      case 'CSV':
+        return [
+          'CSV to Excel',
+          'CSV to PDF',
+          'CSV to JSON',
+        ];
       case 'Word':
         return [
           'Word to PDF',
@@ -857,8 +873,9 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
         return 'Word';
       case 'xls':
       case 'xlsx':
-      case 'csv':
         return 'Excel';
+      case 'csv':
+        return 'CSV';
       case 'jpg':
       case 'jpeg':
       case 'png':
@@ -880,7 +897,13 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
 
     final chosenAction = _selectedIntentActions.first;
     String outputFormat = _selectedOutputFormat ?? 'PDF (.pdf)';
-    if (chosenAction.contains('Word')) {
+    if (chosenAction == 'CSV to Excel') {
+      outputFormat = 'Excel (.xlsx)';
+    } else if (chosenAction == 'CSV to JSON') {
+      outputFormat = 'JSON (.json)';
+    } else if (chosenAction == 'CSV to PDF') {
+      outputFormat = 'PDF (.pdf)';
+    } else if (chosenAction.contains('Word')) {
       outputFormat = 'Word (.docx)';
     } else if (chosenAction.contains('Text')) {
       outputFormat = 'Text (.txt)';

@@ -74,10 +74,11 @@ class ToolSelectorV2 extends StatelessWidget {
               _tool(
                 context,
                 Icons.swap_horiz,
-                "Convert",
-                "Convert PDF, DOCX, images, and office files.",
-                false,
+                "All-in-One File Converter",
+                "Convert PDF, Excel, CSV, Word, PPT & Images in one place.",
+                true,
                 () => _openTool(context, const ConvertToolPage()),
+                badgeLabel: 'ALL-IN-ONE',
               ),
               _tool(
                 context,
@@ -191,6 +192,28 @@ class ToolSelectorV2 extends StatelessWidget {
                 false,
                 () => _openTool(context, const DocPackagerPage()),
               ),
+              _tool(
+                context,
+                Icons.grid_on_rounded,
+                "Excel & CSV Converter",
+                "Convert XLSX to PDF/CSV and CSV to Excel with full data fidelity.",
+                false,
+                () => _openTool(
+                  context,
+                  const ConvertToolPage(initialInputFormat: 'Excel', initialOutputFormat: 'CSV (.csv)'),
+                ),
+              ),
+              _tool(
+                context,
+                Icons.description_rounded,
+                "Word & PDF Converter",
+                "Fast high-fidelity conversion between DOCX and PDF formats.",
+                false,
+                () => _openTool(
+                  context,
+                  const ConvertToolPage(initialInputFormat: 'Word', initialOutputFormat: 'PDF (.pdf)'),
+                ),
+              ),
             ];
 
             return Column(
@@ -241,11 +264,12 @@ class ToolSelectorV2 extends StatelessWidget {
     String title,
     String subtitle,
     bool isFeatured,
-    VoidCallback onTap,
-  ) {
+    VoidCallback onTap, {
+    String? badgeLabel,
+  }) {
     final colorMap = <String, Color>{
       'Compress': const Color(0xFF0E3A66),
-      'Convert': const Color(0xFF1F4E79),
+      'All-in-One File Converter': const Color(0xFF1F4E79),
       'Merge': const Color(0xFF0F766E),
       'Split': const Color(0xFFB45309),
       'Extract': const Color(0xFFBE123C),
@@ -259,6 +283,8 @@ class ToolSelectorV2 extends StatelessWidget {
       'Govt Verifier': const Color(0xFF0F2D4A),
       'Fraud Seal': const Color(0xFF0A1F3D),
       'Doc Packager': const Color(0xFF0A1F3D),
+      'Excel & CSV Converter': const Color(0xFF0F766E),
+      'Word & PDF Converter': const Color(0xFF1F4E79),
     };
 
     final accent = colorMap[title] ?? const Color(0xFF1F4E79);
@@ -317,7 +343,7 @@ class ToolSelectorV2 extends StatelessWidget {
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: Text(
-                          'Featured',
+                          badgeLabel ?? 'Featured',
                           style: TextStyle(
                             fontSize: 9,
                             fontWeight: FontWeight.w800,
