@@ -1594,3 +1594,25 @@ Prepared For: JOBREADY
     - Committed + pushed (commit `014d3a8`) → Render backend redeploy triggered. Same async-Docker-rebuild caveat as always applies. The pre-existing unrelated disclaimer-text edit in `upload_card_v2.dart` was temporarily reverted for a clean commit, then reapplied afterward so the working tree still has it uncommitted, exactly as before.
   - Repo memory updated (`compression_notes.md`) with full root-cause/fix detail, including the revert/commit/reapply pattern for editing `upload_card_v2.dart` safely in the future.
 - Owner: Founder + Copilot
+
+### Same day follow-up — Blank-page-on-aggressive-compression fix + safe-output validation
+- Overall status: Green (deployed)
+- Completed:
+  - **Fixed blank/white pages from aggressive PDF re-compression** ✓ — Root cause: `runPass3` re-feeds the current best candidate (possibly already a Ghostscript pass1/2 output) back through another aggressive Ghostscript pass; repeated lossy re-encoding of an already-degraded image stream could silently strip it to a blank result while Ghostscript still exited successfully with a smaller, non-empty file (no error to catch).
+  - **72 DPI safety floor** ✓ — `compressPdfWithGhostscriptSettings` now clamps `ColorImageResolution`/`GrayImageResolution` to `Math.max(72, options.dpi)`, so no pass can ever request a resolution below the readable threshold regardless of target size. Added `-dMonoImageResolution=72` (defensive; inert while mono downsampling stays off for text crispness) and `-dEmbedAllFonts=true` alongside the existing `-dSubsetFonts=true`.
+  - **New safe-output validation** ✓ — `isPdfPageBlank()` rasterizes page 1 of each compression candidate at low DPI and uses `sharp` stats (per-channel mean/stdev) to detect a suspiciously uniform near-white result. Wired into all 3 passes: a blank candidate is never selected as the "best" result, so the engine now naturally falls back to the last known-good candidate instead of ever returning a stripped/blank document. Fails open (a validation hiccup never blocks a genuinely good result).
+  - **Validation** ✓ — `node --check compression_server.js` → exit 0.
+  - **Build & deploy** ✓ — `flutter build web --release` success; `firebase deploy --only hosting --project getreadyjob-india-1cb34` success; committed + pushed (commit `94de070`).
+  - Repo memory updated (`compression_notes.md`) with full root-cause/fix detail.
+- Owner: Founder + Copilot
+
+### Same day follow-up — Deduplicated Pricing/Feature Matrix into a single canonical list
+- Overall status: Green (deployed)
+- Completed:
+  - **Fixed "several tools listed 2-3 times across categories"** ✓ — The actual widget is `PlanComparisonMatrix` in `lib/Pages/plan_features_page.dart` (no `pricing_page.dart`/`plan_comparison_table.dart` equivalent exists). Root cause: rows were built from a hardcoded static list PLUS a dynamically-generated list looping over every `PlanCatalogConfig.registeredToolNames` entry, merged with an exact-string-match dedupe - since the registry itself contains near-duplicate entries for the same feature under different names (e.g. `'Compress'` vs `'PDF Compress (Single File)...'`), the dedupe never caught real duplicates.
+  - **Replaced with one static, curated 5-category list** ✓ — Quota & System Limits (Daily Usage Quota with new defaults 5/day-50-1200-2000-10000, Voice Commands Quota with new defaults 0-50-200-1000-10000, new Max Single File Size Limit row, Priority Processing Queue), Core Conversion & Office Tools, Core PDF Workflow Tools, AI & Resume Studio, Support & Enterprise - ~22 rows total, no repeats. 3 rows (Govt Exam Resizer, Resume & Poster Canvas Studio, Conversion History & Download Vault) stay live-wired to the admin panel's `enabledToolsByPlan` via a new small helper; the rest are static, matching the best available prior data. Removed the now-dead category-mapping helpers and the vague catch-all rows (Higher Daily Usage Limit, Advanced Quality Controls, AI-Assisted Document Workflows) that had no place in the curated list.
+  - **Known gap flagged, not silently changed** — The new quota defaults (5/50/1200/2000/10000 etc.) only show once an admin syncs a matching config; `PlanCatalogConfig.defaults()`'s own hardcoded quota map (used for a fresh browser) was intentionally left unchanged pending confirmation. "Max Single File Size Limit" is a display-only row (25/50/50/100/100 MB) - it does NOT change the real enforced upload limit (`PlanCatalogConfig.maxFileSizeMbForPlan()`, still a flat 25/250 MB split), also pending explicit confirmation before touching real enforcement.
+  - **Validation** ✓ — `flutter analyze lib/Pages/plan_features_page.dart` → "No issues found!".
+  - **Build & deploy** ✓ — `flutter build web --release` success; `firebase deploy --only hosting --project getreadyjob-india-1cb34` success; committed + pushed (commit `2791933`).
+  - Repo memory created (`plan_catalog_notes.md`) with full root-cause/fix detail and the flagged gaps.
+- Owner: Founder + Copilot
