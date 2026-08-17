@@ -1647,3 +1647,15 @@ Prepared For: JOBREADY
   - **Build & deploy** ✓ — `flutter build web --release` success; `firebase deploy --only hosting --project getreadyjob-india-1cb34` success; committed + pushed (commit `da34c46`).
   - Repo memory updated (`compression_notes.md`).
 - Owner: Founder + Copilot
+
+### Same day follow-up — Scanned-PDF fast-path detection + memory-safe Tier 3 + proxy timeout messaging
+- Overall status: Green (deployed)
+- Completed:
+  - **Fixed a real 23-page/8.2MB scanned PDF failing with "network/CORS transport issues"** ✓ — Root cause: the sequential Tier1→Tier2→Tier3 fallback chain took long enough (~150s before even reaching Tier 3) that Render's proxy dropped the connection; Tier 2 also spawned a full LibreOffice process guaranteed to fail on a pure scan.
+  - **New fast-path scanned-PDF detection** ✓ — `checkPdfHasSelectableText()` runs a quick PyMuPDF-based text check (`lib/check_pdf_text.py`, no new pip dependency) before the tier chain starts; PDFs with virtually no text now skip Tier 1/2 entirely and jump straight to Tier 3, avoiding ~150s of wasted work. Fails open (full tier chain still runs) if the check itself errors.
+  - **Memory-safer Tier 3** ✓ — Ghostscript rasterization now caps `-dMaxBitmap=8388608` to bound peak RAM on high-res/high-page-count scans. `rasterize_to_docx.py` now sizes each DOCX page from the actual rasterized image dimensions instead of a fixed Letter assumption, so pages fit exactly with no spillover.
+  - **Server keep-alive + clearer client timeout message** ✓ — `/api/convert-pdf-to-docx` now sends `Connection: keep-alive`; `remote_conversion_service.dart`'s timeout/transport-failure messages now read "Server timed out processing large multi-page document. Optimizing conversion speed..." instead of the misleading generic CORS message.
+  - **Validation** ✓ — `node --check compression_server.js` → exit 0; `python -m py_compile check_pdf_text.py rasterize_to_docx.py` → exit 0; `flutter analyze lib/Services/remote_conversion_service.dart` → "No issues found!".
+  - **Build & deploy** ✓ — `flutter build web --release` success; `firebase deploy --only hosting --project getreadyjob-india-1cb34` success; committed + pushed (commit `1064a87`).
+  - Repo memory updated (`compression_notes.md`).
+- Owner: Founder + Copilot
