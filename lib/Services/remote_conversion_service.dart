@@ -25,7 +25,7 @@ class RemoteConversionException implements Exception {
 class RemoteConversionService {
   const RemoteConversionService();
 
-  static const Duration _conversionTimeout = Duration(seconds: 170);
+  static const Duration _conversionTimeout = Duration(seconds: 350);
 
   Future<Uint8List> convertPdfToDocx({
     required Uint8List bytes,
