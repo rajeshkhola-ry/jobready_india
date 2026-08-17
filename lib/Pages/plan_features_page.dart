@@ -180,7 +180,7 @@ class _PlanComparisonMatrixState extends State<PlanComparisonMatrix> {
             monthly: true,
             yearly: true,
             lifetime: true,
-            freeValue: quotaValues['FREE']?.isNotEmpty == true ? quotaValues['FREE'] : '5/day',
+            freeValue: quotaValues['FREE']?.isNotEmpty == true ? quotaValues['FREE'] : '5',
             sevenDayValue: quotaValues['7 DAYS']?.isNotEmpty == true ? quotaValues['7 DAYS'] : '50',
             monthlyValue: quotaValues['MONTHLY']?.isNotEmpty == true ? quotaValues['MONTHLY'] : '1200',
             yearlyValue: quotaValues['YEARLY']?.isNotEmpty == true ? quotaValues['YEARLY'] : '2000',

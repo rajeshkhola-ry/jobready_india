@@ -176,18 +176,18 @@ class PlanCatalogConfig {
         ],
       },
       userQuotasByPlan: {
-        'Free': '5/day',
-        '7Days': 'Unlimited',
-        'Monthly': 'Unlimited',
-        'Yearly': 'Unlimited',
-        'Lifetime': 'Unlimited',
+        'Free': '5',
+        '7Days': '50',
+        'Monthly': '1200',
+        'Yearly': '2000',
+        'Lifetime': '10000',
       },
       voiceQuotasByPlan: {
-        'Free': '5',
+        'Free': '0',
         '7Days': '50',
         'Monthly': '200',
         'Yearly': '1000',
-        'Lifetime': 'Unlimited',
+        'Lifetime': '10000',
       },
     );
   }
