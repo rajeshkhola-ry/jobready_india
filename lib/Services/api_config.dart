@@ -145,6 +145,9 @@ class ApiConfig {
   static const String convertPdfToDocxEndpoint = '/api/convert-pdf-to-docx';
   static const String convertGenericEndpoint = '/api/convert';
 
+  /// Photo HD Workspace Endpoints
+  static const String photoRenderPresetEndpoint = '/api/photo/render-preset';
+
   /// Merge Service Endpoints
   static const String mergeEndpoint = '/files/merge';
   static const String mergeStatusEndpoint = '/files/merge/status';

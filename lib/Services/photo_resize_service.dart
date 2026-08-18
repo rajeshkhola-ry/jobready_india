@@ -7,6 +7,8 @@ import 'package:image/image.dart' as img;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+import 'remote_photo_render_service.dart';
+
 enum PhotoRenderMode {
   print300,
   web150,
@@ -163,6 +165,12 @@ class PhotoResizeService {
   static const int _interactivePreviewMaxDimension = 1920;
   static const int _maxCanvasPixels = 36000000;
   static const int _maxSourcePixels = 30000000;
+  // Presets whose long edge exceeds this are offloaded to the sharp-powered
+  // server endpoint on web, since compute()/Isolate.run don't run in a real
+  // background thread there and would otherwise lag the browser UI for
+  // several seconds on A2/A3-sized (17-35 megapixel) canvases.
+  static const int _serverOffloadThresholdPx = 2048;
+  static const RemotePhotoRenderService _remotePhotoRenderService = RemotePhotoRenderService();
 
   static const List<PhotoSizePreset> presets = [
     PhotoSizePreset(id: 'poster_a2', label: 'Very Big Banner (A2) - 4960 x 7016', width: 4960, height: 7016),
@@ -257,6 +265,41 @@ class PhotoResizeService {
       renderMode: renderMode,
       outputFormat: outputFormat,
     );
+
+    if (kIsWeb && !previewOnly && aspectPresetId != 'passport') {
+      final targetDimensions = _resolveTargetDimensions(preset, aspectPresetId, dpi);
+      final longEdge = max(targetDimensions.width, targetDimensions.height);
+      if (longEdge > _serverOffloadThresholdPx) {
+        try {
+          final renderedBytes = await _remotePhotoRenderService.renderPreset(
+            bytes: bytes,
+            fileName: fileName,
+            width: targetDimensions.width,
+            height: targetDimensions.height,
+            backgroundColor: backgroundColor,
+            enableHdMode: enableHdMode,
+            dpi: dpi,
+            maxTargetKb: maxTargetKb,
+            enforceFileSizeLimit: enforceFileSizeLimit,
+            outputFormat: outputFormat.extension,
+          );
+
+          final baseName = fileName.contains('.') ? fileName.substring(0, fileName.lastIndexOf('.')) : fileName;
+          final outputName =
+              '${baseName}_${preset.id}_${dpi}dpi_${maxTargetKb}kb${enableHdMode ? '_hd' : ''}.${outputFormat.extension}';
+
+          return PhotoResizeResult(
+            bytes: renderedBytes,
+            outputFileName: outputName,
+            width: targetDimensions.width,
+            height: targetDimensions.height,
+            outputLabel: '${aspectPresetId.toUpperCase()} \u2022 $dpi DPI \u2022 ${outputFormat.name.toUpperCase()}',
+          );
+        } catch (_) {
+          // Server offload unavailable/failed - fall through to the local pipeline below.
+        }
+      }
+    }
 
     if (kIsWeb) {
       try {

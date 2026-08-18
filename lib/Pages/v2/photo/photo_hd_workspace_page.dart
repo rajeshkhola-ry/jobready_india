@@ -424,16 +424,24 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
       return;
     }
 
+    final preset = _effectivePreset;
+    final isLargePreset = preset.width > 2048 || preset.height > 2048;
+
     setState(() {
       _isProcessing = true;
       _processingProgress = 0.12;
       _statusType = _StatusType.processing;
-      _statusMessage = 'Preparing ${_hdMode ? 'identity-safe HD ' : ''}photo for ${_effectivePreset.label}...';
+      _statusMessage = isLargePreset
+          ? 'Rendering $_effectiveDpi DPI print-ready image...'
+          : 'Preparing ${_hdMode ? 'identity-safe HD ' : ''}photo for ${preset.label}...';
     });
     _startProcessingPulse();
 
-    // Let the progress indicator render before heavy image work starts.
-    await Future<void>.delayed(const Duration(milliseconds: 50));
+    // Guarantee the loading indicator has actually painted before the
+    // (potentially several-second, for A2/A3 presets) heavy image work
+    // starts - a flat timed delay doesn't reliably do this on its own.
+    await WidgetsBinding.instance.endOfFrame;
+    await WidgetsBinding.instance.endOfFrame;
 
     try {
       if (_selectedAspectPreset == 'passport' && _outputFormat != PhotoOutputFormat.pdf) {
