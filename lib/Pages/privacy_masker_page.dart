@@ -249,6 +249,8 @@ class _PrivacyMaskerPageState extends State<PrivacyMaskerPage>
       case _QrScheme.whatsapp:
         final num = raw.replaceAll(RegExp(r'\D'), '');
         return 'https://wa.me/$num';
+      case _QrScheme.location:
+        return 'https://www.google.com/maps/dir/?api=1&destination=${Uri.encodeComponent(raw)}';
       case _QrScheme.text:
         return raw;
     }
@@ -613,8 +615,8 @@ class _PrivacyMaskerPageState extends State<PrivacyMaskerPage>
                 icon: Icons.qr_code_2_rounded,
                 iconColor: const Color(0xFF0A66C2),
                 title: 'QR Code Generator — Local & Free',
-                body: 'Generate QR codes for URLs, phone numbers, emails, or plain text. '
-                    'Download as a high-resolution PNG ready for posters and print.',
+                body: 'Generate QR codes for URLs, phone numbers, emails, plain text, or Google Maps '
+                    'navigation links. Download as a high-resolution PNG ready for posters and print.',
               ),
               const SizedBox(height: 14),
 
@@ -1031,6 +1033,7 @@ enum _QrScheme {
   phone,
   email,
   whatsapp,
+  location,
   text;
 
   String get label => switch (this) {
@@ -1038,6 +1041,7 @@ enum _QrScheme {
         _QrScheme.phone => 'Phone',
         _QrScheme.email => 'Email',
         _QrScheme.whatsapp => 'WhatsApp',
+        _QrScheme.location => 'Location / Navigation',
         _QrScheme.text => 'Plain Text',
       };
 
@@ -1046,6 +1050,7 @@ enum _QrScheme {
         _QrScheme.phone => 'Phone number',
         _QrScheme.email => 'Email address',
         _QrScheme.whatsapp => 'WhatsApp number',
+        _QrScheme.location => 'Destination address, business name, or lat,long',
         _QrScheme.text => 'Any text',
       };
 
@@ -1054,6 +1059,7 @@ enum _QrScheme {
         _QrScheme.phone => '+91 98765 43210',
         _QrScheme.email => 'hello@getreadyjob.com',
         _QrScheme.whatsapp => '+91 98765 43210',
+        _QrScheme.location => 'Taj Mahal, Agra or 27.1751,78.0421',
         _QrScheme.text => 'Your text here…',
       };
 
@@ -1062,6 +1068,7 @@ enum _QrScheme {
         _QrScheme.phone => Icons.phone_rounded,
         _QrScheme.email => Icons.email_rounded,
         _QrScheme.whatsapp => Icons.chat_rounded,
+        _QrScheme.location => Icons.directions_rounded,
         _QrScheme.text => Icons.text_fields_rounded,
       };
 }
