@@ -1682,3 +1682,17 @@ Prepared For: JOBREADY
   - **Build & deploy** ✓ — `flutter build web --release` success; `firebase deploy --only hosting --project getreadyjob-india-1cb34` success; committed + pushed (commit `b9df886`).
   - New repo memory file `photo_workspace_notes.md` created (also documents the correct real file paths for this feature and a pre-existing dead-code note, left untouched by design).
 - Owner: Founder + Copilot
+
+### Same day follow-up — Shared Google Cloud Vision OCR engine + combined quota
+- Overall status: Green (deployed) — **requires a manual follow-up: `GOOGLE_CLOUD_VISION_API_KEY` must be set in Render's environment variables** (cannot be set by the agent); until then both new routes return a clear 503 "not configured" error.
+- Completed:
+  - **New shared Vision OCR backend** ✓ — `compression_server.js`: Ghostscript rasterization (200 DPI) → one batched Google Cloud Vision `images:annotate` (DOCUMENT_TEXT_DETECTION) call per document via Node's built-in `https` (no new dependency) → either a hand-built minimal `.docx` (`buildSimpleDocxFromPages`, via the existing `archiver` dep — deliberately not python-docx) or a pdf-lib "sandwich" searchable PDF (`buildSearchablePdfFromOcr`, original page images + word-level positioned invisible text straight from Vision's own bounding boxes).
+  - **Two new routes** ✓ — `POST /api/ocr-pdf` (Scanned PDF → Searchable PDF) and `POST /api/convert-scanned-pdf-to-docx` (Scanned PDF → OCR → DOCX), sharing one `handleSharedOcrRoute()` helper.
+  - **Global 990-page monthly hard cap** ✓ — `reserveOcrGlobalPages()`, persisted to `backupDir/ocr_usage_state.json` (survives restarts, unlike the rest of this server's in-memory quota state), auto-resets on the 1st of each month; rejects with `429 { globalLimitReached: true, message: "Monthly AI OCR system limit reached..." }` before any Vision call.
+  - **Combined per-plan client quota** ✓ — new `ocr_quota_service.dart` (Free: 0, 7-Day: 50, Monthly: 200, Yearly/Lifetime: 350 pages/month, monthly reset), new `remote_ocr_service.dart` for both endpoints.
+  - **Wired into both tools** ✓ — `conversion_service.dart`'s scanned-PDF fallback now tries Vision OCR (quota permitting) before showing the "use OCR/Extract tool" banner; `pdf_edit_page.dart` (the real "PDF to PDF OCR Tool") got a new "Convert to Searchable PDF (AI OCR)" button. Both it and `convert_tool_page.dart` show a new "AI OCR Quota: X pages remaining" banner + Free-plan upgrade prompt.
+  - **Pricing table updated** ✓ — `plan_features_page.dart` (the real, live comparison table — `pricing_page.dart` is just an 11-line wrapper) gained a new "AI OCR Engine (Scanned PDF to Word & Searchable PDF)*" row with the requested per-plan page counts, plus the combined-pool note below the table.
+  - **Validation** ✓ — `node --check compression_server.js` → exit 0; `flutter analyze` across all touched Dart files → only pre-existing baseline issues, zero new.
+  - **Build & deploy** ✓ — `flutter build web --release` success; `firebase deploy --only hosting --project getreadyjob-india-1cb34` success; committed + pushed (commit `cd85087`).
+  - New repo memory file `vision_ocr_notes.md` created with full architecture notes and the manual Render env-var follow-up flagged prominently.
+- Owner: Founder + Copilot
