@@ -1828,3 +1828,13 @@ Prepared For: JOBREADY
   - **Build & deploy** ✓ — `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` success; `firebase deploy --only hosting --project getreadyjob-india-1cb34` success; committed + pushed (commit `e4f5ccf`).
   - Repo memory updated (`plan_catalog_notes.md`).
 - Owner: Founder + Copilot
+
+### Same day follow-up — Spatial layout reconstruction for Vision OCR DOCX output
+- Overall status: Green (deployed and verified live)
+- Completed:
+  - **Upgrade** ✓ — `buildSimpleDocxFromPages()` (Vision OCR → DOCX builder) now reconstructs spatial layout from word-level bounding boxes instead of dumping Vision's flat text as one paragraph per newline: Y-tolerance line clustering, right-margin tab-stop anchoring for marks/dates separated by a large horizontal gap (e.g. "6 x 1 = 06"), center alignment for page-centered single-segment lines, and bold for above-average-height or heading-keyword lines ("Section-A", "Time:", etc.).
+  - **Verified twice** ✓ — a local synthetic-coordinate test confirmed the exact expected OOXML shape; then a full live end-to-end test (real text rendered via SVG→JPEG, embedded in a PDF, POSTed to `/api/convert-scanned-pdf-to-docx`) confirmed the returned `.docx` correctly centers+bolds the title, bolds the heading, and right-anchors both marks against REAL Google Vision OCR output.
+  - **Validation** ✓ — `node --check compression_server.js` → exit 0.
+  - **Scope note**: backend-only change, no Flutter/Firebase deploy needed. Committed + pushed (commit `973f29d`).
+  - Repo memory updated (`compression_notes.md`), including a disclosed minor cosmetic follow-up (stray space before punctuation-only tokens).
+- Owner: Founder + Copilot
