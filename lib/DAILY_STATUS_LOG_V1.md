@@ -1758,3 +1758,21 @@ Prepared For: JOBREADY
   - **Build & deploy** ✓ — `flutter build web --release` success; `firebase deploy --only hosting --project getreadyjob-india-1cb34` success; committed + pushed (commit `b7f294f`).
   - Repo memory updated (`compression_notes.md`).
 - Owner: Founder + Copilot
+
+### Same day follow-up — Google Cloud Vision billing enabled; found + fixed OCR page-count bug that was blocking the feature entirely
+- Overall status: Green (pushed - Render rebuilds automatically)
+- Completed:
+  - **Confirmed `GOOGLE_CLOUD_VISION_API_KEY` is now set on Render** ✓ — live `GET /api/info` reports `visionOcrConfigured: true` (was the manual follow-up flagged in the earlier Vision OCR checkpoint).
+  - **Live end-to-end test uncovered a separate, real blocking bug** ✓ — built a genuine 1-page test PDF and POSTed it directly to the live `/api/convert-scanned-pdf-to-docx` endpoint. Result: `400 "Could not determine this PDF's page count."` for a perfectly valid PDF — meaning the OCR routes were entirely non-functional regardless of the Vision key/billing being fixed.
+  - **Root cause** ✓ — `handleSharedOcrRoute()` derives its required page count exclusively from `checkPdfHasSelectableText()` (the Python/PyMuPDF pre-check). That function's documented contract is to "fail open" as `{ hasText: true, checkFailed: true }` (no `pageCount`) whenever the Python check itself errors — a contract designed for its ORIGINAL caller (skip-tiers-if-scanned), not for the newer OCR routes, which had no fallback when `pageCount` came back empty. Likely trigger: `resolvePython3Binary()` only ever did a bare `python3` PATH lookup (no absolute-path fallback), the same class of runtime-PATH gap already found and fixed for `soffice` in an earlier checkpoint.
+  - **Fix (belt-and-suspenders, matching the existing LibreOffice ENOENT pattern)** ✓ — `resolvePython3Binary()` now tries `/usr/bin/python3` / `/usr/local/bin/python3` before a bare `python3` lookup. New `getPdfPageCountViaPdfLib()` uses `pdf-lib` (pure Node, already a proven dependency in this exact file) as a second, independent page-count source; `handleSharedOcrRoute()` now falls back to it whenever the Python check fails open, instead of hard-failing the request.
+  - **Verified the fix locally before shipping** ✓ — confirmed `pdf-lib` correctly reads the page count (1) of the exact test PDF that had triggered the 400 error.
+  - **Validation** ✓ — `node --check compression_server.js` → exit 0.
+  - **Scope note**: backend-only fix, no Flutter client changes needed - no build/Firebase deploy this round. Committed + pushed (commit `5c2d09c`); Render rebuilds automatically on push (async - full "new image live" status can't be confirmed from this environment).
+  - Repo memory updated (`compression_notes.md`, `vision_ocr_notes.md`).
+  - **Re-tested live after Render's rebuild finished** ✓ — the page-count bug is confirmed FIXED (the request now gets past that check entirely). However, the live Vision API call itself now fails with a clear, different error: `"Google Cloud Vision request failed: This API method requires billing to be enabled. Please enable billing on project #365906972808..."` (Google's own error message, includes a direct link: `https://console.developers.google.com/billing/enable?project=365906972808`).
+- Blockers:
+  - **Google Cloud billing is not actually enabled yet on the specific GCP project (`#365906972808`) tied to the Vision API key**, despite "payment done" - these can be two different things (e.g. Render/Firebase billing vs. this specific Google Cloud project's own billing account link). Needs the founder to open the link above and confirm/enable billing on that exact project, then allow a few minutes for it to propagate (Google's own message notes this).
+- Decisions needed:
+  - Founder to enable billing on GCP project `#365906972808` (or confirm which project the `GOOGLE_CLOUD_VISION_API_KEY` actually belongs to, if a different project was funded instead).
+- Owner: Founder + Copilot
