@@ -1670,3 +1670,15 @@ Prepared For: JOBREADY
   - **Build & deploy** ✓ — `flutter build web --release` success; `firebase deploy --only hosting --project getreadyjob-india-1cb34` success; committed + pushed (commit `90bab08`).
   - Repo memory updated (`compression_notes.md`).
 - Owner: Founder + Copilot
+
+### Same day follow-up — HD Photo Workspace: large-preset (A2/A3, 2K+) performance fix
+- Overall status: Green (deployed)
+- Completed:
+  - **Fixed browser UI lag when processing A2/A3 poster presets** ✓ — Root cause: Flutter Web's `compute()`/`Isolate.run` don't run in a real background thread on the standard (non-Wasm) web build, so the existing `kIsWeb` path's `compute()` call still executed heavy resize/encode work synchronously on the main thread for 17-35 megapixel canvases.
+  - **New server-side render offload** ✓ — `renderPhotoPresetWithSharp()` + `POST /api/photo/render-preset` in `compression_server.js` (sharp/libvips resize+pad+background-fill, JPEG/PNG/PDF output, HD-mode sharpen/modulate approximation). New `lib/Services/remote_photo_render_service.dart`.
+  - **Safe client gating** ✓ — `PhotoResizeService.upscalePhoto()` now offloads to the server on web whenever the target's long edge exceeds 2048px (and it isn't the separate `passport` pipeline), falling back completely to the existing unchanged local pipeline on any server error - zero regression risk.
+  - **Clearer loading UX** ✓ — `photo_hd_workspace_page.dart` now shows "Rendering {DPI} DPI print-ready image..." for large presets and waits for two real end-of-frame signals before starting heavy work, instead of a flat 50ms timer.
+  - **Validation** ✓ — `node --check compression_server.js` → exit 0; `flutter analyze` across all 4 touched files → only pre-existing baseline issues (unused legacy duplicate helpers, deprecated API notices), zero new.
+  - **Build & deploy** ✓ — `flutter build web --release` success; `firebase deploy --only hosting --project getreadyjob-india-1cb34` success; committed + pushed (commit `b9df886`).
+  - New repo memory file `photo_workspace_notes.md` created (also documents the correct real file paths for this feature and a pre-existing dead-code note, left untouched by design).
+- Owner: Founder + Copilot
