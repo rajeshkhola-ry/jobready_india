@@ -1744,3 +1744,17 @@ Prepared For: JOBREADY
   - **Build & deploy** ✓ — `flutter build web --release` success; `firebase deploy --only hosting --project getreadyjob-india-1cb34` success; committed + pushed (commit `e07fc76`).
   - New repo memory file `qr_generator_notes.md` created.
 - Owner: Founder + Copilot
+
+### Same day follow-up — Vision OCR as Tier 3 fallback (PDF-to-Word no longer dead-ends on missing LibreOffice)
+- Overall status: Green (deployed)
+- Completed:
+  - **Root cause confirmed**: the previous checkpoint's diagnostic fix worked exactly as designed - the user's next real test showed the exact clear "LibreOffice (soffice) is not installed..." message, confirming the latest code is deployed and `soffice` is genuinely unresolvable on this Render instance (possibly not even building via the Dockerfile - no `render.yaml` exists to confirm either way, no Render dashboard access available to check directly).
+  - **Decisive fix** ✓ — `convertPdfToDocxHighFidelity()` gained a real Tier 3: when pdf2docx AND LibreOffice both fail for any reason, it now calls the already-built shared Vision OCR engine (Ghostscript rasterize → Vision OCR → pure-Node/archiver OOXML packaging, zero LibreOffice dependency) before giving up - makes PDF-to-Word conversion resilient regardless of whatever Render's actual build environment turns out to be.
+  - Tier 3 reuses the same shared 990-page/month global OCR cap as the standalone OCR endpoints; skips gracefully (falls through to the original error) if the Vision API key isn't configured or the cap has no room.
+  - **New diagnostics** ✓ — `visionOcrConfigured` added to the startup log and `GET /api/info`, alongside the existing LibreOffice fields - check these first when diagnosing future PDF-to-Word issues.
+  - **Dockerfile** ✓ — added the real, verified `default-jre-headless` package. Deliberately did NOT rename `libreoffice-writer` to the user-suggested `libreoffice-writer-nogui` after verifying that's not a real Debian package name (would have failed the entire apt-get install line).
+  - **No Dart/client changes needed** - the existing scanned-PDF fast-path already covers that case; this Tier 3 covers PDFs not confidently pre-flagged as scanned where pdf2docx+LibreOffice still both fail.
+  - **Validation** ✓ — `node --check compression_server.js` → exit 0; `flutter analyze lib/Services/conversion_service.dart` → No issues found.
+  - **Build & deploy** ✓ — `flutter build web --release` success; `firebase deploy --only hosting --project getreadyjob-india-1cb34` success; committed + pushed (commit `b7f294f`).
+  - Repo memory updated (`compression_notes.md`).
+- Owner: Founder + Copilot
