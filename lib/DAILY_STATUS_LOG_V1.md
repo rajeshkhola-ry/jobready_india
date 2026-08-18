@@ -1858,3 +1858,11 @@ Prepared For: JOBREADY
   - **Scope note**: backend-only change, no Flutter/Firebase deploy needed. Committed + pushed (commit `c1915b1`).
   - New repo memory file `server_resilience_notes.md` created.
 - Owner: Founder + Copilot
+
+### Same day follow-up — Plan Comparison Matrix label rename
+- Overall status: Green (deployed)
+- Completed:
+  - **Renamed** "Daily Usage Quota" row label to "Usage Quota" in `plan_features_page.dart`'s `PlanComparisonMatrix` - display-only string change; underlying quota data/key mappings untouched.
+  - **Validation** ✓ — `flutter analyze lib/Pages/plan_features_page.dart` → No issues found.
+  - **Build & deploy** ✓ — `flutter build web --release` + `firebase deploy --only hosting --project getreadyjob-india-1cb34` both succeeded; committed + pushed (commit `0338f44`).
+- Owner: Founder + Copilot
