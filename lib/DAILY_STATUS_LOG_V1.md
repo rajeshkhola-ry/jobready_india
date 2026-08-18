@@ -1709,3 +1709,15 @@ Prepared For: JOBREADY
   - **Build & deploy** ✓ — `flutter build web --release` success; `firebase deploy --only hosting --project getreadyjob-india-1cb34` success; committed + pushed (commit `51fc01d`).
   - Repo memory updated (`photo_workspace_notes.md`); new cross-project lesson recorded in user memory (`engineering_practices.md`) about verifying ML library resource usage hands-on before integrating into memory-constrained backends.
 - Owner: Founder + Copilot
+
+### Same day follow-up — Govt Resizer: compliance badge, signature cleanup, 4x6 print sheet
+- Overall status: Green (deployed)
+- Completed:
+  - **Live compliance checklist** ✓ — new "100% Portal Ready / Pass" badge (green) or "Review Needed" (red) shown after a resize completes, checking dimensions, achieved-KB-within-the-preset's-real-min/max-range (not just the user's slider), and format.
+  - **Signature auto-contrast toggle** ✓ — "Clean & High-Contrast Signature (B&W)" switch, shown only for SSC/IBPS Signature presets: grayscale → auto-levels stretch (`img.normalize`) → contrast boost, turning grey/shadowy scans into crisp white-background, dark-ink signatures.
+  - **4x6" print sheet export** ✓ — new "Download 4x6 Print Sheet (8 Photos Grid)" button (Photo presets only) tiles 8 copies of the resized photo onto a 1200x1800px (4x6in @ 300 DPI) canvas, 2x4 grid with even gutters, ready for studio printing.
+  - All three features are 100% client-side (local `package:image` processing) - zero server changes, zero new dependencies, genuinely zero incremental cost.
+  - **Validation** ✓ — `flutter analyze lib/Pages/govt_verifier_page.dart` → 5 issues, all verified pre-existing (byte-identical to the original file), zero new.
+  - **Build & deploy** ✓ — `flutter build web --release` success; `firebase deploy --only hosting --project getreadyjob-india-1cb34` success; committed + pushed (commit `e5994f2`).
+  - New repo memory file `govt_verifier_notes.md` created.
+- Owner: Founder + Copilot
