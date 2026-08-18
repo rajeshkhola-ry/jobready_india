@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../Services/api_config.dart';
+import '../Services/app_tools_registry.dart';
 import '../Services/plan_catalog_service.dart';
 
 class PlanFeaturesPage extends StatefulWidget {
@@ -61,7 +62,7 @@ class _PlanComparisonMatrixState extends State<PlanComparisonMatrix> {
 
   // Registry names for the few rows below that stay live-configurable via
   // the admin panel's per-plan tool toggles (see _toolEnabledForPlan).
-  static const String _govtResizerToolName = 'Govt Exam Photo & Signature Resizer (SSC, IBPS, Passport)';
+  static const String _govtResizerToolName = AppToolsRegistry.govtVerifier;
   static const String _resumeCanvasToolName = 'Resume Canvas (Template canvas for resumes, cover letters, SOP drafts)';
   static const String _posterStudioToolName = 'Poster Studio (Canvas-based poster, banner, flyer, and local print)';
 
@@ -161,11 +162,19 @@ class _PlanComparisonMatrixState extends State<PlanComparisonMatrix> {
           'YEARLY': _config.voiceQuotasByPlan['Yearly'] ?? '',
           'LIFETIME': _config.voiceQuotasByPlan['Lifetime'] ?? '',
         };
+        final ocrQuotaValues = <String, String>{
+          'FREE': _config.ocrQuotasByPlan['Free'] ?? '',
+          '7 DAYS': _config.ocrQuotasByPlan['7Days'] ?? '',
+          'MONTHLY': _config.ocrQuotasByPlan['Monthly'] ?? '',
+          'YEARLY': _config.ocrQuotasByPlan['Yearly'] ?? '',
+          'LIFETIME': _config.ocrQuotasByPlan['Lifetime'] ?? '',
+        };
         if (snapshot.hasData && snapshot.data != null) {
           final catalog = snapshot.data!['catalog'];
           if (catalog is Map<String, dynamic>) {
             _applyServerQuotaMap(catalog['user_quotas_by_plan'], quotaValues);
             _applyServerQuotaMap(catalog['voice_quotas_by_plan'], voiceQuotaValues);
+            _applyServerQuotaMap(catalog['ocr_quotas_by_plan'], ocrQuotaValues);
           }
         }
 
@@ -180,7 +189,7 @@ class _PlanComparisonMatrixState extends State<PlanComparisonMatrix> {
             monthly: true,
             yearly: true,
             lifetime: true,
-            freeValue: quotaValues['FREE']?.isNotEmpty == true ? quotaValues['FREE'] : '5',
+            freeValue: quotaValues['FREE']?.isNotEmpty == true ? quotaValues['FREE'] : '7',
             sevenDayValue: quotaValues['7 DAYS']?.isNotEmpty == true ? quotaValues['7 DAYS'] : '50',
             monthlyValue: quotaValues['MONTHLY']?.isNotEmpty == true ? quotaValues['MONTHLY'] : '1200',
             yearlyValue: quotaValues['YEARLY']?.isNotEmpty == true ? quotaValues['YEARLY'] : '2000',
@@ -198,6 +207,19 @@ class _PlanComparisonMatrixState extends State<PlanComparisonMatrix> {
             monthlyValue: voiceQuotaValues['MONTHLY']?.isNotEmpty == true ? voiceQuotaValues['MONTHLY'] : '200',
             yearlyValue: voiceQuotaValues['YEARLY']?.isNotEmpty == true ? voiceQuotaValues['YEARLY'] : '1000',
             lifetimeValue: voiceQuotaValues['LIFETIME']?.isNotEmpty == true ? voiceQuotaValues['LIFETIME'] : '10000',
+          ),
+          _PlanFeature(
+            name: 'AI OCR Quota (Pages)',
+            free: true,
+            sevenDay: true,
+            monthly: true,
+            yearly: true,
+            lifetime: true,
+            freeValue: ocrQuotaValues['FREE']?.isNotEmpty == true ? ocrQuotaValues['FREE'] : '0',
+            sevenDayValue: ocrQuotaValues['7 DAYS']?.isNotEmpty == true ? ocrQuotaValues['7 DAYS'] : '50',
+            monthlyValue: ocrQuotaValues['MONTHLY']?.isNotEmpty == true ? ocrQuotaValues['MONTHLY'] : '200',
+            yearlyValue: ocrQuotaValues['YEARLY']?.isNotEmpty == true ? ocrQuotaValues['YEARLY'] : '300',
+            lifetimeValue: ocrQuotaValues['LIFETIME']?.isNotEmpty == true ? ocrQuotaValues['LIFETIME'] : '300',
           ),
           const _PlanFeature(
             name: 'Max Single File Size Limit',
@@ -294,17 +316,17 @@ class _PlanComparisonMatrixState extends State<PlanComparisonMatrix> {
             yearly: true,
             lifetime: true,
           ),
-          const _PlanFeature(
+          _PlanFeature(
             name: 'AI OCR Engine (Scanned PDF to Word & Searchable PDF)*',
             free: false,
             sevenDay: true,
             monthly: true,
             yearly: true,
             lifetime: true,
-            sevenDayValue: '50 Pages/week',
-            monthlyValue: '200 Pages/month',
-            yearlyValue: '350 Pages/month',
-            lifetimeValue: '350 Pages/month',
+            sevenDayValue: '${ocrQuotaValues['7 DAYS']?.isNotEmpty == true ? ocrQuotaValues['7 DAYS'] : '50'} Pages/month',
+            monthlyValue: '${ocrQuotaValues['MONTHLY']?.isNotEmpty == true ? ocrQuotaValues['MONTHLY'] : '200'} Pages/month',
+            yearlyValue: '${ocrQuotaValues['YEARLY']?.isNotEmpty == true ? ocrQuotaValues['YEARLY'] : '300'} Pages/month',
+            lifetimeValue: '${ocrQuotaValues['LIFETIME']?.isNotEmpty == true ? ocrQuotaValues['LIFETIME'] : '300'} Pages/month',
           ),
           _PlanFeature.categoryHeader('AI & Resume Studio'),
           const _PlanFeature(
@@ -332,7 +354,15 @@ class _PlanComparisonMatrixState extends State<PlanComparisonMatrix> {
             lifetime: true,
           ),
           _PlanFeature(
-            name: 'Govt Exam Photo & Signature Resizer (SSC, IBPS, Passport presets)',
+            name: 'Smart Location / Navigation QR Generator',
+            free: _toolEnabledForPlan(AppToolsRegistry.qrLocationGenerator, 'Free'),
+            sevenDay: _toolEnabledForPlan(AppToolsRegistry.qrLocationGenerator, '7Days'),
+            monthly: _toolEnabledForPlan(AppToolsRegistry.qrLocationGenerator, 'Monthly'),
+            yearly: _toolEnabledForPlan(AppToolsRegistry.qrLocationGenerator, 'Yearly'),
+            lifetime: _toolEnabledForPlan(AppToolsRegistry.qrLocationGenerator, 'Lifetime'),
+          ),
+          _PlanFeature(
+            name: 'Govt-Rule Auto-Verifier & Redactor (Exact KB, 4x6 Sheet, B&W Clean)',
             free: _toolEnabledForPlan(_govtResizerToolName, 'Free'),
             sevenDay: _toolEnabledForPlan(_govtResizerToolName, '7Days'),
             monthly: _toolEnabledForPlan(_govtResizerToolName, 'Monthly'),

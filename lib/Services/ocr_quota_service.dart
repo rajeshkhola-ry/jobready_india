@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../Utils/web_safe_browser.dart';
 import 'owner_admin_access_service.dart';
+import 'plan_catalog_service.dart';
 import 'user_account_service.dart';
 
 /// Tracks the SHARED (combined) AI OCR page quota used by BOTH the scanned
@@ -14,12 +15,14 @@ import 'user_account_service.dart';
 class OcrQuotaService {
   static const String _storageKey = 'jobready_ocr_quota_v1';
 
+  // Last-resort fallback only - the real, admin-editable source of truth is
+  // PlanCatalogConfig.ocrQuotasByPlan (see monthlyLimitForCurrentPlan below).
   static const Map<String, int> _monthlyPageLimitByPlan = {
     'free': 0,
     '7days': 50,
     'monthly': 200,
-    'yearly': 350,
-    'lifetime': 350,
+    'yearly': 300,
+    'lifetime': 300,
   };
 
   static bool get isAdmin => OwnerAdminAccessService.isUnlocked;
@@ -35,10 +38,26 @@ class OcrQuotaService {
     return 'free';
   }
 
+  static const Map<String, String> _canonicalPlanKeyByNormalized = {
+    'free': 'Free',
+    '7days': '7Days',
+    'monthly': 'Monthly',
+    'yearly': 'Yearly',
+    'lifetime': 'Lifetime',
+  };
+
   /// Total combined OCR pages allowed per month for the current plan.
+  /// Reads the admin-editable value first (PlanCatalogConfig.ocrQuotasByPlan,
+  /// synced from the server-backed pricing config), falling back to shipped
+  /// defaults and finally the hardcoded map above if all else is missing.
   static int get monthlyLimitForCurrentPlan {
     final profile = UserAccountService.getProfile();
-    return _monthlyPageLimitByPlan[_normalizedPlan(profile.activePlan)] ?? 0;
+    final normalized = _normalizedPlan(profile.activePlan);
+    final canonicalKey = _canonicalPlanKeyByNormalized[normalized] ?? 'Free';
+    final config = PlanCatalogService.load();
+    final raw = config.ocrQuotasByPlan[canonicalKey] ?? PlanCatalogConfig.defaults().ocrQuotasByPlan[canonicalKey];
+    final parsed = raw != null ? int.tryParse(raw.trim()) : null;
+    return parsed ?? _monthlyPageLimitByPlan[normalized] ?? 0;
   }
 
   static bool get isFreePlan => _normalizedPlan(UserAccountService.getProfile().activePlan) == 'free';

@@ -691,6 +691,7 @@ class _PricingDialogState extends State<_PricingDialog> {
   late Map<String, TextEditingController> _usdControllers;
   late Map<String, TextEditingController> _quotaControllers;
   late Map<String, TextEditingController> _voiceQuotaControllers;
+  late Map<String, TextEditingController> _ocrQuotaControllers;
   late Map<String, List<String>> _enabledToolsByPlan;
   bool _isLoading = true;
   bool _isSaving = false;
@@ -719,6 +720,9 @@ class _PricingDialogState extends State<_PricingDialog> {
     for (final controller in _voiceQuotaControllers.values) {
       controller.dispose();
     }
+    for (final controller in _ocrQuotaControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -737,6 +741,10 @@ class _PricingDialogState extends State<_PricingDialog> {
       for (final plan in _plans)
         plan: TextEditingController(text: config.voiceQuotasByPlan[plan] ?? PlanCatalogConfig.defaults().voiceQuotasByPlan[plan] ?? '5')
     };
+    _ocrQuotaControllers = {
+      for (final plan in _plans)
+        plan: TextEditingController(text: config.ocrQuotasByPlan[plan] ?? PlanCatalogConfig.defaults().ocrQuotasByPlan[plan] ?? '0')
+    };
     _enabledToolsByPlan = {
       for (final plan in _plans) plan: List<String>.from(config.enabledToolsByPlan[plan] ?? const <String>[])
     };
@@ -746,11 +754,14 @@ class _PricingDialogState extends State<_PricingDialog> {
     final defaults = PlanCatalogConfig.defaults();
     final quotas = <String, String>{};
     final voiceQuotas = <String, String>{};
+    final ocrQuotas = <String, String>{};
     for (final plan in _plans) {
       final raw = _quotaControllers[plan]!.text.trim();
       quotas[plan] = raw.isEmpty ? (defaults.userQuotasByPlan[plan] ?? '2') : raw;
       final rawVoice = _voiceQuotaControllers[plan]!.text.trim();
       voiceQuotas[plan] = rawVoice.isEmpty ? (defaults.voiceQuotasByPlan[plan] ?? '5') : rawVoice;
+      final rawOcr = _ocrQuotaControllers[plan]!.text.trim();
+      ocrQuotas[plan] = rawOcr.isEmpty ? (defaults.ocrQuotasByPlan[plan] ?? '0') : rawOcr;
     }
 
     final config = PlanCatalogConfig(
@@ -765,6 +776,7 @@ class _PricingDialogState extends State<_PricingDialog> {
       },
       userQuotasByPlan: quotas,
       voiceQuotasByPlan: voiceQuotas,
+      ocrQuotasByPlan: ocrQuotas,
     );
     _saveToBackend(config);
   }
@@ -786,6 +798,7 @@ class _PricingDialogState extends State<_PricingDialog> {
           // hardcoded defaults every time this dialog re-opens.
           'user_quotas_by_plan': catalog['user_quotas_by_plan'] ?? widget.initialConfig.userQuotasByPlan,
           'voice_quotas_by_plan': catalog['voice_quotas_by_plan'] ?? widget.initialConfig.voiceQuotasByPlan,
+          'ocr_quotas_by_plan': catalog['ocr_quotas_by_plan'] ?? widget.initialConfig.ocrQuotasByPlan,
         });
         setState(() {
           _hydrateFromConfig(serverConfig);
@@ -936,6 +949,14 @@ class _PricingDialogState extends State<_PricingDialog> {
                 decoration: const InputDecoration(
                   labelText: 'Voice Commands Quota',
                   helperText: 'Examples: 5, 50, 200, 1000, Unlimited',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _ocrQuotaControllers[_selectedPlan],
+                decoration: const InputDecoration(
+                  labelText: 'AI OCR Quota (Pages)',
+                  helperText: 'Pages per month. Examples: 0, 50, 200, 300',
                 ),
               ),
               const SizedBox(height: 12),

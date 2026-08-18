@@ -1,13 +1,14 @@
 import 'dart:convert';
 
 import '../Utils/web_safe_browser.dart';
+import 'app_tools_registry.dart';
 
 class PlanCatalogConfig {
-  static const String resumeBuilderToolName = 'AI Resume Builder';
-  static const String legacyResumeBuilderToolName = 'Resume Builder';
+  static const String resumeBuilderToolName = AppToolsRegistry.resumeBuilder;
+  static const String legacyResumeBuilderToolName = AppToolsRegistry.legacyResumeBuilder;
   static const int freeTierMaxFileSizeMb = 25;
   static const int paidTierMaxFileSizeMb = 250;
-  static const int freeTierDailyConversionLimit = 5;
+  static const int freeTierDailyConversionLimit = 7;
   static const int unlimitedConversions = -1;
 
   static const Set<String> _paidPlans = <String>{
@@ -17,28 +18,7 @@ class PlanCatalogConfig {
     'Lifetime',
   };
 
-  static const List<String> registeredToolNames = <String>[
-    'Compress',
-    'Convert',
-    'Merge',
-    'Split',
-    'Extract',
-    'Edit PDF',
-    'OCR',
-    'History',
-    'CSV to Excel',
-    'AI Voice Command',
-    'Govt Exam Photo & Signature Resizer (SSC, IBPS, Passport)',
-    'PDF Compress (Single File) - set exact KB or MB target',
-    'Batch Compress (Multiple Files) - process many files',
-    'Micro-Canva (Background remover, passport resize, upscale, PNG to SVG)',
-    'Resume Canvas (Template canvas for resumes, cover letters, SOP drafts)',
-    'Poster Studio (Canvas-based poster, banner, flyer, and local print)',
-    'PDF OCR & Extract (Extract and search text from PDF pages)',
-    'Edit PDF (Edit PDF, then save and download)',
-    'HD Photo Studio',
-    resumeBuilderToolName,
-  ];
+  static const List<String> registeredToolNames = AppToolsRegistry.allTools;
 
   static bool isPaidPlan(String plan) => _paidPlans.contains(plan);
 
@@ -55,6 +35,7 @@ class PlanCatalogConfig {
   final Map<String, List<String>> enabledToolsByPlan;
   final Map<String, String> userQuotasByPlan;
   final Map<String, String> voiceQuotasByPlan;
+  final Map<String, String> ocrQuotasByPlan;
 
   const PlanCatalogConfig({
     required this.inrPrices,
@@ -62,6 +43,7 @@ class PlanCatalogConfig {
     required this.enabledToolsByPlan,
     this.userQuotasByPlan = const <String, String>{},
     this.voiceQuotasByPlan = const <String, String>{},
+    this.ocrQuotasByPlan = const <String, String>{},
   });
 
   factory PlanCatalogConfig.defaults() {
@@ -89,10 +71,11 @@ class PlanCatalogConfig {
           'Extract',
           'CSV to Excel',
           'AI Voice Command',
-          'Govt Exam Photo & Signature Resizer (SSC, IBPS, Passport)',
+          AppToolsRegistry.govtVerifier,
           'PDF Compress (Single File) - set exact KB or MB target',
           'HD Photo Studio',
           resumeBuilderToolName,
+          AppToolsRegistry.qrLocationGenerator,
         ],
         '7Days': [
           'Compress',
@@ -104,10 +87,12 @@ class PlanCatalogConfig {
           'OCR',
           'CSV to Excel',
           'AI Voice Command',
-          'Govt Exam Photo & Signature Resizer (SSC, IBPS, Passport)',
+          AppToolsRegistry.govtVerifier,
           'PDF Compress (Single File) - set exact KB or MB target',
           'HD Photo Studio',
           resumeBuilderToolName,
+          AppToolsRegistry.qrLocationGenerator,
+          AppToolsRegistry.visionOcr,
         ],
         'Monthly': [
           'Compress',
@@ -119,7 +104,7 @@ class PlanCatalogConfig {
           'OCR',
           'CSV to Excel',
           'AI Voice Command',
-          'Govt Exam Photo & Signature Resizer (SSC, IBPS, Passport)',
+          AppToolsRegistry.govtVerifier,
           'PDF Compress (Single File) - set exact KB or MB target',
           'Batch Compress (Multiple Files) - process many files',
           'Micro-Canva (Background remover, passport resize, upscale, PNG to SVG)',
@@ -129,6 +114,8 @@ class PlanCatalogConfig {
           'Edit PDF (Edit PDF, then save and download)',
           'HD Photo Studio',
           resumeBuilderToolName,
+          AppToolsRegistry.qrLocationGenerator,
+          AppToolsRegistry.visionOcr,
         ],
         'Yearly': [
           'Compress',
@@ -141,7 +128,7 @@ class PlanCatalogConfig {
           'History',
           'CSV to Excel',
           'AI Voice Command',
-          'Govt Exam Photo & Signature Resizer (SSC, IBPS, Passport)',
+          AppToolsRegistry.govtVerifier,
           'PDF Compress (Single File) - set exact KB or MB target',
           'Batch Compress (Multiple Files) - process many files',
           'Micro-Canva (Background remover, passport resize, upscale, PNG to SVG)',
@@ -151,6 +138,8 @@ class PlanCatalogConfig {
           'Edit PDF (Edit PDF, then save and download)',
           'HD Photo Studio',
           resumeBuilderToolName,
+          AppToolsRegistry.qrLocationGenerator,
+          AppToolsRegistry.visionOcr,
         ],
         'Lifetime': [
           'Compress',
@@ -163,7 +152,7 @@ class PlanCatalogConfig {
           'History',
           'CSV to Excel',
           'AI Voice Command',
-          'Govt Exam Photo & Signature Resizer (SSC, IBPS, Passport)',
+          AppToolsRegistry.govtVerifier,
           'PDF Compress (Single File) - set exact KB or MB target',
           'Batch Compress (Multiple Files) - process many files',
           'Micro-Canva (Background remover, passport resize, upscale, PNG to SVG)',
@@ -173,10 +162,12 @@ class PlanCatalogConfig {
           'Edit PDF (Edit PDF, then save and download)',
           'HD Photo Studio',
           resumeBuilderToolName,
+          AppToolsRegistry.qrLocationGenerator,
+          AppToolsRegistry.visionOcr,
         ],
       },
       userQuotasByPlan: {
-        'Free': '5',
+        'Free': '7',
         '7Days': '50',
         'Monthly': '1200',
         'Yearly': '2000',
@@ -189,17 +180,21 @@ class PlanCatalogConfig {
         'Yearly': '1000',
         'Lifetime': '10000',
       },
+      ocrQuotasByPlan: {
+        'Free': '0',
+        '7Days': '50',
+        'Monthly': '200',
+        'Yearly': '300',
+        'Lifetime': '300',
+      },
     );
   }
 
   static Set<String> get _v11AllowedTools => registeredToolNames.toSet();
 
   static String _canonicalToolName(String tool) {
-    final trimmed = tool.trim();
-    if (trimmed == legacyResumeBuilderToolName) {
-      return resumeBuilderToolName;
-    }
-    return trimmed;
+    final canonical = AppToolsRegistry.canonicalName(tool);
+    return canonical;
   }
 
   static List<String> _sanitizeTools(List<String> tools) {
@@ -220,6 +215,7 @@ class PlanCatalogConfig {
       'enabled_tools_by_plan': enabledToolsByPlan,
       'user_quotas_by_plan': userQuotasByPlan,
       'voice_quotas_by_plan': voiceQuotasByPlan,
+      'ocr_quotas_by_plan': ocrQuotasByPlan,
     };
   }
 
@@ -286,6 +282,7 @@ class PlanCatalogConfig {
       enabledToolsByPlan: readToolsMap(map['enabled_tools_by_plan'], defaults.enabledToolsByPlan),
       userQuotasByPlan: readQuotaMap(map['user_quotas_by_plan'], defaults.userQuotasByPlan),
       voiceQuotasByPlan: readQuotaMap(map['voice_quotas_by_plan'], defaults.voiceQuotasByPlan),
+      ocrQuotasByPlan: readQuotaMap(map['ocr_quotas_by_plan'], defaults.ocrQuotasByPlan),
     );
   }
 }

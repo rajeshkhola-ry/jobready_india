@@ -7,6 +7,7 @@ import '../Services/api_config.dart';
 import '../Services/usage_quota_service.dart';
 import '../Services/public_brand_config.dart';
 import '../Services/free_trial_service.dart';
+import '../Services/device_binding_service.dart';
 import '../Services/user_account_service.dart';
 import '../Services/user_auth_service.dart';
 import '../Services/owner_admin_access_service.dart';
@@ -67,6 +68,61 @@ Future<bool> checkQuotaAndProceed({
 }) async {
   if (_isAdminBypassActive()) {
     return true;
+  }
+
+  if (!DeviceBindingService.checkAndBindForFreePlan()) {
+    if (!context.mounted) {
+      return false;
+    }
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Row(
+          children: [
+            Icon(Icons.devices_other_rounded, color: Color(0xFFB45309)),
+            SizedBox(width: 8),
+            Text(
+              'Device Limit Reached',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              DeviceBindingService.blockedMessage,
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Contact: ${PublicBrandConfig.supportEmail}',
+              style: const TextStyle(fontSize: 12, color: Color(0xFF1D4ED8), fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Close'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0F172A),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('View Plans'),
+          ),
+        ],
+      ),
+    );
+    return false;
   }
 
   final summary = UsageQuotaService.getTodaySummary();
