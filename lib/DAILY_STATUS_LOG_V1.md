@@ -1847,3 +1847,14 @@ Prepared For: JOBREADY
   - **Scope note**: backend-only change, no Flutter/Firebase deploy needed. Committed + pushed (commit `6b987ef`).
   - Repo memory updated (`compression_notes.md`).
 - Owner: Founder + Copilot
+
+### Same day follow-up — Zero-cost self-healing/auto-recovery shield + health endpoint
+- Overall status: Green (deployed, live verification pending Render rebuild)
+- Completed:
+  - **Crash guards** ✓ — `process.on('uncaughtException'/'unhandledRejection')` now catch otherwise-fatal errors so one bad request doesn't take the whole server down. Registered ONLY when the server runs directly (not when tests `require()` the app - confirmed by re-running the full existing test suite, 23/23 still pass).
+  - **Rolling auto-repair** ✓ — tracks critical errors in a rolling 5-minute window; more than 5 triggers a `[CRITICAL AUTO-REPAIR] Memory flush & pool recycling triggered` log and a single controlled `process.exit(1)` - Render auto-restarts the container within seconds for a genuinely clean recovery (a full process reset, not a partial in-place patch, matching Node's own guidance against limping along after an uncaught exception).
+  - **Health endpoint** ✓ — new `GET /health` and `GET /api/health`, both returning `{status:'ok', uptime, timestamp, memory: rss}` with 200, for external keep-alive/monitor probes.
+  - **Validation** ✓ — `node --check compression_server.js` → exit 0; full Node test suite → 23/23 pass; live-smoke-tested both health routes against a directly-run local server; verified the rolling-window/threshold/exit-guard logic standalone (7 synthetic errors: 1-5 no-op, 6 triggers exactly one auto-repair + exit, 7 does not re-trigger).
+  - **Scope note**: backend-only change, no Flutter/Firebase deploy needed. Committed + pushed (commit `c1915b1`).
+  - New repo memory file `server_resilience_notes.md` created.
+- Owner: Founder + Copilot
