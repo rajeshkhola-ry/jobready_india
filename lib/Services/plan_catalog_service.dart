@@ -50,17 +50,17 @@ class PlanCatalogConfig {
     return const PlanCatalogConfig(
       inrPrices: {
         'Free': 0,
-        '7Days': 99,
-        'Monthly': 149,
-        'Yearly': 999,
-        'Lifetime': 9999,
+        '7Days': 199,
+        'Monthly': 499,
+        'Yearly': 2499,
+        'Lifetime': 19999,
       },
       usdPrices: {
         'Free': 0,
-        '7Days': 2.99,
-        'Monthly': 4.99,
+        '7Days': 4.99,
+        'Monthly': 9.99,
         'Yearly': 29.99,
-        'Lifetime': 120,
+        'Lifetime': 199.99,
       },
       enabledToolsByPlan: {
         'Free': [
@@ -175,10 +175,10 @@ class PlanCatalogConfig {
       },
       voiceQuotasByPlan: {
         'Free': '0',
-        '7Days': '50',
-        'Monthly': '200',
-        'Yearly': '1000',
-        'Lifetime': '10000',
+        '7Days': '25',
+        'Monthly': '150',
+        'Yearly': '1500',
+        'Lifetime': '5000',
       },
       ocrQuotasByPlan: {
         'Free': '0',

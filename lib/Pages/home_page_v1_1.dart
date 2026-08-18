@@ -125,16 +125,16 @@ class _HomePageV11State extends State<HomePageV11> {
 
   // Manual pricing control: update these values any time.
   // INR Pricing
-  static const double _sevenDayPlanInr = 99.0;
-  static const double _monthlyPlanInr = 149.0;
-  static const double _yearlyPlanInr = 999.0;
-  static const double _lifetimePlanInr = 9999.0;
+  static const double _sevenDayPlanInr = 199.0;
+  static const double _monthlyPlanInr = 499.0;
+  static const double _yearlyPlanInr = 2499.0;
+  static const double _lifetimePlanInr = 19999.0;
 
   // USD Pricing
-  static const double _sevenDayPlanUsd = 2.99;
-  static const double _monthlyPlanUsd = 4.99;
+  static const double _sevenDayPlanUsd = 4.99;
+  static const double _monthlyPlanUsd = 9.99;
   static const double _yearlyPlanUsd = 29.99;
-  static const double _lifetimePlanUsd = 120.0;
+  static const double _lifetimePlanUsd = 199.99;
 
   static const double _businessIncreaseMultiplier = 1.75;
 
@@ -2277,16 +2277,16 @@ class _PlanCardTileState extends State<_PlanCardTile> {
   String _getFormattedEnabledTools(String title, List<String> rawTools) {
     final upperTitle = title.toUpperCase();
     if (upperTitle.contains('MONTHLY')) {
-      return 'All Core & PDF tools, Edit PDF & OCR, Batch Compress, Micro-Canva, Resume Canvas, Poster Studio, HD Photo, AI Resume';
+      return 'All Core & PDF tools, Edit PDF & OCR, Batch Compress, Micro-Canva, Resume Canvas, Poster Studio, HD Photo, AI Resume, 150 AI Voice Action Commands';
     }
     if (upperTitle.contains('YEARLY')) {
-      return 'All Monthly tools + History, Priority Processing & Full Suite Access';
+      return 'All Monthly tools + History, Priority Processing & Full Suite Access, 1,500 AI Voice Action Commands';
     }
     if (upperTitle.contains('LIFETIME')) {
-      return 'All Yearly tools + Lifetime Unlimited Access (1 PC + 1 Mobile)';
+      return 'All Yearly tools + Lifetime Unlimited Access (1 PC + 1 Mobile), 5,000 Lifetime AI Voice Commands';
     }
     if (upperTitle.contains('7 DAYS') || upperTitle.contains('7DAYS')) {
-      return 'Compress, Convert, Merge, Split, Extract, Edit PDF, OCR, Target KB Compress, HD Photo, AI Resume';
+      return 'Compress, Convert, Merge, Split, Extract, Edit PDF, OCR, Target KB Compress, HD Photo, AI Resume, 25 AI Voice Action Commands';
     }
     if (upperTitle.contains('FREE')) {
       return 'Compress, Convert, Merge, Split, Extract, Target KB Compress, HD Photo, AI Resume';

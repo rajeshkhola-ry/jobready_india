@@ -9,8 +9,8 @@ enum _VoiceButtonState { idle, listening, processing }
 
 /// Animated microphone button for the homepage drop-zone.
 ///
-/// Tap to start a short (auto-stops after [maxRecordingSeconds]) voice
-/// recording, which is sent to the backend for Gemini Flash classification.
+/// Tap to start a voice recording (auto-stops after [maxRecordingSeconds]),
+/// which is sent to the backend for Gemini Flash classification.
 /// The raw [VoiceCommandResult] (success or failure) is always handed back
 /// via [onResult] - this widget only owns the recording/animation UI, the
 /// caller decides what to do with the result (navigate, show an error, etc).
@@ -20,7 +20,7 @@ class VoiceCommandButton extends StatefulWidget {
     required this.onResult,
     this.onListeningChanged,
     this.onLiveTranscript,
-    this.maxRecordingSeconds = 5,
+    this.maxRecordingSeconds = 20,
   });
 
   final ValueChanged<VoiceCommandResult> onResult;
