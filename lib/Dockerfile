@@ -32,6 +32,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-freefont-ttf \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
+# Defensive belt-and-suspenders fix for "spawn soffice ENOENT" at runtime: makes
+# sure both the /usr/bin wrapper script and the real LibreOffice program directory
+# are on PATH for the actual running container process, not just the build-time
+# shell used by the `RUN which soffice` check below (a `which` success at build
+# time does not guarantee an identical PATH for the CMD process at runtime).
+ENV PATH="/usr/lib/libreoffice/program:/usr/bin:${PATH}"
+
 # Install pdf2docx (Python/PyMuPDF-based) for high-fidelity PDF -> DOCX conversion: real
 # table bounding-box detection, multi-column text flow, and embedded shapes - tried before
 # the headless LibreOffice fallback. openpyxl reads every sheet of an XLSX workbook in
