@@ -8,6 +8,7 @@ import '../Services/usage_quota_service.dart';
 import '../Services/public_brand_config.dart';
 import '../Services/free_trial_service.dart';
 import '../Services/device_binding_service.dart';
+import '../Services/plan_catalog_service.dart';
 import '../Services/user_account_service.dart';
 import '../Services/user_auth_service.dart';
 import '../Services/owner_admin_access_service.dart';
@@ -125,39 +126,26 @@ Future<bool> checkQuotaAndProceed({
     return false;
   }
 
-  final summary = UsageQuotaService.getTodaySummary();
-
-  bool overLimit = false;
-  int used = 0;
-  int limit = 0;
-
-  switch (actionBucket) {
-    case 'compress':
-      used = summary.compressions;
-      limit = summary.compressionLimit;
-      overLimit = used >= limit;
-      break;
-    case 'convert':
-      used = summary.conversions;
-      limit = summary.conversionLimit;
-      overLimit = used >= limit;
-      break;
-    case 'merge':
-      used = summary.merges;
-      limit = summary.mergeLimit;
-      overLimit = used >= limit;
-      break;
-    case 'split':
-      used = summary.splits;
-      limit = summary.splitLimit;
-      overLimit = used >= limit;
-      break;
-    default:
-      return true;
+  // Paid plans (7Days/Monthly/Yearly/Lifetime) have no daily action cap -
+  // matches PlanCatalogConfig.dailyConversionLimitForPlan()'s existing
+  // "unlimited for any paid plan" intent, which nothing previously enforced.
+  final profile = UserAccountService.getProfile();
+  final plan = profile.activePlan.trim().isEmpty ? 'Free' : profile.activePlan.trim();
+  if (PlanCatalogConfig.isPaidPlan(plan)) {
+    _syncPaidQuotaConsumption();
+    return true;
   }
 
+  // Free plan: ONE combined daily pool across compress/convert/merge/split
+  // (not 4 separate high buckets) - the real enforcement number now comes
+  // from the SAME admin-editable "Daily Usage Quota" shown in the Pricing
+  // Modal/Comparison Table, so an admin change actually takes effect here.
+  final summary = UsageQuotaService.getTodaySummary();
+  final combinedUsed = summary.compressions + summary.conversions + summary.merges + summary.splits;
+  final combinedLimit = _freeDailyCombinedLimit();
+  final overLimit = combinedLimit >= 0 && combinedUsed >= combinedLimit;
+
   if (!overLimit) {
-    _syncPaidQuotaConsumption();
     return true;
   }
 
@@ -184,7 +172,7 @@ Future<bool> checkQuotaAndProceed({
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'You have used $used of $limit free $actionBucket actions today.',
+            'You have used $combinedUsed of $combinedLimit free actions today.',
             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 10),
@@ -220,6 +208,22 @@ Future<bool> checkQuotaAndProceed({
   );
 
   return false;
+}
+
+/// Free plan's combined daily action limit - reads the SAME admin-editable
+/// "Daily Usage Quota" value used by the Pricing Modal/Comparison Table
+/// (PlanCatalogConfig.userQuotasByPlan['Free']), 'Unlimited' aware. Falls
+/// back to PlanCatalogConfig.freeTierDailyConversionLimit if unset/unparsable.
+int _freeDailyCombinedLimit() {
+  final config = PlanCatalogService.load();
+  final raw = (config.userQuotasByPlan['Free'] ??
+          PlanCatalogConfig.defaults().userQuotasByPlan['Free'] ??
+          PlanCatalogConfig.freeTierDailyConversionLimit.toString())
+      .trim();
+  if (raw.toLowerCase() == 'unlimited') {
+    return -1;
+  }
+  return int.tryParse(raw) ?? PlanCatalogConfig.freeTierDailyConversionLimit;
 }
 
 /// Call this before entering a one-time-free premium tool (AI Resume Builder,
