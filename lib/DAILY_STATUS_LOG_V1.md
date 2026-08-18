@@ -1696,3 +1696,16 @@ Prepared For: JOBREADY
   - **Build & deploy** ✓ — `flutter build web --release` success; `firebase deploy --only hosting --project getreadyjob-india-1cb34` success; committed + pushed (commit `cd85087`).
   - New repo memory file `vision_ocr_notes.md` created with full architecture notes and the manual Render env-var follow-up flagged prominently.
 - Owner: Founder + Copilot
+
+### Same day follow-up — HD Photo Studio: AI background removal / transparent cutout
+- Overall status: Green (deployed)
+- Completed:
+  - **Verified (hands-on) that both suggested libraries violate the RAM budget** ✓ — installed `@imgly/background-removal-node` locally and measured a real end-to-end call: RSS jumped from ~61MB to **~1014MB** and stayed there (one-time model-load cost). `rembg-node` is deprecated and shares the same ONNX engine, so very likely the same footprint. Neither can realistically hit the requested <150MB.
+  - **User was unavailable to weigh in** on the tradeoff (asked directly first) — proceeded autonomously per instructions, prioritizing "stability over speed" and protecting the shared production Render container over one feature's peak quality.
+  - **Shipped a classical color-distance ("chroma key") cutout using `sharp` only** ✓ — `removeImageBackground()`/`estimateBorderColor()` in `compression_server.js`: samples the image's own border pixels to estimate the background color, builds a per-pixel color-distance alpha mask with a soft feathered edge. Verified end-to-end on a synthetic ID-photo-style test image: **158ms, +6MB RSS, pixel-perfect alpha transparency** — well under budget and fast. Best suited to this app's dominant use case (ID/passport/product photos on a plain background); less precise than true AI on busy/complex backgrounds - disclosed as a deliberate tradeoff.
+  - **New endpoint** ✓ — `POST /api/photo/remove-bg` (same client-gated, no-`enforceQuotaMiddleware` pattern as `/api/photo/render-preset`).
+  - **HD Photo Workspace in-place upgrade** ✓ — new "Remove Background / Transparent Cutout" button (via `RemotePhotoRenderService.removeBackground()`) and "Export Transparent PNG" button, both added directly to the existing workspace page (no new tool page/card). Applying a solid background fill already works via the existing composite-onto-canvas pipeline, unchanged. Gradient backgrounds were not implemented (solid colors only) - disclosed scope decision.
+  - **Validation** ✓ — `node --check compression_server.js` → exit 0; `flutter analyze lib/Pages/v2/photo/photo_hd_workspace_page.dart` → only pre-existing baseline issues, zero new.
+  - **Build & deploy** ✓ — `flutter build web --release` success; `firebase deploy --only hosting --project getreadyjob-india-1cb34` success; committed + pushed (commit `51fc01d`).
+  - Repo memory updated (`photo_workspace_notes.md`); new cross-project lesson recorded in user memory (`engineering_practices.md`) about verifying ML library resource usage hands-on before integrating into memory-constrained backends.
+- Owner: Founder + Copilot
