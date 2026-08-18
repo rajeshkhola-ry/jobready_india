@@ -1721,3 +1721,15 @@ Prepared For: JOBREADY
   - **Build & deploy** ✓ — `flutter build web --release` success; `firebase deploy --only hosting --project getreadyjob-india-1cb34` success; committed + pushed (commit `e5994f2`).
   - New repo memory file `govt_verifier_notes.md` created.
 - Owner: Founder + Copilot
+
+### Same day follow-up — Fixed "spawn soffice ENOENT" 500 error on Render (PDF-to-Word)
+- Overall status: Green (pushed - Render rebuilds automatically)
+- Completed:
+  - **Root cause** ✓ — Tier 2 (LibreOffice) fallback couldn't locate the `soffice` binary at runtime on Render, despite the Dockerfile's build-time `which soffice` check passing - a build-time-vs-runtime PATH resolution gap for the actual running process, not a missing apt package.
+  - **Hardened binary resolution** ✓ — `resolveLibreOfficeBinary()` now checks absolute Linux paths first (`/usr/bin/soffice`, `/usr/lib/libreoffice/program/soffice`, `/opt/libreoffice/program/soffice`), immune to PATH differences. New `isLibreOfficeAvailable()` fail-fast guard added to both `convertPdfToDocxWithLibreOffice()` and `convertSpreadsheetWithLibreOffice()` - a missing binary now returns a clear error instead of a raw ENOENT crash.
+  - **Dockerfile** ✓ — added `ENV PATH="/usr/lib/libreoffice/program:/usr/bin:${PATH}"` as a defensive fix for the runtime CMD process specifically.
+  - **Diagnostics** ✓ — server startup log and `GET /api/info` now report `libreOfficeAvailable`/`libreOfficePath`, so the fix can be verified post-deploy without shell access to the container.
+  - **Validation** ✓ — `node --check compression_server.js` → exit 0 (checked after each round of edits).
+  - **Scope note**: backend/Dockerfile-only fix, no Flutter client changes - no build/Firebase deploy needed this time, per explicit request scope. Committed + pushed (commit `5a12928`); Render rebuilds automatically on push.
+  - Repo memory updated (`compression_notes.md`).
+- Owner: Founder + Copilot
