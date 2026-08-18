@@ -151,6 +151,7 @@ class ApiConfig {
 
   /// Photo HD Workspace Endpoints
   static const String photoRenderPresetEndpoint = '/api/photo/render-preset';
+  static const String removeBackgroundEndpoint = '/api/photo/remove-bg';
 
   /// Merge Service Endpoints
   static const String mergeEndpoint = '/files/merge';

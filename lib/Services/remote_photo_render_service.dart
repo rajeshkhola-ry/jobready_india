@@ -84,6 +84,54 @@ class RemotePhotoRenderService {
     }
   }
 
+  /// Sends [bytes] to the server's lightweight (sharp-only, no ML model)
+  /// background-removal endpoint and returns a transparent PNG. See
+  /// compression_server.js's removeImageBackground() for why a classical
+  /// color-distance cutout was used instead of an ONNX-based model (both
+  /// suggested options held a ~1GB resident model in memory once loaded,
+  /// incompatible with the endpoint's <150MB budget).
+  Future<Uint8List> removeBackground({
+    required Uint8List bytes,
+    required String fileName,
+  }) async {
+    try {
+      final base = ApiConfig.baseUrl.endsWith('/')
+          ? ApiConfig.baseUrl.substring(0, ApiConfig.baseUrl.length - 1)
+          : ApiConfig.baseUrl;
+      final uri = Uri.parse('$base${ApiConfig.removeBackgroundEndpoint}');
+
+      final request = http.MultipartRequest('POST', uri)
+        ..files.add(
+          http.MultipartFile.fromBytes(
+            'image',
+            bytes,
+            filename: fileName,
+            contentType: _mediaTypeForFileName(fileName),
+          ),
+        );
+
+      final streamed = await request.send().timeout(_renderTimeout);
+      final response = await http.Response.fromStream(streamed);
+
+      if (response.statusCode != 200) {
+        throw RemotePhotoRenderException('Background removal failed (status: ${response.statusCode}).');
+      }
+
+      final output = response.bodyBytes;
+      if (output.isEmpty) {
+        throw const RemotePhotoRenderException('Background removal returned an empty file.');
+      }
+
+      return output;
+    } on TimeoutException {
+      throw const RemotePhotoRenderException('Background removal timed out.');
+    } on RemotePhotoRenderException {
+      rethrow;
+    } catch (error) {
+      throw RemotePhotoRenderException('Background removal failed: $error');
+    }
+  }
+
   MediaType _mediaTypeForFileName(String fileName) {
     final lower = fileName.toLowerCase();
     if (lower.endsWith('.png')) return MediaType('image', 'png');

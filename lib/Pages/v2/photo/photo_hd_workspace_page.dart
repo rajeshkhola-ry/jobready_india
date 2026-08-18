@@ -9,6 +9,7 @@ import 'package:universal_html/html.dart' as html;
 import '../../../Services/file_picker_service.dart';
 import '../../../Services/free_trial_service.dart';
 import '../../../Services/photo_resize_service.dart';
+import '../../../Services/remote_photo_render_service.dart';
 import '../../../Services/upload_context_service.dart';
 import '../../../Services/wasm_document_service.dart';
 import '../../../Utils/tool_navigation.dart';
@@ -60,6 +61,8 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
   bool _isProcessing = false;
   double _processingProgress = 0.0;
   Timer? _processingPulseTimer;
+  bool _isRemovingBackground = false;
+  bool _hasTransparentCutout = false;
   double _comparisonPosition = 0.5;
   Uint8List? _comparisonPreviewBytes;
   int _customWidth = 1080;
@@ -169,6 +172,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
     }
     setState(() {
       _selectedImage = PickedFileData(name: normalizedName, size: bytes.length, bytes: bytes);
+      _hasTransparentCutout = false;
       _statusType = _StatusType.idle;
       _statusMessage = 'Image dropped: $normalizedName';
     });
@@ -186,6 +190,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
 
     setState(() {
       _selectedImage = image;
+      _hasTransparentCutout = false;
       _statusType = _StatusType.idle;
       _statusMessage = 'Loaded image from workspace upload: ${image.name}';
     });
@@ -208,6 +213,7 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
 
     setState(() {
       _selectedImage = picked;
+      _hasTransparentCutout = false;
       _statusType = _StatusType.idle;
       _statusMessage = 'Image selected: ${picked.name}';
     });
@@ -413,6 +419,79 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
         _comparisonPreviewBytes = null;
       });
     }
+  }
+
+  /// Sends the current working image to the server's lightweight background-
+  /// removal endpoint and replaces the working image with the transparent
+  /// PNG result. Users can then either export it as-is (Export Transparent
+  /// PNG) or pick a background fill and use the normal Generate flow, which
+  /// already composites a (possibly transparent) source onto the selected
+  /// background color.
+  Future<void> _removeBackground() async {
+    final selectedImage = _selectedImage;
+    if (selectedImage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please upload a photo first.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isRemovingBackground = true;
+      _statusType = _StatusType.processing;
+      _statusMessage = 'Removing background...';
+    });
+
+    try {
+      final transparentBytes = await const RemotePhotoRenderService().removeBackground(
+        bytes: selectedImage.bytes,
+        fileName: selectedImage.name,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      final baseName = selectedImage.name.contains('.')
+          ? selectedImage.name.substring(0, selectedImage.name.lastIndexOf('.'))
+          : selectedImage.name;
+
+      setState(() {
+        _selectedImage = PickedFileData(
+          name: '${baseName}_transparent.png',
+          size: transparentBytes.length,
+          bytes: transparentBytes,
+        );
+        _hasTransparentCutout = true;
+        _isRemovingBackground = false;
+        _statusType = _StatusType.success;
+        _statusMessage = 'Background removed. Export as transparent PNG or choose a background fill below.';
+      });
+
+      Future<void>.microtask(_refreshComparisonPreview);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isRemovingBackground = false;
+        _statusType = _StatusType.error;
+        _statusMessage = 'Background removal failed: $error';
+      });
+    }
+  }
+
+  void _exportTransparentPng() {
+    final selectedImage = _selectedImage;
+    if (selectedImage == null || !_hasTransparentCutout) {
+      return;
+    }
+
+    WasmDocumentService.triggerBrowserDownload(
+      bytes: selectedImage.bytes,
+      fileName: selectedImage.name,
+      mimeType: 'image/png',
+    );
   }
 
   Future<void> _generatePhoto() async {
@@ -1497,6 +1576,29 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                             ),
                           ),
                           const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: (_isProcessing || _isRemovingBackground || _selectedImage == null)
+                                  ? null
+                                  : _removeBackground,
+                              icon: Icon(_isRemovingBackground ? Icons.hourglass_top_rounded : Icons.auto_fix_high_rounded),
+                              label: Text(_isRemovingBackground ? 'Removing background...' : 'Remove Background / Transparent Cutout'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: const Color(0xFF0F766E),
+                                side: const BorderSide(color: Color(0xFF0F766E), width: 1.5),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                            ),
+                          ),
+                          if (_hasTransparentCutout) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              'Background removed - pick a fill below to composite it, or export the transparent PNG directly.',
+                              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                            ),
+                          ],
+                          const SizedBox(height: 12),
                           DropdownButtonFormField<String>(
                             value: _selectedBackgroundColor,
                             items: const [
@@ -1723,6 +1825,22 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
                               label: Text(_isProcessing ? 'Processing...' : 'Generate Poster / Photo Output'),
                             ),
                           ),
+                          if (_hasTransparentCutout) ...[
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: _isProcessing ? null : _exportTransparentPng,
+                                icon: const Icon(Icons.layers_clear_rounded),
+                                label: const Text('Export Transparent PNG'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: const Color(0xFF0F766E),
+                                  side: const BorderSide(color: Color(0xFF0F766E), width: 1.5),
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                ),
+                              ),
+                            ),
+                          ],
                           if (_isProcessing) ...[
                             const SizedBox(height: 10),
                             LinearProgressIndicator(
