@@ -1659,3 +1659,14 @@ Prepared For: JOBREADY
   - **Build & deploy** ✓ — `flutter build web --release` success; `firebase deploy --only hosting --project getreadyjob-india-1cb34` success; committed + pushed (commit `1064a87`).
   - Repo memory updated (`compression_notes.md`).
 - Owner: Founder + Copilot
+
+### Same day follow-up — Scanned-PDF pipeline simplification (removed Tier 3 image-to-DOCX hack)
+- Overall status: Green (deployed)
+- Completed:
+  - **Removed the fragile Tier 3 rasterize-to-DOCX fallback entirely** ✓ — per explicit request to avoid over-engineering scanned-image workarounds. Deleted `convertPdfToDocxFromRasterizedImages()`, `lib/rasterize_to_docx.py`, and the `python-docx` pip dependency.
+  - **Clean scanned-PDF response** ✓ — `checkPdfHasSelectableText()` still runs upfront; normal digital PDFs still use pdf2docx → LibreOffice fallback unchanged. 100% scanned/photostat PDFs now get a clean `422 { success:false, isScanned:true, message:"...Use OCR or Extract Images tool." }` response instead of a rasterized-image DOCX.
+  - **Client + UI** ✓ — `RemoteConversionException` gained `isScanned`; `ConversionResult` gained `isScannedPdf` (skips the local OCR fallback on a confirmed scan); `convert_tool_page.dart` now shows a distinct orange "⚠ Scanned photo PDF detected. Please use the OCR or Extract tool for image-based documents." banner instead of a red error for both the single-file and intent-conversion flows.
+  - **Validation** ✓ — `node --check compression_server.js` → exit 0; `flutter analyze lib/Pages/convert_tool_page.dart` → 11 pre-existing baseline issues only; `conversion_service.dart` + `remote_conversion_service.dart` → "No issues found!".
+  - **Build & deploy** ✓ — `flutter build web --release` success; `firebase deploy --only hosting --project getreadyjob-india-1cb34` success; committed + pushed (commit `90bab08`).
+  - Repo memory updated (`compression_notes.md`).
+- Owner: Founder + Copilot
