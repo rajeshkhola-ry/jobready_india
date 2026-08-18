@@ -39,6 +39,7 @@ import 'Pages/split_tool_page.dart' deferred as splitToolPage;
 import 'Pages/v2/history/history_page.dart' deferred as historyPage;
 import 'Pages/v2/photo/photo_hd_workspace_page.dart' deferred as photoHdWorkspacePage;
 import 'Pages/v2/resume/resume_workspace_page.dart' deferred as resumeWorkspacePage;
+import 'Pages/voice_interview_page.dart' deferred as voiceInterviewPage;
 import 'Widgets/deferred_route_page.dart';
 
 void main() {
@@ -352,6 +353,18 @@ class JobReadyV11App extends StatelessWidget {
             await docPackagerPage.loadLibrary();
           },
           builder: () => docPackagerPage.DocPackagerPage(),
+        ),
+        '/ai-mock-interview': (_) => DeferredRoutePage(
+          loader: () async {
+            await voiceInterviewPage.loadLibrary();
+          },
+          builder: () => voiceInterviewPage.VoiceInterviewPage(),
+        ),
+        '/voice-interview': (_) => DeferredRoutePage(
+          loader: () async {
+            await voiceInterviewPage.loadLibrary();
+          },
+          builder: () => voiceInterviewPage.VoiceInterviewPage(),
         ),
         '/admin': (_) => const AdminGatePage(targetRoute: '/admin-dashboard'),
         '/admin-2fa': (_) => const AdminTwoFactorPage(),

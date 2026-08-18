@@ -5560,6 +5560,16 @@ class _MostPopularToolsCard extends StatelessWidget {
                     Navigator.of(context).pushNamed('/poster-banner-studio');
                   },
                 ),
+                _PopularToolRow(
+                  icon: Icons.record_voice_over_rounded,
+                  label: 'AI Voice Mock Interview',
+                  description: 'Practice real interview questions with instant AI voice feedback and scoring.',
+                  isFlagship: true,
+                  badgeText: 'NEW',
+                  onTap: () {
+                    Navigator.of(context).pushNamed('/ai-mock-interview');
+                  },
+                ),
               ];
 
               final tools = <Widget>[
