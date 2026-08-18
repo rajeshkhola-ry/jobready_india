@@ -42,6 +42,10 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
   bool _isResizing = false;
   String _resizerStatus = 'Select an exam/portal preset and upload your photo.';
   String? _achievedSize;
+  int? _achievedBytes;
+  bool _cleanSignatureMode = false;
+  Uint8List? _lastResizedBytes;
+  bool _isGeneratingPrintSheet = false;
 
   // ── Tab 3: Smart Redactor ──────────────────────────────────────────────────
   PickedFileData? _redactorFile;
@@ -206,13 +210,17 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
     setState(() {
       _resizerFile = picked;
       _achievedSize = null;
+      _achievedBytes = null;
+      _lastResizedBytes = null;
       _resizerStatus = 'Image loaded: ${picked.name}. Tap "Resize & Download".';
     });
   }
 
+  bool get _isSignaturePreset => _selectedPreset.id.contains('signature');
+
   Future<void> _resizeAndDownload() async {
     if (_resizerFile == null) return;
-    setState(() { _isResizing = true; _achievedSize = null; _resizerStatus = 'Resizing…'; });
+    setState(() { _isResizing = true; _achievedSize = null; _achievedBytes = null; _resizerStatus = 'Resizing…'; });
     try {
       final result = await compute(
         computeGovtPhotoResize,
@@ -221,12 +229,15 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
           width: _selectedPreset.width,
           height: _selectedPreset.height,
           targetKb: _targetKb,
+          cleanSignature: _isSignaturePreset && _cleanSignatureMode,
         ),
       );
       if (!mounted) return;
       final achievedKb = (result.length / 1024).toStringAsFixed(1);
       setState(() {
         _achievedSize = '${achievedKb} KB  •  ${_selectedPreset.width}×${_selectedPreset.height} px';
+        _achievedBytes = result.length;
+        _lastResizedBytes = result;
         _resizerStatus = 'Done — ${achievedKb} KB, ${_selectedPreset.width}×${_selectedPreset.height} px.';
       });
       final label = _selectedPreset.id.replaceAll('_', '-');
@@ -240,6 +251,28 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
       if (mounted) setState(() => _resizerStatus = 'Resize failed: $e');
     } finally {
       if (mounted) setState(() => _isResizing = false);
+    }
+  }
+
+  Future<void> _downloadPrintSheet() async {
+    final resizedBytes = _lastResizedBytes;
+    if (resizedBytes == null) return;
+    setState(() { _isGeneratingPrintSheet = true; _resizerStatus = 'Building 4×6" print sheet…'; });
+    try {
+      final sheet = await compute(computeGovtPrintSheet, GovtPrintSheetArgs(bytes: resizedBytes));
+      if (!mounted) return;
+      final label = _selectedPreset.id.replaceAll('_', '-');
+      WasmDocumentService.triggerBrowserDownload(
+        bytes: sheet,
+        fileName: 'govt_photo_${label}_4x6_print_sheet.jpg',
+        mimeType: 'image/jpeg',
+      );
+      setState(() => _resizerStatus = 'Print sheet ready — 8 copies on a 4×6" (300 DPI) canvas. ✓');
+      AnalyticsService.trackToolAction('govt_verifier', 'print_sheet');
+    } catch (e) {
+      if (mounted) setState(() => _resizerStatus = 'Print sheet failed: $e');
+    } finally {
+      if (mounted) setState(() => _isGeneratingPrintSheet = false);
     }
   }
 
@@ -559,6 +592,9 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
                           _selectedPreset = preset;
                           _targetKb = preset.maxKb;
                           _achievedSize = null;
+                          _achievedBytes = null;
+                          _lastResizedBytes = null;
+                          _cleanSignatureMode = false;
                         }),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 130),
@@ -648,6 +684,16 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
                     label: Text(_resizerFile == null ? 'Upload Image' : 'Replace Image'),
                     style: _primaryBtn(const Color(0xFF1E5B88)),
                   ),
+                  if (_isSignaturePreset) ...[
+                    const SizedBox(height: 10),
+                    SwitchListTile.adaptive(
+                      value: _cleanSignatureMode,
+                      onChanged: (v) => setState(() => _cleanSignatureMode = v),
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Clean & High-Contrast Signature (B&W)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                      subtitle: const Text('Turns grey/shadowy paper backgrounds into crisp white with dark, legible ink.', style: TextStyle(fontSize: 11.5)),
+                    ),
+                  ],
                 ],
               )),
               const SizedBox(height: 14),
@@ -667,9 +713,90 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
                   style: _primaryBtn(const Color(0xFF1E5B88)),
                 ),
               ),
+              if (_achievedBytes != null) ...[
+                const SizedBox(height: 14),
+                _buildComplianceBadge(),
+              ],
+              if (_lastResizedBytes != null && !_isSignaturePreset) ...[
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _isGeneratingPrintSheet ? null : _downloadPrintSheet,
+                    icon: _isGeneratingPrintSheet
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.grid_view_rounded),
+                    label: Text(_isGeneratingPrintSheet
+                        ? 'Building print sheet…'
+                        : 'Download 4×6 Print Sheet (8 Photos Grid)'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF1E5B88),
+                      side: const BorderSide(color: Color(0xFF1E5B88), width: 1.5),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildComplianceBadge() {
+    final p = _selectedPreset;
+    final achievedBytes = _achievedBytes!;
+    final achievedKb = achievedBytes / 1024;
+    final dimensionsPass = true; // computeGovtPhotoResize always forces exact preset width/height.
+    final kbPass = achievedKb >= p.minKb && achievedKb <= p.maxKb;
+    const formatPass = true; // Output is always encoded as JPEG.
+    final allPass = dimensionsPass && kbPass && formatPass;
+
+    Widget row(bool pass, String label) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          children: [
+            Icon(pass ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                size: 16, color: pass ? const Color(0xFF16A34A) : const Color(0xFFDC2626)),
+            const SizedBox(width: 8),
+            Expanded(child: Text(label, style: const TextStyle(fontSize: 12.5, color: Color(0xFF334155)))),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: allPass ? const Color(0xFFF0FDF4) : const Color(0xFFFEF2F2),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: allPass ? const Color(0xFF86EFAC) : const Color(0xFFFCA5A5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(allPass ? Icons.verified_rounded : Icons.error_outline_rounded,
+                  size: 18, color: allPass ? const Color(0xFF166534) : const Color(0xFF991B1B)),
+              const SizedBox(width: 8),
+              Text(
+                allPass ? '100% Portal Ready / Pass' : 'Review Needed - Out of Portal Range',
+                style: TextStyle(
+                  fontSize: 13, fontWeight: FontWeight.w900,
+                  color: allPass ? const Color(0xFF166534) : const Color(0xFF991B1B),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          row(dimensionsPass, 'Dimensions: ${p.width}×${p.height}px Match'),
+          row(kbPass, 'Target KB: ${achievedKb.toStringAsFixed(1)} KB within ${p.minKb}-${p.maxKb} KB range'),
+          row(formatPass, 'Format: .jpg valid'),
+        ],
       ),
     );
   }
@@ -1050,19 +1177,32 @@ class GovtPhotoResizeArgs {
   final int width;
   final int height;
   final int targetKb;
-  const GovtPhotoResizeArgs({required this.bytes, required this.width, required this.height, required this.targetKb});
+  final bool cleanSignature;
+  const GovtPhotoResizeArgs({
+    required this.bytes,
+    required this.width,
+    required this.height,
+    required this.targetKb,
+    this.cleanSignature = false,
+  });
 }
 
 Uint8List computeGovtPhotoResize(GovtPhotoResizeArgs args) {
   final src = img.decodeImage(args.bytes);
   if (src == null) throw Exception('Cannot decode image.');
 
-  final resized = img.copyResize(
+  var resized = img.copyResize(
     src,
     width: args.width,
     height: args.height,
     interpolation: img.Interpolation.cubic,
   );
+
+  if (args.cleanSignature) {
+    resized = img.grayscale(resized);
+    resized = img.normalize(resized, min: 0, max: 255);
+    resized = img.contrast(resized, contrast: 160);
+  }
 
   // Binary search: highest quality within targetKb
   int lo = 15, hi = 95;
@@ -1080,7 +1220,57 @@ Uint8List computeGovtPhotoResize(GovtPhotoResizeArgs args) {
   return best ?? Uint8List.fromList(img.encodeJpg(resized, quality: 15));
 }
 
+// ── 4x6" print sheet (8-up) compute isolate ────────────────────────────────────
+
+class GovtPrintSheetArgs {
+  final Uint8List bytes;
+  const GovtPrintSheetArgs({required this.bytes});
+}
+
+Uint8List computeGovtPrintSheet(GovtPrintSheetArgs args) {
+  final photo = img.decodeImage(args.bytes);
+  if (photo == null) throw Exception('Cannot decode photo for print sheet.');
+
+  const canvasWidth = 1200; // 4in @ 300 DPI
+  const canvasHeight = 1800; // 6in @ 300 DPI
+  const cols = 2;
+  const rows = 4;
+
+  var cellWidth = photo.width;
+  var cellHeight = photo.height;
+  var tile = photo;
+
+  // Defensive scale-down in case 8 natural-size copies wouldn't fit the sheet.
+  const maxGridWidth = canvasWidth * 0.92;
+  const maxGridHeight = canvasHeight * 0.92;
+  final widthScale = (cols * cellWidth) > maxGridWidth ? maxGridWidth / (cols * cellWidth) : 1.0;
+  final heightScale = (rows * cellHeight) > maxGridHeight ? maxGridHeight / (rows * cellHeight) : 1.0;
+  final scale = widthScale < heightScale ? widthScale : heightScale;
+  if (scale < 1.0) {
+    cellWidth = (cellWidth * scale).round();
+    cellHeight = (cellHeight * scale).round();
+    tile = img.copyResize(photo, width: cellWidth, height: cellHeight, interpolation: img.Interpolation.cubic);
+  }
+
+  final canvas = img.Image(width: canvasWidth, height: canvasHeight, numChannels: 3);
+  img.fill(canvas, color: img.ColorRgb8(255, 255, 255));
+
+  final gapX = ((canvasWidth - cols * cellWidth) / (cols + 1)).floor();
+  final gapY = ((canvasHeight - rows * cellHeight) / (rows + 1)).floor();
+
+  for (var row = 0; row < rows; row++) {
+    for (var col = 0; col < cols; col++) {
+      final dstX = gapX + col * (cellWidth + gapX);
+      final dstY = gapY + row * (cellHeight + gapY);
+      img.compositeImage(canvas, tile, dstX: dstX, dstY: dstY);
+    }
+  }
+
+  return Uint8List.fromList(img.encodeJpg(canvas, quality: 95));
+}
+
 // ── Exam presets ───────────────────────────────────────────────────────────────
+
 
 class GovtPhotoPreset {
   final String id;
