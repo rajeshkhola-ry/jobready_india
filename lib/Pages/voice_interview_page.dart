@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../Services/voice_interview_service.dart';
 import '../Services/voice_quota_service.dart';
+import '../Widgets/global_language_banner.dart';
 
 enum _InterviewStage {
   roleSelection,
@@ -251,6 +252,7 @@ class _VoiceInterviewPageState extends State<VoiceInterviewPage> with SingleTick
                 children: [
                   _buildHero(),
                   const SizedBox(height: 20),
+                  const GlobalLanguageBanner(),
                   if (_errorMessage != null) ...[
                     _buildErrorBanner(_errorMessage!),
                     const SizedBox(height: 16),

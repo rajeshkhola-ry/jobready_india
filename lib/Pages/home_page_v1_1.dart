@@ -10,6 +10,7 @@ import 'package:universal_html/html.dart' as html;
 import '../Widgets/why_choose_card.dart';
 import '../Widgets/upload_card_v2.dart';
 import '../Widgets/tool_selector_v2.dart';
+import '../Widgets/global_language_banner.dart';
 import '../Services/public_brand_config.dart';
 import '../Services/api_config.dart';
 import '../Services/compression_service.dart';
@@ -4936,6 +4937,7 @@ class _V2Column extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const GlobalLanguageBanner(),
         UploadCardV2(
           onVoiceCommandResult: onVoiceCommandResult,
           isVoiceProcessing: isVoiceProcessing,
