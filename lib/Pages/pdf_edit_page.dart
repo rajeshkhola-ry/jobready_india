@@ -12,8 +12,10 @@ import 'package:universal_html/html.dart' as html;
 
 import '../Services/file_picker_service.dart';
 import '../Services/file_storage_service.dart';
+import '../Services/ocr_quota_service.dart';
 import '../Services/pdf_export_formatter.dart';
 import '../Services/pdf_ocr_service.dart';
+import '../Services/remote_ocr_service.dart';
 import '../Services/upload_context_service.dart';
 import '../Services/voice_command_service.dart';
 import '../Widgets/production_footer.dart';
@@ -40,6 +42,7 @@ class _PdfEditPageState extends State<PdfEditPage> {
   bool _isLoadingText = false;
   bool _isScanning = false;
   bool _isAutoSaving = false;
+  bool _isConvertingToSearchablePdf = false;
   String _loadStatus = 'Ready';
   String _autoSaveStatus = 'Saved ✓';
   double _scanProgress = 0.0;
@@ -527,6 +530,138 @@ class _PdfEditPageState extends State<PdfEditPage> {
     }
   }
 
+  int _countPdfPages(Uint8List pdfBytes) {
+    try {
+      final document = sfpdf.PdfDocument(inputBytes: pdfBytes);
+      try {
+        return document.pages.count;
+      } finally {
+        document.dispose();
+      }
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  /// Combined AI OCR quota indicator (shared with the Scanned PDF -> Word
+  /// fallback path in ConversionService).
+  Widget _buildOcrQuotaBanner() {
+    final isFree = OcrQuotaService.isFreePlan;
+    final color = isFree ? Colors.orange : Colors.blueGrey;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.document_scanner_outlined, size: 16, color: color),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  OcrQuotaService.remainingLabel(),
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color),
+                ),
+              ),
+            ],
+          ),
+          if (isFree) ...[
+            const SizedBox(height: 4),
+            const Text(
+              'AI OCR is available on 7-Day, Monthly, and Lifetime plans.',
+              style: TextStyle(fontSize: 11, color: Colors.black54),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Sends the ORIGINAL uploaded PDF (not the edited text) to the shared
+  /// Google Cloud Vision OCR backend, producing a new PDF that keeps the
+  /// original scanned page images but adds an invisible, positioned,
+  /// selectable/searchable text layer underneath - unlike Export PDF/DOCX
+  /// above (which rebuild a fresh document from the edited text box).
+  Future<void> _convertToSearchablePdf() async {
+    final bytes = _selectedBytes;
+    final name = _selectedName;
+    if (bytes == null || name == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please upload a PDF first.')),
+      );
+      return;
+    }
+
+    final pageCount = _countPdfPages(bytes);
+    if (pageCount > 0 && !OcrQuotaService.canUseOcr(pageCount)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(OcrQuotaService.blockedReasonMessage(pageCount))),
+      );
+      return;
+    }
+
+    setState(() {
+      _isConvertingToSearchablePdf = true;
+      _autoSaveStatus = 'Running AI OCR (Google Cloud Vision)…';
+    });
+
+    try {
+      final searchablePdfBytes = await const RemoteOcrService().convertToSearchablePdf(
+        bytes: bytes,
+        fileName: name,
+      );
+      if (pageCount > 0) {
+        await OcrQuotaService.recordUsage(pageCount);
+      }
+
+      final outputName = name.replaceAll(RegExp(r'\.pdf$', caseSensitive: false), '_searchable.pdf');
+      final blob = html.Blob([searchablePdfBytes], 'application/pdf');
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute('download', outputName)
+        ..style.display = 'none';
+      html.document.body?.append(anchor);
+      anchor.click();
+      anchor.remove();
+      Future<void>.delayed(const Duration(milliseconds: 900), () {
+        html.Url.revokeObjectUrl(url);
+      });
+
+      if (!mounted) return;
+      setState(() {
+        _isConvertingToSearchablePdf = false;
+        _autoSaveStatus = 'Saved ✓';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Searchable PDF ready: $outputName')),
+      );
+    } on RemoteOcrException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isConvertingToSearchablePdf = false;
+        _autoSaveStatus = 'Saved ✓';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isConvertingToSearchablePdf = false;
+        _autoSaveStatus = 'Saved ✓';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Searchable PDF conversion failed: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -720,6 +855,26 @@ class _PdfEditPageState extends State<PdfEditPage> {
                     _buildEditorPanel(),
                   ],
                 ),
+              const SizedBox(height: 12),
+              _buildOcrQuotaBanner(),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: (_selectedBytes == null || _isConvertingToSearchablePdf)
+                      ? null
+                      : _convertToSearchablePdf,
+                  icon: Icon(_isConvertingToSearchablePdf ? Icons.hourglass_top_rounded : Icons.travel_explore_rounded),
+                  label: Text(_isConvertingToSearchablePdf
+                      ? 'Running AI OCR (Google Cloud Vision)…'
+                      : 'Convert to Searchable PDF (AI OCR)'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0F766E),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
               const SizedBox(height: 12),
               Row(
                 children: [

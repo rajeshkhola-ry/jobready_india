@@ -145,6 +145,10 @@ class ApiConfig {
   static const String convertPdfToDocxEndpoint = '/api/convert-pdf-to-docx';
   static const String convertGenericEndpoint = '/api/convert';
 
+  /// Shared Google Cloud Vision OCR Endpoints (combined page quota)
+  static const String ocrPdfEndpoint = '/api/ocr-pdf';
+  static const String convertScannedPdfToDocxEndpoint = '/api/convert-scanned-pdf-to-docx';
+
   /// Photo HD Workspace Endpoints
   static const String photoRenderPresetEndpoint = '/api/photo/render-preset';
 

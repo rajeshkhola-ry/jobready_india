@@ -10,8 +10,10 @@ import 'package:syncfusion_flutter_pdf/pdf.dart' as sfpdf;
 
 import 'compression_service.dart';
 import 'csv_to_excel_service.dart';
+import 'ocr_quota_service.dart';
 import 'pdf_ocr_service.dart';
 import 'remote_conversion_service.dart';
+import 'remote_ocr_service.dart';
 import 'word_generator_service.dart';
 
 class ConversionResult {
@@ -67,13 +69,41 @@ class ConversionService {
               }
 
               if (remoteError is RemoteConversionException && remoteError.isScanned) {
-                // Server confirmed a 100% scanned/photostat PDF with no text layer -
-                // pointing the user at the OCR/Extract tool is more useful than
-                // forcing a fragile local image-to-docx reconstruction attempt.
+                // Server confirmed a 100% scanned/photostat PDF with no text layer.
+                // Try the shared Google Cloud Vision OCR pipeline (combined quota
+                // permitting) before falling back to the generic "use OCR/Extract
+                // tool" banner.
+                final pageCount = _countPdfPages(inputBytes);
+                if (pageCount > 0 && OcrQuotaService.canUseOcr(pageCount)) {
+                  try {
+                    final ocrDocxBytes = await const RemoteOcrService().convertScannedPdfToDocx(
+                      bytes: inputBytes,
+                      fileName: inputFileName,
+                    );
+                    await OcrQuotaService.recordUsage(pageCount);
+                    return ConversionResult(
+                      success: true,
+                      message: 'Word document created via AI OCR (Google Cloud Vision) from this scanned PDF.',
+                      outputBytes: ocrDocxBytes,
+                      outputFileName: _changeExtension(inputFileName, 'docx'),
+                    );
+                  } on RemoteOcrException catch (ocrError) {
+                    return ConversionResult(
+                      success: false,
+                      isScannedPdf: true,
+                      message: ocrError.globalLimitReached
+                          ? ocrError.message
+                          : 'Scanned photo PDF detected. Please use the OCR or Extract tool for image-based documents.',
+                    );
+                  }
+                }
+
                 return ConversionResult(
                   success: false,
                   isScannedPdf: true,
-                  message: 'Scanned photo PDF detected. Please use the OCR or Extract tool for image-based documents.',
+                  message: pageCount > 0 && !OcrQuotaService.canUseOcr(pageCount)
+                      ? OcrQuotaService.blockedReasonMessage(pageCount)
+                      : 'Scanned photo PDF detected. Please use the OCR or Extract tool for image-based documents.',
                 );
               }
 
@@ -963,6 +993,22 @@ ${List<String>.generate(slideGroups.length, (index) => '  <Relationship Id="rId$
       return code != null ? 'Server Error ($code): ${error.message}' : error.message;
     }
     return error.toString().replaceFirst('Exception: ', '');
+  }
+
+  /// Cheap local page count (no network call) used to check OCR page quota
+  /// before attempting a remote Vision OCR conversion. Returns 0 if the PDF
+  /// can't be parsed - callers should treat that as "quota check skipped".
+  int _countPdfPages(Uint8List pdfBytes) {
+    try {
+      final document = sfpdf.PdfDocument(inputBytes: pdfBytes);
+      try {
+        return document.pages.count;
+      } finally {
+        document.dispose();
+      }
+    } catch (_) {
+      return 0;
+    }
   }
 
   Future<String> _extractTextFromPdf(

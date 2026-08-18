@@ -14,6 +14,7 @@ import '../Services/conversion_service.dart';
 import '../Services/document_history_service.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/file_storage_service.dart';
+import '../Services/ocr_quota_service.dart';
 import '../Services/upload_context_service.dart';
 import '../Services/usage_quota_service.dart';
 import '../Services/voice_command_service.dart';
@@ -532,6 +533,10 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
                         ),
                       ),
                     ),
+                    if ((_selectedInputFormat ?? '').toUpperCase().contains('PDF')) ...[
+                      const SizedBox(height: 10),
+                      _buildOcrQuotaBanner(),
+                    ],
                     if (_isConverting) ...[
                       const SizedBox(height: 10),
                       Container(
@@ -1642,6 +1647,47 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
     if (_statusMessage.startsWith('✗')) return Colors.red;
     if (_statusMessage.startsWith('Converting')) return Colors.blue;
     return Colors.grey;
+  }
+
+  /// Combined AI OCR quota indicator (shared across Scanned PDF -> Word and
+  /// the PDF to PDF OCR Tool) - shown whenever a PDF input is selected here,
+  /// since that's when the scanned-PDF OCR fallback could be used.
+  Widget _buildOcrQuotaBanner() {
+    final isFree = OcrQuotaService.isFreePlan;
+    final color = isFree ? Colors.orange : Colors.blueGrey;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.document_scanner_outlined, size: 16, color: color),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  OcrQuotaService.remainingLabel(),
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color),
+                ),
+              ),
+            ],
+          ),
+          if (isFree) ...[
+            const SizedBox(height: 4),
+            const Text(
+              'AI OCR is available on 7-Day, Monthly, and Lifetime plans.',
+              style: TextStyle(fontSize: 11, color: Colors.black54),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   String _formatBytes(int bytes) {

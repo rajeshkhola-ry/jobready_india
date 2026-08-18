@@ -294,6 +294,18 @@ class _PlanComparisonMatrixState extends State<PlanComparisonMatrix> {
             yearly: true,
             lifetime: true,
           ),
+          const _PlanFeature(
+            name: 'AI OCR Engine (Scanned PDF to Word & Searchable PDF)*',
+            free: false,
+            sevenDay: true,
+            monthly: true,
+            yearly: true,
+            lifetime: true,
+            sevenDayValue: '50 Pages/week',
+            monthlyValue: '200 Pages/month',
+            yearlyValue: '350 Pages/month',
+            lifetimeValue: '350 Pages/month',
+          ),
           _PlanFeature.categoryHeader('AI & Resume Studio'),
           const _PlanFeature(
             name: 'AI Resume Builder',
@@ -471,6 +483,14 @@ class _PlanComparisonMatrixState extends State<PlanComparisonMatrix> {
 
         final embeddedMaxHeight = widget.embeddedMaxHeight;
 
+        final ocrNote = Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(
+            '*Note: OCR quota is a combined pool usable across both Scanned PDF to Word and PDF to Searchable PDF tools.',
+            style: TextStyle(fontSize: 11.5, fontStyle: FontStyle.italic, color: Colors.grey.shade600),
+          ),
+        );
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -479,6 +499,7 @@ class _PlanComparisonMatrixState extends State<PlanComparisonMatrix> {
             embeddedMaxHeight != null
                 ? SizedBox(height: embeddedMaxHeight, child: tableCard)
                 : Expanded(child: tableCard),
+            ocrNote,
           ],
         );
       },
