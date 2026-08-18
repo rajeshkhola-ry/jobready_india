@@ -1773,3 +1773,14 @@ Prepared For: JOBREADY
   - **Re-tested live after Render's rebuild finished** ✓ — the page-count bug is confirmed FIXED (the request now gets past that check entirely). At that point the live Vision API call still failed with a billing error: `"...requires billing to be enabled. Please enable billing on project #365906972808..."`.
   - **Founder linked the billing account to project `#365906972808`** ✓ — re-ran the exact same live test immediately after: **`200 OK`, valid `.docx` returned (verified real `PK\x03\x04` ZIP/OOXML signature), `X-Ocr-Pages-Used: 1`, `X-Ocr-Global-Remaining: 988`.** The Google Vision OCR feature (scanned PDF → searchable PDF / Word) is now fully confirmed working end-to-end in production.
 - Owner: Founder + Copilot
+
+### Same day follow-up — Regular PDF-to-Word (`/api/convert-pdf-to-docx`) hit the same page-count bug in a second, separate code path
+- Overall status: Green (deployed and verified live)
+- Completed:
+  - **Root cause** ✓ — the earlier page-count fix (commit `5c2d09c`) only patched `handleSharedOcrRoute()` (the 2 dedicated OCR endpoints). The regular PDF-to-Word high-fidelity chain (`convertPdfToDocxHighFidelity()`, used by `/api/convert-pdf-to-docx`) reads page count from the same `checkPdfHasSelectableText()` call but had no fallback of its own, so it independently threw the same class of error: `"PDF to Word conversion failed: could not determine this PDF's page count for the Vision OCR fallback."` — reproduced live on the founder's real scanned biochemistry PDF.
+  - **Fix** ✓ — `convertPdfToDocxHighFidelity()` now reuses the same `getPdfPageCountViaPdfLib()` pdf-lib fallback before entering the Tier1(pdf2docx)→Tier2(LibreOffice)→Tier3(Vision OCR) chain, so a broken/missing Python check never blocks the Vision OCR fallback here either.
+  - **Validation** ✓ — `node --check compression_server.js` → exit 0.
+  - **Verified live end-to-end** ✓ — built a real text-less PDF (forces Tier1+Tier2 to fail) and POSTed it directly to `/api/convert-pdf-to-docx`: **`200 OK`, `X-Conversion-Engine: vision-ocr`, valid `.docx` (`PK\x03\x04` signature confirmed)**.
+  - **Scope note**: backend-only fix, no Flutter/Firebase deploy needed. Committed + pushed (commit `82f6f1d`).
+  - Repo memory updated (`compression_notes.md`).
+- Owner: Founder + Copilot
