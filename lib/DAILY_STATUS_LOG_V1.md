@@ -1920,3 +1920,11 @@ Prepared For: JOBREADY
   - **Validation** ✓ — `flutter analyze` caught and I fixed 2 real null-safety errors (`navigator.languages` is nullable in this `universal_html` version, needed an explicit null check before `.isNotEmpty`/`.first`) before reaching 0 errors (40 issues total, only pre-existing baseline + the same precedented `dart:js`/web-library info-level lints already accepted elsewhere in this codebase). `flutter build web --release` succeeded; confirmed the banner's default English text compiled into `build/web/main.dart.js`. `firebase deploy --only hosting` succeeded.
   - Committed + pushed (commit `b27e490`, exact requested message).
 - Owner: Founder + Copilot
+
+### Same day follow-up — Banner text tweak
+- Overall status: Green (deployed and verified)
+- Completed:
+  - **Wording update** ✓ — default global/English banner text in `global_language_banner.dart` reordered from "Speak or upload in German, French, Italian, Spanish, or English..." to "Upload or speak in German, French, Italian, Spanish, or English...".
+  - **Validation** ✓ — `flutter analyze` → 0 errors (2 pre-existing, precedented info-level lints only). `flutter build web --release` succeeded; confirmed the new wording compiled into `build/web/main.dart.js`. `firebase deploy --only hosting` succeeded.
+  - Committed + pushed (commit `b247a9a`).
+- Owner: Founder + Copilot
