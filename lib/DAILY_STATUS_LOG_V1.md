@@ -1866,3 +1866,17 @@ Prepared For: JOBREADY
   - **Validation** ✓ — `flutter analyze lib/Pages/plan_features_page.dart` → No issues found.
   - **Build & deploy** ✓ — `flutter build web --release` + `firebase deploy --only hosting --project getreadyjob-india-1cb34` both succeeded; committed + pushed (commit `0338f44`).
 - Owner: Founder + Copilot
+
+### Same day follow-up — Homepage SEO metadata upgrade (title, description, OG/social, canonical)
+- Overall status: Green (deployed and verified live)
+- Completed:
+  - **Important correction caught mid-task** ✓ — the request referenced `web/index.html`; initially edited `lib/public/index.html` before discovering it's an unrelated legacy static file served only by the Node backend, with zero effect on the live site. Reverted that edit and located the REAL Flutter web template at `web/index.html` (one level above the `lib` VS Code workspace folder, in the same git repo) - confirmed via `firebase.json`'s `hosting.public: "build/web"`.
+  - **New title/description/keywords** ✓ — updated to focus on Scanned PDF to Word OCR conversion, per the new positioning.
+  - **Distinct OG/Twitter social-preview copy** ✓ — added optional `ogTitle`/`ogDescription` support to the page's existing `defaultSeo`/`routeSeo`/`applySeo()` JS mechanism (backward compatible - all other routes unaffected) so the homepage's social-share title/description can differ from its search-result `<title>`, matching the distinct copy requested for social previews.
+  - **Fixed a real pre-existing www/non-www inconsistency** ✓ — standardized every domain reference in this file (canonical, og:url, twitter, hreflang, all 3 JSON-LD blocks) to the non-www `https://getreadyjob.com/` already used consistently by `sitemap.xml`, `robots.txt`, and every per-route SEO entry in this same file.
+  - **robots meta** — already satisfied "index, follow" with additional beneficial directives (`max-image-preview:large` etc.); kept as-is rather than downgrading.
+  - **Flagged, not implemented**: the requested "AI Voice & Mock Interview Tool" page/metadata - no such route or feature currently exists in the live app's router (`main_v1_1.dart`); adding SEO metadata for it would advertise a non-existent page. Recommend either building that page first or confirming intent before adding routing metadata for it.
+  - **Validation** ✓ — all 3 JSON-LD blocks confirmed valid JSON, the SEO script confirmed valid JS, zero remaining `www.getreadyjob.com` references. `flutter build web --release` + `firebase deploy --only hosting` succeeded; live-fetched the deployed site and confirmed title/og:title/og:url/canonical all match.
+  - Committed + pushed (commit `9faa92e`).
+  - New repo memory file `project_structure_notes.md` created documenting the real project root / workspace-folder distinction to prevent this mistake recurring.
+- Owner: Founder + Copilot
