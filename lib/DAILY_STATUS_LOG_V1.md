@@ -1911,3 +1911,12 @@ Prepared For: JOBREADY
   - **Scope note**: `AppToolsRegistry`/pricing-table rows were NOT touched - this tool is accessible to all plans via the shared voice-quota pool per the quota-gate model explicitly requested, not a new per-plan enabled-tools flag.
   - Committed + pushed (commit `168fa8d`) - Render backend redeploy auto-triggered by the push (needed for the new `/api/voice-interview-evaluate` route to go live).
 - Owner: Founder + Copilot
+
+### Same day follow-up — Smart multilingual greeting banner for international users
+- Overall status: Green (deployed and verified)
+- Completed:
+  - **New widget** ✓ — `lib/Widgets/global_language_banner.dart` (`GlobalLanguageBanner`): detects browser language (`html.window.navigator.language`/`.languages`) as the primary signal, falling back to the browser's IANA timezone (via a small JS eval, no network call) when the language is empty/unrecognized, to guess German/French/Italian/Spanish visitors (covering DE/AT/CH-de, FR/BE/CH-fr, IT/CH-it, ES/LATAM per spec) vs. a default global/English fallback message. Renders as a soft light-blue rounded pill/ribbon with the exact requested flag-emoji greeting text.
+  - **Placement** ✓ — added directly above the Voice/Document action buttons on the homepage (`home_page_v1_1.dart`'s `_V2Column`, right before `UploadCardV2`) and on the AI Voice Mock Interview page (`voice_interview_page.dart`, right after the hero section, before the practice-session stage content).
+  - **Validation** ✓ — `flutter analyze` caught and I fixed 2 real null-safety errors (`navigator.languages` is nullable in this `universal_html` version, needed an explicit null check before `.isNotEmpty`/`.first`) before reaching 0 errors (40 issues total, only pre-existing baseline + the same precedented `dart:js`/web-library info-level lints already accepted elsewhere in this codebase). `flutter build web --release` succeeded; confirmed the banner's default English text compiled into `build/web/main.dart.js`. `firebase deploy --only hosting` succeeded.
+  - Committed + pushed (commit `b27e490`, exact requested message).
+- Owner: Founder + Copilot
