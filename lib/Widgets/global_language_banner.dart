@@ -28,7 +28,7 @@ class GlobalLanguageBanner extends StatelessWidget {
     _GreetingLocale.spanish:
         '🇪🇸 ¡Bienvenido! Habla o sube documentos en español – soporte completo de IA multilingüe.',
     _GreetingLocale.global:
-        '🌍 Global Ready: Speak or upload in German, French, Italian, Spanish, or English — 50+ languages natively supported.',
+        '🌍 Global Ready: Upload or speak in German, French, Italian, Spanish, or English — 50+ languages natively supported.',
   };
 
   String _browserLanguage() {
