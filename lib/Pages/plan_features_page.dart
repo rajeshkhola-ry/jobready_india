@@ -183,7 +183,7 @@ class _PlanComparisonMatrixState extends State<PlanComparisonMatrix> {
         final combinedRows = <_PlanFeature>[
           _PlanFeature.categoryHeader('Quota & System Limits'),
           _PlanFeature(
-            name: 'Daily Usage Quota',
+            name: 'Usage Quota',
             free: true,
             sevenDay: true,
             monthly: true,
