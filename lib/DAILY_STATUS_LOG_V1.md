@@ -1770,9 +1770,6 @@ Prepared For: JOBREADY
   - **Validation** ✓ — `node --check compression_server.js` → exit 0.
   - **Scope note**: backend-only fix, no Flutter client changes needed - no build/Firebase deploy this round. Committed + pushed (commit `5c2d09c`); Render rebuilds automatically on push (async - full "new image live" status can't be confirmed from this environment).
   - Repo memory updated (`compression_notes.md`, `vision_ocr_notes.md`).
-  - **Re-tested live after Render's rebuild finished** ✓ — the page-count bug is confirmed FIXED (the request now gets past that check entirely). However, the live Vision API call itself now fails with a clear, different error: `"Google Cloud Vision request failed: This API method requires billing to be enabled. Please enable billing on project #365906972808..."` (Google's own error message, includes a direct link: `https://console.developers.google.com/billing/enable?project=365906972808`).
-- Blockers:
-  - **Google Cloud billing is not actually enabled yet on the specific GCP project (`#365906972808`) tied to the Vision API key**, despite "payment done" - these can be two different things (e.g. Render/Firebase billing vs. this specific Google Cloud project's own billing account link). Needs the founder to open the link above and confirm/enable billing on that exact project, then allow a few minutes for it to propagate (Google's own message notes this).
-- Decisions needed:
-  - Founder to enable billing on GCP project `#365906972808` (or confirm which project the `GOOGLE_CLOUD_VISION_API_KEY` actually belongs to, if a different project was funded instead).
+  - **Re-tested live after Render's rebuild finished** ✓ — the page-count bug is confirmed FIXED (the request now gets past that check entirely). At that point the live Vision API call still failed with a billing error: `"...requires billing to be enabled. Please enable billing on project #365906972808..."`.
+  - **Founder linked the billing account to project `#365906972808`** ✓ — re-ran the exact same live test immediately after: **`200 OK`, valid `.docx` returned (verified real `PK\x03\x04` ZIP/OOXML signature), `X-Ocr-Pages-Used: 1`, `X-Ocr-Global-Remaining: 988`.** The Google Vision OCR feature (scanned PDF → searchable PDF / Word) is now fully confirmed working end-to-end in production.
 - Owner: Founder + Copilot
