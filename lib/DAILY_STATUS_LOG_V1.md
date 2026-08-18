@@ -1807,3 +1807,14 @@ Prepared For: JOBREADY
   - **Scope note**: backend-only fix, no Flutter/Firebase deploy needed. Committed + pushed (commit `575cd50`).
   - Repo memory updated (`compression_notes.md`).
 - Owner: Founder + Copilot
+
+### Same day follow-up — Frontend UX: friendly error handling, stepped OCR loader, early password detection
+- Overall status: Green (deployed)
+- Completed:
+  - **Friendly error handling** ✓ — new `Services/error_message_service.dart` (`ErrorMessageService.friendly()`) turns raw server/JSON/exception errors into clean, actionable messages (e.g. "Conversion could not be completed. Please ensure the file is not password-protected or corrupted, then try again."), while still logging the real technical detail to the console for diagnosability. Wired into `conversion_service.dart`'s error describer and `convert_tool_page.dart`'s 2 remaining raw error displays.
+  - **Enhanced processing loader** ✓ — the static "Conversion in progress..." spinner in `convert_tool_page.dart` is now a dynamic stepped loader: "Uploading file..." → "Analyzing text with AI OCR..." → "Generating editable Word document..." for PDF-to-Word conversions (a generic 3-step version for other conversion types).
+  - **Early password-protection check** ✓ — `conversion_service.dart` now detects an encrypted/password-protected PDF before attempting any conversion (local check, no network round trip) and shows a clean prompt immediately instead of after a failed upload.
+  - **Validation** ✓ — `flutter analyze` on all touched/new files → 13 issues, all pre-existing baseline (zero new).
+  - **Build & deploy** ✓ — `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` success; `firebase deploy --only hosting --project getreadyjob-india-1cb34` success; committed + pushed (commit `14b30ff`).
+  - Repo memory updated (`compression_notes.md`).
+- Owner: Founder + Copilot
