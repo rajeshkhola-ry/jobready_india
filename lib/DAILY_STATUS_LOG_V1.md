@@ -1818,3 +1818,13 @@ Prepared For: JOBREADY
   - **Build & deploy** ✓ — `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` success; `firebase deploy --only hosting --project getreadyjob-india-1cb34` success; committed + pushed (commit `14b30ff`).
   - Repo memory updated (`compression_notes.md`).
 - Owner: Founder + Copilot
+
+### Same day follow-up — Free-tier quota enforcement update (real caps now match displayed values)
+- Overall status: Green (deployed)
+- Completed:
+  - **Item 1 (Admin Pricing Modal: AI OCR Quota field + AppToolsRegistry chips) — already completed** in an earlier checkpoint today (commit `345a066`); confirmed, not redone.
+  - **Item 2, Free-tier quota enforcement** ✓ — `Widgets/quota_gate.dart`'s `checkQuotaAndProceed()` was plan-blind: every plan, including paid, was capped by the same `ApiConfig` per-bucket daily limits (100/50/50/50). Now plan-aware: paid plans (7Days/Monthly/Yearly/Lifetime) get NO daily cap (matches the app's own existing "unlimited for paid" intent, previously unenforced); the Free plan now checks ONE combined pool (compress+convert+merge+split summed) against the SAME admin-editable "Daily Usage Quota" value shown in the Pricing Modal/Comparison Table (currently 7/day) - closes the exact gap flagged in the previous checkpoint.
+  - **Validation** ✓ — `flutter analyze lib/Widgets/quota_gate.dart` → 1 pre-existing baseline issue (unrelated line), zero new.
+  - **Build & deploy** ✓ — `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` success; `firebase deploy --only hosting --project getreadyjob-india-1cb34` success; committed + pushed (commit `e4f5ccf`).
+  - Repo memory updated (`plan_catalog_notes.md`).
+- Owner: Founder + Copilot
