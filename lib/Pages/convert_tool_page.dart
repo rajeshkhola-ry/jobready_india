@@ -934,6 +934,7 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
 
     final artifacts = <ConversionArtifact>[];
     final failureMessages = <String>[];
+    var hasScannedPdfFailure = false;
     try {
       for (final file in _selectedFiles) {
         final result = await _conversionService.convert(
@@ -943,6 +944,9 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
         );
         if (!result.success || result.outputBytes == null || result.outputFileName == null) {
           failureMessages.add('${file.name}: ${result.message}');
+          if (result.isScannedPdf) {
+            hasScannedPdfFailure = true;
+          }
           continue;
         }
         artifacts.add(
@@ -960,7 +964,7 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
       setState(() {
         _isConverting = false;
         _statusMessage = artifacts.isEmpty
-            ? '✗ ${failureMessages.isNotEmpty ? failureMessages.first : 'No files were converted successfully.'}'
+            ? '${hasScannedPdfFailure ? '⚠' : '✗'} ${failureMessages.isNotEmpty ? failureMessages.first : 'No files were converted successfully.'}'
             : 'Conversion completed.';
       });
 
@@ -1559,13 +1563,13 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
       if (!result.success || result.outputBytes == null || result.outputFileName == null) {
         setState(() {
           _isConverting = false;
-          _statusMessage = '✗ ${result.message}';
+          _statusMessage = result.isScannedPdf ? '⚠ ${result.message}' : '✗ ${result.message}';
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(result.message),
-            backgroundColor: Colors.red,
+            backgroundColor: result.isScannedPdf ? Colors.orange : Colors.red,
           ),
         );
         return;
@@ -1634,6 +1638,7 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
 
   Color _getStatusColor() {
     if (_statusMessage.startsWith('✓')) return Colors.green;
+    if (_statusMessage.startsWith('⚠')) return Colors.orange;
     if (_statusMessage.startsWith('✗')) return Colors.red;
     if (_statusMessage.startsWith('Converting')) return Colors.blue;
     return Colors.grey;

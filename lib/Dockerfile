@@ -36,18 +36,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # table bounding-box detection, multi-column text flow, and embedded shapes - tried before
 # the headless LibreOffice fallback. openpyxl reads every sheet of an XLSX workbook in
 # streaming/read-only mode (no row-count ceiling, handles 50,000+ row billing sheets)
-# for the multi-sheet -> per-sheet-CSV export. python-docx builds a real Word document
-# directly from page images for the final scanned-PDF fallback tier (more reliable than
-# LibreOffice's HTML image import in headless mode).
-RUN pip3 install --no-cache-dir pdf2docx openpyxl python-docx
+# for the multi-sheet -> per-sheet-CSV export. PyMuPDF (fitz, a pdf2docx dependency) is
+# also used directly for the quick selectable-text pre-flight check.
+RUN pip3 install --no-cache-dir pdf2docx openpyxl
 
-# Verify ghostscript, LibreOffice, ImageMagick, pdf2docx, openpyxl and python-docx installation
+# Verify ghostscript, LibreOffice, ImageMagick, pdf2docx and openpyxl installation
 RUN which gs && gs --version
 RUN which soffice && soffice --version
 RUN which convert && convert --version
 RUN which pdf2docx
 RUN python3 -c "import openpyxl; print('openpyxl', openpyxl.__version__)"
-RUN python3 -c "import docx; print('python-docx OK')"
 RUN python3 -c "import fitz; print('PyMuPDF', fitz.version)"
 
 # Install dependencies
@@ -57,7 +55,6 @@ RUN npm ci --only=production
 # Copy application files
 COPY compression_server.js .
 COPY xlsx_to_csv.py .
-COPY rasterize_to_docx.py .
 COPY check_pdf_text.py .
 COPY public/ ./public/
 

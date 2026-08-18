@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
@@ -9,8 +10,9 @@ import 'api_config.dart';
 class RemoteConversionException implements Exception {
   final String message;
   final int? statusCode;
+  final bool isScanned;
 
-  const RemoteConversionException(this.message, {this.statusCode});
+  const RemoteConversionException(this.message, {this.statusCode, this.isScanned = false});
 
   @override
   String toString() =>
@@ -52,9 +54,24 @@ class RemoteConversionService {
       final response = await http.Response.fromStream(streamed);
 
       if (response.statusCode != 200) {
+        var isScanned = false;
+        var errorMessage = response.body;
+        try {
+          final decoded = jsonDecode(response.body);
+          if (decoded is Map<String, dynamic>) {
+            isScanned = decoded['isScanned'] == true;
+            if (decoded['message'] is String) {
+              errorMessage = decoded['message'] as String;
+            }
+          }
+        } catch (_) {
+          // Response body wasn't JSON - keep the raw text as-is.
+        }
+
         throw RemoteConversionException(
-          'Remote PDF to Word conversion failed. ${response.body}',
+          isScanned ? errorMessage : 'Remote PDF to Word conversion failed. $errorMessage',
           statusCode: response.statusCode,
+          isScanned: isScanned,
         );
       }
 

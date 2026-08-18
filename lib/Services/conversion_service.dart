@@ -19,12 +19,14 @@ class ConversionResult {
   final String message;
   final Uint8List? outputBytes;
   final String? outputFileName;
+  final bool isScannedPdf;
 
   const ConversionResult({
     required this.success,
     required this.message,
     this.outputBytes,
     this.outputFileName,
+    this.isScannedPdf = false,
   });
 }
 
@@ -62,6 +64,17 @@ class ConversionService {
               } catch (e) {
                 remoteError = e;
                 // Remote high-fidelity conversion unavailable/failed - fall back below.
+              }
+
+              if (remoteError is RemoteConversionException && remoteError.isScanned) {
+                // Server confirmed a 100% scanned/photostat PDF with no text layer -
+                // pointing the user at the OCR/Extract tool is more useful than
+                // forcing a fragile local image-to-docx reconstruction attempt.
+                return ConversionResult(
+                  success: false,
+                  isScannedPdf: true,
+                  message: 'Scanned photo PDF detected. Please use the OCR or Extract tool for image-based documents.',
+                );
               }
 
               try {
