@@ -1733,3 +1733,14 @@ Prepared For: JOBREADY
   - **Scope note**: backend/Dockerfile-only fix, no Flutter client changes - no build/Firebase deploy needed this time, per explicit request scope. Committed + pushed (commit `5a12928`); Render rebuilds automatically on push.
   - Repo memory updated (`compression_notes.md`).
 - Owner: Founder + Copilot
+
+### Same day follow-up — QR Generator: Google Maps Location/Navigation QR codes
+- Overall status: Green (deployed)
+- Completed:
+  - **New "Location / Navigation" QR data type** ✓ — added in-place to the existing QR Code Generator tool (`privacy_masker_page.dart`), alongside URL/Phone/Email/WhatsApp/Plain Text, reusing the same ChoiceChip + shared-TextField pattern (no new UI paradigm).
+  - **Single field accepts address, business name, or lat,long** ✓ — Google Maps' `destination` URL parameter accepts all three interchangeably, so no separate dual-input UI was needed; hint/placeholder text guides the user.
+  - **Google Maps Universal Navigation URL** ✓ — `https://www.google.com/maps/dir/?api=1&destination=<Uri.encodeComponent(value)>`. Scanning opens Google Maps and auto-routes from the scanning device's live GPS location to the destination (inherent to this URL scheme - no extra app logic needed).
+  - **Validation** ✓ — `flutter analyze lib/Pages/privacy_masker_page.dart` → 1 pre-existing warning (unused import, unrelated), zero new issues.
+  - **Build & deploy** ✓ — `flutter build web --release` success; `firebase deploy --only hosting --project getreadyjob-india-1cb34` success; committed + pushed (commit `e07fc76`).
+  - New repo memory file `qr_generator_notes.md` created.
+- Owner: Founder + Copilot
