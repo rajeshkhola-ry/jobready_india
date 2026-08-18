@@ -1796,3 +1796,14 @@ Prepared For: JOBREADY
   - **Build & deploy** ✓ — `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` success; `firebase deploy --only hosting --project getreadyjob-india-1cb34` success; committed + pushed (commit `345a066`).
   - Repo memory updated (`plan_catalog_notes.md`).
 - Owner: Founder + Copilot
+
+### Same day follow-up — Vision OCR "Too many images per request" fix (batch chunking)
+- Overall status: Green (deployed and verified live)
+- Completed:
+  - **Root cause** ✓ — `runVisionOcrOnPages()` sent ALL rasterized pages of a document in ONE Google Cloud Vision `images:annotate` request; Vision's documented cap is 16 images per request, so any scanned PDF beyond that failed with `"Google Cloud Vision request failed: Too many images per request."` (reproduced on the founder's real multi-page biochemistry PDF, after billing/key were already confirmed working).
+  - **Fix** ✓ — chunks pages into batches of `VISION_BATCH_SIZE = 8`, calls Vision once per chunk sequentially, and aggregates all per-page results back into one array in original page order. Fixes this for all 3 callers that share this engine: `/api/ocr-pdf`, `/api/convert-scanned-pdf-to-docx`, and the `/api/convert-pdf-to-docx` Tier 3 fallback.
+  - **Validation** ✓ — `node --check compression_server.js` → exit 0.
+  - **Verified live end-to-end** ✓ — built a genuine 18-page text-less test PDF (exceeds the 16-image single-request cap) and POSTed it to `/api/convert-scanned-pdf-to-docx`: **`200 OK`, `X-Ocr-Pages-Used: 18`, valid `.docx` (`PK\x03\x04` signature confirmed)**.
+  - **Scope note**: backend-only fix, no Flutter/Firebase deploy needed. Committed + pushed (commit `575cd50`).
+  - Repo memory updated (`compression_notes.md`).
+- Owner: Founder + Copilot
