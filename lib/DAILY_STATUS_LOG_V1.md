@@ -1784,3 +1784,15 @@ Prepared For: JOBREADY
   - **Scope note**: backend-only fix, no Flutter/Firebase deploy needed. Committed + pushed (commit `82f6f1d`).
   - Repo memory updated (`compression_notes.md`).
 - Owner: Founder + Copilot
+
+### Same day follow-up — Admin Pricing Modal: AI OCR Quota field + AppToolsRegistry + Free plan quota/device rule
+- Overall status: Green (deployed)
+- Completed:
+  - **AI OCR Quota (Pages) field, wired end-to-end** ✓ — New `ocrQuotasByPlan` on `PlanCatalogConfig` (defaults Free:0, 7Days:50, Monthly:200, Yearly:300, Lifetime:300), passed through the server (`compression_server.js` `ocr_quotas_by_plan`), new Admin modal field directly below "Voice Commands Quota", and a new "AI OCR Quota (Pages)" row in the Pricing Comparison Table under "Quota & System Limits". `OcrQuotaService` now actually reads this admin-configured value (previously ignored admin edits entirely).
+  - **New `AppToolsRegistry`** ✓ — single source of truth for all tool names, now backing Admin's Tool Access chips. Renamed the Govt tool to "Govt-Rule Auto-Verifier & Redactor (Exact KB, 4x6 Sheet, B&W Clean)" (with legacy-name aliasing so old saved admin configs still work) and added "Smart Location / Navigation QR Generator" (all plans) and "AI Scanned PDF OCR (Google Vision Engine)" (all paid plans) to the registry and default tool lists.
+  - **Free plan quota bumped 5 → 7** ✓ — displayed/admin-editable "Daily Usage Quota" default and constant. **Flagged, not touched**: the app's real per-action enforcement (`quota_gate.dart`, separate `ApiConfig` per-bucket caps of 100/50/50/50) was deliberately left unchanged — collapsing it to a strict combined 7/day would be a drastic live-user-facing change needing explicit confirmation first.
+  - **New device-binding feature** ✓ — `DeviceBindingService` implements "Free plan bindable to 1 desktop + 1 mobile device" as a soft, localStorage-based check (consistent with every other quota in this app), wired into `quota_gate.dart`. Disclosed limitation: not a hardened server-side/account-level binding.
+  - **Validation** ✓ — `flutter analyze` on all touched Dart files → 13 issues, all pre-existing baseline (zero new). `node --check compression_server.js` → exit 0.
+  - **Build & deploy** ✓ — `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` success; `firebase deploy --only hosting --project getreadyjob-india-1cb34` success; committed + pushed (commit `345a066`).
+  - Repo memory updated (`plan_catalog_notes.md`).
+- Owner: Founder + Copilot
