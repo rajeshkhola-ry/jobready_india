@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:archive/archive.dart';
@@ -12,6 +13,7 @@ import '../Widgets/tool_guidance_panel.dart';
 import '../Widgets/tool_workspace_shell.dart';
 import '../Services/conversion_service.dart';
 import '../Services/document_history_service.dart';
+import '../Services/error_message_service.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/file_storage_service.dart';
 import '../Services/ocr_quota_service.dart';
@@ -46,6 +48,49 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
   Uint8List? _selectedFile;
   String? _selectedFileName;
   final ConversionService _conversionService = const ConversionService();
+
+  // Dynamic stepped loader shown while _isConverting is true - simulates
+  // processing progress (no real granular server progress events exist for
+  // a single HTTP request/response conversion call).
+  Timer? _conversionStepTimer;
+  int _conversionStepIndex = 0;
+  static const List<String> _ocrConversionSteps = <String>[
+    'Uploading file...',
+    'Analyzing text with AI OCR...',
+    'Generating editable Word document...',
+  ];
+  static const List<String> _genericConversionSteps = <String>[
+    'Uploading file...',
+    'Processing your file...',
+    'Preparing your download...',
+  ];
+
+  List<String> get _activeConversionSteps {
+    final isPdfToWord = (_selectedInputFormat ?? '').toUpperCase() == 'PDF' &&
+        (_selectedOutputFormat ?? '').toLowerCase().contains('word');
+    return isPdfToWord ? _ocrConversionSteps : _genericConversionSteps;
+  }
+
+  void _startConversionStepTimer() {
+    _conversionStepIndex = 0;
+    _conversionStepTimer?.cancel();
+    _conversionStepTimer = Timer.periodic(const Duration(milliseconds: 2500), (timer) {
+      if (!mounted || !_isConverting) {
+        timer.cancel();
+        return;
+      }
+      final steps = _activeConversionSteps;
+      if (_conversionStepIndex < steps.length - 1) {
+        setState(() => _conversionStepIndex++);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _conversionStepTimer?.cancel();
+    super.dispose();
+  }
 
   // Available format conversions
   static const Map<String, List<String>> formatConversions = {
@@ -548,17 +593,18 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
                           border: Border.all(color: Colors.blue.withOpacity(0.35)),
                         ),
                         child: Row(
-                          children: const [
-                            SizedBox(
+                          children: [
+                            const SizedBox(
                               width: 16,
                               height: 16,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             ),
-                            SizedBox(width: 10),
+                            const SizedBox(width: 10),
                             Expanded(
                               child: Text(
-                                'Conversion in progress... please wait.',
-                                style: TextStyle(
+                                _activeConversionSteps[
+                                    _conversionStepIndex.clamp(0, _activeConversionSteps.length - 1)],
+                                style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.blue,
@@ -936,6 +982,7 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
       _selectedOutputFormat = outputFormat;
       _statusMessage = 'Preparing selected files for conversion...';
     });
+    _startConversionStepTimer();
 
     final artifacts = <ConversionArtifact>[];
     final failureMessages = <String>[];
@@ -983,7 +1030,7 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
       if (!mounted) return;
       setState(() {
         _isConverting = false;
-        _statusMessage = '✗ ${e.toString().replaceFirst('Exception: ', '')}';
+        _statusMessage = '✗ ${ErrorMessageService.friendly(e, context: 'Batch conversion')}';
       });
     }
   }
@@ -1468,6 +1515,7 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
           ? 'Converting ${_selectedFiles.length} files to $_selectedOutputFormat...'
           : 'Converting $_selectedFileName to $_selectedOutputFormat...';
     });
+    _startConversionStepTimer();
 
     await Future.delayed(const Duration(milliseconds: 60));
 
@@ -1625,7 +1673,7 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
     } catch (e) {
       if (!mounted) return;
 
-      final errorDetail = e.toString().replaceFirst('Exception: ', '');
+      final errorDetail = ErrorMessageService.friendly(e, context: 'Conversion');
 
       setState(() {
         _isConverting = false;

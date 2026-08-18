@@ -10,6 +10,7 @@ import 'package:syncfusion_flutter_pdf/pdf.dart' as sfpdf;
 
 import 'compression_service.dart';
 import 'csv_to_excel_service.dart';
+import 'error_message_service.dart';
 import 'ocr_quota_service.dart';
 import 'pdf_ocr_service.dart';
 import 'remote_conversion_service.dart';
@@ -44,6 +45,13 @@ class ConversionService {
       await Future.delayed(const Duration(seconds: 2));
 
       final format = outputFormat.toLowerCase();
+
+      if (inputFileName.toLowerCase().endsWith('.pdf') && _isPdfPasswordProtected(inputBytes)) {
+        return const ConversionResult(
+          success: false,
+          message: 'This PDF is password-protected. Please remove the password before converting, then try again.',
+        );
+      }
 
       switch (format) {
         case 'word (.docx)':
@@ -980,19 +988,12 @@ ${List<String>.generate(slideGroups.length, (index) => '  <Relationship Id="rId$
     return '${fileName.substring(0, dotIndex)}.$newExtension';
   }
 
-  /// Formats an error for direct display in the UI - surfaces the real
-  /// server status code/message for a [RemoteConversionException] instead of
-  /// a generic "please try again" string, so failures can be diagnosed
-  /// immediately from the on-screen error banner.
+  /// Formats an error for direct display in the UI - sanitizes raw
+  /// server/JSON errors into a clean, actionable message (via
+  /// [ErrorMessageService]) while the real technical detail is still logged
+  /// to the console for diagnosability.
   String _describeConversionError(Object? error) {
-    if (error == null) {
-      return 'Unknown error.';
-    }
-    if (error is RemoteConversionException) {
-      final code = error.statusCode;
-      return code != null ? 'Server Error ($code): ${error.message}' : error.message;
-    }
-    return error.toString().replaceFirst('Exception: ', '');
+    return ErrorMessageService.friendly(error, context: 'PDF to Word conversion');
   }
 
   /// Cheap local page count (no network call) used to check OCR page quota
@@ -1041,6 +1042,19 @@ ${List<String>.generate(slideGroups.length, (index) => '  <Relationship Id="rId$
         message.contains('encrypted') ||
         message.contains('security') ||
         message.contains('permission');
+  }
+
+  /// Early, local check (no network call) for an encrypted/password-
+  /// protected PDF - lets callers show a clean prompt immediately instead of
+  /// waiting for a doomed upload/server round trip to fail first.
+  bool _isPdfPasswordProtected(Uint8List pdfBytes) {
+    try {
+      final document = sfpdf.PdfDocument(inputBytes: pdfBytes);
+      document.dispose();
+      return false;
+    } catch (e) {
+      return _isLikelyPasswordProtectedError(e.toString().toLowerCase());
+    }
   }
 
   Future<String> _extractAnyText(Uint8List inputBytes, String inputFileName) async {
