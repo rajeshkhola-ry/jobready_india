@@ -7,6 +7,8 @@ WORKDIR /app
 #  - libreoffice-writer + libreoffice-impress: headless PDF -> DOCX structural conversion
 #    (fallback engine; preserves tables/layout/fonts far better than image embedding or
 #    plain text extraction)
+#  - default-jre-headless: some LibreOffice filters/components load a JRE even in
+#    --headless mode; without it, certain conversions can silently misbehave
 #  - imagemagick: lightweight deskew + auto-contrast pass on rasterized PDF pages before
 #    any downstream OCR/text-extraction
 #  - python3/pip/setuptools: runtime for pdf2docx, the primary (highest-fidelity) PDF ->
@@ -22,6 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     imagemagick \
     libreoffice-writer \
     libreoffice-impress \
+    default-jre-headless \
     python3 \
     python3-pip \
     python3-setuptools \
