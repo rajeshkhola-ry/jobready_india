@@ -1838,3 +1838,12 @@ Prepared For: JOBREADY
   - **Scope note**: backend-only change, no Flutter/Firebase deploy needed. Committed + pushed (commit `973f29d`).
   - Repo memory updated (`compression_notes.md`), including a disclosed minor cosmetic follow-up (stray space before punctuation-only tokens).
 - Owner: Founder + Copilot
+
+### Same day follow-up — Punctuation/bracket spacing cleanup for Vision OCR DOCX text
+- Overall status: Green (deployed and verified)
+- Completed:
+  - **Fixed** ✓ — the minor cosmetic artifact flagged in the previous checkpoint (Vision tokenizing punctuation separately from words produced text like "Photosynthesis ?", "Motion .", "( note )"). `buildLineParagraphXml`'s segment-text assembly now strips these stray spaces, producing "Photosynthesis?", "Motion.", "(note)".
+  - **Validation** ✓ — `node --check compression_server.js` → exit 0; re-verified locally with punctuation tokenized as separate words (matching real Vision behavior) - correct cleanup, no regression to right-tab-anchoring/center/bold logic.
+  - **Scope note**: backend-only change, no Flutter/Firebase deploy needed. Committed + pushed (commit `6b987ef`).
+  - Repo memory updated (`compression_notes.md`).
+- Owner: Founder + Copilot
