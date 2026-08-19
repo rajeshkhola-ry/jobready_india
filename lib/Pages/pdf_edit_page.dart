@@ -56,6 +56,7 @@ class _PdfEditPageState extends State<PdfEditPage> {
   Timer? _progressTimer;
 
   final TextEditingController _editorController = TextEditingController();
+  final ScrollController _editorScrollController = ScrollController();
   final PdfOcrService _ocrService = const PdfOcrService();
 
   @override
@@ -114,6 +115,7 @@ class _PdfEditPageState extends State<PdfEditPage> {
     _progressTimer?.cancel();
     _editorController.removeListener(_handleEditorChanged);
     _editorController.dispose();
+    _editorScrollController.dispose();
     if (_previewUrl != null) {
       html.Url.revokeObjectUrl(_previewUrl!);
     }
@@ -920,19 +922,17 @@ class _PdfEditPageState extends State<PdfEditPage> {
               ),
               const SizedBox(height: 12),
               if (useSplitScreen)
-                Expanded(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: _buildPreviewPanel(),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildEditorPanel(),
-                      ),
-                    ],
-                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _buildPreviewPanel(),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildEditorPanel(),
+                    ),
+                  ],
                 )
               else
                 Column(
@@ -1137,14 +1137,19 @@ class _PdfEditPageState extends State<PdfEditPage> {
               child: Center(child: CircularProgressIndicator()),
             )
           else
-            TextField(
-              controller: _editorController,
-              minLines: 14,
-              maxLines: 24,
-              decoration: const InputDecoration(
-                labelText: 'Edit text manually here (changes are auto-saved locally)',
-                border: OutlineInputBorder(),
-                alignLabelWithHint: true,
+            Scrollbar(
+              controller: _editorScrollController,
+              thumbVisibility: true,
+              child: TextField(
+                controller: _editorController,
+                scrollController: _editorScrollController,
+                minLines: 14,
+                maxLines: 24,
+                decoration: const InputDecoration(
+                  labelText: 'Edit text manually here (changes are auto-saved locally)',
+                  border: OutlineInputBorder(),
+                  alignLabelWithHint: true,
+                ),
               ),
             ),
           const SizedBox(height: 8),

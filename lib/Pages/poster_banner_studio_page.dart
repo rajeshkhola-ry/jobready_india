@@ -11,6 +11,8 @@ import '../Services/draft_persistence_service.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/poster_banner_studio_service.dart';
 
+enum _ResizeCorner { topLeft, topRight, bottomLeft, bottomRight }
+
 class PosterBannerStudioPage extends StatefulWidget {
   const PosterBannerStudioPage({super.key});
 
@@ -157,6 +159,102 @@ class _PosterBannerStudioPageState extends State<PosterBannerStudioPage> {
       _syncControllers();
     });
     _scheduleSave();
+  }
+
+  // Corner drag handles for the selected text layer - resizes the bounding box
+  // and scales the font size in step, so dragging behaves like the font-size
+  // field instead of just clipping/reflowing text at a fixed size.
+  List<Widget> _buildResizeHandles(int index, PosterLayerDraft layer) {
+    const double handleSize = 16;
+    const double half = handleSize / 2;
+
+    Widget buildHandle(double left, double top, _ResizeCorner corner) {
+      return Positioned(
+        left: left,
+        top: top,
+        child: MouseRegion(
+          cursor: _cursorForCorner(corner),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onPanUpdate: (details) => _resizeLayer(index, corner, details.delta),
+            child: Container(
+              width: handleSize,
+              height: handleSize,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF123A63), width: 2),
+                boxShadow: const <BoxShadow>[
+                  BoxShadow(color: Colors.black26, blurRadius: 3, offset: Offset(0, 1)),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return <Widget>[
+      buildHandle(-half, -half, _ResizeCorner.topLeft),
+      buildHandle(layer.size.width - half, -half, _ResizeCorner.topRight),
+      buildHandle(-half, layer.size.height - half, _ResizeCorner.bottomLeft),
+      buildHandle(layer.size.width - half, layer.size.height - half, _ResizeCorner.bottomRight),
+    ];
+  }
+
+  MouseCursor _cursorForCorner(_ResizeCorner corner) {
+    switch (corner) {
+      case _ResizeCorner.topLeft:
+      case _ResizeCorner.bottomRight:
+        return SystemMouseCursors.resizeUpLeftDownRight;
+      case _ResizeCorner.topRight:
+      case _ResizeCorner.bottomLeft:
+        return SystemMouseCursors.resizeUpRightDownLeft;
+    }
+  }
+
+  void _resizeLayer(int index, _ResizeCorner corner, Offset delta) {
+    final layer = _layers[index];
+    const double minWidth = 40;
+    const double minHeight = 24;
+
+    final bool growsRight = corner == _ResizeCorner.topRight || corner == _ResizeCorner.bottomRight;
+    final bool growsDown = corner == _ResizeCorner.bottomLeft || corner == _ResizeCorner.bottomRight;
+
+    final double newWidth = (layer.size.width + (growsRight ? delta.dx : -delta.dx))
+        .clamp(minWidth, _canvasSize.width)
+        .toDouble();
+    final double newHeight = (layer.size.height + (growsDown ? delta.dy : -delta.dy))
+        .clamp(minHeight, _canvasSize.height)
+        .toDouble();
+
+    // Re-derive position from the (already-clamped) new size so the OPPOSITE
+    // corner stays anchored in place, regardless of whether a clamp kicked in.
+    final double anchoredX = growsRight ? layer.position.dx : layer.position.dx + layer.size.width - newWidth;
+    final double anchoredY = growsDown ? layer.position.dy : layer.position.dy + layer.size.height - newHeight;
+    final double newX = anchoredX.clamp(0, _canvasSize.width - newWidth).toDouble();
+    final double newY = anchoredY.clamp(0, _canvasSize.height - newHeight).toDouble();
+
+    final double scale = ((newWidth / layer.size.width) + (newHeight / layer.size.height)) / 2;
+    final double newFontSize = (layer.fontSize * scale).clamp(10.0, 72.0).toDouble();
+
+    _updateLayer(
+      PosterLayerDraft(
+        type: layer.type,
+        label: layer.label,
+        position: Offset(newX, newY),
+        size: Size(newWidth, newHeight),
+        rotation: layer.rotation,
+        text: layer.text,
+        fontSize: newFontSize,
+        fontWeight: layer.fontWeight,
+        fillColor: layer.fillColor,
+        textColor: layer.textColor,
+        iconData: layer.iconData,
+        shapeType: layer.shapeType,
+        borderRadius: layer.borderRadius,
+      ),
+    );
   }
 
   void _nudgeLayer(double dx, double dy) {
@@ -639,41 +737,49 @@ class _PosterBannerStudioPageState extends State<PosterBannerStudioPage> {
                         ),
                       ...List<Widget>.generate(_layers.length, (index) {
                         final layer = _layers[index];
+                        final isSelected = index == _selectedLayerIndex;
                         return Positioned(
                           left: layer.position.dx,
                           top: layer.position.dy,
-                          child: GestureDetector(
-                            onTap: () => setState(() {
-                              _selectedLayerIndex = index;
-                              _syncControllers();
-                            }),
-                            onPanUpdate: (details) {
-                              final next = Offset(
-                                (_layers[index].position.dx + details.delta.dx).clamp(0, _canvasSize.width - layer.size.width),
-                                (_layers[index].position.dy + details.delta.dy).clamp(0, _canvasSize.height - layer.size.height),
-                              );
-                              setState(() {
-                                _layers[index] = PosterLayerDraft(
-                                  type: layer.type,
-                                  label: layer.label,
-                                  position: next,
-                                  size: layer.size,
-                                  rotation: layer.rotation,
-                                  text: layer.text,
-                                  fontSize: layer.fontSize,
-                                  fontWeight: layer.fontWeight,
-                                  fillColor: layer.fillColor,
-                                  textColor: layer.textColor,
-                                  iconData: layer.iconData,
-                                  shapeType: layer.shapeType,
-                                  borderRadius: layer.borderRadius,
-                                );
-                              });
-                            },
-                            child: Transform.rotate(
-                              angle: layer.rotation,
-                              child: _buildCanvasLayer(layer, selected: index == _selectedLayerIndex),
-                            ),
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: <Widget>[
+                              GestureDetector(
+                                onTap: () => setState(() {
+                                  _selectedLayerIndex = index;
+                                  _syncControllers();
+                                }),
+                                onPanUpdate: (details) {
+                                  final next = Offset(
+                                    (_layers[index].position.dx + details.delta.dx).clamp(0, _canvasSize.width - layer.size.width),
+                                    (_layers[index].position.dy + details.delta.dy).clamp(0, _canvasSize.height - layer.size.height),
+                                  );
+                                  setState(() {
+                                    _layers[index] = PosterLayerDraft(
+                                      type: layer.type,
+                                      label: layer.label,
+                                      position: next,
+                                      size: layer.size,
+                                      rotation: layer.rotation,
+                                      text: layer.text,
+                                      fontSize: layer.fontSize,
+                                      fontWeight: layer.fontWeight,
+                                      fillColor: layer.fillColor,
+                                      textColor: layer.textColor,
+                                      iconData: layer.iconData,
+                                      shapeType: layer.shapeType,
+                                      borderRadius: layer.borderRadius,
+                                    );
+                                  });
+                                },
+                                child: Transform.rotate(
+                                  angle: layer.rotation,
+                                  child: _buildCanvasLayer(layer, selected: isSelected),
+                                ),
+                              ),
+                              if (isSelected && layer.type == PosterLayerType.text)
+                                ..._buildResizeHandles(index, layer),
+                            ],
                           ),
                         );
                       }),
