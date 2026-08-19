@@ -1343,6 +1343,27 @@ Prepared For: JOBREADY
 - Decisions needed:
   - `lib/Widgets/upload_card_v2.dart`'s unrelated pending 1-line change is still uncommitted/untouched — still outside this task's scope.
 - Owner: Founder + Copilot
+
+### Checkpoint - 2026-08-19 (Visual In-Place PDF Editor: Export Verified + Shipped)
+- Overall status: Green (flutter analyze clean, release build succeeded, exports byte-verified, deployed to Firebase Hosting)
+- Completed today:
+  - **Finished and shipped the visual in-place PDF editor rewrite (Option A)** ✓ — `Pages/pdf_edit_page.dart` renders each page as a raster base layer via `pdfrx` (100% original fidelity), extracts real vector text runs with positions, and lets the user tap any run to edit it in place or add new text/whiteout boxes with drag-resize handles; export draws all overlays directly onto the ORIGINAL loaded document's matching pages via `syncfusion_flutter_pdf`, so untouched content stays byte-identical to the source.
+  - **Rebuilt after a routing-fix checkpoint had temporarily stashed this file** — restored via `git stash pop`, re-verified `flutter analyze` still clean (0 errors; 2 pre-existing unrelated `withOpacity` infos only), then rebuilt the release web bundle to include these changes (the prior deploy intentionally shipped ONLY the routing fix).
+  - **Live browser verification of the full workflow** (served `build/web` locally, activated Flutter semantics for reliable automation): uploaded a real generated test PDF → confirmed page render + tappable text fragments → tapped a fragment, typed replacement text, confirmed the on-canvas overlay updates live → clicked **Export PDF** and **Export DOCX**.
+  - **Byte-level export verification** (instrumented `URL.createObjectURL` in-page to capture the actual export `Blob`, since the synthetic anchor-click download doesn't reliably surface as a Playwright `download` event): Export PDF produced a 2413-byte file starting with `%PDF-1.7` and ending with a valid `startxref`/`%%EOF` trailer; Export DOCX produced a 1087-byte file with the correct DOCX MIME type and a valid ZIP local-file-header signature (`50 4b 03 04` / `PK\x03\x04`). Both exports are confirmed genuinely valid, not corrupted/truncated.
+- Validation & Deployment ✓
+  - `flutter analyze lib/Pages/pdf_edit_page.dart`: 0 errors (2 pre-existing unrelated `withOpacity` deprecation infos only).
+  - `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` succeeded (`Built build\web`, ~220s compile).
+  - `firebase deploy --only hosting --project getreadyjob-india-1cb34` succeeded — confirmed live at https://getreadyjob-india-1cb34.web.app (re-checked the deployed `/#/pdf-edit` route directly in a browser and confirmed the new editor UI/copy is live).
+  - Committed (`b24d100`) and pushed to `origin/main`.
+  - Cleaned up throwaway test artifacts (`test_assets/generated_valid_test.pdf`, local test HTTP server).
+- In progress:
+  - None — Task 5 (Visual In-Place PDF Editor) is complete, verified, and live.
+- Blockers:
+  - None.
+- Decisions needed:
+  - `lib/Widgets/upload_card_v2.dart`'s unrelated pending 1-line change is still uncommitted/untouched — still outside this task's scope.
+- Owner: Founder + Copilot
 - Owner: Founder + Copilot
 - Owner: Founder + Copilot
 - Owner: Founder + Copilot
