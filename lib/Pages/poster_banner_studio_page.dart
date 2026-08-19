@@ -423,6 +423,12 @@ class _PosterBannerStudioPageState extends State<PosterBannerStudioPage> {
         backgroundColor: const Color(0xFF123A63),
         foregroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.white),
+        titleTextStyle: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w800,
+          fontSize: 18,
+          letterSpacing: 0.2,
+        ),
         actions: [
           if (_lastSaved != null)
             Padding(

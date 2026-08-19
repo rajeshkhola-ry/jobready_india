@@ -1225,6 +1225,35 @@ Prepared For: JOBREADY
   - None.
 - Decisions needed:
   - None.
+
+### Checkpoint - 2026-08-19 (PWA Cache-Busting, AppBar Contrast Fix, PDF Edit Live Preview & Fidelity)
+- Overall status: Green (flutter analyze clean on all touched files, release build succeeded, deployed to Firebase Hosting)
+- Completed today:
+  - **PWA cache-busting / service worker refresh** ✓
+    - `web/index.html`: service worker registration now passes `{ scope: '/', updateViaCache: 'none' }` so the browser always re-fetches `sw.js` itself over the network when checking for updates instead of ever reusing an HTTP-cached copy of the worker script.
+    - `web/sw.js`: bumped `CACHE_NAME` from `grj-cache-v20260815` to `grj-cache-v20260819` so the `activate` handler clears out any previously cached assets for this deploy.
+    - Verified `web/index.html`'s existing inline bootstrap script already cache-busts `flutter_bootstrap.js`/`flutter.js`/`main.dart.js` script tags with a per-load unique `?v=` query param, and `firebase.json` already sets `no-cache, no-store, must-revalidate` on `/index.html`, `/`, `/sw.js`, `/flutter_service_worker.js`, and `/version.json` — no changes needed there, only verified.
+  - **AppBar dark-on-dark title/icon contrast bug** ✓
+    - Root cause confirmed directly in the Flutter SDK source (`app_bar.dart`): the title text style and icon theme both resolve as `widget.titleTextStyle ?? appBarTheme.titleTextStyle ?? ...` (same pattern for icons). Since the app's global `AppBarTheme` (`lib/main_v1_1.dart`) already sets a non-null dark `titleTextStyle.color`/`iconTheme.color`, any page that set only `foregroundColor: Colors.white` locally — without ALSO setting its own `titleTextStyle`/`iconTheme` — silently kept the global dark colors, producing invisible dark-navy text/icons on a dark-blue AppBar.
+    - Audited all 40 `Pages/**/*.dart` files with a local `AppBar`; 21 already followed the correct convention (explicit white `titleTextStyle`/`iconTheme`). Fixed the 6 that didn't: `Pages/resume_document_canvas_templates_page.dart` (the user-reported page), `Pages/poster_banner_studio_page.dart`, `Pages/v2/converter/converter_workspace_page.dart`, `Pages/v2/history/history_page.dart`, `Pages/v2/resume/resume_workspace_page.dart`, `Pages/voice_interview_page.dart`.
+    - Left the global `AppBarTheme` untouched — fixing at the page level avoids regressing the ~14 pages that correctly rely on the light default theme with dark text.
+  - **PDF Edit tool — live preview & export fidelity** ✓
+    - `Pages/pdf_edit_page.dart`: fixed the blank "PDF Preview" pane. It was looking up the preview iframe via `document.getElementById('pdf-preview-view')`, which can never match (Flutter's platform-view wrapper does not expose the registered viewType string as the iframe's DOM id), so `.src` was never actually set. Now stores a direct reference to the iframe from inside the `registerViewFactory` callback and sets `.src` on that reference directly.
+    - Preview is now reactive: the existing 700ms auto-save debounce also regenerates the preview from the current edited text (reusing the same `_buildEditedPdfBytes` builder used for the real export, so the preview always matches the download), with a new "Original file" / "Live edited preview" badge so users know which one they're looking at.
+    - Export fidelity: `_buildEditedPdfBytes` now reads the original uploaded PDF's page size and applies it to the output document's `pageSettings.size` before adding pages, so exported pages keep the original dimensions instead of Syncfusion's unrelated default page size.
+    - Disclosed limitation: true in-place text-reflow editing that preserves the original PDF's exact embedded fonts/content layout is not achievable with the current PDF library within this scope; the fix targets page geometry plus an accurate, live preview.
+- Validation & Deployment ✓
+  - `flutter analyze`: 0 errors introduced by this checkpoint. Full-project run shows 20 pre-existing errors, all in files untouched today (`lib/Services/razorpay_service.dart`, `lib/Services/resume_template_gallery.dart`, `lib/tool/photo_resize_validation.dart` + `tool/photo_resize_validation.dart`, `test/home_page_v2_currency_test.dart`) and already known/pre-existing.
+  - `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` succeeded (`Built build\web`).
+  - `firebase deploy --only hosting --project getreadyjob-india-1cb34` succeeded — live at https://getreadyjob-india-1cb34.web.app.
+  - Committed and pushed to `origin/main`.
+- In progress:
+  - None — all 3 reported issues resolved, validated, and deployed.
+- Blockers:
+  - None.
+- Decisions needed:
+  - Noticed an unrelated, already-pending uncommitted 1-line change in `lib/Widgets/upload_card_v2.dart` (AI disclaimer text wording) predating this session — left untouched/uncommitted since it is outside this checkpoint's scope; flagged for the owner to review separately.
+- Owner: Founder + Copilot
 - Owner: Founder + Copilot
 - Owner: Founder + Copilot
       6. Privacy Policy (`/privacy` -> `PrivacyPolicyPage`)

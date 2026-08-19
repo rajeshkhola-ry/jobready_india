@@ -134,6 +134,13 @@ class _HistoryPageState extends State<HistoryPage> {
         title: const Text('Document History'),
         backgroundColor: const Color(0xFF0E3A66),
         foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
+        titleTextStyle: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w800,
+          fontSize: 18,
+          letterSpacing: 0.2,
+        ),
       ),
       body: Container(
         decoration: const BoxDecoration(

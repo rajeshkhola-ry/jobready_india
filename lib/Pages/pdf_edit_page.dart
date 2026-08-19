@@ -48,6 +48,8 @@ class _PdfEditPageState extends State<PdfEditPage> {
   double _scanProgress = 0.0;
   String? _lastSavedText;
   String? _previewUrl;
+  bool _previewShowingEdits = false;
+  html.IFrameElement? _previewIframeElement;
   Timer? _autoSaveTimer;
   Timer? _progressTimer;
 
@@ -111,6 +113,9 @@ class _PdfEditPageState extends State<PdfEditPage> {
     _progressTimer?.cancel();
     _editorController.removeListener(_handleEditorChanged);
     _editorController.dispose();
+    if (_previewUrl != null) {
+      html.Url.revokeObjectUrl(_previewUrl!);
+    }
     super.dispose();
   }
 
@@ -127,6 +132,7 @@ class _PdfEditPageState extends State<PdfEditPage> {
       _selectedBytes = files.first.bytes;
       _selectedName = files.first.name;
       _previewUrl = null;
+      _previewShowingEdits = false;
       _lastSavedText = null;
       _autoSaveStatus = 'Saved ✓';
       _isAutoSaving = false;
@@ -143,9 +149,11 @@ class _PdfEditPageState extends State<PdfEditPage> {
       _selectedBytes = null;
       _selectedName = null;
       _previewUrl = null;
+      _previewShowingEdits = false;
       _editorController.clear();
       _loadStatus = 'File removed. Upload a new PDF to continue.';
     });
+    _previewIframeElement?.src = 'about:blank';
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Uploaded file removed.')),
     );
@@ -158,6 +166,14 @@ class _PdfEditPageState extends State<PdfEditPage> {
           ..style.border = 'none'
           ..style.width = '100%'
           ..style.height = '100%';
+        // Keep a direct reference instead of relying on getElementById, which can
+        // never find this element (the platform-view wrapper does not expose the
+        // viewType string as the iframe's DOM id) - this was the blank-preview bug.
+        _previewIframeElement = iframe;
+        final pendingUrl = _previewUrl;
+        if (pendingUrl != null) {
+          iframe.src = pendingUrl;
+        }
         return iframe;
       });
     } catch (_) {
@@ -189,12 +205,31 @@ class _PdfEditPageState extends State<PdfEditPage> {
       if (!mounted) {
         return;
       }
+      final savedText = _editorController.text.trim();
       setState(() {
-        _lastSavedText = _editorController.text.trim();
+        _lastSavedText = savedText;
         _autoSaveStatus = 'Saved ✓';
         _isAutoSaving = false;
       });
+      _refreshEditedPreview(savedText);
     });
+  }
+
+  /// Regenerates the left preview pane from the CURRENT edited text using the
+  /// same builder as the real export, so the preview always matches what the
+  /// user would actually download - no separate/divergent rendering path.
+  void _refreshEditedPreview(String editedText) {
+    if (editedText.isEmpty || _selectedBytes == null) {
+      return;
+    }
+    try {
+      final previewBytes = _buildEditedPdfBytes(editedText);
+      setState(() {
+        _refreshPreview(overrideBytes: previewBytes, showingEdits: true);
+      });
+    } catch (_) {
+      // Best-effort live preview only; Export PDF/DOCX still has its own error handling.
+    }
   }
 
   void _startScanProgress() {
@@ -248,11 +283,13 @@ class _PdfEditPageState extends State<PdfEditPage> {
         _editorController.text = result.text;
         _lastSavedText = result.text.trim();
         _previewUrl = null;
+        _previewShowingEdits = false;
         _loadStatus = 'Ready: PDF text loaded successfully';
       } else {
         _editorController.text = '';
         _lastSavedText = '';
         _previewUrl = null;
+        _previewShowingEdits = false;
         _loadStatus = 'ℹ️ OCR backend not configured. Loaded embedded PDF text instead.';
       }
 
@@ -265,6 +302,7 @@ class _PdfEditPageState extends State<PdfEditPage> {
       _editorController.text = '';
       _lastSavedText = '';
       _previewUrl = null;
+      _previewShowingEdits = false;
       _loadStatus = 'Error: Unable to load text from PDF. Please try again.';
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -312,9 +350,35 @@ class _PdfEditPageState extends State<PdfEditPage> {
     }
   }
 
+  /// Reads the ORIGINAL uploaded PDF's page size so exported/edited pages keep
+  /// the same dimensions instead of Syncfusion's unrelated default page size.
+  Size? _originalPageSize() {
+    final bytes = _selectedBytes;
+    if (bytes == null) {
+      return null;
+    }
+    try {
+      final probe = sfpdf.PdfDocument(inputBytes: bytes);
+      try {
+        if (probe.pages.count == 0) {
+          return null;
+        }
+        return probe.pages[0].size;
+      } finally {
+        probe.dispose();
+      }
+    } catch (_) {
+      return null;
+    }
+  }
+
   Uint8List _buildEditedPdfBytes(String editedText) {
     final outputDocument = sfpdf.PdfDocument();
     try {
+      final originalSize = _originalPageSize();
+      if (originalSize != null) {
+        outputDocument.pageSettings.size = originalSize;
+      }
       final paragraphs = PdfExportFormatter.prepareParagraphs(editedText);
       final firstPage = outputDocument.pages.add();
       final pageWidth = firstPage.size.width;
@@ -929,7 +993,7 @@ class _PdfEditPageState extends State<PdfEditPage> {
 
   Widget _buildPreviewPanel() {
     if (_selectedBytes != null && _previewUrl == null) {
-      _previewUrl = _buildPdfPreviewUrl();
+      _refreshPreview();
     }
 
     return Container(
@@ -943,9 +1007,34 @@ class _PdfEditPageState extends State<PdfEditPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'PDF Preview',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF1E3A8A)),
+          Row(
+            children: [
+              const Text(
+                'PDF Preview',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF1E3A8A)),
+              ),
+              if (_previewUrl != null) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: _previewShowingEdits ? const Color(0xFFECFDF5) : const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: _previewShowingEdits ? const Color(0xFFA7F3D0) : const Color(0xFFBFDBFE),
+                    ),
+                  ),
+                  child: Text(
+                    _previewShowingEdits ? 'Live edited preview' : 'Original file',
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w700,
+                      color: _previewShowingEdits ? const Color(0xFF047857) : const Color(0xFF1D4ED8),
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
           const SizedBox(height: 8),
           Expanded(
@@ -1008,7 +1097,7 @@ class _PdfEditPageState extends State<PdfEditPage> {
               border: Border.all(color: const Color(0xFFFCD34D)),
             ),
             child: const Text(
-              'Your edits are reflected in the exported PDF/DOCX instantly.',
+              'Your edits auto-save, update the live preview on the left, and are reflected in the exported PDF/DOCX.',
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF92400E)),
             ),
           ),
@@ -1017,17 +1106,23 @@ class _PdfEditPageState extends State<PdfEditPage> {
     );
   }
 
-  String? _buildPdfPreviewUrl() {
-    if (_selectedBytes == null) {
-      return null;
+  void _refreshPreview({Uint8List? overrideBytes, bool showingEdits = false}) {
+    final bytesToShow = overrideBytes ?? _selectedBytes;
+    if (bytesToShow == null) {
+      return;
     }
-    final blob = html.Blob([_selectedBytes!], 'application/pdf');
+    final previousUrl = _previewUrl;
+    final blob = html.Blob([bytesToShow], 'application/pdf');
     final url = html.Url.createObjectUrlFromBlob(blob);
-    final previewElement = html.document.getElementById('pdf-preview-view');
-    if (previewElement is html.IFrameElement) {
-      previewElement.src = url;
+    _previewUrl = url;
+    _previewShowingEdits = showingEdits;
+    _previewIframeElement?.src = url;
+    if (previousUrl != null && previousUrl != url) {
+      // Revoke shortly after so the iframe has time to load the new blob first.
+      Future<void>.delayed(const Duration(milliseconds: 500), () {
+        html.Url.revokeObjectUrl(previousUrl);
+      });
     }
-    return url;
   }
 
   bool _isPdfFile(String fileName) {

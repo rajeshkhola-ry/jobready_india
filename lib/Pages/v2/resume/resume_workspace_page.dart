@@ -117,6 +117,13 @@ class _ResumeWorkspacePageState extends State<ResumeWorkspacePage> {
         title: const Text('Resume Workspace'),
         backgroundColor: const Color(0xFF0E3A66),
         foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
+        titleTextStyle: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w800,
+          fontSize: 18,
+          letterSpacing: 0.2,
+        ),
         actions: [
           IconButton(
             tooltip: 'Home',

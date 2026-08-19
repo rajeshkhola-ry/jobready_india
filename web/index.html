@@ -675,7 +675,10 @@
       async function registerServiceWorker() {
         if ('serviceWorker' in navigator) {
           try {
-            var registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+            // updateViaCache: 'none' forces the browser to always re-fetch sw.js itself
+            // (and any of its imports) over the network when checking for updates,
+            // instead of ever reusing a cached copy of the worker script.
+            var registration = await navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' });
             // Proactively check for a newer sw.js instead of waiting on the browser's own
             // update timer, so returning visitors always get the newest build automatically.
             if (registration && typeof registration.update === 'function') {

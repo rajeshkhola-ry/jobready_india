@@ -240,6 +240,13 @@ class _VoiceInterviewPageState extends State<VoiceInterviewPage> with SingleTick
         title: const Text('AI Voice Mock Interview Practice'),
         backgroundColor: const Color(0xFF0F172A),
         foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
+        titleTextStyle: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w800,
+          fontSize: 18,
+          letterSpacing: 0.2,
+        ),
       ),
       body: SafeArea(
         child: Center(
