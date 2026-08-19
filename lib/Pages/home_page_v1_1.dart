@@ -5624,10 +5624,9 @@ class _MostPopularToolsCard extends StatelessWidget {
                   icon: Icons.lock_outline_rounded,
                   label: 'Protect PDF',
                   description: 'Add access protection to keep sensitive documents secure.',
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const PdfEditPage()),
-                  ),
+                  onTap: () {
+                    Navigator.of(context).pushNamed('/smart-pdf');
+                  },
                 ),
                 _PopularToolRow(
                   icon: Icons.edit_note_rounded,
