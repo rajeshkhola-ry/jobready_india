@@ -1297,6 +1297,32 @@ Prepared For: JOBREADY
 - Decisions needed:
   - `lib/Widgets/upload_card_v2.dart`'s unrelated pending 1-line change is still uncommitted/untouched — still outside this task's scope.
 - Owner: Founder + Copilot
+
+### Checkpoint - 2026-08-19 (Automated Client-Side Cache Busting + Auto-Reload on New Deployments)
+- Overall status: Green (JS syntax validated, release build succeeded, deployed to Firebase Hosting)
+- Completed today:
+  - **Explicit service worker update lifecycle** ✓
+    - `web/index.html`: `registerServiceWorker()` now listens for `registration.updatefound`, and once the new worker reaches `installed`/`activated`, explicitly posts `{ action: 'skipWaiting' }` to it (in addition to the pre-existing `registration.waiting` case) — no longer relying solely on `sw.js`'s own unconditional `self.skipWaiting()` in `install`.
+    - `web/sw.js`: added a `message` listener (`self.addEventListener('message', ...)`) that calls `self.skipWaiting()` on receiving `{ action: 'skipWaiting' }` or the legacy `{ type: 'SKIP_WAITING' }` shape — this was previously dead code on the client side with no listener on the worker side.
+  - **Real build-version signal + reload-once guard persisted across the reload itself** ✓
+    - `web/sw.js`'s `activate` handler now announces its own `CACHE_NAME` (e.g. `grj-cache-v20260819b`) to every open tab via `client.postMessage({ type: 'GRJ_SW_ACTIVATED', version: CACHE_NAME })` once it takes control — this is the authoritative "a new deployment is now live" signal (CACHE_NAME is already hand-bumped on every meaningful sw.js change, so it doubles as a free, zero-extra-file build-version key).
+    - `web/index.html`: new `reloadForNewVersion(versionKey)` reloads the page and persists the version key to `sessionStorage` (`grj-last-reloaded-sw-version`) BEFORE reloading, so the guard survives the reload itself — a second event for the SAME version will not trigger a second reload, but a genuinely new deployment later in the same tab session still will. Kept an in-memory flag too as a same-tick belt-and-suspenders guard, and a `controllerchange` fallback path (in case the announcement message is ever missed) that funnels through the same guard.
+    - Added `window.APP_BUILD_TIME = Date.now()` as simple build/load metadata (matches the pattern suggested in the request).
+  - **Confirmed already-correct pieces (no change needed)**: `firebase.json` already sets `no-cache, no-store, must-revalidate` on `/index.html`, `/`, `/sw.js`, `/flutter_service_worker.js`, and `/version.json`. Flutter's own auto-generated `build/web/version.json` (from `pubspec.yaml`) is static/pubspec-derived and not useful as a per-deploy signal, so this checkpoint deliberately did NOT try to hand-maintain a competing `web/version.json` (Flutter's build step would just regenerate/overwrite it) — the SW's own `CACHE_NAME` announcement is the single, self-contained source of truth instead.
+  - Bumped `web/sw.js`'s `CACHE_NAME` to `grj-cache-v20260819b` (second meaningful sw.js revision today).
+- Validation & Deployment ✓
+  - `node --check` passed for `web/sw.js` and the extracted bootstrap IIFE from `web/index.html` (no Dart files touched, so `flutter analyze` does not apply to this checkpoint).
+  - `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` succeeded (`Built build\web`).
+  - `firebase deploy --only hosting --project getreadyjob-india-1cb34` succeeded — live at https://getreadyjob-india-1cb34.web.app.
+  - Committed (`9ec385f`) and pushed to `origin/main`.
+- In progress:
+  - None.
+- Blockers:
+  - None.
+- Decisions needed:
+  - `lib/Widgets/upload_card_v2.dart`'s unrelated pending 1-line change is still uncommitted/untouched — still outside this task's scope.
+- Owner: Founder + Copilot
+- Owner: Founder + Copilot
 - Owner: Founder + Copilot
 - Owner: Founder + Copilot
 - Owner: Founder + Copilot
