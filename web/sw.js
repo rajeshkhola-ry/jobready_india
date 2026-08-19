@@ -1,6 +1,6 @@
-// GRJ Service Worker v20260819
+// GRJ Service Worker v20260819b
 // Offline-first caching for zero-latency WASM execution
-const CACHE_NAME = 'grj-cache-v20260819';
+const CACHE_NAME = 'grj-cache-v20260819b';
 
 const PRECACHE_ASSETS = [
   '/',
@@ -37,8 +37,25 @@ self.addEventListener('activate', function (event) {
       );
     }).then(function () {
       return self.clients.claim();
+    }).then(function () {
+      // Announce our own version to every open tab so the client can reload
+      // exactly once per real deployment (see web/index.html's reloadForNewVersion).
+      return self.clients.matchAll({ includeUncontrolled: true }).then(function (clients) {
+        clients.forEach(function (client) {
+          client.postMessage({ type: 'GRJ_SW_ACTIVATED', version: CACHE_NAME });
+        });
+      });
     })
   );
+});
+
+// Allow the page to explicitly request this worker skip the waiting phase
+// (sent from web/index.html's registerServiceWorker on updatefound/waiting).
+self.addEventListener('message', function (event) {
+  var data = event && event.data;
+  if (data && (data.action === 'skipWaiting' || data.type === 'SKIP_WAITING')) {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('fetch', function (event) {

@@ -523,6 +523,11 @@
   -->
   <script>
     (function () {
+      // Build/version metadata for cache-busting and the auto-reload-on-deploy
+      // mechanism below. window.APP_BUILD_TIME is a simple per-load timestamp;
+      // the SW's own CACHE_NAME (announced via postMessage on activation) is the
+      // authoritative "did a new deployment actually happen" signal.
+      window.APP_BUILD_TIME = Date.now();
       var bootstrapVersion = 'grj-20260802b-' + Date.now();
       var fallbackVersion = 'grj-render-fallback-20260802b';
       var cleanupKey = 'grj-bootstrap-cleanup-' + bootstrapVersion;
@@ -672,6 +677,29 @@
         }
       }
 
+      // Reloads the page ONCE per distinct build version, guarding against
+      // infinite reload loops. The guard is persisted to sessionStorage (not
+      // just an in-memory flag) so it survives the reload() itself - a fresh
+      // page load for the SAME version will not trigger a second reload, but a
+      // genuinely NEW deployment later in the same tab session still will.
+      function reloadForNewVersion(versionKey) {
+        if (!versionKey || window.__GRJ_SW_RELOADED__) {
+          return;
+        }
+        var storageKey = 'grj-last-reloaded-sw-version';
+        try {
+          if (window.sessionStorage.getItem(storageKey) === versionKey) {
+            return;
+          }
+          window.sessionStorage.setItem(storageKey, versionKey);
+        } catch (_) {
+          // sessionStorage unavailable (e.g. private browsing) - fall through
+          // and rely on the in-memory guard below for this page instance only.
+        }
+        window.__GRJ_SW_RELOADED__ = true;
+        window.location.reload();
+      }
+
       async function registerServiceWorker() {
         if ('serviceWorker' in navigator) {
           try {
@@ -689,15 +717,53 @@
                 }
               });
             }
-            if (registration && registration.waiting) {
-              registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-            }
-            navigator.serviceWorker.addEventListener('controllerchange', function () {
-              if (window.__GRJ_SW_RELOADED__) {
+
+            var notifyWorkerToSkipWaiting = function (worker) {
+              if (!worker) {
                 return;
               }
-              window.__GRJ_SW_RELOADED__ = true;
-              window.location.reload();
+              try {
+                worker.postMessage({ action: 'skipWaiting' });
+              } catch (_) {
+                // No-op: the worker may already have moved on.
+              }
+            };
+
+            if (registration && registration.waiting) {
+              notifyWorkerToSkipWaiting(registration.waiting);
+            }
+
+            // A new build's service worker starts "installing" as soon as the
+            // browser detects sw.js changed on the server. Tell it to skip the
+            // waiting phase immediately instead of waiting for every open tab
+            // running the old worker to close on its own.
+            registration.addEventListener('updatefound', function () {
+              var newWorker = registration.installing;
+              if (!newWorker) {
+                return;
+              }
+              newWorker.addEventListener('statechange', function () {
+                if (newWorker.state === 'installed' || newWorker.state === 'activated') {
+                  notifyWorkerToSkipWaiting(newWorker);
+                }
+              });
+            });
+
+            // The active worker announces its own CACHE_NAME once it takes
+            // control - the authoritative "a new deployment is now live" signal.
+            navigator.serviceWorker.addEventListener('message', function (event) {
+              var data = event && event.data;
+              if (data && data.type === 'GRJ_SW_ACTIVATED') {
+                reloadForNewVersion(data.version);
+              }
+            });
+
+            // Fallback in case the announcement above is ever missed: still reload
+            // (at most once, via the same in-memory/sessionStorage guard) if the
+            // controlling worker changes without an explicit version announcement.
+            navigator.serviceWorker.addEventListener('controllerchange', function () {
+              var activeUrl = (navigator.serviceWorker.controller && navigator.serviceWorker.controller.scriptURL) || 'unknown';
+              reloadForNewVersion('controllerchange:' + activeUrl + ':' + Date.now());
             });
           } catch (e) {
             console.warn('GRJ SW registration failed:', e);
