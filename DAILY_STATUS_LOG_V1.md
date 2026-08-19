@@ -1254,6 +1254,29 @@ Prepared For: JOBREADY
 - Decisions needed:
   - Noticed an unrelated, already-pending uncommitted 1-line change in `lib/Widgets/upload_card_v2.dart` (AI disclaimer text wording) predating this session — left untouched/uncommitted since it is outside this checkpoint's scope; flagged for the owner to review separately.
 - Owner: Founder + Copilot
+
+### Checkpoint - 2026-08-19 (PDF Preview: Permanent Fix via Dynamic Per-Upload ViewType + Open-in-New-Tab Fallback)
+- Overall status: Green (flutter analyze clean, release build succeeded, deployed to Firebase Hosting)
+- Completed today:
+  - **PDF preview was still blank after the earlier iframe-reference fix — deeper root cause found and fixed** ✓
+    - `Pages/pdf_edit_page.dart` previously registered ONE static `'pdf-preview-view'` viewType once in `initState()`. `ui_web.platformViewRegistry.registerViewFactory` throws if the same viewType string is ever registered twice (e.g. on a page revisit within the same session, or a hot-restart in dev) — that failure was silently swallowed by the existing `try/catch`, which left the CURRENT `State` instance's iframe reference permanently `null` while an OLD (already-disposed) instance's factory kept quietly controlling that viewType — a structural cause of "still completely blank" that the earlier fix did not address.
+    - Fixed by allocating a brand-new, never-before-used viewType (`'pdf-preview-view-<counter>-<microsecond timestamp>'`) and calling `registerViewFactory` fresh every time a new file is loaded (`_allocateNewPreviewView()`), with a matching `Key` on the `HtmlElementView` so Flutter always creates a genuinely new platform view instead of trying to reuse/mutate an existing one.
+  - **Permanent fallback so the preview is never a dead end** ✓
+    - Added an always-visible "Open in New Tab" button (`html.window.open(previewUrl, '_blank')`) next to the preview header, plus a small caption row with a PDF icon, file name, and file size — so users always have a guaranteed, reliable way to view the file even in edge cases where inline iframe rendering is restricted by the browser.
+    - Confirmed the preview container already has an explicit fixed height (420) with an `Expanded` child, so it cannot collapse to 0 height; confirmed no Content-Security-Policy/X-Frame-Options headers exist in `web/index.html` or `firebase.json` that would block a same-origin `blob:` iframe.
+- Validation & Deployment ✓
+  - `flutter analyze lib/Pages/pdf_edit_page.dart`: 0 errors (2 pre-existing unrelated `withOpacity` deprecation infos only).
+  - `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` succeeded (`Built build\web`).
+  - `firebase deploy --only hosting --project getreadyjob-india-1cb34` succeeded — live at https://getreadyjob-india-1cb34.web.app.
+  - Committed (`db1b138`) and pushed to `origin/main`.
+- In progress:
+  - None.
+- Blockers:
+  - None.
+- Decisions needed:
+  - `lib/Widgets/upload_card_v2.dart`'s unrelated pending 1-line change (noted in the prior checkpoint) is still uncommitted/untouched — still outside this task's scope.
+- Owner: Founder + Copilot
+- Owner: Founder + Copilot
 - Owner: Founder + Copilot
 - Owner: Founder + Copilot
       6. Privacy Policy (`/privacy` -> `PrivacyPolicyPage`)
