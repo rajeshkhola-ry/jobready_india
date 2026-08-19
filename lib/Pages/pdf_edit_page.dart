@@ -50,6 +50,8 @@ class _PdfEditPageState extends State<PdfEditPage> {
   String? _previewUrl;
   bool _previewShowingEdits = false;
   html.IFrameElement? _previewIframeElement;
+  String? _previewViewType;
+  int _previewViewCounter = 0;
   Timer? _autoSaveTimer;
   Timer? _progressTimer;
 
@@ -59,7 +61,6 @@ class _PdfEditPageState extends State<PdfEditPage> {
   @override
   void initState() {
     super.initState();
-    _registerPdfPreviewFactory();
     _editorController.addListener(_handleEditorChanged);
     _selectedBytes = widget.initialBytes;
     _selectedName = widget.initialFileName;
@@ -159,16 +160,31 @@ class _PdfEditPageState extends State<PdfEditPage> {
     );
   }
 
-  void _registerPdfPreviewFactory() {
+  // A fresh, never-before-used viewType is registered for every uploaded file
+  // instead of one static string, so a page revisit / hot-restart cannot ever
+  // collide with a stale factory left over from an earlier registration -
+  // registerViewFactory throws if the same viewType is registered twice, and
+  // that failure was silently swallowed by the try/catch below, leaving the
+  // iframe reference permanently null (and the preview permanently blank).
+  void _allocateNewPreviewView() {
+    _previewViewCounter += 1;
+    final viewType = 'pdf-preview-view-$_previewViewCounter-${DateTime.now().microsecondsSinceEpoch}';
+    _previewIframeElement = null;
+    _previewViewType = viewType;
+    _registerPdfPreviewFactory(viewType);
+  }
+
+  void _registerPdfPreviewFactory(String viewType) {
     try {
-      ui_web.platformViewRegistry.registerViewFactory('pdf-preview-view', (int viewId) {
+      ui_web.platformViewRegistry.registerViewFactory(viewType, (int viewId) {
         final iframe = html.IFrameElement()
           ..style.border = 'none'
           ..style.width = '100%'
-          ..style.height = '100%';
+          ..style.height = '100%'
+          ..style.backgroundColor = '#FFFFFF';
         // Keep a direct reference instead of relying on getElementById, which can
         // never find this element (the platform-view wrapper does not expose the
-        // viewType string as the iframe's DOM id) - this was the blank-preview bug.
+        // viewType string as the iframe's DOM id) - this was the original blank-preview bug.
         _previewIframeElement = iframe;
         final pendingUrl = _previewUrl;
         if (pendingUrl != null) {
@@ -179,6 +195,14 @@ class _PdfEditPageState extends State<PdfEditPage> {
     } catch (_) {
       // Ignore registration failures on environments that do not support this path.
     }
+  }
+
+  void _openPreviewInNewTab() {
+    final url = _previewUrl;
+    if (url == null) {
+      return;
+    }
+    html.window.open(url, '_blank');
   }
 
   void _handleEditorChanged() {
@@ -993,6 +1017,7 @@ class _PdfEditPageState extends State<PdfEditPage> {
 
   Widget _buildPreviewPanel() {
     if (_selectedBytes != null && _previewUrl == null) {
+      _allocateNewPreviewView();
       _refreshPreview();
     }
 
@@ -1034,8 +1059,40 @@ class _PdfEditPageState extends State<PdfEditPage> {
                   ),
                 ),
               ],
+              const Spacer(),
+              if (_previewUrl != null)
+                TextButton.icon(
+                  onPressed: _openPreviewInNewTab,
+                  icon: const Icon(Icons.open_in_new_rounded, size: 15),
+                  label: const Text('Open in New Tab'),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
+                    foregroundColor: const Color(0xFF1D4ED8),
+                    textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
+                  ),
+                ),
             ],
           ),
+          if (_selectedName != null && _selectedBytes != null) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const Icon(Icons.picture_as_pdf_rounded, size: 14, color: Color(0xFFDC2626)),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    '$_selectedName • ${_formatFileSize(_selectedBytes!.length)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF6B7280)),
+                  ),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 8),
           Expanded(
             child: _previewUrl == null
@@ -1047,7 +1104,10 @@ class _PdfEditPageState extends State<PdfEditPage> {
                   )
                 : ClipRRect(
                     borderRadius: BorderRadius.circular(10),
-                    child: HtmlElementView(viewType: 'pdf-preview-view'),
+                    child: HtmlElementView(
+                      key: ValueKey(_previewViewType),
+                      viewType: _previewViewType!,
+                    ),
                   ),
           ),
         ],
