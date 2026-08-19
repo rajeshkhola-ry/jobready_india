@@ -1,25 +1,53 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
-
-import '../Utils/ui_web_stub.dart' if (dart.library.html) 'dart:ui_web' as ui_web;
+import 'dart:ui' as ui;
 
 import 'package:archive/archive.dart';
 import 'package:archive/archive_io.dart';
 import 'package:flutter/material.dart';
+import 'package:pdfrx/pdfrx.dart' as pdfrx;
 import 'package:syncfusion_flutter_pdf/pdf.dart' as sfpdf;
 import 'package:universal_html/html.dart' as html;
 
 import '../Services/file_picker_service.dart';
 import '../Services/file_storage_service.dart';
 import '../Services/ocr_quota_service.dart';
-import '../Services/pdf_export_formatter.dart';
 import '../Services/pdf_ocr_service.dart';
 import '../Services/remote_ocr_service.dart';
 import '../Services/upload_context_service.dart';
 import '../Services/voice_command_service.dart';
 import '../Widgets/production_footer.dart';
 import '../Widgets/tool_guidance_panel.dart';
+
+enum _OverlayResizeCorner { topLeft, topRight, bottomLeft, bottomRight }
+
+/// A detected run of ORIGINAL vector text on the current page, in top-down
+/// PDF point space (matches Syncfusion's Rect.fromLTWH convention directly).
+class _PdfFragmentHit {
+  const _PdfFragmentHit({required this.rect, required this.text});
+  final Rect rect;
+  final String text;
+}
+
+/// A user-placed edit: either a plain whiteout box, or a whiteout box with
+/// replacement/new text drawn on top - both drawn directly over the ORIGINAL
+/// PDF page at export time, so everything else on the page stays untouched.
+class _PdfOverlayItem {
+  _PdfOverlayItem({
+    required this.id,
+    required this.rect,
+    required this.text,
+    required this.fontSize,
+    this.isWhiteoutOnly = false,
+  });
+
+  final String id;
+  Rect rect;
+  String text;
+  double fontSize;
+  final bool isWhiteoutOnly;
+}
 
 class PdfEditPage extends StatefulWidget {
   final String? initialFileName;
@@ -41,28 +69,30 @@ class _PdfEditPageState extends State<PdfEditPage> {
   bool _isSaving = false;
   bool _isLoadingText = false;
   bool _isScanning = false;
-  bool _isAutoSaving = false;
   bool _isConvertingToSearchablePdf = false;
   String _loadStatus = 'Ready';
-  String _autoSaveStatus = 'Saved ✓';
   double _scanProgress = 0.0;
-  String? _lastSavedText;
-  String? _previewUrl;
-  bool _previewShowingEdits = false;
-  html.IFrameElement? _previewIframeElement;
-  String? _previewViewType;
-  int _previewViewCounter = 0;
-  Timer? _autoSaveTimer;
   Timer? _progressTimer;
 
-  final TextEditingController _editorController = TextEditingController();
-  final ScrollController _editorScrollController = ScrollController();
+  pdfrx.PdfDocument? _pdfDoc;
+  int _pageCount = 0;
+  int _currentPageIndex = 0;
+  bool _isRenderingPage = false;
+  Uint8List? _currentPagePng;
+  Size _currentPagePointSize = Size.zero;
+  List<_PdfFragmentHit> _currentPageFragments = <_PdfFragmentHit>[];
+  final Map<int, List<_PdfOverlayItem>> _pageOverlays = <int, List<_PdfOverlayItem>>{};
+  _PdfOverlayItem? _selectedOverlay;
+  int _overlayIdCounter = 0;
+  final TextEditingController _overlayTextController = TextEditingController();
+
   final PdfOcrService _ocrService = const PdfOcrService();
+
+  List<_PdfOverlayItem> get _currentOverlays => _pageOverlays.putIfAbsent(_currentPageIndex, () => <_PdfOverlayItem>[]);
 
   @override
   void initState() {
     super.initState();
-    _editorController.addListener(_handleEditorChanged);
     _selectedBytes = widget.initialBytes;
     _selectedName = widget.initialFileName;
 
@@ -87,7 +117,7 @@ class _PdfEditPageState extends State<PdfEditPage> {
     }
 
     if (_selectedBytes != null) {
-      _loadPdfTextIntoEditor();
+      _openDocumentForEditing();
     }
 
     _applyVoiceCommand();
@@ -111,14 +141,9 @@ class _PdfEditPageState extends State<PdfEditPage> {
 
   @override
   void dispose() {
-    _autoSaveTimer?.cancel();
     _progressTimer?.cancel();
-    _editorController.removeListener(_handleEditorChanged);
-    _editorController.dispose();
-    _editorScrollController.dispose();
-    if (_previewUrl != null) {
-      html.Url.revokeObjectUrl(_previewUrl!);
-    }
+    _overlayTextController.dispose();
+    _pdfDoc?.dispose();
     super.dispose();
   }
 
@@ -134,128 +159,160 @@ class _PdfEditPageState extends State<PdfEditPage> {
     setState(() {
       _selectedBytes = files.first.bytes;
       _selectedName = files.first.name;
-      _previewUrl = null;
-      _previewShowingEdits = false;
-      _lastSavedText = null;
-      _autoSaveStatus = 'Saved ✓';
-      _isAutoSaving = false;
-      _isScanning = false;
-      _scanProgress = 0.0;
-      _loadStatus = 'ℹ️ PDF loaded. Click "Load Text" or "Run OCR" to extract content.';
+      _loadStatus = 'ℹ️ PDF loaded. Rendering page for editing…';
     });
 
-    await _loadPdfTextIntoEditor();
+    await _openDocumentForEditing();
   }
 
   void _clearUploadedFile() {
+    _pdfDoc?.dispose();
     setState(() {
       _selectedBytes = null;
       _selectedName = null;
-      _previewUrl = null;
-      _previewShowingEdits = false;
-      _editorController.clear();
+      _pdfDoc = null;
+      _pageCount = 0;
+      _currentPageIndex = 0;
+      _currentPagePng = null;
+      _currentPageFragments = <_PdfFragmentHit>[];
+      _pageOverlays.clear();
+      _selectedOverlay = null;
       _loadStatus = 'File removed. Upload a new PDF to continue.';
     });
-    _previewIframeElement?.src = 'about:blank';
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Uploaded file removed.')),
     );
   }
 
-  // A fresh, never-before-used viewType is registered for every uploaded file
-  // instead of one static string, so a page revisit / hot-restart cannot ever
-  // collide with a stale factory left over from an earlier registration -
-  // registerViewFactory throws if the same viewType is registered twice, and
-  // that failure was silently swallowed by the try/catch below, leaving the
-  // iframe reference permanently null (and the preview permanently blank).
-  void _allocateNewPreviewView() {
-    _previewViewCounter += 1;
-    final viewType = 'pdf-preview-view-$_previewViewCounter-${DateTime.now().microsecondsSinceEpoch}';
-    _previewIframeElement = null;
-    _previewViewType = viewType;
-    _registerPdfPreviewFactory(viewType);
-  }
-
-  void _registerPdfPreviewFactory(String viewType) {
-    try {
-      ui_web.platformViewRegistry.registerViewFactory(viewType, (int viewId) {
-        final iframe = html.IFrameElement()
-          ..style.border = 'none'
-          ..style.width = '100%'
-          ..style.height = '100%'
-          ..style.backgroundColor = '#FFFFFF';
-        // Keep a direct reference instead of relying on getElementById, which can
-        // never find this element (the platform-view wrapper does not expose the
-        // viewType string as the iframe's DOM id) - this was the original blank-preview bug.
-        _previewIframeElement = iframe;
-        final pendingUrl = _previewUrl;
-        if (pendingUrl != null) {
-          iframe.src = pendingUrl;
-        }
-        return iframe;
-      });
-    } catch (_) {
-      // Ignore registration failures on environments that do not support this path.
-    }
-  }
-
-  void _openPreviewInNewTab() {
-    final url = _previewUrl;
-    if (url == null) {
+  /// Opens the uploaded bytes with pdfrx (a real PDFium-backed renderer, not a
+  /// text dump) so the ORIGINAL page can be shown pixel-for-pixel as the base
+  /// layer, and resets any per-document editor state for the new file.
+  Future<void> _openDocumentForEditing() async {
+    final bytes = _selectedBytes;
+    if (bytes == null) {
       return;
     }
-    html.window.open(url, '_blank');
-  }
 
-  void _handleEditorChanged() {
-    final currentText = _editorController.text.trim();
-    final hasChanged = _lastSavedText == null || currentText != _lastSavedText;
+    final previousDoc = _pdfDoc;
 
-    if (!hasChanged) {
-      if (_autoSaveStatus != 'Saved ✓') {
+    setState(() {
+      _isLoadingText = true;
+      _loadStatus = 'Rendering original PDF for editing…';
+    });
+
+    try {
+      final document = await pdfrx.PdfDocument.openData(bytes, sourceName: _selectedName ?? 'document.pdf');
+      await previousDoc?.dispose();
+      if (!mounted) {
+        await document.dispose();
+        return;
+      }
+      setState(() {
+        _pdfDoc = document;
+        _pageCount = document.pages.length;
+        _currentPageIndex = 0;
+        _pageOverlays.clear();
+        _selectedOverlay = null;
+      });
+      await _renderCurrentPage();
+      if (mounted) {
         setState(() {
-          _autoSaveStatus = 'Saved ✓';
-          _isAutoSaving = false;
+          _loadStatus = 'Ready: tap any text to edit it in place, or add a text/whiteout box.';
         });
       }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loadStatus = 'Error: unable to open this PDF for visual editing ($e).';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingText = false;
+        });
+      }
+    }
+  }
+
+  /// Renders the current page as a raster image (base layer, 100% original
+  /// fidelity) and separately extracts its real vector text runs with
+  /// positions, so each run can be tapped and edited in place.
+  Future<void> _renderCurrentPage() async {
+    final document = _pdfDoc;
+    if (document == null || _currentPageIndex < 0 || _currentPageIndex >= document.pages.length) {
       return;
     }
 
     setState(() {
-      _autoSaveStatus = 'Saving…';
-      _isAutoSaving = true;
+      _isRenderingPage = true;
+      _selectedOverlay = null;
     });
 
-    _autoSaveTimer?.cancel();
-    _autoSaveTimer = Timer(const Duration(milliseconds: 700), () {
-      if (!mounted) {
-        return;
+    try {
+      final page = document.pages[_currentPageIndex];
+      const renderScale = 2.0; // 2x for a crisp preview/edit surface
+      final pixelWidth = (page.width * renderScale).round().toDouble();
+      final pixelHeight = (page.height * renderScale).round().toDouble();
+
+      final rendered = await page.render(fullWidth: pixelWidth, fullHeight: pixelHeight);
+      Uint8List? pngBytes;
+      if (rendered != null) {
+        try {
+          final image = await rendered.createImage();
+          try {
+            final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+            if (byteData != null) {
+              pngBytes = byteData.buffer.asUint8List();
+            }
+          } finally {
+            image.dispose();
+          }
+        } finally {
+          rendered.dispose();
+        }
       }
-      final savedText = _editorController.text.trim();
+
+      final pageText = await page.loadText();
+      final fragments = <_PdfFragmentHit>[];
+      for (final fragment in pageText.fragments) {
+        if (fragment.text.trim().isEmpty) {
+          continue;
+        }
+        final bounds = fragment.bounds;
+        // pdfrx uses PDF-native bottom-up Y; flip to top-down to match
+        // Syncfusion's Rect.fromLTWH convention used by the exporter below.
+        final rect = Rect.fromLTWH(bounds.left, page.height - bounds.top, bounds.width, bounds.height);
+        fragments.add(_PdfFragmentHit(rect: rect, text: fragment.text));
+      }
+
+      if (!mounted) return;
       setState(() {
-        _lastSavedText = savedText;
-        _autoSaveStatus = 'Saved ✓';
-        _isAutoSaving = false;
+        _currentPagePng = pngBytes;
+        _currentPagePointSize = Size(page.width, page.height);
+        _currentPageFragments = fragments;
       });
-      _refreshEditedPreview(savedText);
-    });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loadStatus = 'Error rendering page ${_currentPageIndex + 1}: $e';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRenderingPage = false;
+        });
+      }
+    }
   }
 
-  /// Regenerates the left preview pane from the CURRENT edited text using the
-  /// same builder as the real export, so the preview always matches what the
-  /// user would actually download - no separate/divergent rendering path.
-  void _refreshEditedPreview(String editedText) {
-    if (editedText.isEmpty || _selectedBytes == null) {
+  Future<void> _goToPage(int index) async {
+    if (_pdfDoc == null || index < 0 || index >= _pageCount || index == _currentPageIndex) {
       return;
     }
-    try {
-      final previewBytes = _buildEditedPdfBytes(editedText);
-      setState(() {
-        _refreshPreview(overrideBytes: previewBytes, showingEdits: true);
-      });
-    } catch (_) {
-      // Best-effort live preview only; Export PDF/DOCX still has its own error handling.
-    }
+    setState(() {
+      _currentPageIndex = index;
+    });
+    await _renderCurrentPage();
   }
 
   void _startScanProgress() {
@@ -263,7 +320,6 @@ class _PdfEditPageState extends State<PdfEditPage> {
     setState(() {
       _isScanning = true;
       _scanProgress = 0.0;
-      _autoSaveStatus = 'Scanning…';
     });
 
     _progressTimer = Timer.periodic(const Duration(milliseconds: 80), (timer) {
@@ -281,68 +337,7 @@ class _PdfEditPageState extends State<PdfEditPage> {
     setState(() {
       _isScanning = false;
       _scanProgress = value;
-      if (_autoSaveStatus == 'Scanning…') {
-        _autoSaveStatus = 'Saved ✓';
-      }
     });
-  }
-
-  Future<void> _loadPdfTextIntoEditor({bool forceOcr = false}) async {
-    if (_selectedBytes == null) {
-      return;
-    }
-
-    _startScanProgress();
-
-    setState(() {
-      _isLoadingText = true;
-    });
-
-    try {
-      final result = await _ocrService.extractText(
-        pdfBytes: _selectedBytes!,
-        fileName: _selectedName ?? 'document.pdf',
-        forceOcr: forceOcr,
-      );
-
-      if (result.success) {
-        _editorController.text = result.text;
-        _lastSavedText = result.text.trim();
-        _previewUrl = null;
-        _previewShowingEdits = false;
-        _loadStatus = 'Ready: PDF text loaded successfully';
-      } else {
-        _editorController.text = '';
-        _lastSavedText = '';
-        _previewUrl = null;
-        _previewShowingEdits = false;
-        _loadStatus = 'ℹ️ OCR backend not configured. Loaded embedded PDF text instead.';
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_loadStatus)),
-        );
-      }
-    } catch (e) {
-      _editorController.text = '';
-      _lastSavedText = '';
-      _previewUrl = null;
-      _previewShowingEdits = false;
-      _loadStatus = 'Error: Unable to load text from PDF. Please try again.';
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_loadStatus)),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoadingText = false;
-        });
-        _finishScanProgress(value: 1.0);
-      }
-    }
   }
 
   Future<void> _extractTables() async {
@@ -357,14 +352,14 @@ class _PdfEditPageState extends State<PdfEditPage> {
         fileName: _selectedName!,
         mode: PdfExtractionMode.tableAware,
       );
-      _editorController.text = result.success && result.text.trim().isNotEmpty
+      final text = result.success && result.text.trim().isNotEmpty
           ? result.text
           : 'No table or form content found in this PDF.';
       _loadStatus = result.success
           ? 'Ready: Tables and forms extracted'
           : 'ℹ️ OCR backend not configured. Extracted embedded table data instead.';
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_loadStatus)));
+        _showExtractedTextDialog('Extracted Tables & Forms', text);
       }
     } catch (e) {
       _loadStatus = 'Error: Table extraction failed. Please try again.';
@@ -376,138 +371,278 @@ class _PdfEditPageState extends State<PdfEditPage> {
     }
   }
 
-  /// Reads the ORIGINAL uploaded PDF's page size so exported/edited pages keep
-  /// the same dimensions instead of Syncfusion's unrelated default page size.
-  Size? _originalPageSize() {
-    final bytes = _selectedBytes;
-    if (bytes == null) {
-      return null;
-    }
+  /// Runs OCR on the original PDF (for scanned/image-only pages that have no
+  /// vector text layer for pdfrx to detect) and shows the result read-only -
+  /// unlike the in-place text overlays above, OCR text has no reliable
+  /// per-word position, so it cannot be safely mapped onto the visual canvas.
+  Future<void> _runOcrForScannedPages() async {
+    if (_selectedBytes == null || _selectedName == null) return;
+    setState(() {
+      _isLoadingText = true;
+      _loadStatus = 'Running OCR on scanned pages...';
+    });
+    _startScanProgress();
     try {
-      final probe = sfpdf.PdfDocument(inputBytes: bytes);
-      try {
-        if (probe.pages.count == 0) {
-          return null;
-        }
-        return probe.pages[0].size;
-      } finally {
-        probe.dispose();
+      final result = await _ocrService.extractText(
+        pdfBytes: _selectedBytes!,
+        fileName: _selectedName!,
+        forceOcr: true,
+      );
+      final text = result.success && result.text.trim().isNotEmpty
+          ? result.text
+          : 'No text could be recognized on this PDF.';
+      _loadStatus = result.success ? 'Ready: OCR text extracted' : 'ℹ️ OCR backend not configured.';
+      if (mounted) {
+        _showExtractedTextDialog('OCR Result (Scanned Pages)', text);
       }
-    } catch (_) {
-      return null;
+    } catch (e) {
+      _loadStatus = 'Error: OCR failed. Please try again.';
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_loadStatus)));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoadingText = false);
+      _finishScanProgress(value: 1.0);
     }
   }
 
-  Uint8List _buildEditedPdfBytes(String editedText) {
-    final outputDocument = sfpdf.PdfDocument();
+  void _showExtractedTextDialog(String title, String text) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(title),
+        content: SizedBox(
+          width: 480,
+          child: SingleChildScrollView(child: SelectableText(text)),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Close')),
+        ],
+      ),
+    );
+  }
+
+  // ── Overlay CRUD (canvas edits) ────────────────────────────────────────────
+
+  String _nextOverlayId() {
+    _overlayIdCounter += 1;
+    return 'overlay-$_overlayIdCounter';
+  }
+
+  /// A text fragment's tight bounding-box height is a reasonable estimate of
+  /// its original point size (glyph ascent/descent roughly fill the box).
+  double _inferFontSize(double boundsHeight) => boundsHeight.clamp(8.0, 48.0);
+
+  void _selectFragmentForEditing(_PdfFragmentHit fragment) {
+    final overlay = _PdfOverlayItem(
+      id: _nextOverlayId(),
+      rect: fragment.rect,
+      text: fragment.text,
+      fontSize: _inferFontSize(fragment.rect.height),
+    );
+    setState(() {
+      _currentOverlays.add(overlay);
+      _selectedOverlay = overlay;
+      _overlayTextController.text = overlay.text;
+    });
+  }
+
+  void _addTextBox() {
+    final pageSize = _currentPagePointSize;
+    if (pageSize == Size.zero) return;
+    final overlay = _PdfOverlayItem(
+      id: _nextOverlayId(),
+      rect: Rect.fromLTWH(pageSize.width * 0.3, pageSize.height * 0.45, pageSize.width * 0.4, 22),
+      text: 'New text',
+      fontSize: 12,
+    );
+    setState(() {
+      _currentOverlays.add(overlay);
+      _selectedOverlay = overlay;
+      _overlayTextController.text = overlay.text;
+    });
+  }
+
+  void _addWhiteoutBox() {
+    final pageSize = _currentPagePointSize;
+    if (pageSize == Size.zero) return;
+    final overlay = _PdfOverlayItem(
+      id: _nextOverlayId(),
+      rect: Rect.fromLTWH(pageSize.width * 0.3, pageSize.height * 0.45, pageSize.width * 0.4, 22),
+      text: '',
+      fontSize: 12,
+      isWhiteoutOnly: true,
+    );
+    setState(() {
+      _currentOverlays.add(overlay);
+      _selectedOverlay = overlay;
+      _overlayTextController.clear();
+    });
+  }
+
+  void _selectOverlay(_PdfOverlayItem overlay) {
+    setState(() {
+      _selectedOverlay = overlay;
+      _overlayTextController.text = overlay.text;
+    });
+  }
+
+  void _updateSelectedOverlayText(String value) {
+    final overlay = _selectedOverlay;
+    if (overlay == null) return;
+    setState(() {
+      overlay.text = value;
+    });
+  }
+
+  void _deleteSelectedOverlay() {
+    final overlay = _selectedOverlay;
+    if (overlay == null) return;
+    setState(() {
+      _currentOverlays.remove(overlay);
+      _selectedOverlay = null;
+      _overlayTextController.clear();
+    });
+  }
+
+  void _moveOverlay(_PdfOverlayItem overlay, Offset pagePointDelta) {
+    final pageSize = _currentPagePointSize;
+    var next = overlay.rect.shift(pagePointDelta);
+    if (pageSize != Size.zero) {
+      final dx = next.left.clamp(0.0, (pageSize.width - next.width).clamp(0.0, pageSize.width));
+      final dy = next.top.clamp(0.0, (pageSize.height - next.height).clamp(0.0, pageSize.height));
+      next = Rect.fromLTWH(dx, dy, next.width, next.height);
+    }
+    setState(() {
+      overlay.rect = next;
+    });
+  }
+
+  void _resizeOverlay(_PdfOverlayItem overlay, Offset pagePointDelta, _OverlayResizeCorner corner) {
+    const minSize = 10.0;
+    var left = overlay.rect.left;
+    var top = overlay.rect.top;
+    var right = overlay.rect.right;
+    var bottom = overlay.rect.bottom;
+
+    switch (corner) {
+      case _OverlayResizeCorner.topLeft:
+        left += pagePointDelta.dx;
+        top += pagePointDelta.dy;
+        break;
+      case _OverlayResizeCorner.topRight:
+        right += pagePointDelta.dx;
+        top += pagePointDelta.dy;
+        break;
+      case _OverlayResizeCorner.bottomLeft:
+        left += pagePointDelta.dx;
+        bottom += pagePointDelta.dy;
+        break;
+      case _OverlayResizeCorner.bottomRight:
+        right += pagePointDelta.dx;
+        bottom += pagePointDelta.dy;
+        break;
+    }
+
+    if (right - left < minSize) {
+      if (corner == _OverlayResizeCorner.topLeft || corner == _OverlayResizeCorner.bottomLeft) {
+        left = right - minSize;
+      } else {
+        right = left + minSize;
+      }
+    }
+    if (bottom - top < minSize) {
+      if (corner == _OverlayResizeCorner.topLeft || corner == _OverlayResizeCorner.topRight) {
+        top = bottom - minSize;
+      } else {
+        bottom = top + minSize;
+      }
+    }
+
+    setState(() {
+      overlay.rect = Rect.fromLTRB(left, top, right, bottom);
+    });
+  }
+
+  // ── Export ──────────────────────────────────────────────────────────────
+
+  /// Draws every page's whiteout/text overlays directly onto the ORIGINAL
+  /// loaded document's matching pages (never a blank new document), so any
+  /// page/area without an overlay is byte-for-byte the original PDF content.
+  Uint8List _buildExportedPdfBytes() {
+    final originalBytes = _selectedBytes;
+    if (originalBytes == null) {
+      throw StateError('No PDF loaded.');
+    }
+    final outputDocument = sfpdf.PdfDocument(inputBytes: originalBytes);
     try {
-      final originalSize = _originalPageSize();
-      if (originalSize != null) {
-        outputDocument.pageSettings.size = originalSize;
-      }
-      final paragraphs = PdfExportFormatter.prepareParagraphs(editedText);
-      final firstPage = outputDocument.pages.add();
-      final pageWidth = firstPage.size.width;
-      final pageHeight = firstPage.size.height;
-      const marginLeft = 20.0;
-      const marginTop = 20.0;
-      const marginRight = 20.0;
-      const marginBottom = 18.0;
-      const lineHeight = 14.0;
-      const paragraphGap = 10.0;
-      const maxCharsPerLine = 92;
-
-      final headerFont = sfpdf.PdfStandardFont(
-        sfpdf.PdfFontFamily.timesRoman,
-        14,
-        style: sfpdf.PdfFontStyle.bold,
-      );
-      final subtitleFont = sfpdf.PdfStandardFont(sfpdf.PdfFontFamily.timesRoman, 10);
-      final headingFont = sfpdf.PdfStandardFont(
-        sfpdf.PdfFontFamily.timesRoman,
-        12,
-        style: sfpdf.PdfFontStyle.bold,
-      );
-      final bodyFont = sfpdf.PdfStandardFont(sfpdf.PdfFontFamily.timesRoman, 11);
-      final footerFont = sfpdf.PdfStandardFont(sfpdf.PdfFontFamily.timesRoman, 9);
-
-      var currentPage = firstPage;
-      var yPosition = marginTop + 42;
-
-      void drawPageHeader(sfpdf.PdfPage page) {
-        page.graphics.drawString(
-          'Edited PDF from: $_selectedName',
-          headerFont,
-          pen: sfpdf.PdfPen(sfpdf.PdfColor(31, 41, 55)),
-          bounds: Rect.fromLTWH(marginLeft, marginTop, pageWidth - marginLeft - marginRight, 18),
-        );
-        page.graphics.drawString(
-          'Exported by GET READY JOB',
-          subtitleFont,
-          pen: sfpdf.PdfPen(sfpdf.PdfColor(107, 114, 128)),
-          bounds: Rect.fromLTWH(marginLeft, marginTop + 20, pageWidth - marginLeft - marginRight, 14),
-        );
-      }
-
-      void drawFooter(sfpdf.PdfPage page) {
-        page.graphics.drawString(
-          'Edited by GETREADYJOB PDF Editor',
-          footerFont,
-          pen: sfpdf.PdfPen(sfpdf.PdfColor(150, 150, 150)),
-          bounds: Rect.fromLTWH(
-            marginLeft,
-            pageHeight - marginBottom - 12,
-            pageWidth - marginLeft - marginRight,
-            10,
-          ),
-        );
-      }
-
-      drawPageHeader(currentPage);
-
-      for (final paragraph in paragraphs) {
-        final wrappedLines = PdfExportFormatter.wrapParagraph(paragraph, maxCharsPerLine: maxCharsPerLine);
-        if (wrappedLines.isEmpty) {
+      for (final entry in _pageOverlays.entries) {
+        final pageIndex = entry.key;
+        final overlays = entry.value;
+        if (overlays.isEmpty || pageIndex < 0 || pageIndex >= outputDocument.pages.count) {
           continue;
         }
-
-        final paragraphHeight = wrappedLines.length * lineHeight + paragraphGap;
-        while (yPosition + paragraphHeight > pageHeight - marginBottom - 18) {
-          drawFooter(currentPage);
-          currentPage = outputDocument.pages.add();
-          yPosition = marginTop + 42;
-          drawPageHeader(currentPage);
-        }
-
-        final isHeading = paragraph.length <= 80 && !paragraph.contains('|') && paragraph.split(' ').length <= 8;
-        final textFont = isHeading ? headingFont : bodyFont;
-
-        for (final line in wrappedLines) {
-          while (yPosition + lineHeight > pageHeight - marginBottom - 12) {
-            drawFooter(currentPage);
-            currentPage = outputDocument.pages.add();
-            yPosition = marginTop + 42;
-            drawPageHeader(currentPage);
-          }
-
-          currentPage.graphics.drawString(
-            line,
-            textFont,
-            pen: sfpdf.PdfPen(sfpdf.PdfColor(50, 50, 50)),
-            bounds: Rect.fromLTWH(marginLeft, yPosition, pageWidth - marginLeft - marginRight, lineHeight),
+        final page = outputDocument.pages[pageIndex];
+        for (final overlay in overlays) {
+          page.graphics.drawRectangle(
+            brush: sfpdf.PdfSolidBrush(sfpdf.PdfColor(255, 255, 255)),
+            bounds: overlay.rect,
           );
-          yPosition += lineHeight;
+          if (!overlay.isWhiteoutOnly && overlay.text.trim().isNotEmpty) {
+            final font = sfpdf.PdfStandardFont(sfpdf.PdfFontFamily.helvetica, overlay.fontSize);
+            page.graphics.drawString(
+              overlay.text,
+              font,
+              brush: sfpdf.PdfSolidBrush(sfpdf.PdfColor(0, 0, 0)),
+              bounds: overlay.rect,
+            );
+          }
         }
-
-        yPosition += paragraphGap;
       }
-
-      drawFooter(currentPage);
-
       return Uint8List.fromList(outputDocument.saveSync());
     } finally {
       outputDocument.dispose();
     }
+  }
+
+  /// Builds a plain-text snapshot of the WHOLE document (all pages, not just
+  /// the currently viewed one) for the DOCX export path, extracting on demand
+  /// for any page that hasn't been visited/rendered yet in this session.
+  Future<String> _buildFullDocumentPlainText() async {
+    final document = _pdfDoc;
+    if (document == null) return '';
+    final buffer = StringBuffer();
+    for (var i = 0; i < document.pages.length; i++) {
+      final overlaysForPage = _pageOverlays[i] ?? const <_PdfOverlayItem>[];
+      List<_PdfFragmentHit> fragments;
+      if (i == _currentPageIndex) {
+        fragments = _currentPageFragments;
+      } else {
+        final page = document.pages[i];
+        final pageText = await page.loadText();
+        fragments = <_PdfFragmentHit>[
+          for (final fragment in pageText.fragments)
+            if (fragment.text.trim().isNotEmpty)
+              _PdfFragmentHit(
+                rect: Rect.fromLTWH(fragment.bounds.left, page.height - fragment.bounds.top, fragment.bounds.width, fragment.bounds.height),
+                text: fragment.text,
+              ),
+        ];
+      }
+      for (final fragment in fragments) {
+        final covered = overlaysForPage.any((o) => o.rect.overlaps(fragment.rect));
+        if (!covered) {
+          buffer.writeln(fragment.text);
+        }
+      }
+      for (final overlay in overlaysForPage) {
+        if (!overlay.isWhiteoutOnly && overlay.text.trim().isNotEmpty) {
+          buffer.writeln(overlay.text);
+        }
+      }
+      buffer.writeln();
+    }
+    return buffer.toString();
   }
 
   Uint8List _buildDocxBytes(String editedText) {
@@ -557,62 +692,78 @@ class _PdfEditPageState extends State<PdfEditPage> {
         .replaceAll("'", '&apos;');
   }
 
-  Future<void> _exportEditedText({required bool asDocx}) async {
-    if (_selectedName == null) {
+  void _downloadBytes(String fileName, Uint8List bytes, String mimeType) {
+    final blob = html.Blob([bytes], mimeType);
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    final anchor = html.AnchorElement(href: url)
+      ..setAttribute('download', fileName)
+      ..style.display = 'none';
+    html.document.body?.append(anchor);
+    anchor.click();
+    anchor.remove();
+    Future<void>.delayed(const Duration(milliseconds: 900), () {
+      html.Url.revokeObjectUrl(url);
+    });
+  }
+
+  Future<void> _exportPdf() async {
+    if (_selectedBytes == null || _selectedName == null) {
       return;
     }
-
-    final editedText = _editorController.text.trim();
-    if (editedText.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter or edit text before exporting.')),
-      );
-      return;
-    }
-
     setState(() {
       _isSaving = true;
-      _autoSaveStatus = asDocx ? 'Exporting DOCX…' : 'Exporting PDF…';
+      _loadStatus = 'Exporting PDF…';
     });
-
     try {
-      final outputBytes = asDocx ? _buildDocxBytes(editedText) : _buildEditedPdfBytes(editedText);
-      final outputName = _selectedName!.replaceAll(
-        RegExp(r'\.pdf$', caseSensitive: false),
-        asDocx ? '_edited.docx' : '_edited.pdf',
-      );
-      final mimeType = asDocx
-          ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-          : 'application/pdf';
-      final blob = html.Blob([outputBytes], mimeType);
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      final anchor = html.AnchorElement(href: url)
-        ..setAttribute('download', outputName)
-        ..style.display = 'none';
-
-      html.document.body?.append(anchor);
-      anchor.click();
-      anchor.remove();
-
-      Future<void>.delayed(const Duration(milliseconds: 900), () {
-        html.Url.revokeObjectUrl(url);
-      });
-
+      final outputBytes = _buildExportedPdfBytes();
+      final outputName = _selectedName!.replaceAll(RegExp(r'\.pdf$', caseSensitive: false), '_edited.pdf');
+      _downloadBytes(outputName, outputBytes, 'application/pdf');
       if (!mounted) return;
-
       setState(() {
         _isSaving = false;
-        _autoSaveStatus = 'Saved ✓';
+        _loadStatus = 'Ready: exported $outputName';
       });
-
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${asDocx ? 'DOCX' : 'PDF'} export started for $outputName')),
+        SnackBar(content: Text('PDF export started for $outputName')),
       );
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _isSaving = false;
-        _autoSaveStatus = 'Saved ✓';
+        _loadStatus = 'Error: export failed ($e).';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Export failed: $e')),
+      );
+    }
+  }
+
+  Future<void> _exportDocx() async {
+    if (_selectedBytes == null || _selectedName == null) {
+      return;
+    }
+    setState(() {
+      _isSaving = true;
+      _loadStatus = 'Exporting DOCX…';
+    });
+    try {
+      final text = await _buildFullDocumentPlainText();
+      final outputBytes = _buildDocxBytes(text);
+      final outputName = _selectedName!.replaceAll(RegExp(r'\.pdf$', caseSensitive: false), '_edited.docx');
+      _downloadBytes(outputName, outputBytes, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      if (!mounted) return;
+      setState(() {
+        _isSaving = false;
+        _loadStatus = 'Ready: exported $outputName';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('DOCX export started for $outputName')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isSaving = false;
+        _loadStatus = 'Error: export failed ($e).';
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Export failed: $e')),
@@ -698,7 +849,7 @@ class _PdfEditPageState extends State<PdfEditPage> {
 
     setState(() {
       _isConvertingToSearchablePdf = true;
-      _autoSaveStatus = 'Running AI OCR (Google Cloud Vision)…';
+      _loadStatus = 'Running AI OCR (Google Cloud Vision)…';
     });
 
     try {
@@ -726,7 +877,7 @@ class _PdfEditPageState extends State<PdfEditPage> {
       if (!mounted) return;
       setState(() {
         _isConvertingToSearchablePdf = false;
-        _autoSaveStatus = 'Saved ✓';
+        _loadStatus = 'Ready: searchable PDF exported';
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Searchable PDF ready: $outputName')),
@@ -735,7 +886,7 @@ class _PdfEditPageState extends State<PdfEditPage> {
       if (!mounted) return;
       setState(() {
         _isConvertingToSearchablePdf = false;
-        _autoSaveStatus = 'Saved ✓';
+        _loadStatus = 'Ready';
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message)),
@@ -744,7 +895,7 @@ class _PdfEditPageState extends State<PdfEditPage> {
       if (!mounted) return;
       setState(() {
         _isConvertingToSearchablePdf = false;
-        _autoSaveStatus = 'Saved ✓';
+        _loadStatus = 'Ready';
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Searchable PDF conversion failed: $e')),
@@ -769,7 +920,6 @@ class _PdfEditPageState extends State<PdfEditPage> {
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final useSplitScreen = constraints.maxWidth >= 1000;
           final content = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -801,19 +951,7 @@ class _PdfEditPageState extends State<PdfEditPage> {
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: (_selectedBytes == null || _isLoadingText)
-                          ? null
-                          : () => _loadPdfTextIntoEditor(forceOcr: false),
-                      icon: const Icon(Icons.text_snippet_outlined, size: 18),
-                      label: const Text('Load Text'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: (_selectedBytes == null || _isLoadingText)
-                          ? null
-                          : () => _loadPdfTextIntoEditor(forceOcr: true),
+                      onPressed: (_selectedBytes == null || _isLoadingText) ? null : _runOcrForScannedPages,
                       icon: const Icon(Icons.document_scanner_outlined, size: 18),
                       label: const Text('Run OCR'),
                     ),
@@ -904,45 +1042,8 @@ class _PdfEditPageState extends State<PdfEditPage> {
                     const SizedBox(height: 8),
                   ],
                 ),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      _autoSaveStatus,
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF047857)),
-                    ),
-                  ),
-                  if (_isAutoSaving)
-                    const SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              if (useSplitScreen)
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: _buildPreviewPanel(),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildEditorPanel(),
-                    ),
-                  ],
-                )
-              else
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildPreviewPanel(),
-                    const SizedBox(height: 12),
-                    _buildEditorPanel(),
-                  ],
-                ),
+              const SizedBox(height: 4),
+              _buildVisualEditor(),
               const SizedBox(height: 12),
               _buildOcrQuotaBanner(),
               const SizedBox(height: 8),
@@ -968,7 +1069,7 @@ class _PdfEditPageState extends State<PdfEditPage> {
                 children: [
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: (_selectedBytes == null || _isSaving) ? null : () => _exportEditedText(asDocx: false),
+                      onPressed: (_selectedBytes == null || _isSaving) ? null : _exportPdf,
                       icon: const Icon(Icons.download_rounded),
                       label: Text(_isSaving ? 'Preparing PDF…' : 'Export PDF'),
                       style: ElevatedButton.styleFrom(
@@ -981,7 +1082,7 @@ class _PdfEditPageState extends State<PdfEditPage> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: (_selectedBytes == null || _isSaving) ? null : () => _exportEditedText(asDocx: true),
+                      onPressed: (_selectedBytes == null || _isSaving) ? null : _exportDocx,
                       icon: const Icon(Icons.description_outlined),
                       label: Text(_isSaving ? 'Preparing DOCX…' : 'Export DOCX'),
                       style: OutlinedButton.styleFrom(
@@ -995,11 +1096,11 @@ class _PdfEditPageState extends State<PdfEditPage> {
               const SizedBox(height: 16),
               const ToolGuidancePanel(
                 title: 'About PDF Edit & OCR',
-                summary: 'Use this page to load text from a PDF, run OCR for scanned content, review extracted tables, and export an updated PDF or DOCX.',
+                summary: 'Tap any original text on the page to edit it in place, or add a new text/whiteout box. Run OCR or Tables for scanned content, then export an updated PDF or DOCX.',
                 supportedFormats: ['PDF'],
-                howToUse: ['Upload a PDF.', 'Load text or run OCR.', 'Edit content and export the updated file.'],
-                faqs: ['Will OCR work on every scan? Results vary by source quality.', 'Can I recover complex layouts perfectly? Some formatting may need manual review.'],
-                tips: ['Use cleaner scans for better OCR.', 'Review extracted text before exporting.', 'Keep the original PDF for comparison.'],
+                howToUse: ['Upload a PDF.', 'Tap any text to edit it, or use Add Text/Add Whiteout.', 'Export the updated PDF or DOCX.'],
+                faqs: ['Will OCR work on every scan? Results vary by source quality.', 'Does the export keep the original layout? Yes - edits are drawn directly onto the original page; everything else is untouched.'],
+                tips: ['Drag the corner handles to resize a text/whiteout box.', 'Use Add Whiteout to redact an area without adding new text.', 'Keep the original PDF for comparison.'],
               ),
               const SizedBox(height: 16),
               const ProductionFooter(compact: true),
@@ -1015,14 +1116,37 @@ class _PdfEditPageState extends State<PdfEditPage> {
     );
   }
 
-  Widget _buildPreviewPanel() {
-    if (_selectedBytes != null && _previewUrl == null) {
-      _allocateNewPreviewView();
-      _refreshPreview();
+  Widget _buildVisualEditor() {
+    if (_selectedBytes == null) {
+      return Container(
+        height: 420,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFD1D5DB)),
+        ),
+        child: const Text(
+          'Upload a PDF to start editing it visually.',
+          style: TextStyle(color: Color(0xFF6B7280)),
+        ),
+      );
+    }
+
+    if (_isRenderingPage || _currentPagePng == null) {
+      return Container(
+        height: 420,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFD1D5DB)),
+        ),
+        child: const CircularProgressIndicator(),
+      );
     }
 
     return Container(
-      height: 420,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -1032,162 +1156,236 @@ class _PdfEditPageState extends State<PdfEditPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _buildEditorToolbar(),
+          const SizedBox(height: 10),
+          LayoutBuilder(
+            builder: (context, canvasConstraints) {
+              final pointSize = _currentPagePointSize;
+              if (pointSize == Size.zero) {
+                return const SizedBox.shrink();
+              }
+              final displayWidth = canvasConstraints.maxWidth.clamp(0.0, 760.0);
+              final scale = displayWidth / pointSize.width;
+              final displayHeight = pointSize.height * scale;
+
+              return Center(
+                child: SizedBox(
+                  width: displayWidth,
+                  height: displayHeight,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Positioned.fill(
+                        child: Image.memory(_currentPagePng!, fit: BoxFit.fill, gaplessPlayback: true),
+                      ),
+                      // Tap targets for detected original text not yet covered by an overlay.
+                      for (final fragment in _currentPageFragments)
+                        if (!_currentOverlays.any((o) => o.rect.overlaps(fragment.rect)))
+                          Positioned(
+                            left: fragment.rect.left * scale,
+                            top: fragment.rect.top * scale,
+                            width: fragment.rect.width * scale,
+                            height: fragment.rect.height * scale,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () => _selectFragmentForEditing(fragment),
+                              child: MouseRegion(
+                                cursor: SystemMouseCursors.text,
+                                child: Container(
+                                  decoration: BoxDecoration(border: Border.all(color: const Color(0x552563EB), width: 1)),
+                                ),
+                              ),
+                            ),
+                          ),
+                      // User-created / edited overlays.
+                      for (final overlay in _currentOverlays) _buildOverlayWidget(overlay, scale),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+          if (_pageCount > 1) ...[
+            const SizedBox(height: 10),
+            _buildPageNavigator(),
+          ],
+          if (_selectedOverlay != null) ...[
+            const SizedBox(height: 10),
+            _buildOverlayEditPanel(_selectedOverlay!),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEditorToolbar() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        const Text(
+          'Visual Editor',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF1E3A8A)),
+        ),
+        OutlinedButton.icon(
+          onPressed: _currentPagePng == null ? null : _addTextBox,
+          icon: const Icon(Icons.text_fields_rounded, size: 16),
+          label: const Text('Add Text'),
+        ),
+        OutlinedButton.icon(
+          onPressed: _currentPagePng == null ? null : _addWhiteoutBox,
+          icon: const Icon(Icons.format_color_reset_rounded, size: 16),
+          label: const Text('Add Whiteout'),
+        ),
+        Text(
+          'Tap any original text to edit it in place.',
+          style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPageNavigator() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton(
+          onPressed: _currentPageIndex > 0 ? () => _goToPage(_currentPageIndex - 1) : null,
+          icon: const Icon(Icons.chevron_left_rounded),
+        ),
+        Text('Page ${_currentPageIndex + 1} of $_pageCount', style: const TextStyle(fontWeight: FontWeight.w700)),
+        IconButton(
+          onPressed: _currentPageIndex < _pageCount - 1 ? () => _goToPage(_currentPageIndex + 1) : null,
+          icon: const Icon(Icons.chevron_right_rounded),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOverlayWidget(_PdfOverlayItem overlay, double scale) {
+    final isSelected = identical(_selectedOverlay, overlay);
+    final width = overlay.rect.width * scale;
+    final height = overlay.rect.height * scale;
+
+    return Positioned(
+      left: overlay.rect.left * scale,
+      top: overlay.rect.top * scale,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          GestureDetector(
+            onTap: () => _selectOverlay(overlay),
+            onPanUpdate: (details) => _moveOverlay(overlay, details.delta / scale),
+            child: Container(
+              width: width,
+              height: height,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(
+                  color: isSelected ? const Color(0xFF2563EB) : const Color(0xFFCBD5E1),
+                  width: isSelected ? 2 : 1,
+                ),
+              ),
+              alignment: Alignment.centerLeft,
+              child: overlay.isWhiteoutOnly
+                  ? null
+                  : Text(
+                      overlay.text,
+                      maxLines: 1,
+                      overflow: TextOverflow.visible,
+                      softWrap: false,
+                      style: TextStyle(fontSize: overlay.fontSize * scale, color: Colors.black, height: 1.0),
+                    ),
+            ),
+          ),
+          if (isSelected) ..._buildOverlayResizeHandles(overlay, scale),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _buildOverlayResizeHandles(_PdfOverlayItem overlay, double scale) {
+    const double handleSize = 14;
+    const double half = handleSize / 2;
+    final width = overlay.rect.width * scale;
+    final height = overlay.rect.height * scale;
+
+    Widget buildHandle(double left, double top, _OverlayResizeCorner corner) {
+      return Positioned(
+        left: left,
+        top: top,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onPanUpdate: (details) => _resizeOverlay(overlay, details.delta / scale, corner),
+          child: Container(
+            width: handleSize,
+            height: handleSize,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFF2563EB), width: 2),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return <Widget>[
+      buildHandle(-half, -half, _OverlayResizeCorner.topLeft),
+      buildHandle(width - half, -half, _OverlayResizeCorner.topRight),
+      buildHandle(-half, height - half, _OverlayResizeCorner.bottomLeft),
+      buildHandle(width - half, height - half, _OverlayResizeCorner.bottomRight),
+    ];
+  }
+
+  Widget _buildOverlayEditPanel(_PdfOverlayItem overlay) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF6FF),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFBFDBFE)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            overlay.isWhiteoutOnly ? 'Whiteout box selected' : 'Editing text at original position',
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12.5, color: Color(0xFF1E3A8A)),
+          ),
+          const SizedBox(height: 8),
+          if (!overlay.isWhiteoutOnly)
+            TextField(
+              controller: _overlayTextController,
+              onChanged: _updateSelectedOverlayText,
+              decoration: const InputDecoration(labelText: 'Replacement text', border: OutlineInputBorder(), isDense: true),
+            ),
+          const SizedBox(height: 8),
           Row(
             children: [
-              const Text(
-                'PDF Preview',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF1E3A8A)),
+              if (!overlay.isWhiteoutOnly) ...[
+                const Text('Font size', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                Expanded(
+                  child: Slider(
+                    min: 6,
+                    max: 48,
+                    value: overlay.fontSize.clamp(6, 48),
+                    onChanged: (value) => setState(() => overlay.fontSize = value),
+                  ),
+                ),
+              ] else
+                const Spacer(),
+              TextButton.icon(
+                onPressed: _deleteSelectedOverlay,
+                icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
+                label: const Text('Delete', style: TextStyle(color: Colors.red)),
               ),
-              if (_previewUrl != null) ...[
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: _previewShowingEdits ? const Color(0xFFECFDF5) : const Color(0xFFEFF6FF),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: _previewShowingEdits ? const Color(0xFFA7F3D0) : const Color(0xFFBFDBFE),
-                    ),
-                  ),
-                  child: Text(
-                    _previewShowingEdits ? 'Live edited preview' : 'Original file',
-                    style: TextStyle(
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w700,
-                      color: _previewShowingEdits ? const Color(0xFF047857) : const Color(0xFF1D4ED8),
-                    ),
-                  ),
-                ),
-              ],
-              const Spacer(),
-              if (_previewUrl != null)
-                TextButton.icon(
-                  onPressed: _openPreviewInNewTab,
-                  icon: const Icon(Icons.open_in_new_rounded, size: 15),
-                  label: const Text('Open in New Tab'),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    visualDensity: VisualDensity.compact,
-                    foregroundColor: const Color(0xFF1D4ED8),
-                    textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
-                  ),
-                ),
             ],
           ),
-          if (_selectedName != null && _selectedBytes != null) ...[
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                const Icon(Icons.picture_as_pdf_rounded, size: 14, color: Color(0xFFDC2626)),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    '$_selectedName • ${_formatFileSize(_selectedBytes!.length)}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF6B7280)),
-                  ),
-                ),
-              ],
-            ),
-          ],
-          const SizedBox(height: 8),
-          Expanded(
-            child: _previewUrl == null
-                ? const Center(
-                    child: Text(
-                      'Upload a PDF to preview it here.',
-                      style: TextStyle(color: Color(0xFF6B7280)),
-                    ),
-                  )
-                : ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: HtmlElementView(
-                      key: ValueKey(_previewViewType),
-                      viewType: _previewViewType!,
-                    ),
-                  ),
-          ),
         ],
       ),
     );
-  }
-
-  Widget _buildEditorPanel() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFD1D5DB)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Editable OCR Text',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF1E3A8A)),
-          ),
-          const SizedBox(height: 8),
-          if (_isLoadingText)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else
-            Scrollbar(
-              controller: _editorScrollController,
-              thumbVisibility: true,
-              child: TextField(
-                controller: _editorController,
-                scrollController: _editorScrollController,
-                minLines: 14,
-                maxLines: 24,
-                decoration: const InputDecoration(
-                  labelText: 'Edit text manually here (changes are auto-saved locally)',
-                  border: OutlineInputBorder(),
-                  alignLabelWithHint: true,
-                ),
-              ),
-            ),
-          const SizedBox(height: 8),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFFBEB),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFFCD34D)),
-            ),
-            child: const Text(
-              'Your edits auto-save, update the live preview on the left, and are reflected in the exported PDF/DOCX.',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF92400E)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _refreshPreview({Uint8List? overrideBytes, bool showingEdits = false}) {
-    final bytesToShow = overrideBytes ?? _selectedBytes;
-    if (bytesToShow == null) {
-      return;
-    }
-    final previousUrl = _previewUrl;
-    final blob = html.Blob([bytesToShow], 'application/pdf');
-    final url = html.Url.createObjectUrlFromBlob(blob);
-    _previewUrl = url;
-    _previewShowingEdits = showingEdits;
-    _previewIframeElement?.src = url;
-    if (previousUrl != null && previousUrl != url) {
-      // Revoke shortly after so the iframe has time to load the new blob first.
-      Future<void>.delayed(const Duration(milliseconds: 500), () {
-        html.Url.revokeObjectUrl(previousUrl);
-      });
-    }
   }
 
   bool _isPdfFile(String fileName) {
