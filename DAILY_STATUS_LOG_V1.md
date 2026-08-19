@@ -1275,6 +1275,28 @@ Prepared For: JOBREADY
   - None.
 - Decisions needed:
   - `lib/Widgets/upload_card_v2.dart`'s unrelated pending 1-line change (noted in the prior checkpoint) is still uncommitted/untouched — still outside this task's scope.
+
+### Checkpoint - 2026-08-19 (Canvas Text Resize Handles + PDF Editor Responsive Scroll Fix)
+- Overall status: Green (flutter analyze clean, release build succeeded, deployed to Firebase Hosting)
+- Completed today:
+  - **Poster/Banner Studio — interactive corner resize handles for text layers** ✓
+    - `Pages/poster_banner_studio_page.dart`: selecting a text layer (e.g. "New headline", offer labels) now shows 4 draggable corner handles around its bounding box. Dragging a handle resizes the box (opposite corner stays anchored, size clamped to a sane minimum and to the canvas bounds) and scales `fontSize` in step with the box (clamped to the same 10–72 range as the existing Font Size field), working alongside the existing font-size input and rotation slider rather than replacing them.
+    - Implementation: new `_ResizeCorner` enum, `_buildResizeHandles`/`_resizeLayer`/`_cursorForCorner` helpers, and the per-layer canvas widget now wraps the existing drag-to-move `GestureDetector` in a small `Stack` so the 4 handles can overlay its corners (`clipBehavior: Clip.none` so they aren't clipped at the box edge); handles only render for the selected layer when `layer.type == PosterLayerType.text`, and use `MouseRegion`/`SystemMouseCursors` to show the correct resize cursor on desktop/web.
+  - **PDF Edit tool — fixed a real runtime layout bug + independent editor scrolling** ✓
+    - `Pages/pdf_edit_page.dart`: found and fixed a genuine Flutter layout bug — the split-screen (`useSplitScreen`, width ≥ 1000) branch wrapped its preview/editor `Row` in an `Expanded`, but that `Row` sits inside a `Column` that is the child of a `SingleChildScrollView` (unbounded height) — `Expanded` cannot resolve against an unbounded height and throws a RenderFlex layout exception at runtime (not caught by `flutter analyze`, which is static). This is very likely what was actually cutting off/clipping bottom action buttons on laptop-width screens. Fixed by removing the outer `Expanded` (the inner two `Expanded`s that split preview/editor width 50/50 inside the `Row` are correct and were kept, since the `Row`'s width is bounded).
+    - Added a `ScrollController` + `Scrollbar(thumbVisibility: true)` around the "Editable OCR Text" `TextField`, giving it its own explicit, independently-scrolling region (with a visible scrollbar) so scrolling the text box never gets confused with scrolling the outer page.
+- Validation & Deployment ✓
+  - `flutter analyze` on both files: 0 errors (only pre-existing, unrelated info/warnings: deprecated `withOpacity`/`onReorder`/`value`, an unused `_hasDraft` field, and a dead-code null-check — all pre-dating this checkpoint).
+  - `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` succeeded (`Built build\web`).
+  - `firebase deploy --only hosting --project getreadyjob-india-1cb34` succeeded — live at https://getreadyjob-india-1cb34.web.app.
+  - Committed (`9d44684`) and pushed to `origin/main`.
+- In progress:
+  - None.
+- Blockers:
+  - None.
+- Decisions needed:
+  - `lib/Widgets/upload_card_v2.dart`'s unrelated pending 1-line change is still uncommitted/untouched — still outside this task's scope.
+- Owner: Founder + Copilot
 - Owner: Founder + Copilot
 - Owner: Founder + Copilot
 - Owner: Founder + Copilot
