@@ -1321,6 +1321,28 @@ Prepared For: JOBREADY
   - None.
 - Decisions needed:
   - `lib/Widgets/upload_card_v2.dart`'s unrelated pending 1-line change is still uncommitted/untouched — still outside this task's scope.
+
+### Checkpoint - 2026-08-19 (Home Page Bug Fix: "Protect PDF" Card Routed to Wrong Tool)
+- Overall status: Green (flutter analyze clean, release build succeeded, deployed to Firebase Hosting)
+- Completed today:
+  - **Fixed wrong navigation route on the "Protect PDF" home page card** ✓
+    - `Pages/home_page_v1_1.dart`: the "Protect PDF" `_PopularToolRow` card's `onTap` was pushing `MaterialPageRoute(builder: (_) => const PdfEditPage())` — i.e. clicking "Protect PDF" opened the PDF-to-PDF-Edit tool instead of any password/encryption tool. This is the same underlying bug that was previously fixed for the voice-command path (`protect_pdf` → `pushNamed('/smart-pdf')`) but the home page card's own click handler was never updated to match, so the bug persisted there.
+    - Fixed by changing the card's `onTap` to `Navigator.of(context).pushNamed('/smart-pdf')`, matching the already-registered `/smart-pdf` route (in `lib/main_v1_1.dart`, deferred-loaded to `Pages/smart_pdf_suite_page.dart`'s `SmartPdfSuitePage`) and the same convention already used correctly by the voice-command dispatcher and other tool cards (HD Photo Converter, Poster Workspace, etc.).
+    - Confirmed `SmartPdfSuitePage` already has a fully working "Protect PDF" flow (`_protectPdf()` calling `WasmDocumentService.protectPdfDocument` with real AES-256 encryption via `syncfusion_flutter_pdf`'s `PdfEncryptionAlgorithm.aesx256Bit`) — no new tool needed to be built.
+    - Confirmed the immediately adjacent "Edit PDF" card correctly still routes to `PdfEditPage()` (unchanged), and a separate, unrelated "PDF to PDF OCR Tool" card that also legitimately routes to `PdfEditPage()` was left untouched. Confirmed via search that "Protect PDF" appears exactly once as a home-page tool card (no duplicate/second buggy instance elsewhere, e.g. in the `ToolSelectorV2` grid, which does not offer a Protect PDF entry at all).
+- Validation & Deployment ✓
+  - `flutter analyze lib/Pages/home_page_v1_1.dart`: 0 errors (37 pre-existing, unrelated info/warning-level issues elsewhere in this large file; none near the edited lines).
+  - Note: `lib/Pages/pdf_edit_page.dart`'s in-progress Visual PDF Editor rewrite (still pending its own export verification/commit) was temporarily stashed before building, so this deploy contains ONLY the routing fix — then restored (`git stash pop`) immediately after deploying, so that work remains intact and uncommitted for its own separate checkpoint.
+  - `flutter build web --release -t lib/main_v1_1.dart --base-href / --no-wasm-dry-run --no-tree-shake-icons` succeeded (`Built build\web`).
+  - `firebase deploy --only hosting --project getreadyjob-india-1cb34` succeeded — live at https://getreadyjob-india-1cb34.web.app.
+  - Committed (`4c721dc`) and pushed to `origin/main`.
+- In progress:
+  - `Pages/pdf_edit_page.dart`'s Visual In-Place PDF Editor rewrite (Option A) — code complete, analyze-clean, build-tested, and browser-verified for render/fragment-extraction/tap-to-edit; still pending export byte-verification and its own dedicated commit/deploy/log.
+- Blockers:
+  - None.
+- Decisions needed:
+  - `lib/Widgets/upload_card_v2.dart`'s unrelated pending 1-line change is still uncommitted/untouched — still outside this task's scope.
+- Owner: Founder + Copilot
 - Owner: Founder + Copilot
 - Owner: Founder + Copilot
 - Owner: Founder + Copilot
