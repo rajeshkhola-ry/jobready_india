@@ -112,7 +112,7 @@ class TermsConditionsPage extends StatelessWidget {
                   const _Section(
                     title: '7. Intellectual Property Rights',
                     body:
-                        'Users retain full ownership over all documents and images uploaded and generated through the platform. GETREADYJOB claims no ownership over user content.\n\nIntellectual Property & Patent Notice:\nThe proprietary architecture, automated workflow pipelines, and core technology of Get Ready Job (getreadyjob.com) are protected under Indian Patent Application No. 202611096315 (Filing Ref: TEMP/E-1/106210/2026-DEL) titled \'Voice Enabled Multilingual Job Preparation Platform with Automated Language Converter Tools\' filed by Rajesh Kumar Yadav. Any unauthorized duplication, reverse engineering, scraping, or commercial reproduction is strictly prohibited and subject to legal action under applicable laws.',
+                        'Users retain full ownership over all documents and images uploaded and generated through the platform. GETREADYJOB claims no ownership over user content.\n\nIntellectual Property & Patent Notice:\nThe proprietary architecture, automated workflow pipelines, and core technology of Get Ready Job (getreadyjob.com) are protected under Indian Patent Application No. 202611096315 (Filing Ref: TEMP/E-1/106210/2026-DEL) titled \'Voice Enabled Multilingual Job Preparation Platform with Automated Language Converter Tools\' filed by the Authorized Inventor & Applicant (Get Ready Job). Any unauthorized duplication, reverse engineering, scraping, or commercial reproduction is strictly prohibited and subject to legal action under applicable laws.',
                   ),
                   const _Section(
                     title: '8. Service Availability & Disclaimers',
@@ -130,7 +130,7 @@ class TermsConditionsPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'Last updated: 2026-08-16',
+                    'Last updated: 2026-08-20',
                     style: TextStyle(
                       fontSize: 12,
                       color: Color(0xFF6B7280),
