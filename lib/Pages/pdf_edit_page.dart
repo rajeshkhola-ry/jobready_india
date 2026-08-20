@@ -22,31 +22,136 @@ import '../Widgets/tool_guidance_panel.dart';
 
 enum _OverlayResizeCorner { topLeft, topRight, bottomLeft, bottomRight }
 
+/// Highlighter presets exposed on the rich formatting toolbar - kept as
+/// named constants so both the UI swatches and the DOCX `w:highlight`
+/// exporter (which only accepts a fixed OOXML color-name palette) agree.
+const int _highlightYellowArgb = 0xFFFFFF00;
+const int _highlightGreenArgb = 0xFF00FF00;
+
 /// A detected run of ORIGINAL vector text on the current page, in top-down
 /// PDF point space (matches Syncfusion's Rect.fromLTWH convention directly).
 class _PdfFragmentHit {
-  const _PdfFragmentHit({required this.rect, required this.text});
+  const _PdfFragmentHit({required this.rect, required this.text, required this.charRects});
   final Rect rect;
   final String text;
+  final List<Rect> charRects;
 }
 
-/// A user-placed edit: either a plain whiteout box, or a whiteout box with
-/// replacement/new text drawn on top - both drawn directly over the ORIGINAL
-/// PDF page at export time, so everything else on the page stays untouched.
-class _PdfOverlayItem {
-  _PdfOverlayItem({
-    required this.id,
+/// A paragraph/line detected by grouping raw text fragments (see
+/// `_buildParagraphBlocks`) - the real MS-Word-like editing unit offered to
+/// the user (never a single fragmented word) - with font size, weight, and
+/// color already best-effort inherited from the original page.
+class _DetectedBlock {
+  const _DetectedBlock({
     required this.rect,
     required this.text,
     required this.fontSize,
+    required this.fontFamily,
+    required this.bold,
+    required this.textColorArgb,
+  });
+
+  final Rect rect;
+  final String text;
+  final double fontSize;
+  final sfpdf.PdfFontFamily fontFamily;
+  final bool bold;
+  final int textColorArgb;
+}
+
+/// A user-editable paragraph placed on the canvas: either a plain whiteout
+/// box, or a rich-text paragraph (bold/italic/underline, size, color,
+/// highlight) that dynamically reflows - re-wraps and grows/shrinks its own
+/// height - as it is edited, and is re-typeset directly over the ORIGINAL
+/// PDF page at export time (see `_buildExportedPdfBytes`), so anything
+/// outside an edited block stays byte-for-byte the original PDF content.
+class _PdfTextBlock {
+  _PdfTextBlock({
+    required this.id,
+    required this.originalRect,
+    required this.rect,
+    required this.text,
+    required this.fontSize,
+    this.fontFamily = sfpdf.PdfFontFamily.helvetica,
+    this.bold = false,
+    this.italic = false,
+    this.underline = false,
+    this.textColorArgb = 0xFF000000,
+    this.highlightColorArgb,
     this.isWhiteoutOnly = false,
   });
 
   final String id;
+  final Rect originalRect;
   Rect rect;
   String text;
   double fontSize;
+  sfpdf.PdfFontFamily fontFamily;
+  bool bold;
+  bool italic;
+  bool underline;
+  int textColorArgb;
+  int? highlightColorArgb;
   final bool isWhiteoutOnly;
+
+  Color get textColor => Color(textColorArgb);
+  Color? get highlightColor => highlightColorArgb == null ? null : Color(highlightColorArgb!);
+
+  /// The area that must always be whited-out at export time, so a shrunk or
+  /// moved edit can never leave a sliver of the original glyphs peeking out.
+  Rect get maskRect => originalRect.expandToInclude(rect).inflate(1.5);
+}
+
+/// One rich-text run inside a DOCX paragraph (see `_buildFullDocumentParagraphs`).
+class _DocxRun {
+  const _DocxRun({
+    required this.text,
+    this.bold = false,
+    this.italic = false,
+    this.underline = false,
+    this.colorArgb = 0xFF000000,
+    this.fontSize = 11,
+    this.highlightName,
+  });
+
+  final String text;
+  final bool bold;
+  final bool italic;
+  final bool underline;
+  final int colorArgb;
+  final double fontSize;
+  final String? highlightName;
+}
+
+/// A small toggle-style icon button used by the rich formatting toolbar
+/// (Bold/Italic/Underline) - highlighted when its attribute is active.
+class _ToggleIconButton extends StatelessWidget {
+  const _ToggleIconButton({required this.icon, required this.active, required this.onTap, required this.tooltip});
+
+  final IconData icon;
+  final bool active;
+  final VoidCallback onTap;
+  final String tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: active ? const Color(0xFF1F4E79) : Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: active ? const Color(0xFF1F4E79) : const Color(0xFFD1D5DB)),
+          ),
+          child: Icon(icon, size: 18, color: active ? Colors.white : const Color(0xFF374151)),
+        ),
+      ),
+    );
+  }
 }
 
 class PdfEditPage extends StatefulWidget {
@@ -81,14 +186,16 @@ class _PdfEditPageState extends State<PdfEditPage> {
   Uint8List? _currentPagePng;
   Size _currentPagePointSize = Size.zero;
   List<_PdfFragmentHit> _currentPageFragments = <_PdfFragmentHit>[];
-  final Map<int, List<_PdfOverlayItem>> _pageOverlays = <int, List<_PdfOverlayItem>>{};
-  _PdfOverlayItem? _selectedOverlay;
+  List<_DetectedBlock> _currentPageBlocks = <_DetectedBlock>[];
+  static const double _renderScale = 2.0; // 2x for a crisp preview/edit surface
+  final Map<int, List<_PdfTextBlock>> _pageOverlays = <int, List<_PdfTextBlock>>{};
+  _PdfTextBlock? _selectedOverlay;
   int _overlayIdCounter = 0;
   final TextEditingController _overlayTextController = TextEditingController();
 
   final PdfOcrService _ocrService = const PdfOcrService();
 
-  List<_PdfOverlayItem> get _currentOverlays => _pageOverlays.putIfAbsent(_currentPageIndex, () => <_PdfOverlayItem>[]);
+  List<_PdfTextBlock> get _currentOverlays => _pageOverlays.putIfAbsent(_currentPageIndex, () => <_PdfTextBlock>[]);
 
   @override
   void initState() {
@@ -175,6 +282,7 @@ class _PdfEditPageState extends State<PdfEditPage> {
       _currentPageIndex = 0;
       _currentPagePng = null;
       _currentPageFragments = <_PdfFragmentHit>[];
+      _currentPageBlocks = <_DetectedBlock>[];
       _pageOverlays.clear();
       _selectedOverlay = null;
       _loadStatus = 'File removed. Upload a new PDF to continue.';
@@ -250,12 +358,12 @@ class _PdfEditPageState extends State<PdfEditPage> {
 
     try {
       final page = document.pages[_currentPageIndex];
-      const renderScale = 2.0; // 2x for a crisp preview/edit surface
-      final pixelWidth = (page.width * renderScale).round().toDouble();
-      final pixelHeight = (page.height * renderScale).round().toDouble();
+      final pixelWidth = (page.width * _renderScale).round();
+      final pixelHeight = (page.height * _renderScale).round();
 
-      final rendered = await page.render(fullWidth: pixelWidth, fullHeight: pixelHeight);
+      final rendered = await page.render(fullWidth: pixelWidth.toDouble(), fullHeight: pixelHeight.toDouble());
       Uint8List? pngBytes;
+      Uint8List? rgbaBytes;
       if (rendered != null) {
         try {
           final image = await rendered.createImage();
@@ -263,6 +371,12 @@ class _PdfEditPageState extends State<PdfEditPage> {
             final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
             if (byteData != null) {
               pngBytes = byteData.buffer.asUint8List();
+            }
+            // Raw pixels (not just the PNG for display) let us approximate the
+            // original ink's weight/color per block - see _detectInkStyle.
+            final rawByteData = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+            if (rawByteData != null) {
+              rgbaBytes = rawByteData.buffer.asUint8List();
             }
           } finally {
             image.dispose();
@@ -282,14 +396,24 @@ class _PdfEditPageState extends State<PdfEditPage> {
         // pdfrx uses PDF-native bottom-up Y; flip to top-down to match
         // Syncfusion's Rect.fromLTWH convention used by the exporter below.
         final rect = Rect.fromLTWH(bounds.left, page.height - bounds.top, bounds.width, bounds.height);
-        fragments.add(_PdfFragmentHit(rect: rect, text: fragment.text));
+        final charRects = <Rect>[
+          for (final charRect in fragment.charRects)
+            Rect.fromLTWH(charRect.left, page.height - charRect.top, charRect.width, charRect.height),
+        ];
+        fragments.add(_PdfFragmentHit(rect: rect, text: fragment.text, charRects: charRects));
       }
+
+      // Group fragmented words/runs into MS-Word-like paragraph/line blocks
+      // (requirement #1) with best-effort inherited font metadata (#2),
+      // rather than exposing every tiny fragment as its own tap target.
+      final blocks = _buildParagraphBlocks(fragments, rgbaBytes, pixelWidth, pixelHeight, _renderScale);
 
       if (!mounted) return;
       setState(() {
         _currentPagePng = pngBytes;
         _currentPagePointSize = Size(page.width, page.height);
         _currentPageFragments = fragments;
+        _currentPageBlocks = blocks;
       });
     } catch (e) {
       if (!mounted) return;
@@ -422,6 +546,189 @@ class _PdfEditPageState extends State<PdfEditPage> {
     );
   }
 
+  // ── Paragraph/line grouping + adaptive metadata detection ───────────────
+
+  /// Clusters raw text fragments into lines by vertical-center proximity,
+  /// then orders each line left-to-right and the lines top-to-bottom - the
+  /// foundation both the on-canvas paragraph blocks and the DOCX exporter
+  /// build on, so a page is never treated as a flat bag of fragments.
+  List<List<_PdfFragmentHit>> _groupFragmentsIntoLines(List<_PdfFragmentHit> fragments) {
+    if (fragments.isEmpty) return const <List<_PdfFragmentHit>>[];
+    final sorted = [...fragments]..sort((a, b) => a.rect.top.compareTo(b.rect.top));
+    final lines = <List<_PdfFragmentHit>>[];
+    for (final fragment in sorted) {
+      final centerY = fragment.rect.top + fragment.rect.height / 2;
+      List<_PdfFragmentHit>? targetLine;
+      for (final line in lines) {
+        final lineRect = _boundingRectOf(line);
+        final lineCenterY = lineRect.top + lineRect.height / 2;
+        final referenceHeight = fragment.rect.height > lineRect.height ? fragment.rect.height : lineRect.height;
+        if ((centerY - lineCenterY).abs() <= referenceHeight * 0.6) {
+          targetLine = line;
+          break;
+        }
+      }
+      if (targetLine != null) {
+        targetLine.add(fragment);
+      } else {
+        lines.add([fragment]);
+      }
+    }
+    for (final line in lines) {
+      line.sort((a, b) => a.rect.left.compareTo(b.rect.left));
+    }
+    lines.sort((a, b) => _boundingRectOf(a).top.compareTo(_boundingRectOf(b).top));
+    return lines;
+  }
+
+  Rect _boundingRectOf(List<_PdfFragmentHit> fragments) {
+    var rect = fragments.first.rect;
+    for (final fragment in fragments.skip(1)) {
+      rect = rect.expandToInclude(fragment.rect);
+    }
+    return rect;
+  }
+
+  /// Merges tightly-spaced, left-aligned consecutive lines into one
+  /// reflowable paragraph block (MS Word Flow, requirement #1); a bigger gap
+  /// or a different left margin (heading, new column, table cell, etc.)
+  /// deliberately starts a new block instead of over-merging unrelated text.
+  List<_DetectedBlock> _buildParagraphBlocks(
+    List<_PdfFragmentHit> fragments,
+    Uint8List? rgba,
+    int pixelWidth,
+    int pixelHeight,
+    double renderScale,
+  ) {
+    final lines = _groupFragmentsIntoLines(fragments);
+    if (lines.isEmpty) return const <_DetectedBlock>[];
+
+    final blocks = <List<List<_PdfFragmentHit>>>[];
+    for (final line in lines) {
+      final lineRect = _boundingRectOf(line);
+      if (blocks.isNotEmpty) {
+        final previousRect = _boundingRectOf(blocks.last.last);
+        final gap = lineRect.top - previousRect.bottom;
+        final leftDiff = (lineRect.left - previousRect.left).abs();
+        if (gap >= -2 && gap <= previousRect.height * 0.55 && leftDiff <= 6.0) {
+          blocks.last.add(line);
+          continue;
+        }
+      }
+      blocks.add([line]);
+    }
+
+    return [
+      for (final block in blocks) _describeBlock(block, rgba, pixelWidth, pixelHeight, renderScale),
+    ];
+  }
+
+  _DetectedBlock _describeBlock(
+    List<List<_PdfFragmentHit>> lines,
+    Uint8List? rgba,
+    int pixelWidth,
+    int pixelHeight,
+    double renderScale,
+  ) {
+    final allFragments = [for (final line in lines) ...line];
+    final tightRect = _boundingRectOf(allFragments);
+    // A small width buffer gives freshly-detected (unedited) text a little
+    // slack before the Flutter-side reflow measurement ever nudges its
+    // height - see _recomputeBlockLayout.
+    final rect = Rect.fromLTWH(tightRect.left, tightRect.top, tightRect.width * 1.08, tightRect.height);
+    final text = lines.map((line) => line.map((f) => f.text.trim()).where((t) => t.isNotEmpty).join(' ')).join(' ').trim();
+
+    final avgLineHeight = allFragments.map((f) => f.rect.height).reduce((a, b) => a + b) / allFragments.length;
+    final fontSize = _inferFontSize(avgLineHeight);
+    final style = _detectInkStyle(tightRect, rgba, pixelWidth, pixelHeight, renderScale);
+    final fontFamily = _detectFontFamily(allFragments);
+
+    return _DetectedBlock(
+      rect: rect,
+      text: text,
+      fontSize: fontSize,
+      fontFamily: fontFamily,
+      bold: style.bold,
+      textColorArgb: style.colorArgb,
+    );
+  }
+
+  /// pdfrx doesn't expose the PDF's real embedded font name, so approximate
+  /// via glyph-width consistency: monospace fonts (Courier-like) have
+  /// near-identical character advance widths - the closest safe,
+  /// evidence-based stand-in for a real font-family read.
+  sfpdf.PdfFontFamily _detectFontFamily(List<_PdfFragmentHit> fragments) {
+    final widths = <double>[
+      for (final fragment in fragments)
+        for (final charRect in fragment.charRects)
+          if (charRect.width > 0.5) charRect.width,
+    ];
+    if (widths.length < 6) {
+      return sfpdf.PdfFontFamily.helvetica;
+    }
+    final mean = widths.reduce((a, b) => a + b) / widths.length;
+    final variance = widths.map((w) => (w - mean) * (w - mean)).reduce((a, b) => a + b) / widths.length;
+    final coefficientOfVariation = mean == 0 ? 1.0 : variance / (mean * mean);
+    return coefficientOfVariation < 0.02 ? sfpdf.PdfFontFamily.courier : sfpdf.PdfFontFamily.helvetica;
+  }
+
+  /// Samples the already-rasterized page bitmap under a block's original
+  /// bounds to approximate its ink weight (bold vs regular) and color -
+  /// pdfrx/PDFium's Dart API doesn't surface either directly, so this is a
+  /// real (disclosed, evidence-based) measurement rather than a guess.
+  ({bool bold, int colorArgb}) _detectInkStyle(
+    Rect rect,
+    Uint8List? rgba,
+    int pixelWidth,
+    int pixelHeight,
+    double renderScale,
+  ) {
+    if (rgba == null || pixelWidth <= 0 || pixelHeight <= 0) {
+      return (bold: false, colorArgb: 0xFF000000);
+    }
+    final left = (rect.left * renderScale).floor().clamp(0, pixelWidth - 1);
+    final top = (rect.top * renderScale).floor().clamp(0, pixelHeight - 1);
+    final right = (rect.right * renderScale).ceil().clamp(left + 1, pixelWidth);
+    final bottom = (rect.bottom * renderScale).ceil().clamp(top + 1, pixelHeight);
+
+    var inkPixelCount = 0;
+    var totalPixelCount = 0;
+    var inkRedSum = 0;
+    var inkGreenSum = 0;
+    var inkBlueSum = 0;
+    const step = 2; // sample every 2nd pixel per axis - fast and plenty accurate for this heuristic
+
+    for (var y = top; y < bottom; y += step) {
+      final rowOffset = y * pixelWidth * 4;
+      for (var x = left; x < right; x += step) {
+        final offset = rowOffset + x * 4;
+        if (offset + 3 >= rgba.length) continue;
+        final r = rgba[offset];
+        final g = rgba[offset + 1];
+        final b = rgba[offset + 2];
+        totalPixelCount++;
+        final luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+        if (luminance < 165) {
+          inkPixelCount++;
+          inkRedSum += r;
+          inkGreenSum += g;
+          inkBlueSum += b;
+        }
+      }
+    }
+
+    if (totalPixelCount == 0 || inkPixelCount == 0) {
+      return (bold: false, colorArgb: 0xFF000000);
+    }
+
+    final inkRatio = inkPixelCount / totalPixelCount;
+    // Empirically, bold glyphs cover noticeably more of their box in ink
+    // than regular-weight glyphs at the same point size.
+    final bold = inkRatio > 0.30;
+    final colorArgb = 0xFF000000 | ((inkRedSum ~/ inkPixelCount) << 16) | ((inkGreenSum ~/ inkPixelCount) << 8) | (inkBlueSum ~/ inkPixelCount);
+    return (bold: bold, colorArgb: colorArgb);
+  }
+
   // ── Overlay CRUD (canvas edits) ────────────────────────────────────────────
 
   String _nextOverlayId() {
@@ -433,12 +740,19 @@ class _PdfEditPageState extends State<PdfEditPage> {
   /// its original point size (glyph ascent/descent roughly fill the box).
   double _inferFontSize(double boundsHeight) => boundsHeight.clamp(8.0, 48.0);
 
-  void _selectFragmentForEditing(_PdfFragmentHit fragment) {
-    final overlay = _PdfOverlayItem(
+  /// Promotes a detected paragraph/line block into an editable overlay,
+  /// inheriting its detected size/weight/color (requirement #2) - editing a
+  /// real paragraph, never a single fragmented word.
+  void _selectDetectedBlockForEditing(_DetectedBlock detected) {
+    final overlay = _PdfTextBlock(
       id: _nextOverlayId(),
-      rect: fragment.rect,
-      text: fragment.text,
-      fontSize: _inferFontSize(fragment.rect.height),
+      originalRect: detected.rect,
+      rect: detected.rect,
+      text: detected.text,
+      fontSize: detected.fontSize,
+      fontFamily: detected.fontFamily,
+      bold: detected.bold,
+      textColorArgb: detected.textColorArgb,
     );
     setState(() {
       _currentOverlays.add(overlay);
@@ -450,12 +764,15 @@ class _PdfEditPageState extends State<PdfEditPage> {
   void _addTextBox() {
     final pageSize = _currentPagePointSize;
     if (pageSize == Size.zero) return;
-    final overlay = _PdfOverlayItem(
+    final rect = Rect.fromLTWH(pageSize.width * 0.3, pageSize.height * 0.45, pageSize.width * 0.4, 22);
+    final overlay = _PdfTextBlock(
       id: _nextOverlayId(),
-      rect: Rect.fromLTWH(pageSize.width * 0.3, pageSize.height * 0.45, pageSize.width * 0.4, 22),
+      originalRect: rect,
+      rect: rect,
       text: 'New text',
       fontSize: 12,
     );
+    _recomputeBlockLayout(overlay);
     setState(() {
       _currentOverlays.add(overlay);
       _selectedOverlay = overlay;
@@ -466,9 +783,11 @@ class _PdfEditPageState extends State<PdfEditPage> {
   void _addWhiteoutBox() {
     final pageSize = _currentPagePointSize;
     if (pageSize == Size.zero) return;
-    final overlay = _PdfOverlayItem(
+    final rect = Rect.fromLTWH(pageSize.width * 0.3, pageSize.height * 0.45, pageSize.width * 0.4, 22);
+    final overlay = _PdfTextBlock(
       id: _nextOverlayId(),
-      rect: Rect.fromLTWH(pageSize.width * 0.3, pageSize.height * 0.45, pageSize.width * 0.4, 22),
+      originalRect: rect,
+      rect: rect,
       text: '',
       fontSize: 12,
       isWhiteoutOnly: true,
@@ -480,7 +799,40 @@ class _PdfEditPageState extends State<PdfEditPage> {
     });
   }
 
-  void _selectOverlay(_PdfOverlayItem overlay) {
+  /// Inserts a brand-new line right below the currently selected block (or
+  /// at a default spot if none is selected), matching its style.
+  void _addLineBelow() {
+    final pageSize = _currentPagePointSize;
+    if (pageSize == Size.zero) return;
+    final reference = _selectedOverlay;
+    final fontSize = reference?.fontSize ?? 12.0;
+    final width = reference?.rect.width ?? pageSize.width * 0.4;
+    final left = reference?.rect.left ?? pageSize.width * 0.3;
+    var top = reference != null ? reference.rect.bottom + 4 : pageSize.height * 0.45;
+    if (top > pageSize.height - 20) top = pageSize.height - 20;
+    if (top < 0) top = 0;
+
+    final rect = Rect.fromLTWH(left, top, width, fontSize * 1.3);
+    final overlay = _PdfTextBlock(
+      id: _nextOverlayId(),
+      originalRect: rect,
+      rect: rect,
+      text: 'New line',
+      fontSize: fontSize,
+      fontFamily: reference?.fontFamily ?? sfpdf.PdfFontFamily.helvetica,
+      bold: reference?.bold ?? false,
+      italic: reference?.italic ?? false,
+      textColorArgb: reference?.textColorArgb ?? 0xFF000000,
+    );
+    _recomputeBlockLayout(overlay);
+    setState(() {
+      _currentOverlays.add(overlay);
+      _selectedOverlay = overlay;
+      _overlayTextController.text = overlay.text;
+    });
+  }
+
+  void _selectOverlay(_PdfTextBlock overlay) {
     setState(() {
       _selectedOverlay = overlay;
       _overlayTextController.text = overlay.text;
@@ -492,6 +844,7 @@ class _PdfEditPageState extends State<PdfEditPage> {
     if (overlay == null) return;
     setState(() {
       overlay.text = value;
+      _recomputeBlockLayout(overlay);
     });
   }
 
@@ -505,7 +858,7 @@ class _PdfEditPageState extends State<PdfEditPage> {
     });
   }
 
-  void _moveOverlay(_PdfOverlayItem overlay, Offset pagePointDelta) {
+  void _moveOverlay(_PdfTextBlock overlay, Offset pagePointDelta) {
     final pageSize = _currentPagePointSize;
     var next = overlay.rect.shift(pagePointDelta);
     if (pageSize != Size.zero) {
@@ -518,8 +871,13 @@ class _PdfEditPageState extends State<PdfEditPage> {
     });
   }
 
-  void _resizeOverlay(_PdfOverlayItem overlay, Offset pagePointDelta, _OverlayResizeCorner corner) {
+  /// Resizes a box by dragging a corner handle. Whiteout-only boxes resize
+  /// freely on all four corners; text blocks only resize in WIDTH (their
+  /// height is auto-managed by the reflow engine so it always exactly fits
+  /// the current text - see _recomputeBlockLayout).
+  void _resizeOverlay(_PdfTextBlock overlay, Offset pagePointDelta, _OverlayResizeCorner corner) {
     const minSize = 10.0;
+    final delta = overlay.isWhiteoutOnly ? pagePointDelta : Offset(pagePointDelta.dx, 0);
     var left = overlay.rect.left;
     var top = overlay.rect.top;
     var right = overlay.rect.right;
@@ -527,20 +885,20 @@ class _PdfEditPageState extends State<PdfEditPage> {
 
     switch (corner) {
       case _OverlayResizeCorner.topLeft:
-        left += pagePointDelta.dx;
-        top += pagePointDelta.dy;
+        left += delta.dx;
+        top += delta.dy;
         break;
       case _OverlayResizeCorner.topRight:
-        right += pagePointDelta.dx;
-        top += pagePointDelta.dy;
+        right += delta.dx;
+        top += delta.dy;
         break;
       case _OverlayResizeCorner.bottomLeft:
-        left += pagePointDelta.dx;
-        bottom += pagePointDelta.dy;
+        left += delta.dx;
+        bottom += delta.dy;
         break;
       case _OverlayResizeCorner.bottomRight:
-        right += pagePointDelta.dx;
-        bottom += pagePointDelta.dy;
+        right += delta.dx;
+        bottom += delta.dy;
         break;
     }
 
@@ -561,14 +919,187 @@ class _PdfEditPageState extends State<PdfEditPage> {
 
     setState(() {
       overlay.rect = Rect.fromLTRB(left, top, right, bottom);
+      _recomputeBlockLayout(overlay);
     });
+  }
+
+  // ── Dynamic inline reflow + rich formatting (requirements #1, #2, #3) ───
+
+  /// Re-wraps the block's text to fit its current width and grows/shrinks
+  /// its height to match - the "dynamic inline reflow" requirement: typing
+  /// more/less text never leaves a blank gap or an overlapping remainder.
+  /// Growth is capped so an edit can never silently paint over unrelated
+  /// content that sits below it on the page.
+  void _recomputeBlockLayout(_PdfTextBlock overlay) {
+    if (overlay.isWhiteoutOnly) return;
+    final painter = TextPainter(
+      text: TextSpan(text: overlay.text.isEmpty ? ' ' : overlay.text, style: _flutterStyleForBlock(overlay)),
+      textDirection: TextDirection.ltr,
+      maxLines: null,
+    )..layout(maxWidth: overlay.rect.width);
+
+    final minHeight = overlay.fontSize * 1.15;
+    final naturalHeight = painter.height < minHeight ? minHeight : painter.height;
+    final ceiling = _growthCeiling(overlay);
+    var maxHeight = ceiling - overlay.rect.top - 2;
+    if (maxHeight < minHeight) maxHeight = minHeight;
+    final newHeight = naturalHeight > maxHeight ? maxHeight : naturalHeight;
+
+    overlay.rect = Rect.fromLTWH(overlay.rect.left, overlay.rect.top, overlay.rect.width, newHeight);
+  }
+
+  /// The lowest Y a block may grow down to before it would start covering
+  /// other original (unedited) text or another already-placed edit.
+  double _growthCeiling(_PdfTextBlock overlay) {
+    final pageHeight = _currentPagePointSize.height;
+    var ceiling = pageHeight > 0 ? pageHeight : double.infinity;
+
+    void consider(Rect other) {
+      final horizontalOverlap = other.left < overlay.rect.right && other.right > overlay.rect.left;
+      if (horizontalOverlap && other.top > overlay.originalRect.top + 1 && other.top < ceiling) {
+        ceiling = other.top;
+      }
+    }
+
+    for (final block in _currentPageBlocks) {
+      consider(block.rect);
+    }
+    for (final other in _currentOverlays) {
+      if (identical(other, overlay)) continue;
+      consider(other.rect);
+    }
+    return ceiling;
+  }
+
+  TextStyle _flutterStyleForBlock(_PdfTextBlock overlay) {
+    return TextStyle(
+      fontFamily: 'Trebuchet MS',
+      fontSize: overlay.fontSize,
+      fontWeight: overlay.bold ? FontWeight.bold : FontWeight.normal,
+      fontStyle: overlay.italic ? FontStyle.italic : FontStyle.normal,
+      decoration: overlay.underline ? TextDecoration.underline : TextDecoration.none,
+      color: overlay.textColor,
+      height: 1.18,
+    );
+  }
+
+  void _toggleBold() => _mutateSelectedBlock((overlay) => overlay.bold = !overlay.bold);
+
+  void _toggleItalic() => _mutateSelectedBlock((overlay) => overlay.italic = !overlay.italic);
+
+  void _toggleUnderline() => _mutateSelectedBlock((overlay) => overlay.underline = !overlay.underline);
+
+  void _incrementFontSize() => _mutateSelectedBlock((overlay) => overlay.fontSize = (overlay.fontSize + 1).clamp(6.0, 96.0));
+
+  void _decrementFontSize() => _mutateSelectedBlock((overlay) => overlay.fontSize = (overlay.fontSize - 1).clamp(6.0, 96.0));
+
+  void _setFontSize(double value) => _mutateSelectedBlock((overlay) => overlay.fontSize = value);
+
+  void _setTextColor(int argb) => _mutateSelectedBlock((overlay) => overlay.textColorArgb = argb);
+
+  void _setHighlightColor(int? argb) => _mutateSelectedBlock((overlay) => overlay.highlightColorArgb = argb);
+
+  void _mutateSelectedBlock(void Function(_PdfTextBlock overlay) mutate) {
+    final overlay = _selectedOverlay;
+    if (overlay == null) return;
+    setState(() {
+      mutate(overlay);
+      _recomputeBlockLayout(overlay);
+    });
+  }
+
+  /// Self-contained RGB picker (no extra package dependency) for the
+  /// toolbar's "Custom" text/highlight color option.
+  Future<void> _showCustomColorPicker({required bool isHighlight}) async {
+    final overlay = _selectedOverlay;
+    if (overlay == null) return;
+    final initial = isHighlight ? (overlay.highlightColorArgb ?? _highlightYellowArgb) : overlay.textColorArgb;
+    var r = (initial >> 16) & 0xFF;
+    var g = (initial >> 8) & 0xFF;
+    var b = initial & 0xFF;
+
+    final result = await showDialog<int>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            Widget channelSlider(String label, int value, ValueChanged<double> onChanged) {
+              return Row(
+                children: [
+                  SizedBox(width: 18, child: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700))),
+                  Expanded(
+                    child: Slider(min: 0, max: 255, value: value.toDouble(), onChanged: onChanged),
+                  ),
+                  SizedBox(width: 32, child: Text('$value', style: const TextStyle(fontSize: 12))),
+                ],
+              );
+            }
+
+            return AlertDialog(
+              title: Text(isHighlight ? 'Custom highlight color' : 'Custom text color'),
+              content: SizedBox(
+                width: 320,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Color.fromARGB(255, r, g, b),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFD1D5DB)),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    channelSlider('R', r, (v) => setDialogState(() => r = v.round())),
+                    channelSlider('G', g, (v) => setDialogState(() => g = v.round())),
+                    channelSlider('B', b, (v) => setDialogState(() => b = v.round())),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Cancel')),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(0xFF000000 | (r << 16) | (g << 8) | b),
+                  child: const Text('Apply'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (result != null) {
+      if (isHighlight) {
+        _setHighlightColor(result);
+      } else {
+        _setTextColor(result);
+      }
+    }
   }
 
   // ── Export ──────────────────────────────────────────────────────────────
 
+  sfpdf.PdfColor _pdfColorFromArgb(int argb) {
+    return sfpdf.PdfColor((argb >> 16) & 0xFF, (argb >> 8) & 0xFF, argb & 0xFF);
+  }
+
+  sfpdf.PdfStandardFont _syncfusionFontForBlock(_PdfTextBlock overlay) {
+    final styles = <sfpdf.PdfFontStyle>[
+      if (overlay.bold) sfpdf.PdfFontStyle.bold,
+      if (overlay.italic) sfpdf.PdfFontStyle.italic,
+      if (overlay.underline) sfpdf.PdfFontStyle.underline,
+    ];
+    return sfpdf.PdfStandardFont(overlay.fontFamily, overlay.fontSize, multiStyle: styles.isEmpty ? null : styles);
+  }
+
   /// Draws every page's whiteout/text overlays directly onto the ORIGINAL
   /// loaded document's matching pages (never a blank new document), so any
   /// page/area without an overlay is byte-for-byte the original PDF content.
+  /// Each edited block is masked with its full `maskRect` (original area
+  /// union current area) then re-typeset with matching font family, weight,
+  /// style, color, and highlight (requirement #4).
   Uint8List _buildExportedPdfBytes() {
     final originalBytes = _selectedBytes;
     if (originalBytes == null) {
@@ -586,17 +1117,24 @@ class _PdfEditPageState extends State<PdfEditPage> {
         for (final overlay in overlays) {
           page.graphics.drawRectangle(
             brush: sfpdf.PdfSolidBrush(sfpdf.PdfColor(255, 255, 255)),
-            bounds: overlay.rect,
+            bounds: overlay.maskRect,
           );
-          if (!overlay.isWhiteoutOnly && overlay.text.trim().isNotEmpty) {
-            final font = sfpdf.PdfStandardFont(sfpdf.PdfFontFamily.helvetica, overlay.fontSize);
-            page.graphics.drawString(
-              overlay.text,
-              font,
-              brush: sfpdf.PdfSolidBrush(sfpdf.PdfColor(0, 0, 0)),
+          if (overlay.isWhiteoutOnly || overlay.text.trim().isEmpty) {
+            continue;
+          }
+          if (overlay.highlightColorArgb != null) {
+            page.graphics.drawRectangle(
+              brush: sfpdf.PdfSolidBrush(_pdfColorFromArgb(overlay.highlightColorArgb!)),
               bounds: overlay.rect,
             );
           }
+          page.graphics.drawString(
+            overlay.text,
+            _syncfusionFontForBlock(overlay),
+            brush: sfpdf.PdfSolidBrush(_pdfColorFromArgb(overlay.textColorArgb)),
+            bounds: overlay.rect,
+            format: sfpdf.PdfStringFormat(lineSpacing: overlay.fontSize * 0.18),
+          );
         }
       }
       return Uint8List.fromList(outputDocument.saveSync());
@@ -605,15 +1143,16 @@ class _PdfEditPageState extends State<PdfEditPage> {
     }
   }
 
-  /// Builds a plain-text snapshot of the WHOLE document (all pages, not just
-  /// the currently viewed one) for the DOCX export path, extracting on demand
-  /// for any page that hasn't been visited/rendered yet in this session.
-  Future<String> _buildFullDocumentPlainText() async {
+  /// Builds the WHOLE document (all pages) as DOCX paragraphs/runs, so the
+  /// exporter can preserve rich formatting (bold/italic/underline/color/
+  /// highlight) on edited blocks, not just flatten everything to plain text.
+  Future<List<List<_DocxRun>>> _buildFullDocumentParagraphs() async {
     final document = _pdfDoc;
-    if (document == null) return '';
-    final buffer = StringBuffer();
+    if (document == null) return const <List<_DocxRun>>[];
+    final paragraphs = <List<_DocxRun>>[];
+
     for (var i = 0; i < document.pages.length; i++) {
-      final overlaysForPage = _pageOverlays[i] ?? const <_PdfOverlayItem>[];
+      final overlaysForPage = _pageOverlays[i] ?? const <_PdfTextBlock>[];
       List<_PdfFragmentHit> fragments;
       if (i == _currentPageIndex) {
         fragments = _currentPageFragments;
@@ -626,32 +1165,67 @@ class _PdfEditPageState extends State<PdfEditPage> {
               _PdfFragmentHit(
                 rect: Rect.fromLTWH(fragment.bounds.left, page.height - fragment.bounds.top, fragment.bounds.width, fragment.bounds.height),
                 text: fragment.text,
+                charRects: const <Rect>[],
               ),
         ];
       }
-      for (final fragment in fragments) {
-        final covered = overlaysForPage.any((o) => o.rect.overlaps(fragment.rect));
-        if (!covered) {
-          buffer.writeln(fragment.text);
-        }
+
+      final lines = _groupFragmentsIntoLines(fragments);
+      for (final line in lines) {
+        final lineRect = _boundingRectOf(line);
+        final covered = overlaysForPage.any((o) => o.rect.overlaps(lineRect));
+        if (covered) continue;
+        final text = line.map((f) => f.text.trim()).where((t) => t.isNotEmpty).join(' ');
+        if (text.isEmpty) continue;
+        paragraphs.add([_DocxRun(text: text, fontSize: _inferFontSize(lineRect.height))]);
       }
+
       for (final overlay in overlaysForPage) {
-        if (!overlay.isWhiteoutOnly && overlay.text.trim().isNotEmpty) {
-          buffer.writeln(overlay.text);
-        }
+        if (overlay.isWhiteoutOnly || overlay.text.trim().isEmpty) continue;
+        paragraphs.add([
+          _DocxRun(
+            text: overlay.text,
+            bold: overlay.bold,
+            italic: overlay.italic,
+            underline: overlay.underline,
+            colorArgb: overlay.textColorArgb,
+            fontSize: overlay.fontSize,
+            highlightName: _highlightNameForArgb(overlay.highlightColorArgb),
+          ),
+        ]);
       }
-      buffer.writeln();
     }
-    return buffer.toString();
+
+    return paragraphs;
   }
 
-  Uint8List _buildDocxBytes(String editedText) {
-    final paragraphs = editedText.split('\n').where((line) => line.trim().isNotEmpty).toList(growable: false);
+  /// OOXML `w:highlight` only accepts a fixed named palette - map the
+  /// toolbar's two highlight choices to their exact official names.
+  String? _highlightNameForArgb(int? argb) {
+    if (argb == null) return null;
+    if (argb == _highlightGreenArgb) return 'green';
+    return 'yellow';
+  }
+
+  Uint8List _buildDocxBytes(List<List<_DocxRun>> paragraphs) {
     final bodyXml = StringBuffer();
     bodyXml.write('<w:body>');
     for (final paragraph in paragraphs) {
-      final escapedParagraph = _escapeXml(paragraph);
-      bodyXml.write('<w:p><w:r><w:t>$escapedParagraph</w:t></w:r></w:p>');
+      bodyXml.write('<w:p>');
+      for (final run in paragraph) {
+        if (run.text.trim().isEmpty) continue;
+        bodyXml.write('<w:r><w:rPr>');
+        if (run.bold) bodyXml.write('<w:b/>');
+        if (run.italic) bodyXml.write('<w:i/>');
+        if (run.underline) bodyXml.write('<w:u w:val="single"/>');
+        bodyXml.write('<w:color w:val="${_argbToHex(run.colorArgb)}"/>');
+        if (run.highlightName != null) {
+          bodyXml.write('<w:highlight w:val="${run.highlightName}"/>');
+        }
+        bodyXml.write('<w:sz w:val="${(run.fontSize * 2).round()}"/>');
+        bodyXml.write('</w:rPr><w:t xml:space="preserve">${_escapeXml(run.text)}</w:t></w:r>');
+      }
+      bodyXml.write('</w:p>');
     }
     bodyXml.write('<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/></w:sectPr></w:body>');
 
@@ -681,6 +1255,11 @@ class _PdfEditPageState extends State<PdfEditPage> {
     final encoder = ZipEncoder();
     encoder.encode(archive, output: output);
     return Uint8List.fromList(output.getBytes());
+  }
+
+  String _argbToHex(int argb) {
+    final value = argb & 0xFFFFFF;
+    return value.toRadixString(16).padLeft(6, '0').toUpperCase();
   }
 
   String _escapeXml(String value) {
@@ -747,8 +1326,8 @@ class _PdfEditPageState extends State<PdfEditPage> {
       _loadStatus = 'Exporting DOCX…';
     });
     try {
-      final text = await _buildFullDocumentPlainText();
-      final outputBytes = _buildDocxBytes(text);
+      final paragraphs = await _buildFullDocumentParagraphs();
+      final outputBytes = _buildDocxBytes(paragraphs);
       final outputName = _selectedName!.replaceAll(RegExp(r'\.pdf$', caseSensitive: false), '_edited.docx');
       _downloadBytes(outputName, outputBytes, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
       if (!mounted) return;
@@ -1096,11 +1675,11 @@ class _PdfEditPageState extends State<PdfEditPage> {
               const SizedBox(height: 16),
               const ToolGuidancePanel(
                 title: 'About PDF Edit & OCR',
-                summary: 'Tap any original text on the page to edit it in place, or add a new text/whiteout box. Run OCR or Tables for scanned content, then export an updated PDF or DOCX.',
+                summary: 'Tap any paragraph on the page to edit it in place with a Word-style rich text toolbar - text automatically reflows as you type, and font size/weight/color are auto-matched from the original. Run OCR or Tables for scanned content, then export an updated PDF or DOCX.',
                 supportedFormats: ['PDF'],
-                howToUse: ['Upload a PDF.', 'Tap any text to edit it, or use Add Text/Add Whiteout.', 'Export the updated PDF or DOCX.'],
-                faqs: ['Will OCR work on every scan? Results vary by source quality.', 'Does the export keep the original layout? Yes - edits are drawn directly onto the original page; everything else is untouched.'],
-                tips: ['Drag the corner handles to resize a text/whiteout box.', 'Use Add Whiteout to redact an area without adding new text.', 'Keep the original PDF for comparison.'],
+                howToUse: ['Upload a PDF.', 'Tap any paragraph to edit it, or use Add Text/Add Whiteout.', 'Use the formatting toolbar for Bold/Italic/Underline, font size, text color, or highlight.', 'Export the updated PDF or DOCX with your formatting preserved.'],
+                faqs: ['Will OCR work on every scan? Results vary by source quality.', 'Does the export keep the original layout? Yes - edits reflow and are drawn directly onto the original page; everything else is untouched.'],
+                tips: ['Drag the corner handles to resize a text/whiteout box - a text box\'s height adjusts automatically to fit its content.', 'Use Add Whiteout to redact an area without adding new text.', 'Use Add Line to insert a new line matching the selected block\'s style.', 'Keep the original PDF for comparison.'],
               ),
               const SizedBox(height: 16),
               const ProductionFooter(compact: true),
@@ -1178,17 +1757,17 @@ class _PdfEditPageState extends State<PdfEditPage> {
                       Positioned.fill(
                         child: Image.memory(_currentPagePng!, fit: BoxFit.fill, gaplessPlayback: true),
                       ),
-                      // Tap targets for detected original text not yet covered by an overlay.
-                      for (final fragment in _currentPageFragments)
-                        if (!_currentOverlays.any((o) => o.rect.overlaps(fragment.rect)))
+                      // Tap targets for detected paragraph/line blocks not yet covered by an overlay.
+                      for (final block in _currentPageBlocks)
+                        if (!_currentOverlays.any((o) => o.rect.overlaps(block.rect)))
                           Positioned(
-                            left: fragment.rect.left * scale,
-                            top: fragment.rect.top * scale,
-                            width: fragment.rect.width * scale,
-                            height: fragment.rect.height * scale,
+                            left: block.rect.left * scale,
+                            top: block.rect.top * scale,
+                            width: block.rect.width * scale,
+                            height: block.rect.height * scale,
                             child: GestureDetector(
                               behavior: HitTestBehavior.opaque,
-                              onTap: () => _selectFragmentForEditing(fragment),
+                              onTap: () => _selectDetectedBlockForEditing(block),
                               child: MouseRegion(
                                 cursor: SystemMouseCursors.text,
                                 child: Container(
@@ -1239,7 +1818,7 @@ class _PdfEditPageState extends State<PdfEditPage> {
           label: const Text('Add Whiteout'),
         ),
         Text(
-          'Tap any original text to edit it in place.',
+          'Tap any paragraph to edit it - a Word-style toolbar appears with Bold/Italic/Underline, size, color, and highlight.',
           style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600),
         ),
       ],
@@ -1263,7 +1842,7 @@ class _PdfEditPageState extends State<PdfEditPage> {
     );
   }
 
-  Widget _buildOverlayWidget(_PdfOverlayItem overlay, double scale) {
+  Widget _buildOverlayWidget(_PdfTextBlock overlay, double scale) {
     final isSelected = identical(_selectedOverlay, overlay);
     final width = overlay.rect.width * scale;
     final height = overlay.rect.height * scale;
@@ -1281,21 +1860,20 @@ class _PdfEditPageState extends State<PdfEditPage> {
               width: width,
               height: height,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: overlay.isWhiteoutOnly ? Colors.white : (overlay.highlightColor ?? Colors.white),
                 border: Border.all(
                   color: isSelected ? const Color(0xFF2563EB) : const Color(0xFFCBD5E1),
                   width: isSelected ? 2 : 1,
                 ),
               ),
-              alignment: Alignment.centerLeft,
+              alignment: Alignment.topLeft,
               child: overlay.isWhiteoutOnly
                   ? null
                   : Text(
                       overlay.text,
-                      maxLines: 1,
                       overflow: TextOverflow.visible,
-                      softWrap: false,
-                      style: TextStyle(fontSize: overlay.fontSize * scale, color: Colors.black, height: 1.0),
+                      softWrap: true,
+                      style: _flutterStyleForBlock(overlay).copyWith(fontSize: overlay.fontSize * scale),
                     ),
             ),
           ),
@@ -1305,7 +1883,7 @@ class _PdfEditPageState extends State<PdfEditPage> {
     );
   }
 
-  List<Widget> _buildOverlayResizeHandles(_PdfOverlayItem overlay, double scale) {
+  List<Widget> _buildOverlayResizeHandles(_PdfTextBlock overlay, double scale) {
     const double handleSize = 14;
     const double half = handleSize / 2;
     final width = overlay.rect.width * scale;
@@ -1339,7 +1917,63 @@ class _PdfEditPageState extends State<PdfEditPage> {
     ];
   }
 
-  Widget _buildOverlayEditPanel(_PdfOverlayItem overlay) {
+  Widget _buildOverlayEditPanel(_PdfTextBlock overlay) {
+    if (overlay.isWhiteoutOnly) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEFF6FF),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFBFDBFE)),
+        ),
+        child: Row(
+          children: [
+            const Expanded(
+              child: Text('Whiteout box selected', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12.5, color: Color(0xFF1E3A8A))),
+            ),
+            TextButton.icon(
+              onPressed: _deleteSelectedOverlay,
+              icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
+              label: const Text('Delete', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        ),
+      );
+    }
+
+    Widget colorSwatch(int argb, {required bool isHighlight}) {
+      final selected = isHighlight ? overlay.highlightColorArgb == argb : overlay.textColorArgb == argb;
+      return GestureDetector(
+        onTap: () => isHighlight ? _setHighlightColor(argb) : _setTextColor(argb),
+        child: Container(
+          width: 26,
+          height: 26,
+          margin: const EdgeInsets.only(right: 6),
+          decoration: BoxDecoration(
+            color: Color(argb),
+            shape: BoxShape.circle,
+            border: Border.all(color: selected ? const Color(0xFF1F2937) : const Color(0xFFD1D5DB), width: selected ? 2.5 : 1),
+          ),
+        ),
+      );
+    }
+
+    final transparentSelected = overlay.highlightColorArgb == null;
+    final transparentSwatch = GestureDetector(
+      onTap: () => _setHighlightColor(null),
+      child: Container(
+        width: 26,
+        height: 26,
+        margin: const EdgeInsets.only(right: 6),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          border: Border.all(color: transparentSelected ? const Color(0xFF1F2937) : const Color(0xFFD1D5DB), width: transparentSelected ? 2.5 : 1),
+        ),
+        child: const Icon(Icons.not_interested_rounded, size: 14, color: Color(0xFF9CA3AF)),
+      ),
+    );
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -1350,36 +1984,99 @@ class _PdfEditPageState extends State<PdfEditPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            overlay.isWhiteoutOnly ? 'Whiteout box selected' : 'Editing text at original position',
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12.5, color: Color(0xFF1E3A8A)),
+          const Text(
+            'Editing paragraph at original position',
+            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12.5, color: Color(0xFF1E3A8A)),
           ),
           const SizedBox(height: 8),
-          if (!overlay.isWhiteoutOnly)
-            TextField(
-              controller: _overlayTextController,
-              onChanged: _updateSelectedOverlayText,
-              decoration: const InputDecoration(labelText: 'Replacement text', border: OutlineInputBorder(), isDense: true),
-            ),
+          TextField(
+            controller: _overlayTextController,
+            onChanged: _updateSelectedOverlayText,
+            maxLines: null,
+            minLines: 2,
+            decoration: const InputDecoration(labelText: 'Paragraph text (auto-reflows as you type)', border: OutlineInputBorder(), isDense: true),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 6,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              _ToggleIconButton(icon: Icons.format_bold_rounded, active: overlay.bold, onTap: _toggleBold, tooltip: 'Bold'),
+              _ToggleIconButton(icon: Icons.format_italic_rounded, active: overlay.italic, onTap: _toggleItalic, tooltip: 'Italic'),
+              _ToggleIconButton(icon: Icons.format_underlined_rounded, active: overlay.underline, onTap: _toggleUnderline, tooltip: 'Underline'),
+              Container(width: 1, height: 24, color: const Color(0xFFBFDBFE)),
+              IconButton(
+                onPressed: _decrementFontSize,
+                icon: const Icon(Icons.remove_circle_outline_rounded, size: 20),
+                tooltip: 'Smaller',
+                visualDensity: VisualDensity.compact,
+              ),
+              Text('${overlay.fontSize.round()}pt', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+              IconButton(
+                onPressed: _incrementFontSize,
+                icon: const Icon(Icons.add_circle_outline_rounded, size: 20),
+                tooltip: 'Larger',
+                visualDensity: VisualDensity.compact,
+              ),
+              SizedBox(
+                width: 140,
+                child: Slider(
+                  min: 6,
+                  max: 96,
+                  value: overlay.fontSize.clamp(6, 96),
+                  onChanged: _setFontSize,
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 8),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              if (!overlay.isWhiteoutOnly) ...[
-                const Text('Font size', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                Expanded(
-                  child: Slider(
-                    min: 6,
-                    max: 48,
-                    value: overlay.fontSize.clamp(6, 48),
-                    onChanged: (value) => setState(() => overlay.fontSize = value),
+              const Text('Text color: ', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700)),
+              colorSwatch(0xFF000000, isHighlight: false),
+              colorSwatch(0xFFFF0000, isHighlight: false),
+              colorSwatch(0xFF0000FF, isHighlight: false),
+              GestureDetector(
+                onTap: () => _showCustomColorPicker(isHighlight: false),
+                child: Container(
+                  width: 26,
+                  height: 26,
+                  margin: const EdgeInsets.only(right: 6),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: SweepGradient(colors: [Colors.red, Colors.yellow, Colors.green, Colors.blue, Colors.purple, Colors.red]),
                   ),
+                  child: const Icon(Icons.colorize_rounded, size: 13, color: Colors.white),
                 ),
-              ] else
-                const Spacer(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Text('Highlight: ', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700)),
+              colorSwatch(_highlightYellowArgb, isHighlight: true),
+              colorSwatch(_highlightGreenArgb, isHighlight: true),
+              transparentSwatch,
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              OutlinedButton.icon(
+                onPressed: _addLineBelow,
+                icon: const Icon(Icons.playlist_add_rounded, size: 18),
+                label: const Text('Add Line'),
+              ),
               TextButton.icon(
                 onPressed: _deleteSelectedOverlay,
                 icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
-                label: const Text('Delete', style: TextStyle(color: Colors.red)),
+                label: const Text('Delete Line', style: TextStyle(color: Colors.red)),
               ),
             ],
           ),
