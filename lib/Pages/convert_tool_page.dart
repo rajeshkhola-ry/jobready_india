@@ -22,6 +22,7 @@ import '../Services/usage_quota_service.dart';
 import '../Services/voice_command_service.dart';
 import '../Services/wasm_document_service.dart';
 import 'compression_tool_page.dart';
+import 'pdf_word_verification_page.dart';
 
 /// Convert Tool Page - File format conversion (PDF, Word, Excel, Images, etc.)
 /// User selects input format → Output format → Converts
@@ -1650,6 +1651,24 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
           const SnackBar(
             content: Text('Voice command complete. File converted and downloaded automatically.'),
             backgroundColor: Colors.green,
+          ),
+        );
+        return;
+      }
+
+      // Additive verification layer (does not touch the conversion engine
+      // above): a manual "PDF -> Word" click gets a side-by-side preview +
+      // quick-edit screen before the usual download/share flow.
+      final isManualPdfToWord = _selectedInputFormat == 'PDF' && _selectedOutputFormat == 'Word (.docx)';
+      if (isManualPdfToWord) {
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => PdfWordVerificationPage(
+              originalPdfBytes: _selectedFile!,
+              convertedDocxBytes: result.outputBytes!,
+              outputFileName: result.outputFileName!,
+              outputFormat: _selectedOutputFormat!,
+            ),
           ),
         );
         return;
