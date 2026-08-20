@@ -27,6 +27,28 @@ class _DocxParagraph {
   TextAlign alignment;
 }
 
+/// One element of the parsed document, in original reading order - either a
+/// plain paragraph or a genuine table (rows/columns), never a flattened
+/// text approximation of one.
+sealed class _DocxBlock {}
+
+class _DocxParagraphBlock extends _DocxBlock {
+  _DocxParagraphBlock(this.paragraph);
+  final _DocxParagraph paragraph;
+}
+
+/// A real DOCX table (`<w:tbl>`), parsed into rows/columns with their own
+/// editable controllers per cell - never flattened into centered text lines.
+class _DocxTableBlock extends _DocxBlock {
+  _DocxTableBlock({required List<List<String>> rows, required this.columnWidthsTwips})
+      : cellControllers = [
+          for (final row in rows) [for (final cell in row) TextEditingController(text: cell)],
+        ];
+
+  final List<int> columnWidthsTwips;
+  final List<List<TextEditingController>> cellControllers;
+}
+
 /// Additive verification/editing screen shown after a PDF -> Word conversion
 /// completes. This is purely a UI layer on top of the ALREADY-converted
 /// bytes: it never calls back into the conversion engine, it only lets the
@@ -59,34 +81,55 @@ class _PdfWordVerificationPageState extends State<PdfWordVerificationPage> {
   bool _isRenderingPage = false;
   String? _pdfLoadError;
 
-  late final List<_DocxParagraph> _paragraphs;
-  late final List<TextEditingController> _controllers;
-  late final List<FocusNode> _focusNodes;
-  int _activeParagraphIndex = 0;
+  late final List<_DocxBlock> _blocks;
+  late final List<TextEditingController?> _controllers;
+  late final List<FocusNode?> _focusNodes;
+  int _activeBlockIndex = -1;
+
+  _DocxParagraph? get _activeParagraph {
+    if (_activeBlockIndex < 0 || _activeBlockIndex >= _blocks.length) return null;
+    final block = _blocks[_activeBlockIndex];
+    return block is _DocxParagraphBlock ? block.paragraph : null;
+  }
 
   @override
   void initState() {
     super.initState();
-    _paragraphs = _parseDocxParagraphs(widget.convertedDocxBytes);
-    _controllers = [for (final p in _paragraphs) TextEditingController(text: p.text)];
-    _focusNodes = [for (var i = 0; i < _paragraphs.length; i++) FocusNode()];
+    _blocks = _parseDocxBlocks(widget.convertedDocxBytes);
+    _controllers = [
+      for (final block in _blocks)
+        block is _DocxParagraphBlock ? TextEditingController(text: block.paragraph.text) : null,
+    ];
+    _focusNodes = [for (final block in _blocks) block is _DocxParagraphBlock ? FocusNode() : null];
     for (var i = 0; i < _focusNodes.length; i++) {
-      _focusNodes[i].addListener(() {
-        if (_focusNodes[i].hasFocus) {
-          setState(() => _activeParagraphIndex = i);
+      final focusNode = _focusNodes[i];
+      if (focusNode == null) continue;
+      focusNode.addListener(() {
+        if (focusNode.hasFocus) {
+          setState(() => _activeBlockIndex = i);
         }
       });
     }
+    _activeBlockIndex = _blocks.indexWhere((block) => block is _DocxParagraphBlock);
     _openOriginalPdf();
   }
 
   @override
   void dispose() {
     for (final controller in _controllers) {
-      controller.dispose();
+      controller?.dispose();
     }
     for (final focusNode in _focusNodes) {
-      focusNode.dispose();
+      focusNode?.dispose();
+    }
+    for (final block in _blocks) {
+      if (block is _DocxTableBlock) {
+        for (final row in block.cellControllers) {
+          for (final cellController in row) {
+            cellController.dispose();
+          }
+        }
+      }
     }
     _pdfDoc?.dispose();
     super.dispose();
@@ -158,39 +201,146 @@ class _PdfWordVerificationPageState extends State<PdfWordVerificationPage> {
   // ── DOCX parse/build - additive only; the real conversion engine that
   // produced `widget.convertedDocxBytes` is never touched or re-invoked. ────
 
-  static List<_DocxParagraph> _parseDocxParagraphs(Uint8List bytes) {
+  // Matches a real text run's text content, a tab run, or a line/page break -
+  // in document order - so reconstructed text keeps genuine spacing (e.g.
+  // "Date:" + tab + "15 Aug 2026") instead of concatenating with no gap.
+  //
+  // IMPORTANT: the text-run alternative requires the character right after
+  // `<w:t` to be whitespace, `/`, or `>` - never a bare `[^>]*`. Table/tab
+  // tags (`<w:tab/>`, `<w:tabs>`, `<w:tbl>`, `<w:tc>`, `<w:tr>`) all also
+  // start with the literal substring "<w:t", so the previous loose
+  // `<w:t[^>]*>` pattern wrongly matched THOSE tags as if they were opening
+  // `<w:t>` text runs, then captured everything up to the next real
+  // `</w:t>` - including raw XML - as if it were the run's text. That was
+  // the root cause of raw XML leaking into the visible/editable text.
+  static final RegExp _runPartPattern = RegExp(
+    r'<w:t(?:\s[^>]*)?/?>([\s\S]*?)</w:t>|<w:tab(?:\s[^>]*)?/?>|<w:br(?:\s[^>]*)?/?>',
+    caseSensitive: false,
+  );
+
+  // Paragraph PROPERTIES (alignment, tab-STOP definitions, etc.) live inside
+  // <w:pPr> and must never be scanned for run content: a tab-stop definition
+  // like `<w:tab w:val="right" w:pos="9360"/>` shares its tag name with a
+  // genuine run-level tab CHARACTER (`<w:tab/>`, found later inside a
+  // `<w:r>`), and would otherwise be double-counted as an extra `\t`.
+  static final RegExp _paragraphPropertiesPattern = RegExp(r'<w:pPr[ >][\s\S]*?</w:pPr>', caseSensitive: false);
+
+  static String _extractRunText(String xml) {
+    final contentOnly = xml.replaceAll(_paragraphPropertiesPattern, '');
+    final buffer = StringBuffer();
+    for (final match in _runPartPattern.allMatches(contentOnly)) {
+      final textGroup = match.group(1);
+      if (textGroup != null) {
+        buffer.write(_unescapeXml(textGroup));
+      } else if ((match.group(0) ?? '').toLowerCase().contains('tab')) {
+        buffer.write('\t');
+      } else {
+        buffer.write('\n');
+      }
+    }
+    return buffer.toString();
+  }
+
+  static List<_DocxBlock> _parseDocxBlocks(Uint8List bytes) {
     try {
       final archive = ZipDecoder().decodeBytes(bytes);
       final documentFile = archive.files.firstWhere((f) => f.name == 'word/document.xml');
       final xml = utf8.decode(documentFile.content as List<int>);
-      final paragraphMatches = RegExp(r'<w:p[ >][\s\S]*?</w:p>', caseSensitive: false).allMatches(xml);
-      final paragraphs = <_DocxParagraph>[];
-      for (final match in paragraphMatches) {
-        final paragraphXml = match.group(0) ?? '';
-        final textMatches = RegExp(r'<w:t[^>]*>([\s\S]*?)</w:t>', caseSensitive: false).allMatches(paragraphXml);
-        final text = textMatches.map((m) => _unescapeXml(m.group(1) ?? '')).join();
-        if (text.trim().isEmpty) {
+      // Tables and paragraphs are both top-level body children in real OOXML -
+      // scanning for either in one ordered pass (rather than a paragraph-only
+      // regex) means a table's OWN internal <w:p> cell paragraphs are
+      // consumed as part of its <w:tbl> match and never double-counted as
+      // separate, flattened top-level paragraphs.
+      final blockMatches = RegExp(
+        r'<w:tbl[ >][\s\S]*?</w:tbl>|<w:p[ >][\s\S]*?</w:p>',
+        caseSensitive: false,
+      ).allMatches(xml);
+      final blocks = <_DocxBlock>[];
+      for (final match in blockMatches) {
+        final blockXml = match.group(0) ?? '';
+        if (RegExp(r'^<w:tbl', caseSensitive: false).hasMatch(blockXml)) {
+          final table = _parseDocxTable(blockXml);
+          if (table != null) {
+            blocks.add(_DocxTableBlock(rows: table.rows, columnWidthsTwips: table.columnWidthsTwips));
+          }
           continue;
         }
-        final bold = RegExp(r'<w:b\s*/>|<w:b\s+w:val="(true|1)"', caseSensitive: false).hasMatch(paragraphXml);
-        final italic = RegExp(r'<w:i\s*/>|<w:i\s+w:val="(true|1)"', caseSensitive: false).hasMatch(paragraphXml);
-        final underline = RegExp(r'<w:u\s+w:val="(?!none")', caseSensitive: false).hasMatch(paragraphXml);
-        final alignMatch = RegExp(r'<w:jc\s+w:val="([a-zA-Z]+)"', caseSensitive: false).firstMatch(paragraphXml);
-        final alignment = switch (alignMatch?.group(1)?.toLowerCase()) {
-          'center' => TextAlign.center,
-          'right' => TextAlign.right,
-          'both' => TextAlign.justify,
-          _ => TextAlign.left,
-        };
-        paragraphs.add(_DocxParagraph(text: text, bold: bold, italic: italic, underline: underline, alignment: alignment));
+        final paragraph = _parseDocxParagraph(blockXml);
+        if (paragraph != null) {
+          blocks.add(_DocxParagraphBlock(paragraph));
+        }
       }
-      if (paragraphs.isEmpty) {
-        paragraphs.add(_DocxParagraph(text: ''));
+      if (blocks.isEmpty) {
+        blocks.add(_DocxParagraphBlock(_DocxParagraph(text: '')));
       }
-      return paragraphs;
+      return blocks;
     } catch (_) {
-      return [_DocxParagraph(text: '')];
+      return [_DocxParagraphBlock(_DocxParagraph(text: ''))];
     }
+  }
+
+  static _DocxParagraph? _parseDocxParagraph(String paragraphXml) {
+    final text = _extractRunText(paragraphXml);
+    if (text.trim().isEmpty) {
+      return null;
+    }
+    final bold = RegExp(r'<w:b\s*/>|<w:b\s+w:val="(true|1)"', caseSensitive: false).hasMatch(paragraphXml);
+    final italic = RegExp(r'<w:i\s*/>|<w:i\s+w:val="(true|1)"', caseSensitive: false).hasMatch(paragraphXml);
+    final underline = RegExp(r'<w:u\s+w:val="(?!none")', caseSensitive: false).hasMatch(paragraphXml);
+    final alignMatch = RegExp(r'<w:jc\s+w:val="([a-zA-Z]+)"', caseSensitive: false).firstMatch(paragraphXml);
+    var alignment = switch (alignMatch?.group(1)?.toLowerCase()) {
+      'center' => TextAlign.center,
+      'right' => TextAlign.right,
+      'both' => TextAlign.justify,
+      _ => TextAlign.left,
+    };
+    // Defensive override: numbered/bulleted list items and long, clearly-
+    // wrapped body paragraphs should never render centered even if the
+    // source XML says so - upstream conversion heuristics can occasionally
+    // mis-flag these (e.g. numbered list Points 8, 9, 10).
+    final looksLikeListItem = RegExp(r'^\s*(?:\d+[.)]|[\u2022\-*])\s').hasMatch(text);
+    if (alignment == TextAlign.center && (looksLikeListItem || text.trim().length > 60)) {
+      alignment = TextAlign.left;
+    }
+    return _DocxParagraph(text: text, bold: bold, italic: italic, underline: underline, alignment: alignment);
+  }
+
+  static ({List<List<String>> rows, List<int> columnWidthsTwips})? _parseDocxTable(String tableXml) {
+    final gridWidths = RegExp(r'<w:gridCol\s+w:w="(\d+)"', caseSensitive: false)
+        .allMatches(tableXml)
+        .map((m) => int.tryParse(m.group(1) ?? '') ?? 0)
+        .toList();
+
+    final rows = <List<String>>[];
+    for (final rowMatch in RegExp(r'<w:tr[ >][\s\S]*?</w:tr>', caseSensitive: false).allMatches(tableXml)) {
+      final rowXml = rowMatch.group(0) ?? '';
+      final cells = <String>[
+        for (final cellMatch in RegExp(r'<w:tc[ >][\s\S]*?</w:tc>', caseSensitive: false).allMatches(rowXml))
+          _extractRunText(cellMatch.group(0) ?? '').trim(),
+      ];
+      if (cells.isNotEmpty) {
+        rows.add(cells);
+      }
+    }
+    if (rows.isEmpty) {
+      return null;
+    }
+
+    // Word requires every row in a table to have the same cell count - pad
+    // any short/ragged row (e.g. a genuinely merged source cell) with blanks
+    // rather than letting a later Table widget crash on irregular rows.
+    final columnCount = rows.map((row) => row.length).reduce((a, b) => a > b ? a : b);
+    for (final row in rows) {
+      while (row.length < columnCount) {
+        row.add('');
+      }
+    }
+
+    const contentWidthTwips = 9360;
+    final columnWidthsTwips = (gridWidths.length == columnCount && gridWidths.isNotEmpty)
+        ? gridWidths
+        : List<int>.filled(columnCount, (contentWidthTwips / columnCount).round());
+    return (rows: rows, columnWidthsTwips: columnWidthsTwips);
   }
 
   static String _unescapeXml(String value) {
@@ -215,7 +365,12 @@ class _PdfWordVerificationPageState extends State<PdfWordVerificationPage> {
   /// a brand-new export step, not a modification of the conversion engine.
   Uint8List _buildEditedDocxBytes() {
     final bodyXml = StringBuffer()..write('<w:body>');
-    for (final paragraph in _paragraphs) {
+    for (final block in _blocks) {
+      if (block is _DocxTableBlock) {
+        bodyXml.write(_buildTableXml(block));
+        continue;
+      }
+      final paragraph = (block as _DocxParagraphBlock).paragraph;
       if (paragraph.text.trim().isEmpty) {
         continue;
       }
@@ -261,6 +416,35 @@ class _PdfWordVerificationPageState extends State<PdfWordVerificationPage> {
     return Uint8List.fromList(output.getBytes());
   }
 
+  /// Builds a genuine, structural `<w:tbl>` (real rows/cells/borders/column
+  /// widths) for the export step - mirrors the server's table XML shape so
+  /// an edited-and-re-downloaded table still opens as a real Word table.
+  static String _buildTableXml(_DocxTableBlock block) {
+    final columnCount = block.columnWidthsTwips.length;
+    final totalWidth = block.columnWidthsTwips.fold<int>(0, (sum, w) => sum + w);
+    const borderSides = ['top', 'left', 'bottom', 'right', 'insideH', 'insideV'];
+    final borders = borderSides.map((side) => '<w:$side w:val="single" w:sz="4" w:space="0" w:color="999999"/>').join();
+    final grid = block.columnWidthsTwips.map((w) => '<w:gridCol w:w="$w"/>').join();
+
+    final rowsXml = StringBuffer();
+    for (final row in block.cellControllers) {
+      rowsXml.write('<w:tr>');
+      for (var c = 0; c < columnCount; c++) {
+        final text = c < row.length ? row[c].text : '';
+        final width = block.columnWidthsTwips[c];
+        rowsXml.write(
+          '<w:tc><w:tcPr><w:tcW w:w="$width" w:type="dxa"/></w:tcPr>'
+          '<w:p><w:pPr><w:jc w:val="left"/></w:pPr><w:r><w:t xml:space="preserve">${_escapeXml(text)}</w:t></w:r></w:p></w:tc>',
+        );
+      }
+      rowsXml.write('</w:tr>');
+    }
+
+    return '<w:tbl><w:tblPr><w:tblStyle w:val="TableGrid"/><w:tblW w:w="$totalWidth" w:type="dxa"/>'
+        '<w:tblBorders>$borders</w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr>'
+        '<w:tblGrid>$grid</w:tblGrid>$rowsXml</w:tbl><w:p/>';
+  }
+
   // ── Formatting actions (apply to the active/focused paragraph) ─────────
 
   void _toggleBold() => _mutateActive((p) => p.bold = !p.bold);
@@ -272,10 +456,11 @@ class _PdfWordVerificationPageState extends State<PdfWordVerificationPage> {
   void _setAlignment(TextAlign alignment) => _mutateActive((p) => p.alignment = alignment);
 
   void _mutateActive(void Function(_DocxParagraph paragraph) mutate) {
-    if (_activeParagraphIndex < 0 || _activeParagraphIndex >= _paragraphs.length) {
+    final paragraph = _activeParagraph;
+    if (paragraph == null) {
       return;
     }
-    setState(() => mutate(_paragraphs[_activeParagraphIndex]));
+    setState(() => mutate(paragraph));
   }
 
   Future<void> _continueToDownload() async {
@@ -420,41 +605,92 @@ class _PdfWordVerificationPageState extends State<PdfWordVerificationPage> {
         ),
         _buildFormattingToolbar(),
         Expanded(
-          child: _paragraphs.isEmpty
+          child: _blocks.isEmpty
               ? const Center(child: Text('No readable text found in the converted document.'))
               : ListView.builder(
                   padding: const EdgeInsets.all(12),
-                  itemCount: _paragraphs.length,
-                  itemBuilder: (context, index) => Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: TextField(
-                      controller: _controllers[index],
-                      focusNode: _focusNodes[index],
-                      maxLines: null,
-                      textAlign: _paragraphs[index].alignment,
-                      style: TextStyle(
-                        fontWeight: _paragraphs[index].bold ? FontWeight.bold : FontWeight.normal,
-                        fontStyle: _paragraphs[index].italic ? FontStyle.italic : FontStyle.normal,
-                        decoration: _paragraphs[index].underline ? TextDecoration.underline : TextDecoration.none,
-                        fontSize: 14,
-                        height: 1.4,
+                  itemCount: _blocks.length,
+                  itemBuilder: (context, index) {
+                    final block = _blocks[index];
+                    if (block is _DocxTableBlock) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 14),
+                        child: _buildTableBlockWidget(block),
+                      );
+                    }
+                    final paragraph = (block as _DocxParagraphBlock).paragraph;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: TextField(
+                        controller: _controllers[index],
+                        focusNode: _focusNodes[index],
+                        maxLines: null,
+                        textAlign: paragraph.alignment,
+                        style: TextStyle(
+                          fontWeight: paragraph.bold ? FontWeight.bold : FontWeight.normal,
+                          fontStyle: paragraph.italic ? FontStyle.italic : FontStyle.normal,
+                          decoration: paragraph.underline ? TextDecoration.underline : TextDecoration.none,
+                          fontSize: 14,
+                          height: 1.4,
+                        ),
+                        decoration: const InputDecoration(
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.all(10),
+                        ),
+                        onChanged: (value) => paragraph.text = value,
                       ),
-                      decoration: const InputDecoration(
-                        isDense: true,
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.all(10),
-                      ),
-                      onChanged: (value) => _paragraphs[index].text = value,
-                    ),
-                  ),
+                    );
+                  },
                 ),
         ),
       ],
     );
   }
 
+  /// Renders a parsed `<w:tbl>` as a genuine bordered grid (not flattened,
+  /// centered text) - each cell stays independently editable.
+  Widget _buildTableBlockWidget(_DocxTableBlock block) {
+    final totalWidth = block.columnWidthsTwips.fold<int>(0, (sum, w) => sum + w);
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xFF9CA3AF)),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Table(
+        border: const TableBorder.symmetric(inside: BorderSide(color: Color(0xFF9CA3AF))),
+        columnWidths: {
+          for (var c = 0; c < block.columnWidthsTwips.length; c++)
+            c: FlexColumnWidth(totalWidth > 0 ? block.columnWidthsTwips[c].toDouble() : 1),
+        },
+        children: [
+          for (final row in block.cellControllers)
+            TableRow(
+              children: [
+                for (final controller in row)
+                  Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: TextField(
+                      controller: controller,
+                      maxLines: null,
+                      textAlign: TextAlign.left,
+                      style: const TextStyle(fontSize: 13, height: 1.3),
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildFormattingToolbar() {
-    final active = (_activeParagraphIndex >= 0 && _activeParagraphIndex < _paragraphs.length) ? _paragraphs[_activeParagraphIndex] : null;
+    final active = _activeParagraph;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
