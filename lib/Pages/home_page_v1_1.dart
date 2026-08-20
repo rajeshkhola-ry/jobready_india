@@ -9,7 +9,7 @@ import 'package:universal_html/html.dart' as html;
 
 import '../Widgets/why_choose_card.dart';
 import '../Widgets/upload_card_v2.dart';
-import '../Widgets/tool_selector_v2.dart';
+import '../Widgets/homepage_tool_categories.dart';
 import '../Widgets/global_language_banner.dart';
 import '../Services/public_brand_config.dart';
 import '../Services/api_config.dart';
@@ -38,7 +38,6 @@ import 'checkout_page.dart';
 import 'compression_benchmark_page.dart';
 import 'compression_tool_page.dart';
 import 'convert_tool_page.dart';
-import 'csv_to_excel_page.dart';
 import 'govt_verifier_page.dart';
 import 'launch_readiness_page.dart';
 import 'launch_runbook_page.dart';
@@ -977,6 +976,63 @@ class _HomePageV11State extends State<HomePageV11> {
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
         ),
         actions: [
+          _HeaderNavDropdown(
+            label: 'PDF Tools',
+            icon: Icons.picture_as_pdf_rounded,
+            compact: useCompactHeaderActions,
+            items: [
+              _NavMenuEntry(
+                'PDF to Word',
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ConvertToolPage(initialInputFormat: 'PDF', initialOutputFormat: 'Word (.docx)'),
+                  ),
+                ),
+              ),
+              _NavMenuEntry(
+                'Edit PDF',
+                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PdfEditPage())),
+              ),
+              _NavMenuEntry(
+                'Compress',
+                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CompressionToolPage())),
+              ),
+              _NavMenuEntry(
+                'Merge',
+                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MergeToolPage())),
+              ),
+              _NavMenuEntry(
+                'Split',
+                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SplitToolPage())),
+              ),
+            ],
+          ),
+          _HeaderNavDropdown(
+            label: 'AI & Career',
+            icon: Icons.auto_awesome_rounded,
+            compact: useCompactHeaderActions,
+            items: [
+              _NavMenuEntry(
+                'AI Resume Builder',
+                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AiResumeBuilderPage())),
+              ),
+              _NavMenuEntry(
+                'Govt Form Resizer',
+                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GovtVerifierPage())),
+              ),
+              _NavMenuEntry(
+                'HD Photo Studio',
+                () => Navigator.of(context).pushNamed('/photo-hd'),
+              ),
+            ],
+          ),
+          _HeaderNavLink(
+            label: 'Pricing / Passes',
+            icon: Icons.sell_rounded,
+            compact: useCompactHeaderActions,
+            onTap: () => Navigator.of(context).pushNamed('/pricing'),
+          ),
           if (!UserAuthService.isSignedIn)
             _TopActionIcon(
               tooltip: 'Sign In',
@@ -1000,81 +1056,39 @@ class _HomePageV11State extends State<HomePageV11> {
               iconColor: const Color(0xFF1F4E79),
               onTap: _triggerPwaInstall,
             ),
-          _TopActionIcon(
-            tooltip: 'Benchmark',
-            icon: Icons.bar_chart_rounded,
-            iconColor: const Color(0xFF3F648A),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const CompressionBenchmarkPage(),
+          _HeaderNavDropdown(
+            label: 'More',
+            icon: Icons.more_horiz_rounded,
+            compact: true,
+            items: [
+              _NavMenuEntry(
+                'Benchmark',
+                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CompressionBenchmarkPage())),
+              ),
+              _NavMenuEntry(
+                'Readiness',
+                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LaunchReadinessPage())),
+              ),
+              _NavMenuEntry(
+                'Runbook',
+                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LaunchRunbookPage())),
+              ),
+              _NavMenuEntry(
+                'Post-Launch',
+                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PostLaunchControlPage())),
+              ),
+              _NavMenuEntry(
+                'Support Email',
+                () => _openMailComposer(
+                  subject: 'GETREADYJOB Support Request',
+                  body: 'Hi GETREADYJOB Team,%0A%0APlease help me with:%0A',
                 ),
-              );
-            },
-          ),
-          _TopActionIcon(
-            tooltip: 'Readiness',
-            icon: Icons.rocket_launch_rounded,
-            iconColor: const Color(0xFF3C7A67),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const LaunchReadinessPage(),
-                ),
-              );
-            },
-          ),
-          _TopActionIcon(
-            tooltip: 'Runbook',
-            icon: Icons.task_alt_rounded,
-            iconColor: const Color(0xFF4E5F96),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const LaunchRunbookPage(),
-                ),
-              );
-            },
-          ),
-          _TopActionIcon(
-            tooltip: 'Post-Launch',
-            icon: Icons.monitor_heart_rounded,
-            iconColor: const Color(0xFF94664A),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const PostLaunchControlPage(),
-                ),
-              );
-            },
-          ),
-          _TopActionIcon(
-            tooltip: 'Support Email',
-            icon: Icons.email_outlined,
-            iconColor: const Color(0xFF7B5E2B),
-            onTap: () {
-              _openMailComposer(
-                subject: 'GETREADYJOB Support Request',
-                body: 'Hi GETREADYJOB Team,%0A%0APlease help me with:%0A',
-              );
-            },
-          ),
-          _TopActionIcon(
-            tooltip: 'Terms & Conditions',
-            icon: Icons.gavel_rounded,
-            iconColor: const Color(0xFF6F5675),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const TermsConditionsPage(),
-                ),
-              );
-            },
+              ),
+              _NavMenuEntry(
+                'Terms & Conditions',
+                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TermsConditionsPage())),
+              ),
+            ],
           ),
           const SizedBox(width: 8),
         ],
@@ -4407,6 +4421,124 @@ class _TopActionIcon extends StatelessWidget {
   }
 }
 
+/// One selectable entry inside a `_HeaderNavDropdown` menu.
+class _NavMenuEntry {
+  const _NavMenuEntry(this.label, this.onTap);
+  final String label;
+  final VoidCallback onTap;
+}
+
+/// Compact top-bar dropdown (e.g. "PDF Tools", "AI & Career") - collapses to
+/// an icon-only trigger when [compact] is true (narrow viewport, or the
+/// overflow "More" menu), matching `_TopActionIcon`'s visual style.
+class _HeaderNavDropdown extends StatelessWidget {
+  const _HeaderNavDropdown({
+    required this.label,
+    required this.icon,
+    required this.items,
+    this.compact = false,
+  });
+
+  final String label;
+  final IconData icon;
+  final List<_NavMenuEntry> items;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 10),
+      child: PopupMenuButton<int>(
+        tooltip: label,
+        offset: const Offset(0, 44),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        itemBuilder: (menuContext) => [
+          for (var i = 0; i < items.length; i++)
+            PopupMenuItem<int>(
+              value: i,
+              child: Text(items[i].label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            ),
+        ],
+        onSelected: (index) => items[index].onTap(),
+        child: Ink(
+          height: 36,
+          padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFCFEFF),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFD8E4F2)),
+            boxShadow: const [BoxShadow(color: Color(0x1290A3BE), blurRadius: 10, offset: Offset(0, 3))],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 17, color: const Color(0xFF1F4E79)),
+              if (!compact) ...[
+                const SizedBox(width: 6),
+                Text(label, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
+              ],
+              const Icon(Icons.arrow_drop_down_rounded, size: 18, color: Color(0xFF64748B)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Compact top-bar direct link (e.g. "Pricing / Passes") - same visual style
+/// as `_HeaderNavDropdown` but a single tap target, no menu.
+class _HeaderNavLink extends StatelessWidget {
+  const _HeaderNavLink({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.compact = false,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 10),
+      child: Tooltip(
+        message: label,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(12),
+            child: Ink(
+              height: 36,
+              padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFCFEFF),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFD8E4F2)),
+                boxShadow: const [BoxShadow(color: Color(0x1290A3BE), blurRadius: 10, offset: Offset(0, 3))],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: 17, color: const Color(0xFF1F4E79)),
+                  if (!compact) ...[
+                    const SizedBox(width: 6),
+                    Text(label, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _CouponControlPanel extends StatefulWidget {
   final ValueChanged<int> onDiscountChanged;
 
@@ -4944,31 +5076,7 @@ class _V2Column extends StatelessWidget {
           voiceProcessingStatus: voiceProcessingStatus,
         ),
         const SizedBox(height: 12),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-          ),
-          child: const Row(
-            children: [
-              Icon(Icons.auto_awesome_rounded, color: Color(0xFF0F172A), size: 18),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Sponsored / Featured: AI Resume Builder and HD Photo Enhancer now highlighted for faster access.',
-                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 10),
-        const _MostPopularToolsCard(),
-        const SizedBox(height: 10),
-        const ToolSelectorV2(),
+        const HomepageToolCategories(),
       ],
     );
   }
@@ -5453,376 +5561,6 @@ class _IllustrationBadge extends StatelessWidget {
             style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _MostPopularToolsCard extends StatelessWidget {
-  const _MostPopularToolsCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Most Popular Tools',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF0F172A),
-            ),
-          ),
-          const SizedBox(height: 10),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final crossAxisCount = constraints.maxWidth >= 1000
-                  ? 3
-                  : constraints.maxWidth >= 640
-                      ? 2
-                      : 1;
-
-              final flagshipTools = <Widget>[
-                _PopularToolRow(
-                  icon: Icons.auto_awesome_rounded,
-                  label: 'AI Resume Builder',
-                  description: 'Build ATS-ready resumes with AI-guided summaries and formatting.',
-                  isFlagship: true,
-                  badgeText: '1 FREE USE',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => AiResumeBuilderPage()),
-                    );
-                  },
-                ),
-                _PopularToolRow(
-                  icon: Icons.photo_camera_outlined,
-                  label: 'HD Photo Converter / Enhancer',
-                  description: 'Enhance, resize, and convert photos to studio-quality output.',
-                  isFlagship: true,
-                  badgeText: '1 FREE USE',
-                  onTap: () {
-                    Navigator.of(context).pushNamed('/photo-hd');
-                  },
-                ),
-                _PopularToolRow(
-                  icon: Icons.photo_size_select_large_rounded,
-                  label: 'Poster Workspace',
-                  description: 'Open the poster-size layout and print-ready HD photo workflow.',
-                  isFlagship: true,
-                  badgeText: '1 FREE USE',
-                  onTap: () {
-                    Navigator.of(context).pushNamed('/poster-workspace');
-                  },
-                ),
-                _PopularToolRow(
-                  icon: Icons.document_scanner_outlined,
-                  label: 'PDF to PDF OCR Tool',
-                  description: 'Extract and search text from scanned documents accurately.',
-                  isFlagship: true,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const PdfEditPage()),
-                  ),
-                ),
-                _PopularToolRow(
-                  icon: Icons.auto_awesome_motion_rounded,
-                  label: 'Micro-Canva Utilities',
-                  description: 'Background remove, passport resize, HD upscale, and PNG to SVG workflow.',
-                  isFlagship: true,
-                  onTap: () {
-                    Navigator.of(context).pushNamed('/micro-canva');
-                  },
-                ),
-                _PopularToolRow(
-                  icon: Icons.draw_rounded,
-                  label: 'Resume & Document Canvas',
-                  description: 'Start from local-first templates for resumes, cover letters, and SOP drafts.',
-                  isFlagship: true,
-                  onTap: () {
-                    Navigator.of(context).pushNamed('/canvas-templates');
-                  },
-                ),
-                _PopularToolRow(
-                  icon: Icons.campaign_rounded,
-                  label: 'Poster & Banner Studio',
-                  description: 'Design social banners, hiring posters, festive creatives, and event flyers on a local canvas.',
-                  isFlagship: true,
-                  onTap: () {
-                    Navigator.of(context).pushNamed('/poster-banner-studio');
-                  },
-                ),
-                _PopularToolRow(
-                  icon: Icons.record_voice_over_rounded,
-                  label: 'AI Voice Mock Interview',
-                  description: 'Practice real interview questions with instant AI voice feedback and scoring.',
-                  isFlagship: true,
-                  badgeText: 'NEW',
-                  onTap: () {
-                    Navigator.of(context).pushNamed('/ai-mock-interview');
-                  },
-                ),
-              ];
-
-              final tools = <Widget>[
-                _PopularToolRow(
-                  icon: Icons.description_outlined,
-                  label: 'PDF to Word',
-                  description: 'Convert PDF documents into fully editable Word files in seconds.',
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const ConvertToolPage()),
-                  ),
-                ),
-                _PopularToolRow(
-                  icon: Icons.image_outlined,
-                  label: 'JPG to PDF',
-                  description: 'Turn one or more images into a clean, shareable PDF file.',
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const ConvertToolPage()),
-                  ),
-                ),
-                _PopularToolRow(
-                  icon: Icons.compress_outlined,
-                  label: 'Compress PDF',
-                  description: 'Shrink file size while keeping document quality intact.',
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const CompressionToolPage()),
-                  ),
-                ),
-                _PopularToolRow(
-                  icon: Icons.merge_type,
-                  label: 'Merge PDF',
-                  description: 'Combine multiple PDF files into a single organized document.',
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const MergeToolPage()),
-                  ),
-                ),
-                _PopularToolRow(
-                  icon: Icons.call_split_outlined,
-                  label: 'Split PDF',
-                  description: 'Break a large PDF into separate, easy-to-share pages or sections.',
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const SplitToolPage()),
-                  ),
-                ),
-                _PopularToolRow(
-                  icon: Icons.lock_outline_rounded,
-                  label: 'Protect PDF',
-                  description: 'Add access protection to keep sensitive documents secure.',
-                  onTap: () {
-                    Navigator.of(context).pushNamed('/smart-pdf');
-                  },
-                ),
-                _PopularToolRow(
-                  icon: Icons.edit_note_rounded,
-                  label: 'Edit PDF',
-                  description: 'Make quick text and layout edits directly inside your PDF.',
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const PdfEditPage()),
-                  ),
-                ),
-                _PopularToolRow(
-                  icon: Icons.table_chart_rounded,
-                  label: 'CSV to Excel',
-                  description: 'Convert CSV data sheets into clean Microsoft Excel (.xlsx) files.',
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const CsvToExcelPage()),
-                  ),
-                ),
-              ];
-
-              final rows = <Widget>[];
-              for (var i = 0; i < tools.length; i += crossAxisCount) {
-                final rowItems = tools.skip(i).take(crossAxisCount).toList();
-                rows.add(
-                  Padding(
-                    padding: EdgeInsets.only(bottom: i + crossAxisCount < tools.length ? 10 : 0),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (var col = 0; col < crossAxisCount; col++) ...[
-                          if (col > 0) const SizedBox(width: 10),
-                          Expanded(child: col < rowItems.length ? rowItems[col] : const SizedBox.shrink()),
-                        ],
-                      ],
-                    ),
-                  ),
-                );
-              }
-
-              final flagshipRow = constraints.maxWidth >= 900
-                  ? IntrinsicHeight(
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          for (var i = 0; i < flagshipTools.length; i++) ...[
-                            if (i > 0) const SizedBox(width: 10),
-                            Expanded(child: flagshipTools[i]),
-                          ],
-                        ],
-                      ),
-                    )
-                  : SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          for (var i = 0; i < flagshipTools.length; i++) ...[
-                            if (i > 0) const SizedBox(width: 10),
-                            SizedBox(width: 300, child: flagshipTools[i]),
-                          ],
-                        ],
-                      ),
-                    );
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Flagship tools',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFFB45309),
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  flagshipRow,
-                  const SizedBox(height: 10),
-                  Column(children: rows),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PopularToolRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String description;
-  final VoidCallback onTap;
-  final bool isFlagship;
-  final String? badgeText;
-
-  const _PopularToolRow({
-    required this.icon,
-    required this.label,
-    required this.description,
-    required this.onTap,
-    this.isFlagship = false,
-    this.badgeText,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: onTap,
-      child: Container(
-        constraints: BoxConstraints(minHeight: isFlagship ? 108 : 0),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-        decoration: BoxDecoration(
-          color: isFlagship ? const Color(0xFFFFF7E6) : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isFlagship ? const Color(0xFFFFD166) : const Color(0xFFE2E8F0)),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: isFlagship ? const Color(0xFFFFC72C).withValues(alpha: 0.18) : const Color(0xFFEFF4FA),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, size: 18, color: const Color(0xFF0F172A)),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          label,
-                          maxLines: 2,
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF1E293B)),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (isFlagship) ...[
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFFC72C),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: const Text(
-                            'FLAGSHIP',
-                            style: TextStyle(fontSize: 8, fontWeight: FontWeight.w800, color: Color(0xFF1F2937), letterSpacing: 0.4),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    description,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), height: 1.25),
-                  ),
-                  if (badgeText != null) ...[
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFDCFCE7),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        badgeText!,
-                        style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w800, color: Color(0xFF15803D), letterSpacing: 0.3),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(width: 4),
-            const Icon(
-              Icons.chevron_right_rounded,
-              size: 18,
-              color: Color(0xFF64748B),
-            ),
-          ],
-        ),
       ),
     );
   }
