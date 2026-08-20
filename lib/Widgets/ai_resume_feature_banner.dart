@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../Pages/ai_resume_builder_page.dart';
 import '../Pages/plan_features_page.dart';
-import '../Services/free_trial_service.dart';
+import '../Services/device_fingerprint_service.dart';
 
 class AiResumeFeatureBanner extends StatelessWidget {
   final String activePlan;
@@ -17,13 +17,13 @@ class AiResumeFeatureBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isEligible = _isEligiblePlan(activePlan);
-    final canTryFree = !isEligible && !FreeTrialService.hasUsedFreeTrial(FreeTrialService.resumeBuilderTool);
+    final canTryFree = !isEligible && DeviceFingerprintService.hasFreeFilesRemaining;
     final message = isEligible
         ? '🔥 HOT FEATURE LIVE: Free AI Resume Builder, Cover Letter Generator & Company Insights now available for 1-Year & Lifetime Plan Users!'
         : canTryFree
-            ? '🎁 New here? Get 1 FREE use of the AI Resume Builder — create your free account and try it now!'
+            ? '🎁 New here? Try the AI Resume Builder free - no login required until your free device credits run out!'
             : 'Upgrade to a 1-Year or Lifetime plan to unlock the AI Resume Builder, Cover Letter Generator, and Company Insights.';
-    final ctaLabel = isEligible ? 'Try Resume Builder Now' : canTryFree ? 'Try Free Once' : 'View Plans';
+    final ctaLabel = isEligible ? 'Try Resume Builder Now' : canTryFree ? 'Try It Free' : 'View Plans';
 
     void onTapAction() {
       if (isEligible || canTryFree) {

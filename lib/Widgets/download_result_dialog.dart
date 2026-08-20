@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:universal_html/html.dart' as html;
 
+import '../Services/device_fingerprint_service.dart';
 import '../Services/document_history_service.dart';
 import '../Services/usage_quota_service.dart';
 import 'universal_share_actions.dart';
@@ -93,6 +94,7 @@ class DownloadResultDialog extends StatelessWidget {
         fileSizeBytes: outputBytes.length,
       );
       UsageQuotaService.recordAction(outputFormat);
+      DeviceFingerprintService.recordFileConsumed();
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

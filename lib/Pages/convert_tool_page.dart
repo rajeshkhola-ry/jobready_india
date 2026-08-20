@@ -12,6 +12,7 @@ import '../Widgets/quota_gate.dart';
 import '../Widgets/tool_guidance_panel.dart';
 import '../Widgets/tool_workspace_shell.dart';
 import '../Services/conversion_service.dart';
+import '../Services/device_fingerprint_service.dart';
 import '../Services/document_history_service.dart';
 import '../Services/error_message_service.dart';
 import '../Services/file_picker_service.dart';
@@ -1646,6 +1647,7 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
           fileSizeBytes: result.outputBytes!.length,
         );
         UsageQuotaService.recordAction(_selectedOutputFormat!);
+        DeviceFingerprintService.recordFileConsumed();
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

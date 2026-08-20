@@ -9,6 +9,7 @@ import '../Widgets/quota_gate.dart';
 import '../Widgets/tool_guidance_panel.dart';
 import '../Widgets/tool_workspace_shell.dart';
 import '../Services/csv_to_excel_service.dart';
+import '../Services/device_fingerprint_service.dart';
 import '../Services/document_history_service.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/upload_context_service.dart';
@@ -172,6 +173,7 @@ class _CsvToExcelPageState extends State<CsvToExcelPage> {
           fileSizeBytes: xlsxBytes.length,
         );
         UsageQuotaService.recordAction('Excel (.xlsx)');
+        DeviceFingerprintService.recordFileConsumed();
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
