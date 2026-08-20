@@ -87,6 +87,17 @@ class _PdfWordVerificationPageState extends State<PdfWordVerificationPage> {
   int _activeBlockIndex = -1;
   final GlobalKey _livePreviewSectionKey = GlobalKey();
 
+  // Tracks whether the user has actually changed anything. As long as this
+  // stays false, "Continue to Download" sends `widget.convertedDocxBytes`
+  // UNTOUCHED - the real, high-fidelity bytes pdf2docx/LibreOffice/Vision-OCR
+  // produced (true tables, multi-column sections, embedded images/logos).
+  // Only when the user genuinely edits something do we rebuild via the
+  // simplified paragraph/table model below, which does NOT preserve images
+  // or true multi-column layout - previously this rebuild ran unconditionally
+  // on every single manual PDF-to-Word conversion, silently discarding a
+  // perfectly good pdf2docx result even when nothing needed fixing.
+  bool _hasEdits = false;
+
   _DocxParagraph? get _activeParagraph {
     if (_activeBlockIndex < 0 || _activeBlockIndex >= _blocks.length) return null;
     final block = _blocks[_activeBlockIndex];
@@ -461,18 +472,25 @@ class _PdfWordVerificationPageState extends State<PdfWordVerificationPage> {
     if (paragraph == null) {
       return;
     }
-    setState(() => mutate(paragraph));
+    setState(() {
+      mutate(paragraph);
+      _hasEdits = true;
+    });
   }
 
   Future<void> _continueToDownload() async {
-    final editedBytes = _buildEditedDocxBytes();
+    // Only rebuild through the simplified model if something was actually
+    // edited - otherwise hand over the ORIGINAL conversion bytes untouched,
+    // preserving 100% of pdf2docx's/LibreOffice's real tables, multi-column
+    // layout, and embedded images.
+    final outputBytes = _hasEdits ? _buildEditedDocxBytes() : widget.convertedDocxBytes;
     if (!mounted) return;
     await showDialog(
       context: context,
       builder: (_) => DownloadResultDialog(
         outputFormat: widget.outputFormat,
         fileName: widget.outputFileName,
-        outputBytes: editedBytes,
+        outputBytes: outputBytes,
         originalFileSizeBytes: widget.originalPdfBytes.length,
       ),
     );
@@ -502,7 +520,7 @@ class _PdfWordVerificationPageState extends State<PdfWordVerificationPage> {
             color: const Color(0xFFEFF6FF),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: const Text(
-              'Compare the original PDF with the converted Word document below. Make any quick corrections, then continue to download or share.',
+              'Compare the original PDF with the converted Word document below. Make any quick corrections, then continue to download or share. Your original formatting - including tables, columns, and images - stays fully intact unless you edit the text below.',
               style: TextStyle(fontSize: 12.5, color: Color(0xFF1E3A8A), fontWeight: FontWeight.w600),
             ),
           ),
@@ -652,6 +670,7 @@ class _PdfWordVerificationPageState extends State<PdfWordVerificationPage> {
                         ),
                         onChanged: (value) {
                           paragraph.text = value;
+                          _hasEdits = true;
                           setState(() {});
                         },
                       ),
@@ -695,7 +714,10 @@ class _PdfWordVerificationPageState extends State<PdfWordVerificationPage> {
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 6),
                       ),
-                      onChanged: (_) => setState(() {}),
+                      onChanged: (_) {
+                        _hasEdits = true;
+                        setState(() {});
+                      },
                     ),
                   ),
               ],
