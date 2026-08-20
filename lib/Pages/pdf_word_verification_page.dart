@@ -85,6 +85,7 @@ class _PdfWordVerificationPageState extends State<PdfWordVerificationPage> {
   late final List<TextEditingController?> _controllers;
   late final List<FocusNode?> _focusNodes;
   int _activeBlockIndex = -1;
+  final GlobalKey _livePreviewSectionKey = GlobalKey();
 
   _DocxParagraph? get _activeParagraph {
     if (_activeBlockIndex < 0 || _activeBlockIndex >= _blocks.length) return null;
@@ -506,29 +507,40 @@ class _PdfWordVerificationPageState extends State<PdfWordVerificationPage> {
             ),
           ),
           Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final isWide = constraints.maxWidth >= 760;
-                final leftPanel = _buildLeftPanel();
-                final rightPanel = _buildRightPanel();
-                if (isWide) {
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(child: leftPanel),
-                      const VerticalDivider(width: 1),
-                      Expanded(child: rightPanel),
-                    ],
-                  );
-                }
-                return Column(
-                  children: [
-                    Expanded(child: leftPanel),
-                    const Divider(height: 1),
-                    Expanded(child: rightPanel),
-                  ],
-                );
-              },
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  SizedBox(
+                    height: (MediaQuery.sizeOf(context).height * 0.62).clamp(480.0, 720.0).toDouble(),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isWide = constraints.maxWidth >= 760;
+                        final leftPanel = _buildLeftPanel();
+                        final rightPanel = _buildRightPanel();
+                        if (isWide) {
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(child: leftPanel),
+                              const VerticalDivider(width: 1),
+                              Expanded(child: rightPanel),
+                            ],
+                          );
+                        }
+                        return Column(
+                          children: [
+                            Expanded(child: leftPanel),
+                            const Divider(height: 1),
+                            Expanded(child: rightPanel),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                  _buildPreviewJumpBanner(),
+                  _buildLivePreviewSection(),
+                ],
+              ),
             ),
           ),
           _buildBottomActionBar(),
@@ -638,7 +650,10 @@ class _PdfWordVerificationPageState extends State<PdfWordVerificationPage> {
                           border: OutlineInputBorder(),
                           contentPadding: EdgeInsets.all(10),
                         ),
-                        onChanged: (value) => paragraph.text = value,
+                        onChanged: (value) {
+                          paragraph.text = value;
+                          setState(() {});
+                        },
                       ),
                     );
                   },
@@ -680,6 +695,7 @@ class _PdfWordVerificationPageState extends State<PdfWordVerificationPage> {
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 6),
                       ),
+                      onChanged: (_) => setState(() {}),
                     ),
                   ),
               ],
@@ -732,6 +748,170 @@ class _PdfWordVerificationPageState extends State<PdfWordVerificationPage> {
           child: Icon(icon, size: 18, color: active ? Colors.white : const Color(0xFF374151)),
         ),
       ),
+    );
+  }
+
+  /// Smoothly scrolls the outer page so the live preview sheet comes into
+  /// view - used by both the jump banner button and (implicitly) available
+  /// to any future "scroll to preview" affordance.
+  void _scrollToLivePreview() {
+    final targetContext = _livePreviewSectionKey.currentContext;
+    if (targetContext == null) return;
+    Scrollable.ensureVisible(
+      targetContext,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  /// Divider/banner between the editable cards above and the live preview
+  /// sheet below, with a button that smoothly scrolls straight to it.
+  Widget _buildPreviewJumpBanner() {
+    return Container(
+      width: double.infinity,
+      color: const Color(0xFFFFF7ED),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 12,
+        runSpacing: 8,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.keyboard_double_arrow_down_rounded, color: Color(0xFFC2410C), size: 20),
+              const SizedBox(width: 8),
+              const Flexible(
+                child: Text(
+                  '\u2193 See Below: Live Preview of Your Word Document (.docx)',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF9A3412)),
+                ),
+              ),
+            ],
+          ),
+          OutlinedButton.icon(
+            onPressed: _scrollToLivePreview,
+            icon: const Icon(Icons.arrow_downward_rounded, size: 18),
+            label: const Text('Jump to Live Preview'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFFC2410C),
+              side: const BorderSide(color: Color(0xFFFDBA74), width: 1.5),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// A4-style white page sheet that re-renders the CURRENT live state of
+  /// every block (paragraph text/formatting, table cell text) on every
+  /// rebuild - since edits above call `setState`, this always reflects the
+  /// latest keystroke/formatting change with no extra sync step needed.
+  Widget _buildLivePreviewSection() {
+    return Container(
+      key: _livePreviewSectionKey,
+      width: double.infinity,
+      color: const Color(0xFFE5E7EB),
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+      child: Column(
+        children: [
+          const Text(
+            'Live Preview of Your Word Document (.docx)',
+            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF374151)),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Updates instantly as you edit above',
+            style: TextStyle(fontSize: 11.5, color: Color(0xFF6B7280)),
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 794),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 56, vertical: 64),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(2),
+                  boxShadow: const [
+                    BoxShadow(color: Color(0x33000000), blurRadius: 18, offset: Offset(0, 8)),
+                  ],
+                ),
+                child: _buildLivePreviewContent(),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLivePreviewContent() {
+    if (_blocks.isEmpty) {
+      return const Text(
+        'No readable text found in the converted document.',
+        style: TextStyle(color: Color(0xFF9CA3AF)),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final block in _blocks)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: block is _DocxTableBlock
+                ? _buildLivePreviewTable(block)
+                : _buildLivePreviewParagraph((block as _DocxParagraphBlock).paragraph),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildLivePreviewParagraph(_DocxParagraph paragraph) {
+    if (paragraph.text.trim().isEmpty) {
+      return const SizedBox(height: 10);
+    }
+    return Text(
+      paragraph.text,
+      textAlign: paragraph.alignment,
+      style: TextStyle(
+        fontWeight: paragraph.bold ? FontWeight.bold : FontWeight.normal,
+        fontStyle: paragraph.italic ? FontStyle.italic : FontStyle.normal,
+        decoration: paragraph.underline ? TextDecoration.underline : TextDecoration.none,
+        fontSize: 13.5,
+        height: 1.5,
+        color: const Color(0xFF111827),
+      ),
+    );
+  }
+
+  Widget _buildLivePreviewTable(_DocxTableBlock block) {
+    final totalWidth = block.columnWidthsTwips.fold<int>(0, (sum, w) => sum + w);
+    return Table(
+      border: TableBorder.all(color: const Color(0xFF9CA3AF), width: 1),
+      columnWidths: {
+        for (var c = 0; c < block.columnWidthsTwips.length; c++)
+          c: FlexColumnWidth(totalWidth > 0 ? block.columnWidthsTwips[c].toDouble() : 1),
+      },
+      children: [
+        for (final row in block.cellControllers)
+          TableRow(
+            children: [
+              for (final controller in row)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  child: Text(
+                    controller.text,
+                    textAlign: TextAlign.left,
+                    style: const TextStyle(fontSize: 12.5, height: 1.4, color: Color(0xFF111827)),
+                  ),
+                ),
+            ],
+          ),
+      ],
     );
   }
 
