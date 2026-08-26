@@ -699,7 +699,7 @@ class _UploadCardV2State extends State<UploadCardV2> {
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    '💡 AI Voice Assistant is experimental and may make mistakes. You can always use the manual tools below.',
+                    'AI can make mistakes. Please verify important results or use the manual tools below.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 11,

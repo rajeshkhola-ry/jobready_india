@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /private
-Sitemap: https://www.getreadyjob.com/sitemap.xml
+Sitemap: https://getreadyjob.com/sitemap.xml

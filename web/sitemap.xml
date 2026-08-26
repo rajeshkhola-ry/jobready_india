@@ -3,176 +3,206 @@
   xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>https://www.getreadyjob.com/</loc>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.getreadyjob.com/" />
-    <xhtml:link rel="alternate" hreflang="en-us" href="https://www.getreadyjob.com/" />
-    <xhtml:link rel="alternate" hreflang="en-gb" href="https://www.getreadyjob.com/" />
-    <xhtml:link rel="alternate" hreflang="en-eu" href="https://www.getreadyjob.com/" />
-    <xhtml:link rel="alternate" hreflang="en-in" href="https://www.getreadyjob.com/" />
+    <loc>https://getreadyjob.com/</loc>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://getreadyjob.com/" />
+    <xhtml:link rel="alternate" hreflang="en-us" href="https://getreadyjob.com/" />
+    <xhtml:link rel="alternate" hreflang="en-gb" href="https://getreadyjob.com/" />
+    <xhtml:link rel="alternate" hreflang="en-eu" href="https://getreadyjob.com/" />
+    <xhtml:link rel="alternate" hreflang="en-in" href="https://getreadyjob.com/" />
     <lastmod>2026-08-03</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://www.getreadyjob.com/convert</loc>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.getreadyjob.com/convert" />
-    <xhtml:link rel="alternate" hreflang="en-us" href="https://www.getreadyjob.com/convert" />
-    <xhtml:link rel="alternate" hreflang="en-gb" href="https://www.getreadyjob.com/convert" />
-    <xhtml:link rel="alternate" hreflang="en-eu" href="https://www.getreadyjob.com/convert" />
-    <xhtml:link rel="alternate" hreflang="en-in" href="https://www.getreadyjob.com/convert" />
+    <loc>https://getreadyjob.com/convert</loc>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://getreadyjob.com/convert" />
+    <xhtml:link rel="alternate" hreflang="en-us" href="https://getreadyjob.com/convert" />
+    <xhtml:link rel="alternate" hreflang="en-gb" href="https://getreadyjob.com/convert" />
+    <xhtml:link rel="alternate" hreflang="en-eu" href="https://getreadyjob.com/convert" />
+    <xhtml:link rel="alternate" hreflang="en-in" href="https://getreadyjob.com/convert" />
     <lastmod>2026-08-03</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.95</priority>
   </url>
   <url>
-    <loc>https://www.getreadyjob.com/compress</loc>
+    <loc>https://getreadyjob.com/compress</loc>
     <lastmod>2026-08-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://www.getreadyjob.com/resume</loc>
+    <loc>https://getreadyjob.com/resume</loc>
     <lastmod>2026-08-05</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.88</priority>
   </url>
   <url>
-    <loc>https://www.getreadyjob.com/photo-hd</loc>
+    <loc>https://getreadyjob.com/photo-hd</loc>
     <lastmod>2026-08-05</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.86</priority>
   </url>
   <url>
-    <loc>https://www.getreadyjob.com/extract</loc>
+    <loc>https://getreadyjob.com/extract</loc>
     <lastmod>2026-08-05</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.84</priority>
   </url>
   <url>
-    <loc>https://www.getreadyjob.com/pdf-tools</loc>
+    <loc>https://getreadyjob.com/pdf-tools</loc>
     <lastmod>2026-08-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>https://www.getreadyjob.com/govt-verifier</loc>
+    <loc>https://getreadyjob.com/govt-verifier</loc>
     <lastmod>2026-08-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>https://www.getreadyjob.com/merge</loc>
+    <loc>https://getreadyjob.com/merge</loc>
     <lastmod>2026-08-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.82</priority>
   </url>
   <url>
-    <loc>https://www.getreadyjob.com/split</loc>
+    <loc>https://getreadyjob.com/split</loc>
     <lastmod>2026-08-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.82</priority>
   </url>
   <url>
-    <loc>https://www.getreadyjob.com/pdf-edit</loc>
+    <loc>https://getreadyjob.com/pdf-edit</loc>
     <lastmod>2026-08-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.82</priority>
   </url>
   <url>
-    <loc>https://www.getreadyjob.com/fraud-seal</loc>
+    <loc>https://getreadyjob.com/smart-pdf</loc>
+    <lastmod>2026-08-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://getreadyjob.com/fraud-seal</loc>
     <lastmod>2026-08-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.getreadyjob.com/doc-packager</loc>
+    <loc>https://getreadyjob.com/doc-packager</loc>
     <lastmod>2026-08-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.getreadyjob.com/privacy-masker</loc>
+    <loc>https://getreadyjob.com/privacy-masker</loc>
+    <lastmod>2026-08-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://getreadyjob.com/poster-banner-studio</loc>
     <lastmod>2026-08-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.78</priority>
   </url>
   <url>
-    <loc>https://www.getreadyjob.com/poster-banner-studio</loc>
-    <lastmod>2026-08-15</lastmod>
+    <loc>https://getreadyjob.com/poster-workspace</loc>
+    <lastmod>2026-08-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.76</priority>
+  </url>
+  <url>
+    <loc>https://getreadyjob.com/micro-canva</loc>
+    <lastmod>2026-08-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.76</priority>
+  </url>
+  <url>
+    <loc>https://getreadyjob.com/canvas-templates</loc>
+    <lastmod>2026-08-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.74</priority>
+  </url>
+  <url>
+    <loc>https://getreadyjob.com/ai-mock-interview</loc>
+    <lastmod>2026-08-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.78</priority>
   </url>
   <url>
-    <loc>https://www.getreadyjob.com/blog</loc>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.getreadyjob.com/blog" />
-    <xhtml:link rel="alternate" hreflang="en-eu" href="https://www.getreadyjob.com/blog" />
-    <xhtml:link rel="alternate" hreflang="en-in" href="https://www.getreadyjob.com/blog" />
+    <loc>https://getreadyjob.com/blog</loc>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://getreadyjob.com/blog" />
+    <xhtml:link rel="alternate" hreflang="en-eu" href="https://getreadyjob.com/blog" />
+    <xhtml:link rel="alternate" hreflang="en-in" href="https://getreadyjob.com/blog" />
     <lastmod>2026-08-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>https://www.getreadyjob.com/blog/ai-resume-builder-india</loc>
+    <loc>https://getreadyjob.com/blog/ai-resume-builder-india</loc>
     <lastmod>2026-08-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.getreadyjob.com/pricing</loc>
+    <loc>https://getreadyjob.com/pricing</loc>
     <lastmod>2026-08-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.getreadyjob.com/testimonials</loc>
+    <loc>https://getreadyjob.com/testimonials</loc>
     <lastmod>2026-08-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
-    <loc>https://www.getreadyjob.com/about</loc>
+    <loc>https://getreadyjob.com/about</loc>
     <lastmod>2026-08-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.getreadyjob.com/contact</loc>
+    <loc>https://getreadyjob.com/contact</loc>
     <lastmod>2026-08-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.getreadyjob.com/support</loc>
+    <loc>https://getreadyjob.com/support</loc>
     <lastmod>2026-08-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.65</priority>
   </url>
   <url>
-    <loc>https://www.getreadyjob.com/faq</loc>
+    <loc>https://getreadyjob.com/faq</loc>
     <lastmod>2026-08-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.65</priority>
   </url>
   <url>
-    <loc>https://www.getreadyjob.com/privacy</loc>
+    <loc>https://getreadyjob.com/privacy</loc>
     <lastmod>2026-08-03</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://www.getreadyjob.com/terms</loc>
+    <loc>https://getreadyjob.com/terms</loc>
     <lastmod>2026-08-03</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://www.getreadyjob.com/cookie-policy</loc>
+    <loc>https://getreadyjob.com/cookie-policy</loc>
     <lastmod>2026-08-03</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.45</priority>
   </url>
   <url>
-    <loc>https://www.getreadyjob.com/disclaimer</loc>
+    <loc>https://getreadyjob.com/disclaimer</loc>
     <lastmod>2026-08-03</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.45</priority>

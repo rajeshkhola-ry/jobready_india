@@ -9,6 +9,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../Services/draft_persistence_service.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/wasm_document_service.dart';
+import '../Widgets/faq_accordion.dart';
 
 class PrivacyMaskerPage extends StatefulWidget {
   const PrivacyMaskerPage({super.key});
@@ -579,6 +580,24 @@ class _PrivacyMaskerPageState extends State<PrivacyMaskerPage>
                 const SizedBox(height: 14),
                 _statusRow(_maskerStatus),
               ],
+              const SizedBox(height: 16),
+              const FaqAccordion(
+                accentColor: Color(0xFF1A2B45),
+                items: [
+                  FaqItem(
+                    question: 'Is masking my PAN card secure?',
+                    answer: 'Yes. All masking happens 100% locally in your browser - your PAN card, Aadhaar, or ID image is never uploaded to any server, so your sensitive data never leaves your device.',
+                  ),
+                  FaqItem(
+                    question: 'Why mask ID numbers on resumes or job applications?',
+                    answer: 'Recruiters and portals only need to verify your identity, not store your full PAN/Aadhaar number. Masking hides sensitive digits while keeping the rest of the document readable, protecting you from identity theft and data leaks.',
+                  ),
+                  FaqItem(
+                    question: 'Can I mask Aadhaar, PAN, and other ID documents for free?',
+                    answer: 'Yes. The Privacy Masker is completely free to use with unlimited local masking - no sign-up, no watermark, no file size limit tied to a paid plan.',
+                  ),
+                ],
+              ),
             ],
           ),
         ),

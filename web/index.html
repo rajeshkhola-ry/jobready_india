@@ -242,6 +242,46 @@
           "@type": "Question",
           "name": "Does GetReadyJob provide GST-compliant tax invoices for paid plans?",
           "acceptedAnswer": { "@type": "Answer", "text": "Yes. Every paid GetReadyJob plan generates a GST-compliant tax invoice with sequential Rule 46 invoice numbering, your GSTIN and billing details, and support for SEZ/LUT-Bond business billing. Credit and debit notes are issued automatically for refunds or corrections under Section 34 of the CGST Act." }
+        },
+        {
+          "@type": "Question",
+          "name": "Is masking my PAN card secure?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. All masking happens 100% locally in your browser — your PAN card, Aadhaar, or ID image is never uploaded to any server, so your sensitive data never leaves your device." }
+        },
+        {
+          "@type": "Question",
+          "name": "Why mask ID numbers on resumes or job applications?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Recruiters and portals only need to verify your identity, not store your full PAN/Aadhaar number. Masking hides sensitive digits while keeping the rest of the document readable, protecting you from identity theft and data leaks." }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I mask Aadhaar, PAN, and other ID documents for free?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. The Privacy Masker is completely free to use with unlimited local masking — no sign-up, no watermark, and no file-size limit tied to a paid plan." }
+        },
+        {
+          "@type": "Question",
+          "name": "Are the SSC/UPSC/IBPS photo size presets accurate for govt forms?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. Each preset (SSC 200×230px 20–50 KB, UPSC 300×400px, IBPS/RRB 200×230px) matches the exact pixel and file-size rules published by the respective recruitment boards, so your upload will not get rejected for size errors." }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Govt Verifier's Aadhaar/PAN redaction done locally or uploaded to a server?",
+          "acceptedAnswer": { "@type": "Answer", "text": "All redaction, resizing, and Name/DOP strip generation happens entirely in your browser using local image processing. No document or photo is ever uploaded anywhere." }
+        },
+        {
+          "@type": "Question",
+          "name": "Do I need to sign up to use the Govt Verifier tool?",
+          "acceptedAnswer": { "@type": "Answer", "text": "No sign-up is required. Upload your photo or document, choose a preset, and download the result immediately." }
+        },
+        {
+          "@type": "Question",
+          "name": "What goes inside the Doc Packager job application ZIP bundle?",
+          "acceptedAnswer": { "@type": "Answer", "text": "The bundle includes your auto-resized photo, signature, identity proof, and supporting document, named 01_PHOTO.jpg, 02_SIGNATURE.jpg, 03_IDENTITY_PROOF, and 04_DOCUMENT — ready to upload to any SSC/UPSC/IBPS portal." }
+        },
+        {
+          "@type": "Question",
+          "name": "Are documents uploaded to a server when using Doc Packager?",
+          "acceptedAnswer": { "@type": "Answer", "text": "No. Every file is optimised and zipped entirely inside your browser. Nothing is transmitted to GetReadyJob's servers or any third party." }
         }
       ]
     }
@@ -264,98 +304,141 @@
           title: 'Free AI Resume Builder | 18+ ATS-Friendly Resume Templates',
           description: 'Build ATS-compliant US resumes and EU Europass CVs in minutes with AI-guided content and 18+ modern templates. Download free PDF instantly.',
           keywords: 'US resume builder, Europass CV builder, ATS resume templates, professional resume maker, free resume PDF',
-          url: 'https://getreadyjob.com/resume'
+          url: 'https://getreadyjob.com/resume',
+          appName: 'GetReadyJob AI Resume Builder',
+          appCategory: ['BusinessApplication']
         },
         {
           test: function (route) { return route === '/photo-hd'; },
           title: 'HD Photo Converter, Social Media Resizer & Poster Studio | GetReadyJob',
           description: 'Upscale photos to 4K HD, resize for Instagram/YouTube/LinkedIn, generate A2/A3 poster sizes. Includes Hindi/Devanagari font support for posters. 100% browser-based.',
           keywords: 'HD photo converter, Instagram photo resize, YouTube thumbnail size, LinkedIn banner resize, passport photo resize, poster generator A2 A3, Devanagari poster maker',
-          url: 'https://getreadyjob.com/photo-hd'
+          url: 'https://getreadyjob.com/photo-hd',
+          appName: 'GetReadyJob HD Photo & Social Media Resizer',
+          appCategory: ['MultimediaApplication', 'UtilitiesApplication']
         },
         {
           test: function (route) { return route === '/extract' || route === '/ocr'; },
           title: 'PDF OCR Tool | Convert Scanned PDF to Searchable Text',
           description: 'Extract text from scanned PDF files and convert image-based documents into searchable, editable text online for free.',
           keywords: 'PDF OCR tool, scanned PDF to searchable PDF, OCR online free, extract text from PDF, image to text PDF',
-          url: 'https://getreadyjob.com/extract'
+          url: 'https://getreadyjob.com/extract',
+          appName: 'GetReadyJob PDF OCR Tool',
+          appCategory: ['UtilitiesApplication']
         },
         {
           test: function (route) { return route === '/govt-verifier'; },
           title: 'SSC/UPSC Photo Resizer, Name/DOP Strip & Govt Document Verifier | GetReadyJob',
           description: 'Resize passport photos to exact SSC/UPSC KB and pixel limits, add Name & Date of Photo (DOP) black strip, and smart-redact Aadhaar/PAN documents. 100% local — no upload.',
           keywords: 'SSC passport photo resize 200x230 50KB, UPSC photo name DOP strip, Aadhaar redact online, PAN card blackout, IBPS photo compress, govt document verifier India, passport photo SSC standard',
-          url: 'https://getreadyjob.com/govt-verifier'
+          url: 'https://getreadyjob.com/govt-verifier',
+          appName: 'GetReadyJob Govt Photo & Document Verifier',
+          appCategory: ['UtilitiesApplication', 'SecurityApplication'],
+          faq: [
+            { q: 'Are the photo size presets accurate for SSC/UPSC/IBPS forms?', a: 'Yes. Each preset (SSC 200x230px 20-50 KB, UPSC 300x400px, IBPS/RRB 200x230px) matches the exact pixel and file-size rules published by the respective recruitment boards, so your upload will not get rejected for size errors.' },
+            { q: 'Is my Aadhaar/PAN redacted locally or uploaded to a server?', a: 'All redaction, resizing, and Name/DOP strip generation happens entirely in your browser using local image processing. No document or photo is ever uploaded anywhere.' },
+            { q: 'Do I need to sign up to use the Govt Verifier tool?', a: 'No sign-up is required. Upload your photo or document, choose a preset, and download the result immediately.' }
+          ]
         },
         {
           test: function (route) { return route === '/fraud-seal'; },
           title: 'Purpose Watermark & Fraud-Check Seal | Tamper-Proof Document Tool | GetReadyJob',
           description: 'Add a tamper-proof purpose watermark (e.g., FOR HDFC BANK ONLY) to any document with a unique authenticity seal. Blur or blackout sensitive financial data. Fully browser-based.',
           keywords: 'purpose watermark PDF online, document fraud protection, tamper-proof document seal, blur account number document, blackout sensitive data online, document watermark India',
-          url: 'https://getreadyjob.com/fraud-seal'
+          url: 'https://getreadyjob.com/fraud-seal',
+          appName: 'GetReadyJob Fraud-Check Seal & Watermark Tool',
+          appCategory: ['SecurityApplication', 'UtilitiesApplication']
         },
         {
           test: function (route) { return route === '/doc-packager'; },
           title: 'Job Application Document Bundle — One-Click ZIP Packager | GetReadyJob',
           description: 'Auto-optimise and bundle your passport photo, signature, identity proof, and marksheet into a single structured ZIP file — SSC/UPSC/IBPS portal-ready. 100% local, no server.',
           keywords: 'job application document bundle ZIP, SSC document bundle, UPSC application photo signature, passport photo 200x230 compress, job application packager India, one-click document ZIP',
-          url: 'https://getreadyjob.com/doc-packager'
+          url: 'https://getreadyjob.com/doc-packager',
+          appName: 'GetReadyJob Application Bundle Packager',
+          appCategory: ['UtilitiesApplication', 'BusinessApplication'],
+          faq: [
+            { q: 'What goes inside the job application ZIP bundle?', a: 'The bundle includes your auto-resized photo, signature, identity proof, and supporting document, named 01_PHOTO.jpg, 02_SIGNATURE.jpg, 03_IDENTITY_PROOF, and 04_DOCUMENT - ready to upload to any SSC/UPSC/IBPS portal.' },
+            { q: 'Are my documents uploaded to a server when packaging?', a: 'No. Every file is optimised and zipped entirely inside your browser. Nothing is transmitted to GetReadyJob servers or any third party.' },
+            { q: 'Is the Doc Packager tool free to use?', a: 'Yes, packaging and downloading your job application bundle is completely free, with no sign-up required.' }
+          ]
         },
         {
           test: function (route) { return route === '/privacy-masker'; },
-          title: 'Privacy Masker — Aadhaar/PAN Redaction & QR Code Generator | GetReadyJob',
-          description: 'Black-out sensitive data (Aadhaar number, PAN, DOB) from document images and generate high-res QR codes for URLs, phone, email, or WhatsApp. All 100% in your browser.',
-          keywords: 'Aadhaar number blackout online, PAN card redact, QR code generator free India, document privacy masker, sensitive data redaction online, QR code for WhatsApp',
-          url: 'https://getreadyjob.com/privacy-masker'
+          title: 'Free PAN Card Masker Online | Secure ID & Resume Privacy - GetReadyJob',
+          description: 'Mask PAN card numbers, Aadhaar details, and sensitive ID data instantly in your browser before job applications. 100% client-side, private & secure.',
+          keywords: 'mask pan card online, hide pan number for job, resume privacy masking, mask aadhaar card, Aadhaar number blackout online, PAN card redact, QR code generator free India, document privacy masker',
+          url: 'https://getreadyjob.com/privacy-masker',
+          appName: 'GetReadyJob PAN & Aadhaar Privacy Masker',
+          appCategory: ['SecurityApplication', 'UtilitiesApplication'],
+          faq: [
+            { q: 'Is masking my PAN card secure?', a: 'Yes. All masking happens 100% locally in your browser - your PAN card, Aadhaar, or ID image is never uploaded to any server, so your sensitive data never leaves your device.' },
+            { q: 'Why mask ID numbers on resumes or job applications?', a: 'Recruiters and portals only need to verify your identity, not store your full PAN/Aadhaar number. Masking hides sensitive digits while keeping the rest of the document readable, protecting you from identity theft and data leaks.' },
+            { q: 'Can I mask Aadhaar, PAN, and other ID documents for free?', a: 'Yes. The Privacy Masker is completely free to use with unlimited local masking - no sign-up, no watermark, no file size limit tied to a paid plan.' }
+          ]
         },
         {
           test: function (route) { return route === '/poster-banner-studio'; },
           title: 'Poster & Banner Studio with Hindi/Devanagari Fonts | GetReadyJob',
           description: 'Design hiring, festival, business, and govt announcement posters with Hindi/Devanagari fonts (Noto Sans, Baloo 2, Hind, Mukta). Canvas-based export at print resolution.',
           keywords: 'Hindi poster maker online, Devanagari poster generator, festival banner maker, SSC hiring poster, Noto Sans Devanagari poster, Hindi font poster design free',
-          url: 'https://getreadyjob.com/poster-banner-studio'
+          url: 'https://getreadyjob.com/poster-banner-studio',
+          appName: 'GetReadyJob Poster & Banner Studio',
+          appCategory: ['DesignApplication', 'MultimediaApplication']
         },
         {
           test: function (route) { return route === '/convert'; },
           title: 'Free PDF & Image Converter Online — PDF to Word, JPG to PDF, DOCX & More | GetReadyJob',
           description: 'Convert PDF, Word, JPG, PNG and Office documents online for free — fast, secure, and 100% browser-based. No signup, no file upload to any server.',
           keywords: 'PDF to Word converter free, JPG to PDF online, convert PDF to image, free document converter, online file format converter, PDF converter no watermark',
-          url: 'https://getreadyjob.com/convert'
+          url: 'https://getreadyjob.com/convert',
+          appName: 'GetReadyJob PDF & Image Converter',
+          appCategory: ['UtilitiesApplication']
         },
         {
           test: function (route) { return route === '/compress'; },
           title: 'Free PDF Compressor Online — Reduce PDF File Size Without Losing Quality | GetReadyJob',
           description: 'Compress PDF files online free to any target size in KB or MB while keeping document quality. Fast, secure, browser-based PDF size reducer — no upload, no signup.',
           keywords: 'compress PDF online free, reduce PDF file size, PDF size reducer, PDF compressor no watermark, shrink PDF file size online',
-          url: 'https://getreadyjob.com/compress'
+          url: 'https://getreadyjob.com/compress',
+          appName: 'GetReadyJob PDF Compressor',
+          appCategory: ['UtilitiesApplication']
         },
         {
           test: function (route) { return route === '/merge'; },
           title: 'Merge PDF Files Online Free — Combine Multiple PDFs into One | GetReadyJob',
           description: 'Combine multiple PDF files into a single organised document online for free. Fast drag-and-drop PDF merger — 100% browser-based, no file upload to any server.',
           keywords: 'merge PDF online free, combine PDF files, join PDF documents, PDF merger no watermark, merge multiple PDFs into one',
-          url: 'https://getreadyjob.com/merge'
+          url: 'https://getreadyjob.com/merge',
+          appName: 'GetReadyJob PDF Merger',
+          appCategory: ['UtilitiesApplication']
         },
         {
           test: function (route) { return route === '/split'; },
           title: 'Split PDF Online Free — Extract Pages or Split by Page Range | GetReadyJob',
           description: 'Split a large PDF into separate pages or custom page ranges online for free. Fast, secure PDF splitter — 100% browser-based, no upload required.',
           keywords: 'split PDF online free, extract PDF pages, PDF splitter tool, separate PDF pages online, split PDF by page range',
-          url: 'https://getreadyjob.com/split'
+          url: 'https://getreadyjob.com/split',
+          appName: 'GetReadyJob PDF Splitter',
+          appCategory: ['UtilitiesApplication']
         },
         {
           test: function (route) { return route === '/pdf-edit'; },
           title: 'Edit PDF Online Free — Edit Text, Pages & Protect PDF Documents | GetReadyJob',
           description: 'Edit PDF text and pages, add protection, and save changes directly in your browser for free. No account, no server upload, no watermark.',
           keywords: 'edit PDF online free, PDF editor no watermark, protect PDF password online, edit PDF text free, online PDF editor tool',
-          url: 'https://getreadyjob.com/pdf-edit'
+          url: 'https://getreadyjob.com/pdf-edit',
+          appName: 'GetReadyJob PDF Editor',
+          appCategory: ['UtilitiesApplication', 'BusinessApplication']
         },
         {
           test: function (route) { return route === '/pdf-tools'; },
           title: 'All-in-One PDF Tools — Convert, Compress, Merge, Split, Edit & OCR Free | GetReadyJob',
           description: 'Complete free PDF toolkit: convert, compress, merge, split, edit, and OCR scanned PDFs to searchable text — all 100% browser-based with no file upload.',
           keywords: 'free PDF tools online, all in one PDF toolkit, PDF utility suite free, online PDF tools no signup, PDF tools India global',
-          url: 'https://getreadyjob.com/pdf-tools'
+          url: 'https://getreadyjob.com/pdf-tools',
+          appName: 'GetReadyJob All-in-One PDF Tools',
+          appCategory: ['UtilitiesApplication']
         },
         {
           test: function (route) { return route === '/pricing'; },
@@ -371,7 +454,122 @@
           keywords: 'voice ai interview practice, ai mock interview online free, speech to text interview prep, govt job interview practice, getreadyjob interview',
           ogTitle: 'Free AI Voice Mock Interview Practice - GetReadyJob',
           ogDescription: 'Boost your interview confidence with real-time AI voice questions and instant scoring feedback.',
-          url: 'https://getreadyjob.com/ai-mock-interview'
+          url: 'https://getreadyjob.com/ai-mock-interview',
+          appName: 'GetReadyJob AI Voice Mock Interview',
+          appCategory: ['EducationalApplication', 'BusinessApplication']
+        },
+        {
+          test: function (route) { return route === '/micro-canva'; },
+          title: 'Background Remover, Photo Upscaler & PNG to SVG Converter | GetReadyJob',
+          description: 'Remove image backgrounds, upscale photos to HD, resize govt passport photos, and convert PNG to SVG instantly in your browser. 100% local, free to start.',
+          keywords: 'remove background from photo online, photo upscaler free, png to svg converter, govt passport photo resizer, HD image upscaling online',
+          url: 'https://getreadyjob.com/micro-canva',
+          appName: 'GetReadyJob Micro-Canva Utilities',
+          appCategory: ['MultimediaApplication', 'UtilitiesApplication']
+        },
+        {
+          test: function (route) { return route === '/canvas-templates'; },
+          title: 'Resume & Document Canvas Templates — Editable Design Gallery | GetReadyJob',
+          description: 'Browse and customise editable resume and document canvas templates with a live preview. Free, browser-based design gallery — no signup required.',
+          keywords: 'resume canvas template, editable resume design, document template gallery free, resume template preview online',
+          url: 'https://getreadyjob.com/canvas-templates',
+          appName: 'GetReadyJob Resume & Document Canvas Templates',
+          appCategory: ['DesignApplication', 'BusinessApplication']
+        },
+        {
+          test: function (route) { return route === '/smart-pdf'; },
+          title: 'Protect & Unlock PDF Online Free — Password Protection Suite | GetReadyJob',
+          description: 'Add or remove password protection on PDF files instantly in your browser. Free, secure PDF protection suite — no signup, no file upload to any server.',
+          keywords: 'protect PDF with password online, unlock PDF free, remove PDF password, secure PDF file online, PDF password protection tool',
+          url: 'https://getreadyjob.com/smart-pdf',
+          appName: 'GetReadyJob Smart PDF Protection Suite',
+          appCategory: ['SecurityApplication', 'UtilitiesApplication']
+        },
+        {
+          test: function (route) { return route === '/poster-workspace'; },
+          title: 'Poster Studio — Print-Ready A2/A3 Posters from Your Photos | GetReadyJob',
+          description: 'Turn any photo into a print-ready A2/A3/A4 poster with HD upscaling and Hindi/Devanagari font support. 100% browser-based, free to start.',
+          keywords: 'photo to poster online, A2 A3 poster maker, print ready poster from photo, HD poster upscaler free, Hindi poster from photo',
+          url: 'https://getreadyjob.com/poster-workspace',
+          appName: 'GetReadyJob Poster Studio',
+          appCategory: ['DesignApplication', 'MultimediaApplication']
+        },
+        {
+          test: function (route) { return route === '/about'; },
+          title: 'About GetReadyJob — Free Document Tools & Career Platform',
+          description: 'Learn about GetReadyJob, a free browser-based document, photo, and career preparation toolkit built for job seekers worldwide.',
+          keywords: 'about getreadyjob, getreadyjob company, document tools platform, career preparation platform',
+          url: 'https://getreadyjob.com/about'
+        },
+        {
+          test: function (route) { return route === '/blog'; },
+          title: 'GetReadyJob Blog — Resume, Career & Document Tips',
+          description: 'Read practical guides on resume building, PDF tools, and government exam document preparation from the GetReadyJob team.',
+          keywords: 'resume tips blog, career advice blog, pdf tools guide, ssc upsc document tips',
+          url: 'https://getreadyjob.com/blog'
+        },
+        {
+          test: function (route) { return route === '/blog-detail'; },
+          title: 'GetReadyJob Blog Article',
+          description: 'Read the full article on resume building, document tools, or career preparation from the GetReadyJob blog.',
+          keywords: 'getreadyjob blog article, resume article, career tips article',
+          url: 'https://getreadyjob.com/blog'
+        },
+        {
+          test: function (route) { return route === '/contact'; },
+          title: 'Contact GetReadyJob — Support & Enquiries',
+          description: 'Get in touch with the GetReadyJob team for support, feedback, or business enquiries at hello@getreadyjob.com.',
+          keywords: 'contact getreadyjob, getreadyjob support, getreadyjob email',
+          url: 'https://getreadyjob.com/contact'
+        },
+        {
+          test: function (route) { return route === '/faq'; },
+          title: 'GetReadyJob FAQ — Frequently Asked Questions',
+          description: 'Find answers to common questions about GetReadyJob free document, photo, and career preparation tools.',
+          keywords: 'getreadyjob faq, getreadyjob help, document tools questions',
+          url: 'https://getreadyjob.com/faq'
+        },
+        {
+          test: function (route) { return route === '/support'; },
+          title: 'GetReadyJob Support Centre',
+          description: 'Get help using GetReadyJob free document, photo, and career preparation tools, or reach our support team directly.',
+          keywords: 'getreadyjob support centre, getreadyjob help centre, document tools support',
+          url: 'https://getreadyjob.com/support'
+        },
+        {
+          test: function (route) { return route === '/testimonials'; },
+          title: 'GetReadyJob Testimonials — Real User Success Stories',
+          description: 'Read real success stories from job seekers who used GetReadyJob free resume, photo, and document tools to prepare their applications.',
+          keywords: 'getreadyjob reviews, getreadyjob testimonials, user success stories',
+          url: 'https://getreadyjob.com/testimonials'
+        },
+        {
+          test: function (route) { return route === '/privacy'; },
+          title: 'Privacy Policy | GetReadyJob',
+          description: 'Read the GetReadyJob privacy policy covering our 100% client-side, browser-based document and photo tools that never upload your files.',
+          keywords: 'getreadyjob privacy policy, document tools privacy, browser based privacy',
+          url: 'https://getreadyjob.com/privacy'
+        },
+        {
+          test: function (route) { return route === '/terms'; },
+          title: 'Terms & Conditions | GetReadyJob',
+          description: 'Read the terms and conditions for using GetReadyJob free and paid document, photo, and career preparation tools.',
+          keywords: 'getreadyjob terms and conditions, getreadyjob terms of service',
+          url: 'https://getreadyjob.com/terms'
+        },
+        {
+          test: function (route) { return route === '/cookie-policy'; },
+          title: 'Cookie Policy | GetReadyJob',
+          description: 'Learn how GetReadyJob uses cookies and similar technologies across the website and tools.',
+          keywords: 'getreadyjob cookie policy, getreadyjob cookies',
+          url: 'https://getreadyjob.com/cookie-policy'
+        },
+        {
+          test: function (route) { return route === '/disclaimer'; },
+          title: 'Disclaimer | GetReadyJob',
+          description: 'Read the GetReadyJob disclaimer covering tool accuracy, third-party links, and use of generated documents.',
+          keywords: 'getreadyjob disclaimer, getreadyjob legal disclaimer',
+          url: 'https://getreadyjob.com/disclaimer'
         }
       ];
 
@@ -405,6 +603,50 @@
         link.setAttribute('href', url);
       }
 
+      function upsertJsonLd(id, data) {
+        var node = document.getElementById(id);
+        if (!data) {
+          if (node) { node.textContent = ''; }
+          return;
+        }
+        if (!node) {
+          node = document.createElement('script');
+          node.type = 'application/ld+json';
+          node.id = id;
+          document.head.appendChild(node);
+        }
+        node.textContent = JSON.stringify(data);
+      }
+
+      function buildToolAppSchema(matched) {
+        if (!matched.appName) { return null; }
+        return {
+          '@context': 'https://schema.org',
+          '@type': ['WebApplication', 'SoftwareApplication'],
+          name: matched.appName,
+          url: matched.url,
+          applicationCategory: matched.appCategory || ['UtilitiesApplication'],
+          operatingSystem: 'All (Web, Windows, macOS, Linux, Android, iOS)',
+          description: matched.description,
+          offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' }
+        };
+      }
+
+      function buildToolFaqSchema(matched) {
+        if (!matched.faq || !matched.faq.length) { return null; }
+        return {
+          '@context': 'https://schema.org',
+          '@type': 'FAQPage',
+          mainEntity: matched.faq.map(function (item) {
+            return {
+              '@type': 'Question',
+              name: item.q,
+              acceptedAnswer: { '@type': 'Answer', text: item.a }
+            };
+          })
+        };
+      }
+
       function applySeo() {
         var route = normalizeRoute();
         var matched = defaultSeo;
@@ -428,6 +670,8 @@
         upsertMeta('meta[name="twitter:title"]', 'name', ogTitle);
         upsertMeta('meta[name="twitter:description"]', 'name', ogDescription);
         upsertCanonical(matched.url);
+        upsertJsonLd('grj-tool-app-schema', buildToolAppSchema(matched));
+        upsertJsonLd('grj-tool-faq-schema', buildToolFaqSchema(matched));
       }
 
       window.addEventListener('hashchange', applySeo);
@@ -538,6 +782,14 @@
           <dd>Open the Doc Packager, upload your Photo, Signature, Identity Proof, and Supporting Document. Each file is auto-optimised. Click Pack &amp; Download ZIP to get a structured bundle in seconds.</dd>
           <dt>Is my data safe? Are my documents uploaded anywhere?</dt>
           <dd>No. All GetReadyJob tools process files entirely in your browser. No file, byte, or metadata is ever sent to any server. Your documents never leave your device.</dd>
+          <dt>Is masking my PAN card secure?</dt>
+          <dd>Yes. All masking happens 100% locally in your browser &mdash; your PAN card, Aadhaar, or ID image is never uploaded to any server.</dd>
+          <dt>Why mask ID numbers on resumes or job applications?</dt>
+          <dd>Masking hides sensitive digits while keeping the rest of the document readable, protecting you from identity theft and data leaks.</dd>
+          <dt>Are the SSC/UPSC/IBPS photo size presets accurate for govt forms?</dt>
+          <dd>Yes. Each preset matches the exact pixel and file-size rules published by the respective recruitment boards.</dd>
+          <dt>What goes inside the Doc Packager job application ZIP bundle?</dt>
+          <dd>Your auto-resized photo, signature, identity proof, and supporting document, named and structured for any SSC/UPSC/IBPS portal.</dd>
         </dl>
       </section>
     </main>

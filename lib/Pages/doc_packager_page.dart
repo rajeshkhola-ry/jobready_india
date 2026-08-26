@@ -9,6 +9,7 @@ import 'package:image/image.dart' as img;
 import '../Services/analytics_service.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/wasm_document_service.dart';
+import '../Widgets/faq_accordion.dart';
 
 // ── Slot definitions ───────────────────────────────────────────────────────────
 
@@ -408,6 +409,24 @@ class _DocPackagerPageState extends State<DocPackagerPage> {
                   ),
 
                   const SizedBox(height: 24),
+                  const FaqAccordion(
+                    accentColor: Color(0xFF0A1F3D),
+                    items: [
+                      FaqItem(
+                        question: 'What goes inside the job application ZIP bundle?',
+                        answer: 'The bundle includes your auto-resized photo, signature, identity proof, and supporting document, named 01_PHOTO.jpg, 02_SIGNATURE.jpg, 03_IDENTITY_PROOF, and 04_DOCUMENT - ready to upload to any SSC/UPSC/IBPS portal.',
+                      ),
+                      FaqItem(
+                        question: 'Are my documents uploaded to a server when packaging?',
+                        answer: 'No. Every file is optimised and zipped entirely inside your browser. Nothing is transmitted to GetReadyJob servers or any third party.',
+                      ),
+                      FaqItem(
+                        question: 'Is the Doc Packager tool free to use?',
+                        answer: 'Yes, packaging and downloading your job application bundle is completely free, with no sign-up required.',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
                   _privacyFooter(),
                 ],
               ),

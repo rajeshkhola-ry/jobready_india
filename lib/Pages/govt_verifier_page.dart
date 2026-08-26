@@ -12,6 +12,7 @@ import '../Services/file_picker_service.dart';
 import '../Services/upload_context_service.dart';
 import '../Services/voice_command_service.dart';
 import '../Services/wasm_document_service.dart';
+import '../Widgets/faq_accordion.dart';
 
 class GovtVerifierPage extends StatefulWidget {
   const GovtVerifierPage({super.key});
@@ -547,6 +548,24 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
                   label: Text(_isExportingOverlay ? 'Rendering…' : 'Download Photo with Name/DOP Strip (PNG)'),
                   style: _primaryBtn(const Color(0xFF0F2D4A)),
                 ),
+              ),
+              const SizedBox(height: 16),
+              const FaqAccordion(
+                accentColor: Color(0xFF0F2D4A),
+                items: [
+                  FaqItem(
+                    question: 'Are the photo size presets accurate for SSC/UPSC/IBPS forms?',
+                    answer: 'Yes. Each preset (SSC 200x230px 20-50 KB, UPSC 300x400px, IBPS/RRB 200x230px) matches the exact pixel and file-size rules published by the respective recruitment boards, so your upload will not get rejected for size errors.',
+                  ),
+                  FaqItem(
+                    question: 'Is my Aadhaar/PAN redacted locally or uploaded to a server?',
+                    answer: 'All redaction, resizing, and Name/DOP strip generation happens entirely in your browser using local image processing. No document or photo is ever uploaded anywhere.',
+                  ),
+                  FaqItem(
+                    question: 'Do I need to sign up to use the Govt Verifier tool?',
+                    answer: 'No sign-up is required. Upload your photo or document, choose a preset, and download the result immediately.',
+                  ),
+                ],
               ),
             ],
           ),
