@@ -8,10 +8,11 @@ import tempfile
 import urllib.error
 import urllib.request
 
-from flask import Flask, jsonify, request, send_file
+from flask import Flask, Response, jsonify, request, send_file
 from flask_cors import CORS
 import fitz
 from PIL import Image
+from anthropic import Anthropic
 
 try:
     from pdf2docx import Converter
@@ -20,7 +21,14 @@ except Exception:  # pragma: no cover - optional at runtime on free tier bootstr
 
 
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": ["https://getreadyjob.com", "https://www.getreadyjob.com", "https://getreadyjob-india-1cb34.web.app"]}})
+CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+# Anthropic Client for Druta AI Agent
+def _get_anthropic_client():
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    if not api_key:
+        return None
+    return Anthropic(api_key=api_key)
 
 
 def _parse_quality(raw_value: str | None, default: int = 60) -> int:
@@ -150,6 +158,39 @@ def _get_razorpay_json(url: str) -> dict:
         except Exception:
             pass
         raise RuntimeError(detail or f"Razorpay request failed with HTTP {exc.code}") from exc
+
+
+# ==========================================
+# DRUTA AI AGENT API ROUTE (STREAMING)
+# ==========================================
+@app.post("/api/druta-agent")
+def druta_agent():
+    client = _get_anthropic_client()
+    if not client:
+        return jsonify({"success": False, "error": "ANTHROPIC_API_KEY is not configured on server."}), 500
+
+    payload = request.get_json(silent=True) or {}
+    messages = payload.get("messages", [])
+    system_prompt = payload.get("systemPrompt", "You are Druta AI, an elite software architect and full-stack coding agent built by Druta Systems.")
+
+    if not messages:
+        return jsonify({"success": False, "error": "Messages array cannot be empty."}), 400
+
+    def generate():
+        try:
+            with client.messages.stream(
+                model="claude-3-5-sonnet-latest",
+                max_tokens=8192,
+                system=system_prompt,
+                messages=messages
+            ) as stream:
+                for text in stream.text_stream:
+                    yield f"data: {json.dumps({'text': text})}\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception as exc:
+            yield f"data: {json.dumps({'error': str(exc)})}\n\n"
+
+    return Response(generate(), mimetype="text/event-stream")
 
 
 @app.get("/api/config")
@@ -340,7 +381,6 @@ def verify_payment():
         amount = payment.get("amount")
         currency = payment.get("currency")
     except Exception:
-        # Signature verification already succeeded; status enrichment is best-effort.
         pass
 
     return jsonify(
