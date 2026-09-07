@@ -1,4 +1,4 @@
-FROM node:18-bullseye-slim
+FROM node:20-bookworm-slim
 
 WORKDIR /app
 
@@ -48,7 +48,7 @@ ENV PATH="/usr/lib/libreoffice/program:/usr/bin:${PATH}"
 # streaming/read-only mode (no row-count ceiling, handles 50,000+ row billing sheets)
 # for the multi-sheet -> per-sheet-CSV export. PyMuPDF (fitz, a pdf2docx dependency) is
 # also used directly for the quick selectable-text pre-flight check.
-RUN pip3 install --no-cache-dir pdf2docx openpyxl
+RUN pip3 install --no-cache-dir --break-system-packages pdf2docx openpyxl
 
 # Verify ghostscript, LibreOffice, ImageMagick, pdf2docx and openpyxl installation
 RUN which gs && gs --version
