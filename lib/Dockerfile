@@ -67,6 +67,7 @@ COPY compression_server.js .
 COPY xlsx_to_csv.py .
 COPY check_pdf_text.py .
 COPY public/ ./public/
+COPY Utils/ ./Utils/
 
 # Create upload directory
 RUN mkdir -p temp_uploads logs && chmod 777 temp_uploads logs
