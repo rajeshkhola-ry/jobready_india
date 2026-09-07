@@ -5,10 +5,12 @@ import 'package:universal_html/html.dart' as html;
 import '../Utils/ui_web_stub.dart' if (dart.library.html) 'dart:ui_web' as ui_web;
 
 import '../Services/ai_cover_letter_service.dart';
-import '../Services/company_insights_service.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/free_trial_service.dart';
+import '../Services/plan_catalog_service.dart';
+import '../Services/real_ai_assist_service.dart';
 import '../Services/resume_template_gallery.dart';
+import '../Services/user_account_service.dart';
 import '../Widgets/quota_gate.dart';
 
 class _ExperienceTier {
@@ -65,6 +67,53 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
   bool _isAssisting = false;
   String? _activeAssistField;
   TextEditingController? _activeAssistController;
+  bool _isCompanyInsightsLoading = false;
+  bool _isRefiningCoverLetter = false;
+
+  bool get _isPaidUser {
+    final plan = UserAccountService.getProfile().activePlan.trim();
+    return PlanCatalogConfig.isPaidPlan(plan.isEmpty ? 'Free' : plan);
+  }
+
+  String get _signedInEmail => UserAccountService.getProfile().email.trim();
+
+  /// Returns the signed-in user's email, or shows a snackbar and returns
+  /// null if it is missing (the server independently re-verifies the paid
+  /// plan using this email, so a real one is required to call it).
+  String? _requireSignedInEmail() {
+    final email = _signedInEmail;
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please sign in again to use AI Assist.')),
+      );
+      return null;
+    }
+    return email;
+  }
+
+  void _showAiUpgradeDialog(String featureName) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Upgrade for Real AI', style: TextStyle(fontWeight: FontWeight.w800)),
+        content: Text(
+          '$featureName uses real AI (Claude) on paid plans. On the Free plan you get a quick '
+          'template-based version instead - no AI, no extra cost. Upgrade to unlock the real AI version.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Not Now')),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              Navigator.of(context).pushNamed('/pricing');
+            },
+            child: const Text('View Plans'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -218,29 +267,108 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
     });
   }
 
-  void _searchCompanyInsights() {
+  Future<void> _searchCompanyInsights() async {
     final companyName = _companyController.text.trim();
     if (companyName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a company name to search insights.')));
       return;
     }
 
+    if (!_isPaidUser) {
+      _showAiUpgradeDialog('Company Insights');
+      return;
+    }
+
+    final email = _requireSignedInEmail();
+    if (email == null) {
+      return;
+    }
+
+    if (_isCompanyInsightsLoading) {
+      return;
+    }
+
     setState(() {
-      _companyInsightsOutput = CompanyInsightsService.fetchCompanyInsights(companyName);
-      _showCompanyInsightsPreview = true;
+      _isCompanyInsightsLoading = true;
     });
+
+    try {
+      final text = await RealAiAssistService.request('company_insights', {
+        'companyName': companyName,
+      }, email);
+      if (!mounted) return;
+      setState(() {
+        _companyInsightsOutput = 'Company: $companyName\n\n$text\n\n'
+            '(AI-generated general guidance - always verify independently before making a decision.)';
+        _showCompanyInsightsPreview = true;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Company Insights failed: ${e.toString().replaceFirst('Exception: ', '')}')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCompanyInsightsLoading = false;
+        });
+      }
+    }
   }
 
-  void _refineWithAiAssist() {
-    setState(() {
-      if (_coverLetterOutput.isEmpty) {
+  Future<void> _refineWithAiAssist() async {
+    if (_coverLetterOutput.isEmpty) {
+      setState(() {
         _coverLetterOutput = _buildCoverLetter();
-      } else {
-        _coverLetterOutput = 'AI-assisted refinement:\n\n$_coverLetterOutput';
-      }
-      _showCoverLetterPreview = true;
-      _showTailoredPreview = true;
+        _showCoverLetterPreview = true;
+        _showTailoredPreview = true;
+      });
+      return;
+    }
+
+    if (!_isPaidUser) {
+      _showAiUpgradeDialog('Refine with AI');
+      return;
+    }
+
+    final email = _requireSignedInEmail();
+    if (email == null) {
+      return;
+    }
+
+    if (_isRefiningCoverLetter) {
+      return;
+    }
+
+    setState(() {
+      _isRefiningCoverLetter = true;
     });
+
+    try {
+      final refined = await RealAiAssistService.request('refine_text', {
+        'currentValue': _coverLetterOutput,
+      }, email);
+      if (!mounted) return;
+      setState(() {
+        _coverLetterOutput = refined;
+        _showCoverLetterPreview = true;
+        _showTailoredPreview = true;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cover letter refined with real AI.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Refine failed: ${e.toString().replaceFirst('Exception: ', '')}')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRefiningCoverLetter = false;
+        });
+      }
+    }
   }
 
   void _showJdInputDialog() {
@@ -492,13 +620,48 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
       _activeAssistController = controller;
     });
 
-    await Future<void>.delayed(const Duration(milliseconds: 700));
+    String assistedText;
+    String resultMessage;
+
+    if (_isPaidUser) {
+      final email = _requireSignedInEmail();
+      if (email == null) {
+        if (mounted) {
+          setState(() {
+            _isAssisting = false;
+            _activeAssistField = null;
+          });
+        }
+        return;
+      }
+      try {
+        assistedText = await RealAiAssistService.request('polish_field', {
+          'fieldLabel': fieldLabel,
+          'role': _targetRoleController.text.trim(),
+          'currentValue': controller.text,
+        }, email);
+        resultMessage = 'Updated $fieldLabel with real AI-polished text.';
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _isAssisting = false;
+            _activeAssistField = null;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('AI Assist failed: ${e.toString().replaceFirst('Exception: ', '')}')),
+          );
+        }
+        return;
+      }
+    } else {
+      assistedText = _generateAssistedText(fieldLabel, controller.text);
+      resultMessage = 'Updated $fieldLabel with a quick template polish (upgrade for real AI).';
+    }
 
     if (!mounted) {
       return;
     }
 
-    final assistedText = _generateAssistedText(fieldLabel, controller.text);
     controller.value = TextEditingValue(
       text: assistedText,
       selection: TextSelection.collapsed(offset: assistedText.length),
@@ -511,7 +674,7 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Updated $fieldLabel with polished AI text.')),
+        SnackBar(content: Text(resultMessage)),
       );
     }
 
@@ -525,6 +688,7 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
 
   Widget _buildAssistButton({required String label, required TextEditingController controller, VoidCallback? onTap}) {
     final isLoading = _isAssisting && _activeAssistField == label;
+    final paid = _isPaidUser;
 
     return TextButton.icon(
       onPressed: isLoading ? null : (onTap ?? () => _applyAiAssistToField(label, controller)),
@@ -534,8 +698,8 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
               height: 16,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : const Icon(Icons.auto_awesome, size: 16),
-      label: Text(isLoading ? 'Writing…' : '✨ AI Assist'),
+          : Icon(paid ? Icons.auto_awesome : Icons.flash_on_rounded, size: 16),
+      label: Text(isLoading ? 'Writing…' : (paid ? '✨ AI Assist' : '⚡ Quick Polish')),
     );
   }
 
@@ -785,9 +949,15 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
           label: const Text('Generate Interview Questions'),
         ),
         OutlinedButton.icon(
-          onPressed: _refineWithAiAssist,
-          icon: const Icon(Icons.auto_awesome_rounded),
-          label: const Text('Refine with Yellow AI Assist'),
+          onPressed: _isRefiningCoverLetter ? null : _refineWithAiAssist,
+          icon: _isRefiningCoverLetter
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.auto_awesome_rounded),
+          label: Text(_isRefiningCoverLetter ? 'Refining…' : (_isPaidUser ? 'Refine with Real AI' : 'Refine with AI (Pro)')),
         ),
         OutlinedButton.icon(
           onPressed: () => _handleShareAction('whatsapp'),
@@ -993,9 +1163,15 @@ class _AiResumeBuilderPageState extends State<AiResumeBuilderPage> {
                 ),
                 const SizedBox(width: 10),
                 ElevatedButton.icon(
-                  onPressed: _searchCompanyInsights,
-                  icon: const Icon(Icons.search_rounded),
-                  label: const Text('Search'),
+                  onPressed: _isCompanyInsightsLoading ? null : _searchCompanyInsights,
+                  icon: _isCompanyInsightsLoading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.search_rounded),
+                  label: Text(_isCompanyInsightsLoading ? 'Searching…' : 'Search'),
                 ),
               ],
             ),
