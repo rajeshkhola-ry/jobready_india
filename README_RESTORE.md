@@ -3,7 +3,7 @@
 ## Stable Checkpoint
 - Tag: v1.0.0-STABLE
 - Website: https://getreadyjob.com
-- API: https://jobready-india.onrender.com
+- API: https://jobready-india-docker.onrender.com
 - Backup archive target: OneDrive/JobReadyIndia_Backups/Project_Stable_Backup_V1.0.zip
 
 ## 3-Step Emergency Restore (Target: under 10 minutes)
@@ -22,8 +22,8 @@
 
 3. Verify health and recovery
 - Frontend: open https://getreadyjob.com/build-info.json and confirm stable commit.
-- Backend health: open https://jobready-india.onrender.com/healthz and confirm {"ok":true}.
-- API info: open https://jobready-india.onrender.com/api/info.
+- Backend health: open https://jobready-india-docker.onrender.com/healthz and confirm {"ok":true}.
+- API info: open https://jobready-india-docker.onrender.com/api/info.
 - Run one smoke conversion/compression test and confirm download modal appears.
 
 ## Backup Artifacts to Preserve

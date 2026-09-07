@@ -783,7 +783,7 @@ class _PricingDialogState extends State<_PricingDialog> {
 
   Future<void> _loadFromBackend() async {
     try {
-      final uri = Uri.https('jobready-india.onrender.com', '/api/public/plan-catalog');
+      final uri = Uri.https('jobready-india-docker.onrender.com', '/api/public/plan-catalog');
       final response = await http.get(uri, headers: const {'Accept': 'application/json'});
       if (!mounted) return;
       if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -830,7 +830,7 @@ class _PricingDialogState extends State<_PricingDialog> {
     });
 
     try {
-      final uri = Uri.https('jobready-india.onrender.com', '/api/admin/plan-catalog');
+      final uri = Uri.https('jobready-india-docker.onrender.com', '/api/admin/plan-catalog');
       final response = await http.post(
         uri,
         headers: {
@@ -1490,7 +1490,7 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
     }
 
     final uri = Uri.https(
-      'jobready-india.onrender.com',
+      'jobready-india-docker.onrender.com',
       _exportPath,
       exportParams,
     );
@@ -1601,7 +1601,7 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
     }
 
     final uri = Uri.https(
-      'jobready-india.onrender.com',
+      'jobready-india-docker.onrender.com',
       '/api/admin/gst-report/export-excel',
       exportParams,
     );
@@ -1749,7 +1749,7 @@ class _SalesAuditDialogState extends State<_SalesAuditDialog> {
       return null;
     }
 
-    final uri = Uri.https('jobready-india.onrender.com', path, queryParams);
+    final uri = Uri.https('jobready-india-docker.onrender.com', path, queryParams);
     final headers = {
       'Authorization': 'Bearer $adminToken',
       'Content-Type': 'application/json',
@@ -2547,7 +2547,7 @@ class _PromoDialogState extends State<_PromoDialog> {
   Future<void> _loadFromBackend() async {
     final adminToken = AuthRouterService.authToken;
     try {
-      final uri = Uri.https('jobready-india.onrender.com', '/api/admin/promos');
+      final uri = Uri.https('jobready-india-docker.onrender.com', '/api/admin/promos');
       final response = await http.get(uri, headers: {
         'Authorization': 'Bearer $adminToken',
         'Accept': 'application/json',
@@ -2611,7 +2611,7 @@ class _PromoDialogState extends State<_PromoDialog> {
     });
 
     try {
-      final uri = Uri.https('jobready-india.onrender.com', '/api/admin/promos');
+      final uri = Uri.https('jobready-india-docker.onrender.com', '/api/admin/promos');
       final response = await http.post(
         uri,
         headers: {
@@ -2705,7 +2705,7 @@ class _PromoDialogState extends State<_PromoDialog> {
       return;
     }
     try {
-      final uri = Uri.https('jobready-india.onrender.com', '/api/admin/promos/${Uri.encodeComponent(code)}');
+      final uri = Uri.https('jobready-india-docker.onrender.com', '/api/admin/promos/${Uri.encodeComponent(code)}');
       final response = await http.delete(uri, headers: {'Authorization': 'Bearer $adminToken'});
       if (!mounted) return;
       if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -2988,7 +2988,7 @@ class _PromoUsageReportDialogState extends State<_PromoUsageReportDialog> {
       return;
     }
     try {
-      final uri = Uri.https('jobready-india.onrender.com', '/api/admin/promos/usage-report');
+      final uri = Uri.https('jobready-india-docker.onrender.com', '/api/admin/promos/usage-report');
       final response = await http.get(uri, headers: {
         'Authorization': 'Bearer $adminToken',
         'Accept': 'application/json',
@@ -3031,7 +3031,7 @@ class _PromoUsageReportDialogState extends State<_PromoUsageReportDialog> {
       return;
     }
     try {
-      final uri = Uri.https('jobready-india.onrender.com', '/api/admin/promos/usage-report', {'format': 'csv'});
+      final uri = Uri.https('jobready-india-docker.onrender.com', '/api/admin/promos/usage-report', {'format': 'csv'});
       final response = await http.get(uri, headers: {
         'Authorization': 'Bearer $adminToken',
         'Accept': 'text/csv,text/plain,*/*',

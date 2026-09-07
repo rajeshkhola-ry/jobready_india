@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createVoiceShopAdminSession } from "@/lib/admin-auth";
 
-const defaultAdminApiUrl = "https://jobready-india.onrender.com";
+const defaultAdminApiUrl = "https://jobready-india-docker.onrender.com";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);

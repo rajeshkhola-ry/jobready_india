@@ -33124,7 +33124,7 @@ b27:function b27(a,b){this.a=a
 this.b=b},
 b2d:function b2d(a){this.a=a},
 b28:function b28(){},
-Xs(){switch(2){case 2:return"https://jobready-india.onrender.com"}},
+Xs(){switch(2){case 2:return"https://jobready-india-docker.onrender.com"}},
 bu5(){var s=t.H2
 s=A.z(new A.W(B.ah,new A.alV(),s),s.j("ah.E"))
 return s},

@@ -34465,7 +34465,7 @@ s.setAttribute("download",b)
 s.click();(self.URL||self.webkitURL).revokeObjectURL(r)
 B.A_.hA(s)},
 aos:function aos(a){this.a=a},
-aoB(){switch(2){case 2:return"https://jobready-india.onrender.com"}},
+aoB(){switch(2){case 2:return"https://jobready-india-docker.onrender.com"}},
 bCZ(){var s=t.H2
 s=A.G(new A.S(B.ak,new A.aoC(),s),s.j("af.E"))
 return s},
