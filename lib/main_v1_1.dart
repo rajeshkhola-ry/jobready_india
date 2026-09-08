@@ -98,6 +98,9 @@ class JobReadyV11App extends StatefulWidget {
 }
 
 class _JobReadyV11AppState extends State<JobReadyV11App> {
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  final _BootRouteObserver _routeObserver = _BootRouteObserver();
+
   @override
   void initState() {
     super.initState();
@@ -105,21 +108,37 @@ class _JobReadyV11AppState extends State<JobReadyV11App> {
     // Workaround for a Flutter web framework-internal race: on a direct/deep
     // link, main_v1_1.dart's own compiled Router/PlatformLocation code fires
     // several history.replaceState/pushState calls within ~100ms of boot
-    // while reconciling the initial route, and occasionally the LAST one
-    // lands back on '/' instead of the actually-requested path, even though
-    // the correct page has already rendered. Since the churn is confirmed
-    // (via a live stack-trace capture) to originate inside Flutter's own
-    // framework code, not app code, this corrects the address bar after the
-    // fact rather than trying to prevent the race itself.
+    // while reconciling the initial route, and the LAST one occasionally
+    // lands back on '/' - and critically, that can mean the Navigator's
+    // ACTUAL current route (i.e. what's actually mounted and visible), not
+    // just the address-bar string, ends up wrong. A correction that only
+    // patches window.location leaves the wrong page rendered even though the
+    // URL looks right (the address bar can settle back to the correct
+    // string on its own by the time this runs, even when the mounted widget
+    // didn't). So this checks the Navigator's real current route name via
+    // _BootRouteObserver - not the URL - and if it disagrees with what was
+    // actually requested, forces a real route replacement so the correct
+    // page widget gets (re)built, not just a cosmetic URL patch.
     final requestedPath = widget.requestedPath;
     if (!widget.useMinimalBootstrap && requestedPath != null && requestedPath.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Future.delayed(const Duration(milliseconds: 400), () {
           if (!mounted) return;
           try {
-            final currentPath = html.window.location.pathname;
-            if (currentPath != null && currentPath != requestedPath) {
-              html.window.history.replaceState(null, '', requestedPath);
+            final actualRouteName = _routeObserver.currentRouteName;
+            if (actualRouteName != null && actualRouteName != requestedPath) {
+              _navigatorKey.currentState?.pushNamedAndRemoveUntil(
+                requestedPath,
+                (route) => false,
+              );
+            } else {
+              // Navigator's own route is already correct - but the address
+              // bar can still independently disagree as a leftover cosmetic
+              // artifact of the same boot race, so patch that too if needed.
+              final currentPath = html.window.location.pathname;
+              if (currentPath != null && currentPath != requestedPath) {
+                html.window.history.replaceState(null, '', requestedPath);
+              }
             }
           } catch (_) {
             // Best-effort only; never let this crash the app.
@@ -303,6 +322,8 @@ class _JobReadyV11AppState extends State<JobReadyV11App> {
     };
 
     return MaterialApp(
+      navigatorKey: _navigatorKey,
+      navigatorObservers: [_routeObserver],
       debugShowCheckedModeBanner: false,
       title: 'GETREADYJOB V1.1',
       theme: ThemeData(
@@ -456,5 +477,34 @@ class _JobReadyV11AppState extends State<JobReadyV11App> {
         builder: (_) => const HomePageV11(),
       ),
     );
+  }
+}
+
+/// Tracks the Navigator's actual current route NAME (not the browser's
+/// address-bar string, which - per the boot-time Router race documented on
+/// _JobReadyV11AppState.initState() - can settle back to the correct value
+/// even when the wrong page widget is what's actually mounted). Used as the
+/// source of truth for the one-time post-boot correction.
+class _BootRouteObserver extends NavigatorObserver {
+  String? currentRouteName;
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    currentRouteName = route.settings.name;
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    currentRouteName = newRoute?.settings.name ?? currentRouteName;
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    currentRouteName = previousRoute?.settings.name ?? currentRouteName;
+  }
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    currentRouteName = previousRoute?.settings.name ?? currentRouteName;
   }
 }
