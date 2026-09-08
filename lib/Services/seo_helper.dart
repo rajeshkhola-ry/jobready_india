@@ -45,6 +45,26 @@ class SeoHelper {
     if (jsonLd != null) {
       upsertJsonLdScript(json: jsonLd, key: jsonLdKey ?? path);
     }
+
+    _syncStaticSeoDiv(title: title, description: description);
+  }
+
+  /// The `#grj-seo-static` div in web/index.html is a hidden, hardcoded
+  /// homepage snapshot meant as a crawler fallback for when Flutter's own
+  /// canvas-rendered content isn't picked up. It never updates on its own,
+  /// so every tool page was serving identical homepage text in its
+  /// indexable DOM. This mirrors it to the current page's real title/
+  /// description whenever [apply] runs, instead of leaving it frozen.
+  static void _syncStaticSeoDiv({required String title, required String description}) {
+    final container = html.document.getElementById('grj-seo-static');
+    if (container == null) {
+      return;
+    }
+    container.children.clear();
+    final header = html.document.createElement('header');
+    header.append(html.document.createElement('h1')..text = title);
+    header.append(html.document.createElement('p')..text = description);
+    container.append(header);
   }
 
   static void upsertMetaTag({String? name, String? property, required String content}) {

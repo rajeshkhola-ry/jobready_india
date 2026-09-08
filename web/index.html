@@ -681,6 +681,13 @@
         upsertCanonical(matched.url);
         upsertJsonLd('grj-tool-app-schema', buildToolAppSchema(matched));
         upsertJsonLd('grj-tool-faq-schema', buildToolFaqSchema(matched));
+
+        // Expose the matched route's SEO data so the #grj-seo-static crawler
+        // fallback (in <body>, parsed after this script) can mirror the
+        // current route instead of always showing the homepage's hardcoded
+        // text. null means "homepage/unmatched route" - leave that div's
+        // original curated homepage content untouched.
+        window.__grjMatchedSeo = matched === defaultSeo ? null : matched;
       }
 
       window.addEventListener('hashchange', applySeo);
@@ -803,6 +810,38 @@
       </section>
     </main>
   </div>
+  <script>
+    // Rewrites the crawler-fallback div above to match the current route,
+    // using the same routeSeo data already resolved for the meta tags
+    // (see window.__grjMatchedSeo, set inside applySeo() earlier in <head>).
+    // Runs synchronously at parse time - before Flutter loads - so a
+    // crawler that doesn't wait for the Dart app to hydrate still sees
+    // per-page text instead of every route serving identical homepage copy.
+    (function () {
+      var seo = window.__grjMatchedSeo;
+      if (!seo) { return; }
+      var el = document.getElementById('grj-seo-static');
+      if (!el) { return; }
+
+      function esc(value) {
+        return String(value || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+      }
+
+      var html = '<header><h1>' + esc(seo.title) + '</h1><p>' + esc(seo.description) + '</p></header><main>';
+      if (seo.faq && seo.faq.length) {
+        html += '<section aria-label="FAQ"><h2>Frequently Asked Questions</h2><dl>';
+        for (var i = 0; i < seo.faq.length; i += 1) {
+          html += '<dt>' + esc(seo.faq[i].q) + '</dt><dd>' + esc(seo.faq[i].a) + '</dd>';
+        }
+        html += '</dl></section>';
+      }
+      html += '</main>';
+      el.innerHTML = html;
+    })();
+  </script>
   <!--
     You can customize the "flutter_bootstrap.js" script.
     This is useful to provide a custom configuration to the Flutter loader
