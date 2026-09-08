@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
+import 'package:universal_html/html.dart' as html;
 
 import 'Pages/about_page.dart';
 import 'Pages/admin_dashboard_page.dart';
@@ -47,6 +48,17 @@ import 'Widgets/deferred_route_page.dart';
 void main() {
   usePathUrlStrategy();
 
+  // Captured before Flutter's engine/Router has run at all, so this reflects
+  // exactly what the browser was asked to load - independent of whatever
+  // main_v1_1.dart's own Router/PlatformLocation does with it during boot.
+  // See _JobReadyV11AppState's post-frame correction below.
+  String? requestedPath;
+  try {
+    requestedPath = html.window.location.pathname;
+  } catch (_) {
+    requestedPath = null;
+  }
+
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
     debugPrint('FlutterError: ${details.exception}\n${details.stack}');
@@ -68,18 +80,58 @@ void main() {
     );
   };
 
-  runApp(const JobReadyV11App());
+  runApp(JobReadyV11App(requestedPath: requestedPath));
 }
 
 // Integration working copy derived from frozen V1 baseline.
-class JobReadyV11App extends StatelessWidget {
-  const JobReadyV11App({super.key, this.useMinimalBootstrap = false});
+class JobReadyV11App extends StatefulWidget {
+  const JobReadyV11App({super.key, this.useMinimalBootstrap = false, this.requestedPath});
 
   final bool useMinimalBootstrap;
 
+  /// The path the browser was actually asked to load, captured at the very
+  /// top of main() before Flutter's engine touched anything.
+  final String? requestedPath;
+
+  @override
+  State<JobReadyV11App> createState() => _JobReadyV11AppState();
+}
+
+class _JobReadyV11AppState extends State<JobReadyV11App> {
+  @override
+  void initState() {
+    super.initState();
+
+    // Workaround for a Flutter web framework-internal race: on a direct/deep
+    // link, main_v1_1.dart's own compiled Router/PlatformLocation code fires
+    // several history.replaceState/pushState calls within ~100ms of boot
+    // while reconciling the initial route, and occasionally the LAST one
+    // lands back on '/' instead of the actually-requested path, even though
+    // the correct page has already rendered. Since the churn is confirmed
+    // (via a live stack-trace capture) to originate inside Flutter's own
+    // framework code, not app code, this corrects the address bar after the
+    // fact rather than trying to prevent the race itself.
+    final requestedPath = widget.requestedPath;
+    if (!widget.useMinimalBootstrap && requestedPath != null && requestedPath.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Future.delayed(const Duration(milliseconds: 400), () {
+          if (!mounted) return;
+          try {
+            final currentPath = html.window.location.pathname;
+            if (currentPath != null && currentPath != requestedPath) {
+              html.window.history.replaceState(null, '', requestedPath);
+            }
+          } catch (_) {
+            // Best-effort only; never let this crash the app.
+          }
+        });
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (useMinimalBootstrap) {
+    if (widget.useMinimalBootstrap) {
       return const MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'GETREADYJOB V1.1',

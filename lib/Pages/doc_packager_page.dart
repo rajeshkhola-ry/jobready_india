@@ -8,9 +8,33 @@ import 'package:image/image.dart' as img;
 
 import '../Services/analytics_service.dart';
 import '../Services/file_picker_service.dart';
+import '../Services/govt_photo_presets.dart';
 import '../Services/seo_helper.dart';
 import '../Services/wasm_document_service.dart';
 import '../Widgets/faq_accordion.dart';
+
+// ── Board selector ───────────────────────────────────────────────────────────
+// Photo/signature specs come from ../Services/govt_photo_presets.dart (the
+// same source of truth govt_verifier_page.dart uses) so the two tools can't
+// drift apart on the same board's numbers.
+
+enum _Board { ssc, upsc, ibps, rrb }
+
+extension on _Board {
+  String get label => switch (this) {
+        _Board.ssc => 'SSC',
+        _Board.upsc => 'UPSC',
+        _Board.ibps => 'IBPS',
+        _Board.rrb => 'RRB',
+      };
+
+  String get presetPrefix => switch (this) {
+        _Board.ssc => 'ssc',
+        _Board.upsc => 'upsc',
+        _Board.ibps => 'ibps',
+        _Board.rrb => 'rrb',
+      };
+}
 
 // ── Slot definitions ───────────────────────────────────────────────────────────
 
@@ -38,40 +62,55 @@ class _SlotDef {
   });
 }
 
-const List<_SlotDef> _kSlots = [
-  _SlotDef(
-    id: 'photo', title: '01. Photo', role: 'Passport / ID Photo',
-    guidance: 'Coloured passport-size photo. White or light background. Face clearly visible.',
-    icon: Icons.person_pin_rounded, accent: Color(0xFF0F2D4A),
-    ext: ['jpg', 'jpeg', 'png', 'webp'],
-    targetW: 200, targetH: 230, maxKb: 50, minKb: 20,
-    archiveName: '01_PHOTO.jpg', required: true,
-  ),
-  _SlotDef(
-    id: 'signature', title: '02. Signature', role: 'Scanned Signature',
-    guidance: 'Sign on white paper, scan or photograph. Blue or black ink on plain white background.',
-    icon: Icons.draw_rounded, accent: Color(0xFF065F46),
-    ext: ['jpg', 'jpeg', 'png', 'webp'],
-    targetW: 140, targetH: 60, maxKb: 20, minKb: 10,
-    archiveName: '02_SIGNATURE.jpg', required: true,
-  ),
-  _SlotDef(
-    id: 'identity', title: '03. Identity Proof', role: 'Aadhaar / PAN / Passport',
-    guidance: 'Front of your identity document. Ensure all text and numbers are clearly visible.',
-    icon: Icons.credit_card_rounded, accent: Color(0xFF7C2D12),
-    ext: ['jpg', 'jpeg', 'png', 'webp', 'pdf'],
-    targetW: null, targetH: null, maxKb: 200, minKb: 10,
-    archiveName: '03_IDENTITY_PROOF', required: true,
-  ),
-  _SlotDef(
-    id: 'document', title: '04. Supporting Doc', role: 'Marksheet / Resume / Certificate',
-    guidance: 'Latest marksheet, degree certificate, or tailored resume. PDF preferred.',
-    icon: Icons.description_rounded, accent: Color(0xFF4338CA),
-    ext: ['jpg', 'jpeg', 'png', 'webp', 'pdf'],
-    targetW: null, targetH: null, maxKb: 800, minKb: 10,
-    archiveName: '04_DOCUMENT', required: false,
-  ),
-];
+/// Builds the 4 slot definitions for [board]. Photo/signature dimensions and
+/// KB limits come from govt_photo_presets.dart's shared preset table -
+/// identity/document slots don't vary by board.
+List<_SlotDef> _buildSlotDefs(_Board board) {
+  final photoPreset = govtPhotoPresetById('${board.presetPrefix}_photo');
+  final signaturePreset = govtPhotoPresetById('${board.presetPrefix}_signature');
+  final isSsc = board == _Board.ssc;
+
+  return [
+    _SlotDef(
+      id: 'photo', title: '01. Photo', role: 'Passport / ID Photo',
+      guidance: isSsc
+          ? '${board.label} now requires the photo to be captured LIVE via webcam/mobile camera during the application itself - a pre-existing photo can no longer be uploaded here. Skip this slot for SSC and pack Signature + Identity + Document instead.'
+          : 'Coloured passport-size photo. ${photoPreset.notes}',
+      icon: Icons.person_pin_rounded, accent: const Color(0xFF0F2D4A),
+      ext: const ['jpg', 'jpeg', 'png', 'webp'],
+      targetW: photoPreset.width, targetH: photoPreset.height,
+      maxKb: photoPreset.maxKb, minKb: photoPreset.minKb,
+      archiveName: '01_PHOTO.jpg', required: !isSsc,
+    ),
+    _SlotDef(
+      id: 'signature', title: '02. Signature', role: board == _Board.upsc
+          ? 'All 3 Required Signatures (combined)'
+          : 'Scanned Signature',
+      guidance: signaturePreset.notes,
+      icon: Icons.draw_rounded, accent: const Color(0xFF065F46),
+      ext: const ['jpg', 'jpeg', 'png', 'webp'],
+      targetW: signaturePreset.width, targetH: signaturePreset.height,
+      maxKb: signaturePreset.maxKb, minKb: signaturePreset.minKb,
+      archiveName: '02_SIGNATURE.jpg', required: true,
+    ),
+    const _SlotDef(
+      id: 'identity', title: '03. Identity Proof', role: 'Aadhaar / PAN / Passport',
+      guidance: 'Front of your identity document. Ensure all text and numbers are clearly visible.',
+      icon: Icons.credit_card_rounded, accent: Color(0xFF7C2D12),
+      ext: ['jpg', 'jpeg', 'png', 'webp', 'pdf'],
+      targetW: null, targetH: null, maxKb: 200, minKb: 10,
+      archiveName: '03_IDENTITY_PROOF', required: true,
+    ),
+    const _SlotDef(
+      id: 'document', title: '04. Supporting Doc', role: 'Marksheet / Resume / Certificate',
+      guidance: 'Latest marksheet, degree certificate, or tailored resume. PDF preferred.',
+      icon: Icons.description_rounded, accent: Color(0xFF4338CA),
+      ext: ['jpg', 'jpeg', 'png', 'webp', 'pdf'],
+      targetW: null, targetH: null, maxKb: 800, minKb: 10,
+      archiveName: '04_DOCUMENT', required: false,
+    ),
+  ];
+}
 
 // ── Compute isolate for image processing ───────────────────────────────────────
 
@@ -142,11 +181,26 @@ class DocPackagerPage extends StatefulWidget {
 }
 
 class _DocPackagerPageState extends State<DocPackagerPage> {
+  _Board _selectedBoard = _Board.ssc;
+  List<_SlotDef> get _slotDefs => _buildSlotDefs(_selectedBoard);
+
   final List<_SlotState> _slots =
-      List.generate(_kSlots.length, (_) => const _SlotState());
+      List.generate(4, (_) => const _SlotState());
 
   bool _isPacking = false;
-  String _status = 'Upload documents into each slot. Files are optimised automatically.';
+  String _status = 'Select your board, then upload documents into each slot. Files are optimised automatically.';
+
+  void _onBoardChanged(_Board board) {
+    if (board == _selectedBoard) return;
+    setState(() {
+      _selectedBoard = board;
+      // Photo/signature were resized for the PREVIOUS board's dimensions -
+      // clear them so a stale wrong-size file can't end up in the ZIP.
+      _slots[0] = const _SlotState();
+      _slots[1] = const _SlotState();
+      _status = _buildOverallStatus();
+    });
+  }
 
   @override
   void initState() {
@@ -154,16 +208,16 @@ class _DocPackagerPageState extends State<DocPackagerPage> {
     AnalyticsService.trackToolOpen('doc_packager');
     SeoHelper.apply(
       title: 'Job Application Document Bundle — One-Click ZIP Packager | GetReadyJob',
-      description: 'Auto-optimise and bundle your passport photo, signature, identity proof, and marksheet into a single structured ZIP file — SSC/UPSC/IBPS portal-ready. 100% local, no server.',
+      description: 'Pick your board (SSC/UPSC/IBPS/RRB) and auto-bundle a correctly-sized photo, signature, identity proof, and marksheet into one ZIP. 100% local, no server.',
       path: '/doc-packager',
-      keywords: 'job application document bundle ZIP, SSC document bundle, UPSC application photo signature, passport photo 200x230 compress, job application packager India, one-click document ZIP',
+      keywords: 'job application document bundle ZIP, SSC document bundle, UPSC application photo signature, RRB railway document bundle, IBPS bank document bundle, job application packager India, one-click document ZIP',
     );
   }
 
   // ── File pick + auto-process ─────────────────────────────────────────────
 
   Future<void> _pickForSlot(int idx) async {
-    final def = _kSlots[idx];
+    final def = _slotDefs[idx];
     final picked = await FilePickerService.pickFileData(
       allowedExtensions: def.ext,
     );
@@ -182,7 +236,7 @@ class _DocPackagerPageState extends State<DocPackagerPage> {
   }
 
   Future<void> _processSlot(int idx, PickedFileData picked) async {
-    final def = _kSlots[idx];
+    final def = _slotDefs[idx];
     final isPdf = picked.name.toLowerCase().endsWith('.pdf');
 
     try {
@@ -251,8 +305,8 @@ class _DocPackagerPageState extends State<DocPackagerPage> {
       final archive = Archive();
       int fileCount = 0;
 
-      for (int i = 0; i < _kSlots.length; i++) {
-        final def = _kSlots[i];
+      for (int i = 0; i < _slotDefs.length; i++) {
+        final def = _slotDefs[i];
         final state = _slots[i];
         if (state.processedBytes == null) continue;
 
@@ -305,7 +359,10 @@ class _DocPackagerPageState extends State<DocPackagerPage> {
     final processing = _slots.any((s) => s.status == _SlotStatus.processing);
     if (processing) return 'Optimising files…';
     if (ready == 0) return 'Upload documents into each slot.';
-    return '$ready of ${_kSlots.length} slot(s) ready. ${_canPack ? 'Tap "Pack & Download".' : 'Upload at least the Photo to pack.'}';
+    final needMsg = _selectedBoard == _Board.ssc
+        ? 'Upload at least the Signature to pack.'
+        : 'Upload at least the Photo to pack.';
+    return '$ready of ${_slotDefs.length} slot(s) ready. ${_canPack ? 'Tap "Pack & Download".' : needMsg}';
   }
 
   bool get _canPack =>
@@ -361,6 +418,10 @@ class _DocPackagerPageState extends State<DocPackagerPage> {
                 children: [
                   // Hero header
                   _heroCard(),
+                  const SizedBox(height: 14),
+
+                  // Board selector
+                  _boardSelector(),
                   const SizedBox(height: 18),
 
                   // Slot grid
@@ -381,7 +442,7 @@ class _DocPackagerPageState extends State<DocPackagerPage> {
                       );
                     }
                     return Column(children: List.generate(
-                        _kSlots.length,
+                        _slotDefs.length,
                         (i) => Padding(
                           padding: const EdgeInsets.only(bottom: 12),
                           child: _slotCard(i),
@@ -444,6 +505,75 @@ class _DocPackagerPageState extends State<DocPackagerPage> {
     );
   }
 
+  // ── Board selector ────────────────────────────────────────────────────────
+
+  Widget _boardSelector() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFD8E5F5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Exam Board',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF0A1F3D))),
+          const SizedBox(height: 4),
+          const Text(
+            'Photo & signature dimensions and KB limits are set automatically for the board you pick.',
+            style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _Board.values.map((board) {
+              final active = board == _selectedBoard;
+              return ChoiceChip(
+                label: Text(board.label),
+                selected: active,
+                onSelected: (_) => _onBoardChanged(board),
+                selectedColor: const Color(0xFF0A1F3D),
+                labelStyle: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: active ? Colors.white : const Color(0xFF0A1F3D),
+                ),
+                backgroundColor: const Color(0xFFF0F5FC),
+                side: BorderSide(color: active ? const Color(0xFF0A1F3D) : const Color(0xFFD8E5F5)),
+              );
+            }).toList(),
+          ),
+          if (_selectedBoard == _Board.ssc) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFBEB),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFFDE68A)),
+              ),
+              child: const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.info_rounded, size: 16, color: Color(0xFFB45309)),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      "SSC CGL/CHSL now requires the photo to be captured LIVE during the application itself — it can't be pre-uploaded. Use this tool for your Signature, Identity Proof, and Supporting Document instead.",
+                      style: TextStyle(fontSize: 11, color: Color(0xFF92400E), height: 1.4),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   // ── Hero card ─────────────────────────────────────────────────────────────
 
   Widget _heroCard() => Container(
@@ -479,7 +609,7 @@ class _DocPackagerPageState extends State<DocPackagerPage> {
                 _HeroBadge('🔒 100% Local'),
                 _HeroBadge('⚡ Instant Optimise'),
                 _HeroBadge('📦 Structured ZIP'),
-                _HeroBadge('✅ SSC / UPSC Ready'),
+                _HeroBadge('✅ SSC / UPSC / IBPS / RRB'),
               ]),
             ],
           )),
@@ -489,7 +619,7 @@ class _DocPackagerPageState extends State<DocPackagerPage> {
   // ── Slot card ─────────────────────────────────────────────────────────────
 
   Widget _slotCard(int idx) {
-    final def = _kSlots[idx];
+    final def = _slotDefs[idx];
     final state = _slots[idx];
     final accent = def.accent;
 
@@ -713,28 +843,35 @@ class _DocPackagerPageState extends State<DocPackagerPage> {
     final now = DateTime.now();
     final ts = '${now.day.toString().padLeft(2,'0')}/${now.month.toString().padLeft(2,'0')}/${now.year}  '
         '${now.hour.toString().padLeft(2,'0')}:${now.minute.toString().padLeft(2,'0')}';
+    final photo = _slotDefs[0];
+    final signature = _slotDefs[1];
+    final board = _selectedBoard.label;
+    final isSsc = _selectedBoard == _Board.ssc;
+    final photoLine = isSsc
+        ? 'Passport/ID photo — NOT included: $board requires a LIVE-captured photo during the application itself, it cannot be pre-uploaded.'
+        : 'Passport/ID photo (${photo.targetW}×${photo.targetH}px, ${photo.minKb}–${photo.maxKb} KB)';
     return '''
 ==========================================================
   JOB APPLICATION BUNDLE — GETREADYJOB.COM
+  Board: $board
   Packed: $ts
   Files in this bundle: $fileCount
 ==========================================================
 
 CONTENTS:
-  01_PHOTO.jpg            — Passport/ID photo (200×230px, ≤50 KB)
-  02_SIGNATURE.jpg        — Scanned signature (140×60px, ≤20 KB)
+  01_PHOTO.jpg            — $photoLine
+  02_SIGNATURE.jpg        — Scanned signature (${signature.targetW}×${signature.targetH}px, ${signature.minKb}–${signature.maxKb} KB)
   03_IDENTITY_PROOF.*     — Identity document (Aadhaar / PAN / Passport)
   04_DOCUMENT.*           — Marksheet / Resume / Certificate
 
 HOW TO USE:
-  • Attach individual files as required by the exam portal / HR form.
-  • All image files are optimised to common govt portal standards
-    (SSC, UPSC, IBPS, RRB, JEE, NEET and most state portals).
+  • Attach individual files as required by the $board portal / HR form.
+  • Image files are optimised specifically for $board's published spec.
   • PDF files are included as-is.
 
-PORTAL COMPLIANCE:
-  Photo     : 200×230px, JPG, white/light background, 20–50 KB
-  Signature : 140×60px, JPG, blue/black ink on white, 10–20 KB
+PORTAL COMPLIANCE ($board):
+  Photo     : ${photo.targetW}×${photo.targetH}px, JPG, ${photo.minKb}–${photo.maxKb} KB${isSsc ? ' — live capture required, see note above' : ''}
+  Signature : ${signature.targetW}×${signature.targetH}px, JPG, ${signature.minKb}–${signature.maxKb} KB
   Identity  : JPG/PDF, clearly legible, ≤200 KB
   Document  : JPG/PDF, ≤800 KB
 

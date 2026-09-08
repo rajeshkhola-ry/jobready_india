@@ -18,6 +18,8 @@ import '../Services/conversion_service.dart';
 import '../Services/coupon_service.dart';
 import '../Services/csv_to_excel_service.dart';
 import '../Services/document_history_service.dart';
+import '../Services/govt_photo_presets.dart';
+import '../Services/india_gst_engine.dart';
 import '../Services/integration_hub_service.dart';
 import '../Services/owner_admin_access_service.dart';
 import '../Services/plan_catalog_service.dart';
@@ -839,6 +841,18 @@ class _HomePageV11State extends State<HomePageV11> {
           monthlyAmount: _displayAmountForPlan('Monthly', resolvedCurrency),
           yearlyAmount: _displayAmountForPlan('Yearly', resolvedCurrency),
           lifetimePlanAmount: _displayAmountForPlan('Lifetime', resolvedCurrency),
+          amountsInr: <String, double>{
+            '7Days': _displayAmountForPlan('7Days', 'INR'),
+            'Monthly': _displayAmountForPlan('Monthly', 'INR'),
+            'Yearly': _displayAmountForPlan('Yearly', 'INR'),
+            'Lifetime': _displayAmountForPlan('Lifetime', 'INR'),
+          },
+          amountsUsd: <String, double>{
+            '7Days': _displayAmountForPlan('7Days', 'USD'),
+            'Monthly': _displayAmountForPlan('Monthly', 'USD'),
+            'Yearly': _displayAmountForPlan('Yearly', 'USD'),
+            'Lifetime': _displayAmountForPlan('Lifetime', 'USD'),
+          },
         ),
       ),
     );
@@ -6139,19 +6153,42 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
     'AE': 'UAE',
   };
   static const List<String> _indianStates = <String>[
+    'Andaman and Nicobar Islands',
     'Andhra Pradesh',
+    'Arunachal Pradesh',
+    'Assam',
     'Bihar',
+    'Chandigarh',
+    'Chhattisgarh',
+    'Dadra and Nagar Haveli',
+    'Daman and Diu',
     'Delhi',
+    'Goa',
     'Gujarat',
     'Haryana',
+    'Himachal Pradesh',
+    'Jammu and Kashmir',
+    'Jharkhand',
     'Karnataka',
     'Kerala',
+    'Ladakh',
+    'Lakshadweep',
+    'Madhya Pradesh',
     'Maharashtra',
+    'Manipur',
+    'Meghalaya',
+    'Mizoram',
+    'Nagaland',
+    'Odisha',
+    'Puducherry',
     'Punjab',
     'Rajasthan',
+    'Sikkim',
     'Tamil Nadu',
     'Telangana',
+    'Tripura',
     'Uttar Pradesh',
+    'Uttarakhand',
     'West Bengal',
     'Other',
   ];
@@ -6160,6 +6197,7 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
   String _selectedCountryCode = '+91';
   String _selectedAccountType = 'Personal';
   String _selectedBusinessState = 'Delhi';
+  String _selectedPersonalState = 'Delhi';
 
   String _detectCountryByLocale() {
     final language = html.window.navigator.language?.toUpperCase() ?? '';
@@ -6186,6 +6224,9 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
         : (_countryDialCodeMap[_selectedCountry] ?? '+91');
     _selectedBusinessState = profile.billingState.isNotEmpty ? profile.billingState : (_indianStates.contains('Delhi') ? 'Delhi' : 'Other');
     _selectedAccountType = profile.companyName.trim().isNotEmpty || profile.gstin.trim().isNotEmpty ? 'Business' : 'Personal';
+    _selectedPersonalState = (_selectedAccountType != 'Business' && _indianStates.contains(profile.billingState))
+        ? profile.billingState
+        : _selectedPersonalState;
   }
 
   @override
@@ -6234,9 +6275,9 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
       return;
     }
 
-    if (isBusiness && gstin.isNotEmpty && !RegExp(r'^[0-9A-Z]{15}$').hasMatch(gstin)) {
+    if (isBusiness && gstin.isNotEmpty && !IndiaGstEngine.isValidGstin(gstin)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid 15-digit GSTIN.')),
+        const SnackBar(content: Text('Please enter a valid GSTIN (checksum did not match). Double-check the characters.')),
       );
       return;
     }
@@ -6251,7 +6292,9 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
       historyEnabled: true,
       googleLoginPreferred: previousProfile.googleLoginPreferred,
       companyName: isBusiness ? company : '',
-      billingState: isBusiness ? _selectedBusinessState : _selectedCountry,
+      billingState: isBusiness
+          ? _selectedBusinessState
+          : (_selectedCountry == 'India' ? _selectedPersonalState : _selectedCountry),
       gstin: gstin,
     );
 
@@ -6328,6 +6371,44 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
             ],
           ),
           const SizedBox(height: 8),
+          if (!showBusinessFields && _selectedCountry == 'India') ...[
+            DropdownButtonFormField<String>(
+              value: _selectedPersonalState,
+              items: _indianStates
+                  .map(
+                    (state) => DropdownMenuItem<String>(
+                      value: state,
+                      child: Text(state),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                if (value == null) {
+                  return;
+                }
+                setState(() {
+                  _selectedPersonalState = value;
+                });
+              },
+              decoration: InputDecoration(
+                labelText: 'State',
+                isDense: true,
+                filled: true,
+                fillColor: const Color(0xFFF8FAFC),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xFF0F172A), width: 1.4),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
           if (showBusinessFields) ...[
             TextField(
               controller: _companyController,

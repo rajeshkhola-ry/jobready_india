@@ -167,7 +167,7 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
                       ),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: const Color(0xFF0F172A)),
-                        onPressed: () => Navigator.of(context).pushNamed('/converter'),
+                        onPressed: () => Navigator.of(context).pushNamed('/convert'),
                         child: const Text('Use Resume Converter'),
                       ),
                     ],
