@@ -59,6 +59,7 @@ class ProductionFooter extends StatelessWidget {
               _FooterRouteLink(label: 'Pricing', route: '/pricing'),
               _FooterRouteLink(label: 'FAQ', route: '/faq'),
               _FooterRouteLink(label: 'Help Center / Support', route: '/support'),
+              _FooterManualLink(label: 'Manual', url: '/manual.html'),
               _FooterRouteLink(label: 'Privacy Policy', route: '/privacy'),
               _FooterRouteLink(label: 'Terms & Conditions', route: '/terms'),
               _FooterRouteLink(label: 'Cookie Policy', route: '/cookie-policy'),
@@ -118,6 +119,38 @@ class _FooterRouteLink extends StatelessWidget {
             color: Colors.white,
             fontSize: 12,
             fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FooterManualLink extends StatelessWidget {
+  final String label;
+  final String url;
+  const _FooterManualLink({
+    required this.label,
+    required this.url,
+  });
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => WebSafeBrowser.openWindow(url),
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0x1FFFFFFF),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: const Color(0xFF36506B)),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ),
