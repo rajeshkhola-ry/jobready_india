@@ -1083,7 +1083,7 @@ enum _QrScheme {
   String get placeholder => switch (this) {
         _QrScheme.url => 'getreadyjob.com',
         _QrScheme.phone => '+91 98765 43210',
-        _QrScheme.email => 'support@drutasystem.com',
+        _QrScheme.email => 'support@drutasystems.com',
         _QrScheme.whatsapp => '+91 98765 43210',
         _QrScheme.location => 'Taj Mahal, Agra or 27.1751,78.0421',
         _QrScheme.text => 'Your text here…',

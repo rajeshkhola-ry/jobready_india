@@ -94,7 +94,7 @@ class AdvancedConversionResultDialog extends StatelessWidget {
   void _shareEmail(BuildContext context, ConversionArtifact artifact) {
     final subject = Uri.encodeComponent('GETREADYJOB conversion ready: ${artifact.fileName}');
     final body = Uri.encodeComponent('Your generated file from GETREADYJOB is ready.\nFile: ${artifact.fileName}\nAction: ${artifact.outputFormat}');
-    html.window.open('mailto:support@drutasystem.com?subject=$subject&body=$body', '_blank');
+    html.window.open('mailto:support@drutasystems.com?subject=$subject&body=$body', '_blank');
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Email composer opened'), backgroundColor: Color(0xFF1F4E79)),

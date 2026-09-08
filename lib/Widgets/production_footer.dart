@@ -258,9 +258,9 @@ class _FooterMetaBlock extends StatelessWidget {
               ),
             ),
             InkWell(
-              onTap: () => WebSafeBrowser.openWindow('https://www.drutasystem.com'),
+              onTap: () => WebSafeBrowser.openWindow('https://www.drutasystems.com'),
               child: const Text(
-                'www.drutasystem.com',
+                'www.drutasystems.com',
                 style: TextStyle(
                   color: Color(0xFFCBD5E1),
                   fontSize: 12,

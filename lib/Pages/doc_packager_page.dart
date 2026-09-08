@@ -881,7 +881,7 @@ PRIVACY NOTE:
   All processing was performed locally on your device.
 
 ----------------------------------------------------------
-  getreadyjob.com  |  support@drutasystem.com
+  getreadyjob.com  |  support@drutasystems.com
 ==========================================================
 ''';
   }

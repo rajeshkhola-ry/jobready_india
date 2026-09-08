@@ -142,7 +142,7 @@ class _TermsConditionsPageState extends State<TermsConditionsPage> {
                   ),
                   const _Section(
                     title: '10. Contact Information',
-                    body: 'For legal and support matters, please contact: support@drutasystem.com',
+                    body: 'For legal and support matters, please contact: support@drutasystems.com',
                   ),
                   const SizedBox(height: 16),
                   const Text(

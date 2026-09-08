@@ -25,7 +25,7 @@ class TestimonialsPage extends StatelessWidget {
         ),
         SiteContentSection(
           title: 'Want to Share Feedback?',
-          body: 'Please send feedback and product experience notes to support@drutasystem.com. Selected reviews may be published with consent.',
+          body: 'Please send feedback and product experience notes to support@drutasystems.com. Selected reviews may be published with consent.',
         ),
       ],
     );
