@@ -189,7 +189,7 @@ class _HomePageV11State extends State<HomePageV11> {
 
   void _syncDocumentTitle() {
     try {
-      html.document.title = 'Get Ready Job | SSC Photo Resize 20KB, UPSC Photo Compressor 50KB & Govt Job Photo Resizer';
+      html.document.title = 'Govt Job Photo & Signature Resizer for SSC, UPSC, RRB | GetReadyJob';
     } catch (_) {}
   }
 

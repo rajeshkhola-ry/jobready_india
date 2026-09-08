@@ -9,6 +9,7 @@ import 'package:image/image.dart' as img;
 
 import '../Services/analytics_service.dart';
 import '../Services/file_picker_service.dart';
+import '../Services/seo_helper.dart';
 import '../Services/upload_context_service.dart';
 import '../Services/voice_command_service.dart';
 import '../Services/wasm_document_service.dart';
@@ -69,6 +70,11 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
     AnalyticsService.trackToolOpen('govt_verifier');
     _applyVoiceCommandPreset();
     _hydrateFromUploadContext();
+    SeoHelper.apply(
+      title: 'SSC/UPSC Photo Resizer, Name/DOP Strip & Govt Document Verifier | GetReadyJob',
+      description: 'Resize passport photos to exact SSC/UPSC KB and pixel limits, add Name & Date of Photo (DOP) black strip, and smart-redact Aadhaar/PAN documents. 100% local — no upload.',
+      path: '/govt-verifier',
+    );
   }
 
   void _applyVoiceCommandPreset() {
@@ -555,7 +561,7 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
                 items: [
                   FaqItem(
                     question: 'Are the photo size presets accurate for SSC/UPSC/IBPS forms?',
-                    answer: 'Yes. Each preset (SSC 200x230px 20-50 KB, UPSC 300x400px, IBPS/RRB 200x230px) matches the exact pixel and file-size rules published by the respective recruitment boards, so your upload will not get rejected for size errors.',
+                    answer: 'Yes. Each preset (SSC 200x230px 20-50 KB, UPSC 350x350 to 1000x1000px square 20-240 KB, IBPS 200x230px, RRB 320x240px 50-100 KB) matches the exact pixel and file-size rules published by the respective recruitment boards, so your upload will not get rejected for size errors. Note: SSC CGL/CHSL applications now require your photo to be captured LIVE via webcam or mobile camera during the application itself - a pre-existing photo can no longer be uploaded for SSC. Use this tool to prepare your Signature and other bundle documents instead.',
                   ),
                   FaqItem(
                     question: 'Is my Aadhaar/PAN redacted locally or uploaded to a server?',
@@ -1317,7 +1323,8 @@ const List<GovtPhotoPreset> kGovtPhotoPresets = [
     label: 'SSC Photo',
     width: 200, height: 230,
     minKb: 20, maxKb: 50,
-    notes: 'SSC CGL/CHSL/MTS: 3.5×4.5 cm, 20–50 KB, JPG/JPEG. White or light background.',
+    notes: 'SSC CGL/CHSL/MTS: 3.5×4.5 cm, 20–50 KB, JPG/JPEG. White or light background. '
+        'Note: SSC CGL/CHSL applications now require your photo to be captured LIVE via webcam or mobile camera during the application itself — a pre-existing photo can no longer be uploaded. Use this tool to prepare your Signature and other bundle documents.',
   ),
   GovtPhotoPreset(
     id: 'ssc_signature',
@@ -1329,9 +1336,16 @@ const List<GovtPhotoPreset> kGovtPhotoPresets = [
   GovtPhotoPreset(
     id: 'upsc_photo',
     label: 'UPSC Photo',
-    width: 300, height: 400,
-    minKb: 20, maxKb: 300,
-    notes: 'UPSC CSE/IFoS: 3.5×4.5 cm, max 300 KB, JPG. Must show full face, light background.',
+    width: 350, height: 350,
+    minKb: 20, maxKb: 240,
+    notes: 'UPSC: square, 350×350 to 1000×1000 px, 20–240 KB, JPG, white background, full face visible.',
+  ),
+  GovtPhotoPreset(
+    id: 'upsc_signature',
+    label: 'UPSC Signature',
+    width: 425, height: 425,
+    minKb: 20, maxKb: 100,
+    notes: 'UPSC: all three required handwritten signatures combined in ONE image, approx. 350–500 px, 20–100 KB, JPG.',
   ),
   GovtPhotoPreset(
     id: 'ibps_photo',
@@ -1350,9 +1364,16 @@ const List<GovtPhotoPreset> kGovtPhotoPresets = [
   GovtPhotoPreset(
     id: 'rrb_photo',
     label: 'RRB / Railway Photo',
-    width: 200, height: 230,
-    minKb: 15, maxKb: 100,
-    notes: 'RRB NTPC/Group-D/ALP: 3.5×4.5 cm, 15–100 KB, JPG. Light background, no cap.',
+    width: 320, height: 240,
+    minKb: 50, maxKb: 100,
+    notes: 'RRB NTPC/Group-D/ALP: 320×240 px, 50–100 KB, JPG. Light background.',
+  ),
+  GovtPhotoPreset(
+    id: 'rrb_signature',
+    label: 'RRB / Railway Signature',
+    width: 140, height: 60,
+    minKb: 30, maxKb: 49,
+    notes: 'RRB NTPC/Group-D/ALP: 140×60 px, 30–49 KB, min 100 DPI, JPG.',
   ),
   GovtPhotoPreset(
     id: 'jee_photo',

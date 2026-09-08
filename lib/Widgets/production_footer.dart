@@ -228,22 +228,48 @@ class _FooterMetaBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [
-        Text(
+      children: [
+        const Text(
           'Website: getreadyjob.com',
           style: TextStyle(
             color: Color(0xFF94A3B8),
             fontSize: 12,
           ),
         ),
-        SizedBox(height: 6),
-        Text(
+        const SizedBox(height: 6),
+        const Text(
           'Patent Pending (Indian Patent App No. 202611096315) • Copyright 2026 GETREADYJOB. All rights reserved.',
           style: TextStyle(
             color: Color(0xFFCBD5E1),
             fontSize: 12,
             fontWeight: FontWeight.w600,
           ),
+        ),
+        const SizedBox(height: 6),
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            const Text(
+              'This site is designed, developed & technically supported by ',
+              style: TextStyle(
+                color: Color(0xFFCBD5E1),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            InkWell(
+              onTap: () => WebSafeBrowser.openWindow('https://www.drutasystem.com'),
+              child: const Text(
+                'www.drutasystem.com',
+                style: TextStyle(
+                  color: Color(0xFFCBD5E1),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );

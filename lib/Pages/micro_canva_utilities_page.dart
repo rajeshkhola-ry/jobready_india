@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import '../Services/file_picker_service.dart';
+import '../Services/seo_helper.dart';
 import '../Services/wasm_document_service.dart';
 import '../Widgets/production_footer.dart';
 import '../Widgets/tool_guidance_panel.dart';
@@ -24,6 +25,17 @@ class _MicroCanvaUtilitiesPageState extends State<MicroCanvaUtilitiesPage> {
   PassportBackgroundColor _passportBackground = PassportBackgroundColor.white;
   int _passportDpi = 300;
   double _upscaleFactor = 2.0;
+
+  @override
+  void initState() {
+    super.initState();
+    SeoHelper.apply(
+      title: 'Background Remover, Photo Upscaler & PNG to SVG Converter | GetReadyJob',
+      description: 'Remove image backgrounds, upscale photos to HD, resize govt passport photos, and convert PNG to SVG instantly in your browser. 100% local, free to start.',
+      path: '/micro-canva',
+      keywords: 'remove background from photo online, photo upscaler free, png to svg converter, govt passport photo resizer, HD image upscaling online',
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

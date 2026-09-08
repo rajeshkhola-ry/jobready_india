@@ -8,6 +8,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../Services/draft_persistence_service.dart';
 import '../Services/file_picker_service.dart';
+import '../Services/seo_helper.dart';
 import '../Services/wasm_document_service.dart';
 import '../Widgets/faq_accordion.dart';
 
@@ -52,6 +53,12 @@ class _PrivacyMaskerPageState extends State<PrivacyMaskerPage>
   void initState() {
     super.initState();
     _tabs = TabController(length: 2, vsync: this);
+    SeoHelper.apply(
+      title: 'Free PAN Card Masker Online | Secure ID & Resume Privacy - GetReadyJob',
+      description: 'Mask PAN card numbers, Aadhaar details, and sensitive ID data instantly in your browser before job applications. 100% client-side, private & secure.',
+      path: '/privacy-masker',
+      keywords: 'mask pan card online, hide pan number for job, resume privacy masking, mask aadhaar card, Aadhaar number blackout online, PAN card redact, QR code generator free India, document privacy masker',
+    );
     _restoreQrDraft();
     _restoreMaskDraft();
     _qrInputCtrl.addListener(() {
@@ -1076,7 +1083,7 @@ enum _QrScheme {
   String get placeholder => switch (this) {
         _QrScheme.url => 'getreadyjob.com',
         _QrScheme.phone => '+91 98765 43210',
-        _QrScheme.email => 'hello@getreadyjob.com',
+        _QrScheme.email => 'support@drutasystem.com',
         _QrScheme.whatsapp => '+91 98765 43210',
         _QrScheme.location => 'Taj Mahal, Agra or 27.1751,78.0421',
         _QrScheme.text => 'Your text here…',

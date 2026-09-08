@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import '../Services/file_picker_service.dart';
+import '../Services/seo_helper.dart';
 import '../Services/upload_context_service.dart';
 import '../Services/voice_command_service.dart';
 import '../Services/wasm_document_service.dart';
@@ -42,6 +43,12 @@ class _SmartPdfSuitePageState extends State<SmartPdfSuitePage> {
     super.initState();
     _hydrateFromHomeUpload();
     _applyVoiceCommand();
+    SeoHelper.apply(
+      title: 'Protect & Unlock PDF Online Free — Password Protection Suite | GetReadyJob',
+      description: 'Add or remove password protection on PDF files instantly in your browser. Free, secure PDF protection suite — no signup, no file upload to any server.',
+      path: '/smart-pdf',
+      keywords: 'protect PDF with password online, unlock PDF free, remove PDF password, secure PDF file online, PDF password protection tool',
+    );
   }
 
   void _hydrateFromHomeUpload() {

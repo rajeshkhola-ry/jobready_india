@@ -6,6 +6,7 @@ import '../Widgets/quota_gate.dart';
 import '../Widgets/tool_guidance_panel.dart';
 import '../Widgets/tool_workspace_shell.dart';
 import '../Services/file_picker_service.dart';
+import '../Services/seo_helper.dart';
 import '../Services/upload_context_service.dart';
 import '../Services/voice_command_service.dart';
 import '../Services/wasm_document_service.dart';
@@ -31,6 +32,12 @@ class _MergeToolPageState extends State<MergeToolPage> {
     super.initState();
     _hydrateFromHomeUpload();
     _applyVoiceCommand();
+    SeoHelper.apply(
+      title: 'Merge PDF Files Online Free — Combine Multiple PDFs into One | GetReadyJob',
+      description: 'Combine multiple PDF files into a single organised document online for free. Fast drag-and-drop PDF merger — 100% browser-based, no file upload to any server.',
+      path: '/merge',
+      keywords: 'merge PDF online free, combine PDF files, join PDF documents, PDF merger no watermark, merge multiple PDFs into one',
+    );
   }
 
   void _hydrateFromHomeUpload() {

@@ -10,6 +10,7 @@ import 'package:universal_html/html.dart' as html;
 import '../Services/draft_persistence_service.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/poster_banner_studio_service.dart';
+import '../Services/seo_helper.dart';
 
 enum _ResizeCorner { topLeft, topRight, bottomLeft, bottomRight }
 
@@ -49,6 +50,12 @@ class _PosterBannerStudioPageState extends State<PosterBannerStudioPage> {
     _layers = _cloneLayers(_selectedTemplate.layers);
     _syncControllers();
     _restoreDraft();
+    SeoHelper.apply(
+      title: 'Poster & Banner Studio with Hindi/Devanagari Fonts | GetReadyJob',
+      description: 'Design hiring, festival, business, and govt announcement posters with Hindi/Devanagari fonts (Noto Sans, Baloo 2, Hind, Mukta). Canvas-based export at print resolution.',
+      path: '/poster-banner-studio',
+      keywords: 'Hindi poster maker online, Devanagari poster generator, festival banner maker, SSC hiring poster, Noto Sans Devanagari poster, Hindi font poster design free',
+    );
   }
 
   @override

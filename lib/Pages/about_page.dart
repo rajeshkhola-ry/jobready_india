@@ -10,6 +10,9 @@ class AboutPage extends StatelessWidget {
     return const SiteContentPage(
       title: 'About GETREADYJOB',
       intro: 'GETREADYJOB is building practical software for resumes, documents, PDF workflows, and professional productivity. The goal is to help users move faster with clean, reliable tools that feel simple to use.',
+      seoTitle: 'About GetReadyJob — Free Document Tools & Career Platform',
+      seoDescription: 'Learn about GetReadyJob, a free browser-based document, photo, and career preparation toolkit built for job seekers worldwide.',
+      canonicalPath: '/about',
       highlights: ['Our Mission', 'Our Vision', 'Why GETREADYJOB', 'Our Story'],
       sections: [
         SiteContentSection(

@@ -8,6 +8,7 @@ import 'package:image/image.dart' as img;
 
 import '../Services/analytics_service.dart';
 import '../Services/file_picker_service.dart';
+import '../Services/seo_helper.dart';
 import '../Services/wasm_document_service.dart';
 import '../Widgets/faq_accordion.dart';
 
@@ -151,6 +152,12 @@ class _DocPackagerPageState extends State<DocPackagerPage> {
   void initState() {
     super.initState();
     AnalyticsService.trackToolOpen('doc_packager');
+    SeoHelper.apply(
+      title: 'Job Application Document Bundle — One-Click ZIP Packager | GetReadyJob',
+      description: 'Auto-optimise and bundle your passport photo, signature, identity proof, and marksheet into a single structured ZIP file — SSC/UPSC/IBPS portal-ready. 100% local, no server.',
+      path: '/doc-packager',
+      keywords: 'job application document bundle ZIP, SSC document bundle, UPSC application photo signature, passport photo 200x230 compress, job application packager India, one-click document ZIP',
+    );
   }
 
   // ── File pick + auto-process ─────────────────────────────────────────────
@@ -737,7 +744,7 @@ PRIVACY NOTE:
   All processing was performed locally on your device.
 
 ----------------------------------------------------------
-  getreadyjob.com  |  hello@getreadyjob.com
+  getreadyjob.com  |  support@drutasystem.com
 ==========================================================
 ''';
   }

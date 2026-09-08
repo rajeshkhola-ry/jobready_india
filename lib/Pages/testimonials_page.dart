@@ -10,6 +10,9 @@ class TestimonialsPage extends StatelessWidget {
     return const SiteContentPage(
       title: 'Customer Reviews and Testimonials',
       intro: 'Customer reviews and testimonials are being expanded as part of the production trust layer.',
+      seoTitle: 'GetReadyJob Testimonials — Real User Success Stories',
+      seoDescription: 'Read real success stories from job seekers who used GetReadyJob free resume, photo, and document tools to prepare their applications.',
+      canonicalPath: '/testimonials',
       highlights: ['Trust Layer', 'User Feedback', 'Coming Soon'],
       sections: [
         SiteContentSection(
@@ -22,7 +25,7 @@ class TestimonialsPage extends StatelessWidget {
         ),
         SiteContentSection(
           title: 'Want to Share Feedback?',
-          body: 'Please send feedback and product experience notes to hello@getreadyjob.com. Selected reviews may be published with consent.',
+          body: 'Please send feedback and product experience notes to support@drutasystem.com. Selected reviews may be published with consent.',
         ),
       ],
     );

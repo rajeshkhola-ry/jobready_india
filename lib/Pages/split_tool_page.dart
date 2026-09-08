@@ -8,6 +8,7 @@ import '../Widgets/quota_gate.dart';
 import '../Widgets/tool_guidance_panel.dart';
 import '../Widgets/tool_workspace_shell.dart';
 import '../Services/file_picker_service.dart';
+import '../Services/seo_helper.dart';
 import '../Services/upload_context_service.dart';
 import '../Services/voice_command_service.dart';
 import '../Services/wasm_document_service.dart';
@@ -36,6 +37,12 @@ class _SplitToolPageState extends State<SplitToolPage> {
   void initState() {
     super.initState();
     _hydrateFromHomeUpload().then((_) => _applyVoiceCommand());
+    SeoHelper.apply(
+      title: 'Split PDF Online Free — Extract Pages or Split by Page Range | GetReadyJob',
+      description: 'Split a large PDF into separate pages or custom page ranges online for free. Fast, secure PDF splitter — 100% browser-based, no upload required.',
+      path: '/split',
+      keywords: 'split PDF online free, extract PDF pages, PDF splitter tool, separate PDF pages online, split PDF by page range',
+    );
   }
 
   void _applyVoiceCommand() {

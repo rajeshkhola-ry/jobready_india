@@ -11,6 +11,7 @@ import '../Widgets/tool_workspace_shell.dart';
 import '../Services/compression_service.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/remote_compression_service.dart';
+import '../Services/seo_helper.dart';
 import '../Services/upload_context_service.dart';
 import '../Services/voice_command_service.dart';
 import '../Services/wasm_document_service.dart';
@@ -71,6 +72,12 @@ class _CompressionToolPageState extends State<CompressionToolPage> {
     super.initState();
     _hydrateFromHomeUpload();
     _applyVoiceCommandTargetSize();
+    SeoHelper.apply(
+      title: 'Free PDF Compressor Online — Reduce PDF File Size Without Losing Quality | GetReadyJob',
+      description: 'Compress PDF files online free to any target size in KB or MB while keeping document quality. Fast, secure, browser-based PDF size reducer — no upload, no signup.',
+      path: '/compress',
+      keywords: 'compress PDF online free, reduce PDF file size, PDF size reducer, PDF compressor no watermark, shrink PDF file size online',
+    );
   }
 
   void _applyVoiceCommandTargetSize() {

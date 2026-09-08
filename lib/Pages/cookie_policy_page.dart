@@ -10,6 +10,9 @@ class CookiePolicyPage extends StatelessWidget {
     return const SiteContentPage(
       title: 'Cookie Policy',
       intro: 'This page outlines the current cookie and analytics direction for GETREADYJOB web experiences.',
+      seoTitle: 'Cookie Policy | GetReadyJob',
+      seoDescription: 'Learn how GetReadyJob uses cookies and similar technologies across the website and tools.',
+      canonicalPath: '/cookie-policy',
       highlights: ['Cookies', 'Analytics', 'Browser Controls'],
       sections: [
         SiteContentSection(

@@ -103,10 +103,10 @@
           "url": "https://getreadyjob.com",
           "logo": "https://getreadyjob.com/icons/GRJ-512.png",
           "description": "India's AI-powered job readiness platform offering ATS resume building, document tools and career acceleration.",
-          "email": "hello@getreadyjob.com",
+          "email": "support@drutasystem.com",
           "contactPoint": {
             "@type": "ContactPoint",
-            "email": "hello@getreadyjob.com",
+            "email": "support@drutasystem.com",
             "contactType": "customer support"
           }
         },
@@ -195,8 +195,8 @@
         },
         {
           "@type": "Question",
-          "name": "How do I resize a passport photo to SSC/UPSC requirements (200×230px, 50 KB)?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Use the Govt Verifier tool on GetReadyJob.com. Select the SSC Photo preset (200×230px, 20–50 KB), upload your photo, and click 'Resize & Download'. The tool automatically compresses to the highest quality within the KB limit — 100% in your browser, no upload." }
+          "name": "How do I resize a passport photo to UPSC requirements (square, 350×350 to 1000×1000px, 20-240 KB)?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Use the Govt Verifier tool on GetReadyJob.com. Select the UPSC Photo preset (square, 350×350 to 1000×1000px, 20–240 KB), upload your photo, and click 'Resize & Download'. The tool automatically compresses to the highest quality within the KB limit — 100% in your browser, no upload. Note: SSC CGL/CHSL applications now require the photo to be captured LIVE during the application itself, so this tool is best used for SSC Signature and other bundle documents rather than an SSC photo upload." }
         },
         {
           "@type": "Question",
@@ -261,7 +261,7 @@
         {
           "@type": "Question",
           "name": "Are the SSC/UPSC/IBPS photo size presets accurate for govt forms?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Yes. Each preset (SSC 200×230px 20–50 KB, UPSC 300×400px, IBPS/RRB 200×230px) matches the exact pixel and file-size rules published by the respective recruitment boards, so your upload will not get rejected for size errors." }
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. Each preset (SSC 200×230px 20–50 KB, UPSC 350×350 to 1000×1000px square 20–240 KB, IBPS 200×230px, RRB 320×240px 50–100 KB) matches the exact pixel and file-size rules published by the respective recruitment boards, so your upload will not get rejected for size errors. Note: SSC CGL/CHSL now requires the photo to be captured LIVE during the application, so the SSC preset is best used for the Signature and other bundle documents." }
         },
         {
           "@type": "Question",
@@ -335,7 +335,7 @@
           appName: 'GetReadyJob Govt Photo & Document Verifier',
           appCategory: ['UtilitiesApplication', 'SecurityApplication'],
           faq: [
-            { q: 'Are the photo size presets accurate for SSC/UPSC/IBPS forms?', a: 'Yes. Each preset (SSC 200x230px 20-50 KB, UPSC 300x400px, IBPS/RRB 200x230px) matches the exact pixel and file-size rules published by the respective recruitment boards, so your upload will not get rejected for size errors.' },
+            { q: 'Are the photo size presets accurate for SSC/UPSC/IBPS forms?', a: 'Yes. Each preset (SSC 200x230px 20-50 KB, UPSC 350x350 to 1000x1000px square 20-240 KB, IBPS 200x230px, RRB 320x240px 50-100 KB) matches the exact pixel and file-size rules published by the respective recruitment boards, so your upload will not get rejected for size errors. Note: SSC CGL/CHSL now requires the photo to be captured LIVE during the application, so the SSC preset is best used for the Signature and other bundle documents.' },
             { q: 'Is my Aadhaar/PAN redacted locally or uploaded to a server?', a: 'All redaction, resizing, and Name/DOP strip generation happens entirely in your browser using local image processing. No document or photo is ever uploaded anywhere.' },
             { q: 'Do I need to sign up to use the Govt Verifier tool?', a: 'No sign-up is required. Upload your photo or document, choose a preset, and download the result immediately.' }
           ]
@@ -348,6 +348,15 @@
           url: 'https://getreadyjob.com/fraud-seal',
           appName: 'GetReadyJob Fraud-Check Seal & Watermark Tool',
           appCategory: ['SecurityApplication', 'UtilitiesApplication']
+        },
+        {
+          test: function (route) { return route === '/csv-to-excel-converter'; },
+          title: 'Free CSV to Excel Converter Online | GetReadyJob',
+          description: 'Convert CSV files into a clean Excel (.xlsx) workbook instantly in your browser — free, no signup, no file upload to any server.',
+          keywords: 'CSV to Excel converter, convert CSV to xlsx online, free CSV converter, CSV to spreadsheet, csv to excel no upload',
+          url: 'https://getreadyjob.com/csv-to-excel-converter',
+          appName: 'GetReadyJob CSV to Excel Converter',
+          appCategory: ['UtilitiesApplication']
         },
         {
           test: function (route) { return route === '/doc-packager'; },
@@ -518,7 +527,7 @@
         {
           test: function (route) { return route === '/contact'; },
           title: 'Contact GetReadyJob — Support & Enquiries',
-          description: 'Get in touch with the GetReadyJob team for support, feedback, or business enquiries at hello@getreadyjob.com.',
+          description: 'Get in touch with the GetReadyJob team for support, feedback, or business enquiries at support@drutasystem.com.',
           keywords: 'contact getreadyjob, getreadyjob support, getreadyjob email',
           url: 'https://getreadyjob.com/contact'
         },
@@ -745,7 +754,7 @@
     <main>
       <section aria-label="SSC UPSC Photo Tools">
         <h2>SSC/UPSC Passport Photo Resizer &amp; Name/DOP Strip</h2>
-        <p>Resize your passport photo to exact SSC CGL, CHSL, MTS, UPSC, IBPS, RRB, and JEE/NEET portal requirements. Supported presets: SSC Photo 200×230px 20–50 KB, SSC Signature 140×60px 10–20 KB, UPSC Photo 300×400px max 300 KB, IBPS 200×230px, RRB 200×230px. Add a Name and Date of Photo (DOP) black strip following SSC/UPSC standards — crisp white text, single or two-line layout, 3× export resolution. All processing is 100% local in your browser.</p>
+        <p>Resize your passport photo to exact SSC CGL, CHSL, MTS, UPSC, IBPS, RRB, and JEE/NEET portal requirements. Supported presets: SSC Photo 200×230px 20–50 KB, SSC Signature 140×60px 10–20 KB, UPSC Photo (square) 350×350 to 1000×1000px 20–240 KB, UPSC Signature approx. 350–500px 20–100 KB, IBPS 200×230px, RRB Photo 320×240px 50–100 KB, RRB Signature 140×60px 30–49 KB. Note: SSC CGL/CHSL applications now require the photo to be captured LIVE during the application itself — use this tool for the SSC Signature and other bundle documents. Add a Name and Date of Photo (DOP) black strip following SSC/UPSC standards — crisp white text, single or two-line layout, 3× export resolution. All processing is 100% local in your browser.</p>
       </section>
       <section aria-label="Purpose Watermark Fraud Seal">
         <h2>Purpose Watermark &amp; Fraud-Check Authenticity Seal</h2>
@@ -770,8 +779,8 @@
       <section aria-label="FAQ">
         <h2>Frequently Asked Questions</h2>
         <dl>
-          <dt>How do I resize a passport photo to SSC 200×230px and 50 KB?</dt>
-          <dd>Open the Govt Verifier tool, select the SSC Photo preset, upload your photo, and click Resize &amp; Download. The tool automatically compresses the image to the highest quality within the 50 KB limit — 100% in your browser.</dd>
+          <dt>How do I resize a passport photo to UPSC's square 350×350–1000×1000px, 20–240 KB spec?</dt>
+          <dd>Open the Govt Verifier tool, select the UPSC Photo preset, upload your photo, and click Resize &amp; Download. The tool automatically compresses the image to the highest quality within the KB limit — 100% in your browser. Note: SSC CGL/CHSL applications now require the photo to be captured LIVE during the application itself, so the SSC preset here is best used for the Signature and other bundle documents.</dd>
           <dt>How do I add a Name and DOP strip to a passport photo?</dt>
           <dd>Use the Name/DOP Strip tab in the Govt Verifier tool. Upload your photo, enter your name and date of photo, and download. The SSC/UPSC-standard black strip with white text is rendered at 3× resolution.</dd>
           <dt>How do I add a purpose watermark to a document?</dt>

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:typed_data';
 import 'package:archive/archive.dart';
 import 'package:flutter/material.dart';
@@ -18,6 +17,7 @@ import '../Services/error_message_service.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/file_storage_service.dart';
 import '../Services/ocr_quota_service.dart';
+import '../Services/seo_helper.dart';
 import '../Services/upload_context_service.dart';
 import '../Services/usage_quota_service.dart';
 import '../Services/voice_command_service.dart';
@@ -311,19 +311,20 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
     const url = 'https://getreadyjob.com/convert';
 
     document.title = title;
-    _upsertMetaTag(name: 'description', content: description);
-    _upsertMetaTag(name: 'keywords', content: keywords);
-    _upsertMetaTag(property: 'og:title', content: title);
-    _upsertMetaTag(property: 'og:description', content: description);
-    _upsertMetaTag(property: 'og:url', content: url);
-    _upsertMetaTag(name: 'twitter:title', content: title);
-    _upsertMetaTag(name: 'twitter:description', content: description);
+    SeoHelper.upsertMetaTag(name: 'description', content: description);
+    SeoHelper.upsertMetaTag(name: 'keywords', content: keywords);
+    SeoHelper.upsertMetaTag(property: 'og:title', content: title);
+    SeoHelper.upsertMetaTag(property: 'og:description', content: description);
+    SeoHelper.upsertMetaTag(property: 'og:url', content: url);
+    SeoHelper.upsertMetaTag(name: 'twitter:title', content: title);
+    SeoHelper.upsertMetaTag(name: 'twitter:description', content: description);
 
-    _upsertLinkTag(rel: 'canonical', href: url);
-    _upsertLinkTag(rel: 'alternate', href: url, hreflang: 'x-default');
-    _upsertLinkTag(rel: 'alternate', href: 'https://getreadyjob.com/en-in/convert', hreflang: 'en-in');
+    SeoHelper.upsertLinkTag(rel: 'canonical', href: url);
+    SeoHelper.upsertLinkTag(rel: 'alternate', href: url, hreflang: 'x-default');
+    SeoHelper.upsertLinkTag(rel: 'alternate', href: 'https://getreadyjob.com/en-in/convert', hreflang: 'en-in');
 
-    _upsertJsonLdScript(
+    SeoHelper.upsertJsonLdScript(
+      key: 'converter',
       json: {
         '@context': 'https://schema.org',
         '@type': 'WebApplication',
@@ -347,57 +348,6 @@ class _ConvertToolPageState extends State<ConvertToolPage> {
         },
       },
     );
-  }
-
-  void _upsertMetaTag({String? name, String? property, required String content}) {
-    final selector = name != null
-        ? 'meta[name="$name"]'
-        : 'meta[property="$property"]';
-    final existing = html.document.querySelector(selector);
-    if (existing != null) {
-      existing.setAttribute('content', content);
-      return;
-    }
-
-    final meta = html.MetaElement();
-    if (name != null) {
-      meta.setAttribute('name', name);
-    }
-    if (property != null) {
-      meta.setAttribute('property', property);
-    }
-    meta.setAttribute('content', content);
-    html.document.head!.append(meta);
-  }
-
-  void _upsertLinkTag({required String rel, required String href, String? hreflang}) {
-    final selector = hreflang != null
-        ? 'link[rel="$rel"][hreflang="$hreflang"]'
-        : 'link[rel="$rel"]';
-    final existing = html.document.querySelector(selector);
-    if (existing != null) {
-      existing.setAttribute('href', href);
-      return;
-    }
-
-    final link = html.LinkElement()
-      ..setAttribute('rel', rel)
-      ..setAttribute('href', href);
-    if (hreflang != null) {
-      link.setAttribute('hreflang', hreflang);
-    }
-    html.document.head!.append(link);
-  }
-
-  void _upsertJsonLdScript({required Map<String, dynamic> json}) {
-    final existing = html.document.querySelector('script[data-seo-converter="true"]');
-    existing?.remove();
-
-    final script = html.ScriptElement();
-    script.type = 'application/ld+json';
-    script.setAttribute('data-seo-converter', 'true');
-    script.text = jsonEncode(json);
-    html.document.head!.append(script);
   }
 
   @override

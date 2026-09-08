@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../Services/seo_helper.dart';
 import '../Services/voice_interview_service.dart';
 import '../Services/voice_quota_service.dart';
 import '../Widgets/global_language_banner.dart';
@@ -92,6 +93,12 @@ class _VoiceInterviewPageState extends State<VoiceInterviewPage> with SingleTick
   @override
   void initState() {
     super.initState();
+    SeoHelper.apply(
+      title: 'AI Voice Mock Interview Practice & Preparation Online | GetReadyJob',
+      description: 'Practice real-time voice AI mock interviews with instant scoring and feedback. Prepare for SSC, Banking, IT, and HR job interviews online.',
+      path: '/ai-mock-interview',
+      keywords: 'voice ai interview practice, ai mock interview online free, speech to text interview prep, govt job interview practice, getreadyjob interview',
+    );
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1100),

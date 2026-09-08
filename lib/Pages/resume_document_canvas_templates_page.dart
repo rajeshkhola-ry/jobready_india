@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:universal_html/html.dart' as html;
 
 import '../Services/resume_document_canvas_service.dart';
+import '../Services/seo_helper.dart';
 
 class ResumeDocumentCanvasTemplatesPage extends StatefulWidget {
   const ResumeDocumentCanvasTemplatesPage({super.key});
@@ -16,6 +17,17 @@ class ResumeDocumentCanvasTemplatesPage extends StatefulWidget {
 class _ResumeDocumentCanvasTemplatesPageState extends State<ResumeDocumentCanvasTemplatesPage> {
   bool _busy = false;
   CanvasTemplate? _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    SeoHelper.apply(
+      title: 'Resume & Document Canvas Templates — Editable Design Gallery | GetReadyJob',
+      description: 'Browse and customise editable resume and document canvas templates with a live preview. Free, browser-based design gallery — no signup required.',
+      path: '/canvas-templates',
+      keywords: 'resume canvas template, editable resume design, document template gallery free, resume template preview online',
+    );
+  }
 
   void _downloadBytes(String fileName, Uint8List bytes, {String mime = 'application/octet-stream'}) {
     final blob = html.Blob(<dynamic>[bytes], mime);

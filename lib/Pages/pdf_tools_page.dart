@@ -11,6 +11,7 @@ import '../Widgets/pdf_tool_card.dart';
 import '../Widgets/production_footer.dart';
 import '../Widgets/tool_guidance_panel.dart';
 import '../Services/public_brand_config.dart';
+import '../Services/seo_helper.dart';
 import '../Services/upload_context_service.dart';
 
 /// PDF Tools Page - Central navigation hub for all PDF-related tools
@@ -29,6 +30,12 @@ class _PdfToolsPageState extends State<PdfToolsPage> {
   void initState() {
     super.initState();
     _checkUploadedFiles();
+    SeoHelper.apply(
+      title: 'All-in-One PDF Tools — Convert, Compress, Merge, Split, Edit & OCR Free | GetReadyJob',
+      description: 'Complete free PDF toolkit: convert, compress, merge, split, edit, and OCR scanned PDFs to searchable text — all 100% browser-based with no file upload.',
+      path: '/pdf-tools',
+      keywords: 'free PDF tools online, all in one PDF toolkit, PDF utility suite free, online PDF tools no signup, PDF tools India global',
+    );
   }
 
   void _checkUploadedFiles() {

@@ -1,7 +1,6 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:universal_html/html.dart' as html;
 
+import '../Services/seo_helper.dart';
 import '../Widgets/brand_logo_button.dart';
 import '../Widgets/production_footer.dart';
 
@@ -20,90 +19,30 @@ class _BlogPageState extends State<BlogPage> {
   }
 
   void _applyBlogSeoMetadata() {
-    final document = html.document;
     const title = 'Career Blog India | Resume Tips, ATS Guides & PDF Tools';
     const description = 'Explore practical blog posts for Indian job seekers covering ATS formatting, resume building, PDF conversion, and interview preparation.';
-    const url = 'https://getreadyjob.com/blog';
+    const path = '/blog';
 
-    document.title = title;
-    _upsertMetaTag(name: 'description', content: description);
-    _upsertMetaTag(name: 'keywords', content: 'career blog India, ATS resume tips, PDF to Word India, resume builder blog');
-    _upsertMetaTag(name: 'geo.region', content: 'IN');
-    _upsertMetaTag(property: 'og:title', content: title);
-    _upsertMetaTag(property: 'og:description', content: description);
-    _upsertMetaTag(property: 'og:url', content: url);
-    _upsertMetaTag(name: 'twitter:title', content: title);
-    _upsertMetaTag(name: 'twitter:description', content: description);
-    _upsertLinkTag(rel: 'canonical', href: url);
-    _upsertLinkTag(rel: 'alternate', href: url, hreflang: 'x-default');
-    _upsertLinkTag(rel: 'alternate', href: url, hreflang: 'en-in');
-
-    _upsertJsonLdScript(
-      json: {
+    SeoHelper.apply(
+      title: title,
+      description: description,
+      path: path,
+      keywords: 'career blog India, ATS resume tips, PDF to Word India, resume builder blog',
+      jsonLdKey: 'blog-listing',
+      jsonLd: {
         '@context': 'https://schema.org',
         '@type': 'Blog',
         'name': title,
-        'url': url,
+        'url': '${SeoHelper.baseUrl}$path',
         'description': description,
         'inLanguage': 'en-IN',
         'publisher': {
           '@type': 'Organization',
           'name': 'GET READY JOB',
-          'url': 'https://getreadyjob.com',
+          'url': SeoHelper.baseUrl,
         },
       },
     );
-  }
-
-  void _upsertMetaTag({String? name, String? property, required String content}) {
-    final selector = name != null
-        ? 'meta[name="$name"]'
-        : 'meta[property="$property"]';
-    final existing = html.document.querySelector(selector);
-    if (existing != null) {
-      existing.setAttribute('content', content);
-      return;
-    }
-
-    final meta = html.MetaElement();
-    if (name != null) {
-      meta.setAttribute('name', name);
-    }
-    if (property != null) {
-      meta.setAttribute('property', property);
-    }
-    meta.setAttribute('content', content);
-    html.document.head!.append(meta);
-  }
-
-  void _upsertLinkTag({required String rel, required String href, String? hreflang}) {
-    final selector = hreflang != null
-        ? 'link[rel="$rel"][hreflang="$hreflang"]'
-        : 'link[rel="$rel"]';
-    final existing = html.document.querySelector(selector);
-    if (existing != null) {
-      existing.setAttribute('href', href);
-      return;
-    }
-
-    final link = html.LinkElement()
-      ..setAttribute('rel', rel)
-      ..setAttribute('href', href);
-    if (hreflang != null) {
-      link.setAttribute('hreflang', hreflang);
-    }
-    html.document.head!.append(link);
-  }
-
-  void _upsertJsonLdScript({required Map<String, dynamic> json}) {
-    final existing = html.document.querySelector('script[data-seo-blog-listing="true"]');
-    existing?.remove();
-
-    final script = html.ScriptElement();
-    script.type = 'application/ld+json';
-    script.setAttribute('data-seo-blog-listing', 'true');
-    script.text = jsonEncode(json);
-    html.document.head!.append(script);
   }
 
   @override

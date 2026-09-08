@@ -12,6 +12,7 @@ import '../Services/csv_to_excel_service.dart';
 import '../Services/device_fingerprint_service.dart';
 import '../Services/document_history_service.dart';
 import '../Services/file_picker_service.dart';
+import '../Services/seo_helper.dart';
 import '../Services/upload_context_service.dart';
 import '../Services/usage_quota_service.dart';
 import '../Services/voice_command_service.dart';
@@ -40,6 +41,35 @@ class _CsvToExcelPageState extends State<CsvToExcelPage> {
     super.initState();
     _hydrateFromHomeUpload();
     _applyVoiceCommand();
+    _applySeoMetadata();
+  }
+
+  void _applySeoMetadata() {
+    const title = 'Free CSV to Excel Converter Online | GetReadyJob';
+    const description = 'Convert CSV files into a clean Excel (.xlsx) workbook instantly in your browser — free, no signup, no file upload to any server.';
+    const path = '/csv-to-excel-converter';
+
+    SeoHelper.apply(
+      title: title,
+      description: description,
+      path: path,
+      keywords: 'CSV to Excel converter, convert CSV to xlsx online, free CSV converter, CSV to spreadsheet, csv to excel no upload',
+      jsonLdKey: 'csv-to-excel',
+      jsonLd: {
+        '@context': 'https://schema.org',
+        '@type': ['WebApplication', 'SoftwareApplication'],
+        'name': 'GetReadyJob CSV to Excel Converter',
+        'url': '${SeoHelper.baseUrl}$path',
+        'applicationCategory': ['UtilitiesApplication'],
+        'operatingSystem': 'All (Web, Windows, macOS, Linux, Android, iOS)',
+        'description': description,
+        'offers': {
+          '@type': 'Offer',
+          'price': '0',
+          'priceCurrency': 'USD',
+        },
+      },
+    );
   }
 
   void _applyVoiceCommand() {

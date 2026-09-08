@@ -7,6 +7,7 @@ import 'package:flutter/rendering.dart';
 
 import '../Services/analytics_service.dart';
 import '../Services/file_picker_service.dart';
+import '../Services/seo_helper.dart';
 import '../Services/wasm_document_service.dart';
 
 class FraudSealPage extends StatefulWidget {
@@ -48,6 +49,12 @@ class _FraudSealPageState extends State<FraudSealPage> {
   @override
   void initState() {
     super.initState();
+    SeoHelper.apply(
+      title: 'Purpose Watermark & Fraud-Check Seal | Tamper-Proof Document Tool | GetReadyJob',
+      description: 'Add a tamper-proof purpose watermark (e.g., FOR HDFC BANK ONLY) to any document with a unique authenticity seal. Blur or blackout sensitive financial data. Fully browser-based.',
+      path: '/fraud-seal',
+      keywords: 'purpose watermark PDF online, document fraud protection, tamper-proof document seal, blur account number document, blackout sensitive data online, document watermark India',
+    );
     final now = DateTime.now();
     _sealRef = 'GRJ-${now.millisecondsSinceEpoch.toRadixString(36).toUpperCase().padLeft(8, '0').substring(0, 8)}';
     _sealTimestamp = '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}  '

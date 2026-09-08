@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../Services/api_config.dart';
 import '../Services/app_tools_registry.dart';
 import '../Services/plan_catalog_service.dart';
+import '../Services/seo_helper.dart';
 
 class PlanFeaturesPage extends StatefulWidget {
   const PlanFeaturesPage({super.key});
@@ -15,6 +16,17 @@ class PlanFeaturesPage extends StatefulWidget {
 }
 
 class _PlanFeaturesPageState extends State<PlanFeaturesPage> {
+  @override
+  void initState() {
+    super.initState();
+    SeoHelper.apply(
+      title: 'GetReadyJob Pricing — Plans with GST-Compliant Tax Invoices | Weekly, Monthly, Yearly',
+      description: 'Simple, transparent pricing for GetReadyJob tools with GST-compliant tax invoices, GSTIN billing, and SEZ/LUT support for Indian businesses. Weekly, Monthly, Yearly and Lifetime plans.',
+      path: '/pricing',
+      keywords: 'GetReadyJob pricing, GST compliant invoice India, GSTIN billing tool, SEZ LUT bond invoice, business tax invoice India, document tools subscription price',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

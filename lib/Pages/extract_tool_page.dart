@@ -11,6 +11,7 @@ import '../Services/conversion_service.dart';
 import '../Services/pdf_editor_service.dart';
 import '../Services/pdf_ocr_service.dart';
 import '../Services/file_picker_service.dart';
+import '../Services/seo_helper.dart';
 import '../Services/upload_context_service.dart';
 
 /// Extract Tool Page - Extract text, images, or pages from PDF
@@ -39,6 +40,12 @@ class _ExtractToolPageState extends State<ExtractToolPage> {
   void initState() {
     super.initState();
     _hydrateFromHomeUpload();
+    SeoHelper.apply(
+      title: 'PDF OCR Tool | Convert Scanned PDF to Searchable Text',
+      description: 'Extract text from scanned PDF files and convert image-based documents into searchable, editable text online for free.',
+      path: '/extract',
+      keywords: 'PDF OCR tool, scanned PDF to searchable PDF, OCR online free, extract text from PDF, image to text PDF',
+    );
   }
 
   void _hydrateFromHomeUpload() {

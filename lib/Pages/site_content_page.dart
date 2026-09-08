@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../Services/public_brand_config.dart';
+import '../Services/seo_helper.dart';
 import '../Widgets/brand_logo_button.dart';
 import '../Widgets/production_footer.dart';
 
@@ -14,11 +15,19 @@ class SiteContentSection {
   });
 }
 
-class SiteContentPage extends StatelessWidget {
+class SiteContentPage extends StatefulWidget {
   final String title;
   final String intro;
   final List<SiteContentSection> sections;
   final List<String> highlights;
+
+  /// Optional SEO overrides. When [seoTitle] is provided, this page sets the
+  /// document title/meta description/canonical link on load; when omitted,
+  /// no SEO metadata is applied (matches the previous behaviour for pages
+  /// that don't pass these, e.g. unrouted internal pages).
+  final String? seoTitle;
+  final String? seoDescription;
+  final String? canonicalPath;
 
   const SiteContentPage({
     super.key,
@@ -26,10 +35,37 @@ class SiteContentPage extends StatelessWidget {
     required this.intro,
     required this.sections,
     this.highlights = const [],
+    this.seoTitle,
+    this.seoDescription,
+    this.canonicalPath,
   });
 
   @override
+  State<SiteContentPage> createState() => _SiteContentPageState();
+}
+
+class _SiteContentPageState extends State<SiteContentPage> {
+  @override
+  void initState() {
+    super.initState();
+    final seoTitle = widget.seoTitle;
+    final seoDescription = widget.seoDescription;
+    final canonicalPath = widget.canonicalPath;
+    if (seoTitle != null && seoDescription != null && canonicalPath != null) {
+      SeoHelper.apply(
+        title: seoTitle,
+        description: seoDescription,
+        path: canonicalPath,
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final title = widget.title;
+    final intro = widget.intro;
+    final sections = widget.sections;
+    final highlights = widget.highlights;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFFF8FAFC),

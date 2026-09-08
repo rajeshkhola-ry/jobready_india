@@ -11,6 +11,7 @@ import 'Pages/blog_detail_page.dart';
 import 'Pages/coming_soon_page.dart';
 import 'Pages/contact_page.dart';
 import 'Pages/cookie_policy_page.dart';
+import 'Pages/csv_to_excel_page.dart' deferred as csvToExcelPage;
 import 'Pages/disclaimer_page.dart';
 import 'Pages/faq_page.dart';
 import 'Pages/home_page_v1_1.dart';
@@ -341,6 +342,12 @@ class JobReadyV11App extends StatelessWidget {
             await govtVerifierPage.loadLibrary();
           },
           builder: () => govtVerifierPage.GovtVerifierPage(),
+        ),
+        '/csv-to-excel-converter': (_) => DeferredRoutePage(
+          loader: () async {
+            await csvToExcelPage.loadLibrary();
+          },
+          builder: () => csvToExcelPage.CsvToExcelPage(),
         ),
         '/fraud-seal': (_) => DeferredRoutePage(
           loader: () async {

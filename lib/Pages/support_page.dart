@@ -11,6 +11,9 @@ class SupportPage extends StatelessWidget {
     return SiteContentPage(
       title: 'Support',
       intro: 'Support is available for product questions, workflow issues, and user guidance. This page is the public-facing baseline for the growing GETREADYJOB support experience.',
+      seoTitle: 'GetReadyJob Support Centre',
+      seoDescription: 'Get help using GetReadyJob free document, photo, and career preparation tools, or reach our support team directly.',
+      canonicalPath: '/support',
       highlights: const ['Help', 'Workflow Issues', 'Product Questions', 'Support Email'],
       sections: [
         SiteContentSection(

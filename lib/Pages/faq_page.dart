@@ -10,6 +10,9 @@ class FaqPage extends StatelessWidget {
     return const SiteContentPage(
       title: 'FAQ',
       intro: 'Common questions about files, supported formats, privacy, quality, and future product direction.',
+      seoTitle: 'GetReadyJob FAQ — Frequently Asked Questions',
+      seoDescription: 'Find answers to common questions about GetReadyJob free document, photo, and career preparation tools.',
+      canonicalPath: '/faq',
       highlights: ['Files', 'Privacy', 'Formats', 'Pricing'],
       sections: [
         SiteContentSection(

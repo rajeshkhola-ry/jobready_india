@@ -10,6 +10,7 @@ import '../../../Services/file_picker_service.dart';
 import '../../../Services/free_trial_service.dart';
 import '../../../Services/photo_resize_service.dart';
 import '../../../Services/remote_photo_render_service.dart';
+import '../../../Services/seo_helper.dart';
 import '../../../Services/upload_context_service.dart';
 import '../../../Services/wasm_document_service.dart';
 import '../../../Utils/tool_navigation.dart';
@@ -79,6 +80,19 @@ class _PhotoHdWorkspacePageState extends State<PhotoHdWorkspacePage> {
       _selectedAspectPreset = 'poster';
       _maxTargetKb = _posterTargetRange.defaultValue;
       _statusMessage = 'Upload an image to start your poster or banner layout.';
+      SeoHelper.apply(
+        title: 'Poster Studio — Print-Ready A2/A3 Posters from Your Photos | GetReadyJob',
+        description: 'Turn any photo into a print-ready A2/A3/A4 poster with HD upscaling and Hindi/Devanagari font support. 100% browser-based, free to start.',
+        path: '/poster-workspace',
+        keywords: 'photo to poster online, A2 A3 poster maker, print ready poster from photo, HD poster upscaler free, Hindi poster from photo',
+      );
+    } else {
+      SeoHelper.apply(
+        title: 'HD Photo Converter, Social Media Resizer & Poster Studio | GetReadyJob',
+        description: 'Upscale photos to 4K HD, resize for Instagram/YouTube/LinkedIn, generate A2/A3 poster sizes. Includes Hindi/Devanagari font support for posters. 100% browser-based.',
+        path: '/photo-hd',
+        keywords: 'HD photo converter, Instagram photo resize, YouTube thumbnail size, LinkedIn banner resize, passport photo resize, poster generator A2 A3, Devanagari poster maker',
+      );
     }
     _hydrateFromUploadContext();
     if (kIsWeb) {

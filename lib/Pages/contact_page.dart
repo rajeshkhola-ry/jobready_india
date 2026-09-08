@@ -11,6 +11,9 @@ class ContactPage extends StatelessWidget {
     return SiteContentPage(
       title: 'Contact',
       intro: 'For product questions, support requests, partnership inquiries, and legal communication, please use the official business contact below.',
+      seoTitle: 'Contact GetReadyJob — Support & Enquiries',
+      seoDescription: 'Get in touch with the GetReadyJob team for support, feedback, or business enquiries at ${PublicBrandConfig.supportEmail}.',
+      canonicalPath: '/contact',
       highlights: const ['Support', 'Business', 'Partnerships', 'Product Feedback'],
       sections: [
         SiteContentSection(

@@ -1,10 +1,26 @@
 import 'package:flutter/material.dart';
 
+import '../Services/seo_helper.dart';
 import '../Widgets/brand_logo_button.dart';
 import '../Widgets/production_footer.dart';
 
-class TermsConditionsPage extends StatelessWidget {
+class TermsConditionsPage extends StatefulWidget {
   const TermsConditionsPage({super.key});
+
+  @override
+  State<TermsConditionsPage> createState() => _TermsConditionsPageState();
+}
+
+class _TermsConditionsPageState extends State<TermsConditionsPage> {
+  @override
+  void initState() {
+    super.initState();
+    SeoHelper.apply(
+      title: 'Terms & Conditions | GetReadyJob',
+      description: 'Read the terms and conditions for using GetReadyJob free and paid document, photo, and career preparation tools.',
+      path: '/terms',
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -126,7 +142,7 @@ class TermsConditionsPage extends StatelessWidget {
                   ),
                   const _Section(
                     title: '10. Contact Information',
-                    body: 'For legal and support matters, please contact: hello@getreadyjob.com',
+                    body: 'For legal and support matters, please contact: support@drutasystem.com',
                   ),
                   const SizedBox(height: 16),
                   const Text(

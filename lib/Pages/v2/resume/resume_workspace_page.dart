@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:universal_html/html.dart' as html;
 import '../../../Services/resume_pdf_export.dart';
+import '../../../Services/seo_helper.dart';
 
 class ResumeWorkspacePage extends StatefulWidget {
   const ResumeWorkspacePage({super.key});
@@ -24,6 +25,12 @@ class _ResumeWorkspacePageState extends State<ResumeWorkspacePage> {
     _nameController.addListener(_refresh);
     _titleController.addListener(_refresh);
     _summaryController.addListener(_refresh);
+    SeoHelper.apply(
+      title: 'Free AI Resume Builder | 18+ ATS-Friendly Resume Templates',
+      description: 'Build ATS-compliant US resumes and EU Europass CVs in minutes with AI-guided content and 18+ modern templates. Download free PDF instantly.',
+      path: '/resume',
+      keywords: 'US resume builder, Europass CV builder, ATS resume templates, professional resume maker, free resume PDF',
+    );
   }
 
   void _refresh() => setState(() {});

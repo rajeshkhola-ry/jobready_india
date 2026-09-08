@@ -10,6 +10,9 @@ class PrivacyPolicyPage extends StatelessWidget {
     return const SiteContentPage(
       title: 'Privacy Policy',
       intro: 'This privacy policy explains the current privacy direction of GETREADYJOB and will continue to be refined as the product matures.',
+      seoTitle: 'Privacy Policy | GetReadyJob',
+      seoDescription: 'Read the GetReadyJob privacy policy covering our 100% client-side, browser-based document and photo tools that never upload your files.',
+      canonicalPath: '/privacy',
       highlights: ['Privacy First', 'File Handling', 'Support', 'Transparency'],
       sections: [
         SiteContentSection(

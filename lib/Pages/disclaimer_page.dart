@@ -10,6 +10,9 @@ class DisclaimerPage extends StatelessWidget {
     return const SiteContentPage(
       title: 'Disclaimer',
       intro: 'This disclaimer clarifies the current boundaries of GETREADYJOB services, outputs, and support scope.',
+      seoTitle: 'Disclaimer | GetReadyJob',
+      seoDescription: 'Read the GetReadyJob disclaimer covering tool accuracy, third-party links, and use of generated documents.',
+      canonicalPath: '/disclaimer',
       highlights: ['General Use', 'No Legal Advice', 'No Employment Guarantee', 'User Responsibility'],
       sections: [
         SiteContentSection(
