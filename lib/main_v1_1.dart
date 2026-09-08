@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 
 import 'Pages/about_page.dart';
 import 'Pages/admin_dashboard_page.dart';
@@ -44,6 +45,8 @@ import 'Pages/voice_interview_page.dart' deferred as voiceInterviewPage;
 import 'Widgets/deferred_route_page.dart';
 
 void main() {
+  usePathUrlStrategy();
+
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
     debugPrint('FlutterError: ${details.exception}\n${details.stack}');
@@ -88,141 +91,7 @@ class JobReadyV11App extends StatelessWidget {
       );
     }
 
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'GETREADYJOB V1.1',
-      theme: ThemeData(
-        useMaterial3: true,
-        fontFamily: 'Trebuchet MS',
-        scaffoldBackgroundColor: const Color(0xFFF4F7FB),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF123A63),
-          primary: const Color(0xFF123A63),
-          secondary: const Color(0xFF1E6A74),
-          surface: const Color(0xFFF7FAFD),
-          onSurface: const Color(0xFF0F172A),
-        ),
-        textTheme: const TextTheme(
-          displayLarge: TextStyle(
-            fontSize: 34,
-            fontWeight: FontWeight.w800,
-            height: 1.1,
-            letterSpacing: -0.03,
-            color: Color(0xFF0F172A),
-          ),
-          headlineMedium: TextStyle(
-            fontSize: 25,
-            fontWeight: FontWeight.w800,
-            height: 1.16,
-            letterSpacing: -0.02,
-            color: Color(0xFF0F172A),
-          ),
-          titleMedium: TextStyle(
-            fontSize: 16.5,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF0F172A),
-          ),
-          bodyLarge: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            height: 1.58,
-            color: Color(0xFF334155),
-          ),
-          bodyMedium: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            height: 1.58,
-            color: Color(0xFF516175),
-          ),
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFFF7FAFD),
-          foregroundColor: Color(0xFF0F172A),
-          elevation: 0,
-          surfaceTintColor: Colors.transparent,
-          titleTextStyle: TextStyle(
-            color: Color(0xFF0F172A),
-            fontSize: 18.5,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.35,
-          ),
-          iconTheme: IconThemeData(color: Color(0xFF334155)),
-        ),
-        cardTheme: CardThemeData(
-          elevation: 0,
-          color: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(22),
-            side: const BorderSide(color: Color(0xFFDCE6F2), width: 1),
-          ),
-          margin: EdgeInsets.zero,
-        ),
-        dialogTheme: const DialogThemeData(
-          backgroundColor: Color(0xFFF8FAFC),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(24)),
-          ),
-        ),
-        chipTheme: ChipThemeData(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(999),
-          ),
-          side: const BorderSide(color: Color(0xFFE2E8F0)),
-          showCheckmark: false,
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: const Color(0xFFF8FBFF),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Color(0xFFD7E3F1)),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Color(0xFFD7E3F1)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Color(0xFF123A63), width: 1.4),
-          ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF123A63),
-            foregroundColor: Colors.white,
-            elevation: 1,
-            shadowColor: const Color(0xFF123A63),
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          ),
-        ),
-        filledButtonTheme: FilledButtonThemeData(
-          style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFF123A63),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          ),
-        ),
-        textButtonTheme: TextButtonThemeData(
-          style: TextButton.styleFrom(
-            foregroundColor: const Color(0xFF123A63),
-            textStyle: const TextStyle(fontWeight: FontWeight.w700),
-          ),
-        ),
-        outlinedButtonTheme: OutlinedButtonThemeData(
-          style: OutlinedButton.styleFrom(
-            foregroundColor: const Color(0xFF123A63),
-            side: const BorderSide(color: Color(0xFFD0DCEC)),
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            backgroundColor: const Color(0xFFFDFEFF),
-          ),
-        ),
-      ),
-      initialRoute: '/',
-      routes: {
+    final routeTable = <String, WidgetBuilder>{
         '/': (_) => const HomePageV11(),
         '/home': (_) => const HomePageV11(),
         '/about': (_) => const AboutPage(),
@@ -379,6 +248,157 @@ class JobReadyV11App extends StatelessWidget {
         '/coming-soon': (_) => const ComingSoonPage(),
         '/system-check': (_) => const SystemCheckPage(),
         '/dashboard': (_) => const UserDashboardPage(),
+    };
+
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'GETREADYJOB V1.1',
+      theme: ThemeData(
+        useMaterial3: true,
+        fontFamily: 'Trebuchet MS',
+        scaffoldBackgroundColor: const Color(0xFFF4F7FB),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF123A63),
+          primary: const Color(0xFF123A63),
+          secondary: const Color(0xFF1E6A74),
+          surface: const Color(0xFFF7FAFD),
+          onSurface: const Color(0xFF0F172A),
+        ),
+        textTheme: const TextTheme(
+          displayLarge: TextStyle(
+            fontSize: 34,
+            fontWeight: FontWeight.w800,
+            height: 1.1,
+            letterSpacing: -0.03,
+            color: Color(0xFF0F172A),
+          ),
+          headlineMedium: TextStyle(
+            fontSize: 25,
+            fontWeight: FontWeight.w800,
+            height: 1.16,
+            letterSpacing: -0.02,
+            color: Color(0xFF0F172A),
+          ),
+          titleMedium: TextStyle(
+            fontSize: 16.5,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF0F172A),
+          ),
+          bodyLarge: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            height: 1.58,
+            color: Color(0xFF334155),
+          ),
+          bodyMedium: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            height: 1.58,
+            color: Color(0xFF516175),
+          ),
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFFF7FAFD),
+          foregroundColor: Color(0xFF0F172A),
+          elevation: 0,
+          surfaceTintColor: Colors.transparent,
+          titleTextStyle: TextStyle(
+            color: Color(0xFF0F172A),
+            fontSize: 18.5,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.35,
+          ),
+          iconTheme: IconThemeData(color: Color(0xFF334155)),
+        ),
+        cardTheme: CardThemeData(
+          elevation: 0,
+          color: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+            side: const BorderSide(color: Color(0xFFDCE6F2), width: 1),
+          ),
+          margin: EdgeInsets.zero,
+        ),
+        dialogTheme: const DialogThemeData(
+          backgroundColor: Color(0xFFF8FAFC),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(24)),
+          ),
+        ),
+        chipTheme: ChipThemeData(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(999),
+          ),
+          side: const BorderSide(color: Color(0xFFE2E8F0)),
+          showCheckmark: false,
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFFF8FBFF),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: Color(0xFFD7E3F1)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: Color(0xFFD7E3F1)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: Color(0xFF123A63), width: 1.4),
+          ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF123A63),
+            foregroundColor: Colors.white,
+            elevation: 1,
+            shadowColor: const Color(0xFF123A63),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          ),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: const Color(0xFF123A63),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          ),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            foregroundColor: const Color(0xFF123A63),
+            textStyle: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: const Color(0xFF123A63),
+            side: const BorderSide(color: Color(0xFFD0DCEC)),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            backgroundColor: const Color(0xFFFDFEFF),
+          ),
+        ),
+      ),
+      routes: routeTable,
+      onGenerateInitialRoutes: (String initialRouteName) {
+        // Avoid Navigator.defaultGenerateInitialRoutes' behavior of always
+        // constructing the '/' (Home) route first in the background for any
+        // deep-linked initial route: that silently mounts HomePageV11 (running
+        // its side effects, including its own document.title update) even
+        // when the user never sees it, racing with the real target page's SEO
+        // metadata. Build only the actually-requested route instead.
+        final normalized = initialRouteName.isEmpty ? '/' : initialRouteName;
+        final builder = routeTable[normalized];
+        return <Route<dynamic>>[
+          MaterialPageRoute<void>(
+            builder: builder ?? routeTable['/']!,
+            settings: RouteSettings(name: builder != null ? normalized : '/'),
+          ),
+        ];
       },
       onUnknownRoute: (_) => MaterialPageRoute<void>(
         builder: (_) => const HomePageV11(),
