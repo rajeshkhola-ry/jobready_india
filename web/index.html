@@ -731,10 +731,11 @@
     window.addEventListener('popstate', grjTrackPageView);
   </script>
 
-  <!-- Cloudflare Web Analytics — cookie-less, no PII, aggregated only, SPA-aware.
-       SETUP: Replace YOUR_CF_BEACON_TOKEN with your token from dash.cloudflare.com → Web Analytics → Sites. -->
-  <script defer src="https://static.cloudflareinsights.com/beacon.min.js"
-    data-cf-beacon='{"token":"YOUR_CF_BEACON_TOKEN","spa":true}'></script>
+  <!-- Cloudflare Web Analytics removed: the beacon token was never set (still the
+       "YOUR_CF_BEACON_TOKEN" placeholder), so this script has only ever fired a
+       failing request on every page load. GA4 + Microsoft Clarity below already
+       cover analytics, so this is not re-added — if real Cloudflare Web Analytics
+       is wanted later, get a token from dash.cloudflare.com → Web Analytics → Sites. -->
 
 <!-- Microsoft Clarity -->
 <script type="text/javascript">

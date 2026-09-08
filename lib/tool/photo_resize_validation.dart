@@ -31,6 +31,10 @@ Future<void> main() async {
         fileName: 'public_portrait_sample.jpg',
         preset: preset,
         enableHdMode: hd,
+        dpi: PhotoResizeService.dpiOptions.first,
+        backgroundColor: PhotoResizeService.backgroundOptions.first,
+        maxTargetKb: 300,
+        aspectPresetId: preset.id,
       );
 
       final outFile = File('${outputDir.path}/${result.outputFileName}');

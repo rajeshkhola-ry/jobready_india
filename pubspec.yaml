@@ -82,6 +82,18 @@ flutter:
     - lib/public/assets/logo-gold.svg
     - lib/public/assets/logo-gold-transparent.svg
 
+  # Bundled so Devanagari (Hindi) text renders correctly - the app's base
+  # font ('Segoe UI') has no Devanagari glyphs, and Flutter web's CanvasKit
+  # renderer draws text via its own Skia font manager, not the browser's CSS
+  # engine, so a webfont linked from index.html would not be picked up here;
+  # it has to be a real bundled font asset like this one.
+  fonts:
+    - family: Noto Sans Devanagari
+      fonts:
+        - asset: assets/fonts/NotoSansDevanagari-Regular.ttf
+        - asset: assets/fonts/NotoSansDevanagari-Bold.ttf
+          weight: 700
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

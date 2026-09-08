@@ -878,7 +878,9 @@ class ResumeTemplateGallery {
       pageFormat: pdf.PdfPageFormat.a4,
       margin: const pw.EdgeInsets.symmetric(horizontal: 58, vertical: 52),
       build: (context) => [
-        pw.Text(f.fullName.trim().toUpperCase(), style: const pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, letterSpacing: 1.3)),
+        // pw.TextStyle's const constructor cannot fold `fontWeight`/`fontStyle`
+        // comparisons at compile time (package:pdf 3.11.1) - not const here.
+        pw.Text(f.fullName.trim().toUpperCase(), style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, letterSpacing: 1.3)),
         if (f.targetRole.trim().isNotEmpty)
           pw.Padding(
             padding: const pw.EdgeInsets.only(top: 3),

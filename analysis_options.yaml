@@ -20,6 +20,13 @@ analyzer:
     - lib/backups/**
     - lib/V2_BACKUP/**
     - lib/V2_WORKING/**
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
 
 linter:
   # The lint rules applied to this project can be customized in the

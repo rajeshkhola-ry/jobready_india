@@ -11,6 +11,10 @@ import '../Services/owner_admin_access_service.dart';
 import '../Utils/web_safe_browser.dart';
 import '../Services/plan_catalog_service.dart';
 import '../Widgets/brand_logo_button.dart';
+import 'compression_benchmark_page.dart';
+import 'launch_readiness_page.dart';
+import 'launch_runbook_page.dart';
+import 'post_launch_control_page.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   const AdminDashboardPage({super.key});
@@ -564,6 +568,30 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                       description: 'Enable the builder and set the default resume experience.',
                       icon: Icons.article_outlined,
                       onTap: () => _openResumeDialog(context),
+                    ),
+                    _AdminCard(
+                      title: 'Compression benchmark',
+                      description: 'Internal tool: review PDF/image compression benchmark history.',
+                      icon: Icons.speed_outlined,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CompressionBenchmarkPage())),
+                    ),
+                    _AdminCard(
+                      title: 'Launch readiness',
+                      description: 'Internal tool: launch readiness checklist and status.',
+                      icon: Icons.fact_check_outlined,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LaunchReadinessPage())),
+                    ),
+                    _AdminCard(
+                      title: 'Launch runbook',
+                      description: 'Internal tool: operational runbook for launches and incidents.',
+                      icon: Icons.menu_book_outlined,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LaunchRunbookPage())),
+                    ),
+                    _AdminCard(
+                      title: 'Post-launch control',
+                      description: 'Internal tool: post-launch monitoring and controls.',
+                      icon: Icons.rocket_launch_outlined,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PostLaunchControlPage())),
                     ),
                   ],
                 ),

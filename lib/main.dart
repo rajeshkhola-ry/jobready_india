@@ -62,6 +62,12 @@ title: 'GETREADYJOB',
 theme: ThemeData(
   useMaterial3: true,
   fontFamily: 'Segoe UI',
+  // 'Segoe UI' has no Devanagari glyphs, so any Hindi/Devanagari text on the
+  // site was rendering as missing-glyph boxes with a console warning. The
+  // bundled 'Noto Sans Devanagari' font (see pubspec.yaml -> flutter -> fonts)
+  // covers it - this fallback list tells the engine to use it for any
+  // character 'Segoe UI' can't cover, instead of silently dropping the glyph.
+  fontFamilyFallback: const <String>['Noto Sans Devanagari'],
   scaffoldBackgroundColor: const Color(0xFFF8FAFC),
   colorScheme: ColorScheme.fromSeed(
     seedColor: const Color(0xFF2563EB),

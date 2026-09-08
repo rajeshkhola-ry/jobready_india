@@ -5,7 +5,7 @@ import 'package:image/image.dart' as img;
 
 import '../lib/Services/photo_resize_service.dart';
 
-void main() {
+Future<void> main() async {
   final samplePath = 'test_assets/photo_samples/public_portrait_sample.jpg';
   final sampleFile = File(samplePath);
 
@@ -26,11 +26,15 @@ void main() {
   final checks = <Map<String, Object?>>[];
   for (final preset in PhotoResizeService.presets) {
     for (final hd in [false, true]) {
-      final result = service.upscalePhoto(
+      final result = await service.upscalePhoto(
         bytes: bytes,
         fileName: 'public_portrait_sample.jpg',
         preset: preset,
         enableHdMode: hd,
+        dpi: PhotoResizeService.dpiOptions.first,
+        backgroundColor: PhotoResizeService.backgroundOptions.first,
+        maxTargetKb: 300,
+        aspectPresetId: preset.id,
       );
 
       final outFile = File('${outputDir.path}/${result.outputFileName}');
