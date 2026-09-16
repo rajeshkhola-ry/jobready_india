@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:universal_html/html.dart' as html;
 
 import '../Services/api_config.dart';
+import '../Services/india_gst_engine.dart';
 import '../Services/razorpay_service.dart';
 import '../Services/user_account_service.dart';
 import '../Services/user_auth_service.dart';
@@ -101,6 +102,8 @@ class CheckoutPage extends StatefulWidget {
   final double monthlyAmount;
   final double yearlyAmount;
   final double lifetimePlanAmount;
+  final Map<String, double> amountsInr;
+  final Map<String, double> amountsUsd;
 
   const CheckoutPage({
     super.key,
@@ -114,6 +117,8 @@ class CheckoutPage extends StatefulWidget {
     required this.monthlyAmount,
     required this.yearlyAmount,
     required this.lifetimePlanAmount,
+    this.amountsInr = const <String, double>{},
+    this.amountsUsd = const <String, double>{},
   });
 
   @override
@@ -134,6 +139,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   List<Map<String, dynamic>> _availableOffers = <Map<String, dynamic>>[];
   Map<String, dynamic>? _appliedPromo;
   String? _promoMessage;
+  String? _selectedOfferCode;
   bool _promoMessageIsError = false;
   bool _promoValidating = false;
 
@@ -274,28 +280,36 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return UserAuthService.isSignedIn;
   }
 
-  double _monthlyForPlan(String plan) {
-    if (plan == 'Monthly') return widget.monthlyAmount;
-    if (plan == 'Yearly') return widget.yearlyAmount / 12;
-    return 0;
-  }
+  // Re-derives the amount for the CURRENTLY selected _localCurrency instead
+  // of trusting the widget's fixed single-currency fields - fixes the bug
+  // where switching the currency dropdown only changed the symbol, not the
+  // actual price shown/charged.
+  Map<String, double> get _currentCurrencyAmounts =>
+      _localCurrency == 'INR' ? widget.amountsInr : widget.amountsUsd;
 
-  bool _isSubscriptionPlan(String plan) {
-    return plan == 'Monthly' || plan == 'Yearly';
+  double get _currentSevenDayAmount => _currentCurrencyAmounts['7Days'] ?? widget.sevenDayAmount;
+  double get _currentMonthlyAmount => _currentCurrencyAmounts['Monthly'] ?? widget.monthlyAmount;
+  double get _currentYearlyAmount => _currentCurrencyAmounts['Yearly'] ?? widget.yearlyAmount;
+  double get _currentLifetimePlanAmount => _currentCurrencyAmounts['Lifetime'] ?? widget.lifetimePlanAmount;
+
+  double _monthlyForPlan(String plan) {
+    if (plan == 'Monthly') return _currentMonthlyAmount;
+    if (plan == 'Yearly') return _currentYearlyAmount / 12;
+    return 0;
   }
 
   double _chargeAmountForPlan(String plan) {
     if (plan == '7Days') {
-      return widget.sevenDayAmount;
+      return _currentSevenDayAmount;
     }
     if (plan == 'Lifetime') {
-      return widget.lifetimePlanAmount;
+      return _currentLifetimePlanAmount;
     }
     if (plan == 'Yearly') {
-      return widget.yearlyAmount;
+      return _currentYearlyAmount;
     }
     if (plan == 'Monthly') {
-      return widget.monthlyAmount;
+      return _currentMonthlyAmount;
     }
     return 0;
   }
@@ -438,11 +452,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
       error,
       fallback: 'Payment request failed before checkout opened. Please refresh and try again.',
     );
-    if (raw.contains('HTTP 404') || raw.contains('Unable to reach payment API')) {
-      return 'Payment service endpoint is not reachable for $path. Please retry in 1 minute.';
+    if (raw.contains('HTTP 404')) {
+      return 'Payment setup issue on our end for $path. Retrying will not fix this - please contact support.';
+    }
+    if (raw.contains('Unable to reach payment API')) {
+      return 'Could not reach the payment service for $path. Please check your connection and retry in 1 minute.';
     }
     if (raw.contains('returned HTML instead of JSON') || raw.contains('returned non-JSON response')) {
-      return 'Payment service endpoint is not reachable for $path. Please retry in 1 minute.';
+      return 'Payment service returned an unexpected response for $path. Please contact support if this keeps happening.';
     }
     if (raw.contains('Recurring digits in customer contact are disallowed')) {
       return 'Please update your mobile number in account profile and try payment again.';
@@ -989,6 +1006,18 @@ class _CheckoutPageState extends State<CheckoutPage> {
         return;
       }
 
+      final gstinForValidation = _checkoutGstinController.text.trim().toUpperCase();
+      final isBusinessCheckout = widget.usageType == 'Business';
+      if (isBusinessCheckout && gstinForValidation.isNotEmpty && !IndiaGstEngine.isValidGstin(gstinForValidation)) {
+        setState(() { _submitting = false; });
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please enter a valid GSTIN (checksum did not match). Leave it blank to skip the tax invoice.')),
+          );
+        }
+        return;
+      }
+
       final billing = _buildBillingPayload();
       billingForFallback = billing;
       final keyResponse = await _requestJsonWithFallback('GET', '/api/config');
@@ -1293,15 +1322,22 @@ class _CheckoutPageState extends State<CheckoutPage> {
               value: _isSezUnit,
               onChanged: (value) => setState(() => _isSezUnit = value ?? false),
               controlAffinity: ListTileControlAffinity.leading,
-              contentPadding: EdgeInsets.zero,
-              dense: true,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
               activeColor: const Color(0xFF1E3A8A),
               title: const Text(
-                'Is this an SEZ unit / developer? (18% IGST applies; claim refund/ITC with tax invoice)',
+                'Is this an SEZ unit / developer?',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF1E3A8A),
+                ),
+              ),
+              subtitle: const Text(
+                'SEZ = Special Economic Zone business. Most users should leave this unchecked. Checking it applies 18% IGST and lets you claim a refund/ITC with your tax invoice.',
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF475569),
                 ),
               ),
             ),
@@ -1319,15 +1355,29 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final discount = _discountAmountForPlan(_selectedPlan);
     final discountedAmount = _discountedAmountForPlan(_selectedPlan);
     final hasDiscount = _appliedPromo != null && discount > 0;
-    final billingCountry = UserAccountService.getProfile().country.trim();
+    final checkoutProfile = UserAccountService.getProfile();
+    final billingCountry = checkoutProfile.country.trim();
     final isExportSupply = billingCountry.isNotEmpty && billingCountry.toLowerCase() != 'india';
-    final taxLine = isExportSupply
-        ? 'Tax: Export of Services (0% GST) - zero-rated supply, no GST charged.'
-        : (_isSezUnit
-            ? 'Tax: 18% IGST (SEZ with Payment of IGST) - included in the amount above.'
-            : 'Tax: 18% GST included in the amount above.');
-    final recalculatedGstLine = (!isExportSupply && hasDiscount)
-        ? 'Recalculated after discount: Base ${_formatCurrencyAmount(discountedAmount / 1.18, _localCurrency)} + GST ${_formatCurrencyAmount(discountedAmount - (discountedAmount / 1.18), _localCurrency)} = ${_formatCurrencyAmount(discountedAmount, _localCurrency)} payable.'
+    final checkoutCustomerState = checkoutProfile.billingState.trim().isNotEmpty ? checkoutProfile.billingState.trim() : null;
+    final gstBreakdown = GstCalculator.compute(
+      amountInclusive: amount,
+      customerStateName: checkoutCustomerState,
+      isExportSupply: isExportSupply,
+      isSezUnit: _isSezUnit,
+    );
+    final taxLine = gstBreakdown.summaryLine;
+    final gstBreakdownForDiscount = (!isExportSupply && hasDiscount)
+        ? GstCalculator.compute(
+            amountInclusive: discountedAmount,
+            customerStateName: checkoutCustomerState,
+            isExportSupply: false,
+            isSezUnit: _isSezUnit,
+          )
+        : null;
+    final recalculatedGstLine = gstBreakdownForDiscount != null
+        ? (gstBreakdownForDiscount.taxType == GstTaxType.intraState
+            ? 'Recalculated after discount: Base ${_formatCurrencyAmount(gstBreakdownForDiscount.baseAmount, _localCurrency)} + CGST ${_formatCurrencyAmount(gstBreakdownForDiscount.cgst, _localCurrency)} + SGST ${_formatCurrencyAmount(gstBreakdownForDiscount.sgst, _localCurrency)} = ${_formatCurrencyAmount(gstBreakdownForDiscount.totalAmount, _localCurrency)} payable.'
+            : 'Recalculated after discount: Base ${_formatCurrencyAmount(gstBreakdownForDiscount.baseAmount, _localCurrency)} + GST ${_formatCurrencyAmount(gstBreakdownForDiscount.totalTax, _localCurrency)} = ${_formatCurrencyAmount(gstBreakdownForDiscount.totalAmount, _localCurrency)} payable.')
         : null;
 
     return Container(
@@ -1382,13 +1432,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
               textBaseline: TextBaseline.alphabetic,
               children: [
                 Text(
-                  'Plan: ${_selectedPlan} | Usage: ${widget.usageType ?? 'NOT SELECTED'}',
+                  '$_selectedPlan plan${(widget.usageType != null && widget.usageType!.trim().isNotEmpty) ? " - ${widget.usageType}" : ""}',
                   style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
                 ),
               ],
             ),
             const SizedBox(height: 4),
-            Row(
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Text(
                   _formatCurrencyAmount(amount, _localCurrency),
@@ -1399,12 +1452,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     decoration: TextDecoration.lineThrough,
                   ),
                 ),
-                const SizedBox(width: 6),
                 Text(
                   '- ${_formatCurrencyAmount(discount, _localCurrency)}',
                   style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF16A34A)),
                 ),
-                const SizedBox(width: 6),
                 Text(
                   '= ${_formatCurrencyAmount(discountedAmount, _localCurrency)}',
                   style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
@@ -1413,7 +1464,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
             ),
           ] else
             Text(
-              'Plan: ${_selectedPlan} | Amount: ${_formatCurrencyAmount(amount, _localCurrency)} | Usage: ${widget.usageType ?? 'NOT SELECTED'}',
+              '$_selectedPlan plan${(widget.usageType != null && widget.usageType!.trim().isNotEmpty) ? " - ${widget.usageType}" : ""} - ${_formatCurrencyAmount(amount, _localCurrency)}',
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
             ),
           const SizedBox(height: 4),
@@ -1434,14 +1485,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
           ],
           const SizedBox(height: 4),
           Text(
-            'Gateway display: ${_resolvedGatewayName().toUpperCase()} | Currency mode: ${readiness['currency_mode']?.toString() ?? 'n/a'}',
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
-          ),
-          const SizedBox(height: 4),
-          Text(
             status == 'ready_for_integration'
-                ? 'Secure flow: create order, open Razorpay, then verify payment.'
-                : 'Resolve configuration notes above before attempting checkout.',
+                ? 'Payments are secured by Razorpay.'
+                : 'Please complete the details above before proceeding to payment.',
             style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
           ),
         ],
@@ -1473,7 +1519,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
           if (hasOffers) ...[
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: null,
+              value: _selectedOfferCode,
               isExpanded: true,
               hint: const Text('Available offers', style: TextStyle(fontSize: 12.5)),
               decoration: InputDecoration(
@@ -1497,6 +1543,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   .toList(growable: false),
               onChanged: (value) {
                 if (value != null) {
+                  setState(() => _selectedOfferCode = value);
                   _promoCodeController.text = value;
                   _applyPromoCode(value);
                 }
@@ -1634,9 +1681,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
               plan: widget.planId,
               amount: widget.amount,
               currencyCode: widget.currency,
-              monthlyAmount: widget.monthlyAmount,
-              yearlyAmount: widget.yearlyAmount,
-              lifetimePlanAmount: widget.lifetimePlanAmount,
+              monthlyAmount: _currentMonthlyAmount,
+              yearlyAmount: _currentYearlyAmount,
+              lifetimePlanAmount: _currentLifetimePlanAmount,
             ),
             style: const TextStyle(
               color: Colors.white,
@@ -1728,6 +1775,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
               if (value != null) {
                 setState(() {
                   _localCurrency = value;
+                  _lastCheckoutResponse = null;
+                  _appliedPromo = null;
+                  _promoMessage = null;
                 });
               }
             },
@@ -1757,11 +1807,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 child: Text(
                   buildPlanDisplayLabel(
                     plan: '7Days',
-                    amount: widget.sevenDayAmount,
+                    amount: _currentSevenDayAmount,
                     currencyCode: _localCurrency,
-                    monthlyAmount: widget.monthlyAmount,
-                    yearlyAmount: widget.yearlyAmount,
-                    lifetimePlanAmount: widget.lifetimePlanAmount,
+                    monthlyAmount: _currentMonthlyAmount,
+                    yearlyAmount: _currentYearlyAmount,
+                    lifetimePlanAmount: _currentLifetimePlanAmount,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -1772,11 +1822,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 child: Text(
                   buildPlanDisplayLabel(
                     plan: 'Monthly',
-                    amount: widget.monthlyAmount,
+                    amount: _currentMonthlyAmount,
                     currencyCode: _localCurrency,
-                    monthlyAmount: widget.monthlyAmount,
-                    yearlyAmount: widget.yearlyAmount,
-                    lifetimePlanAmount: widget.lifetimePlanAmount,
+                    monthlyAmount: _currentMonthlyAmount,
+                    yearlyAmount: _currentYearlyAmount,
+                    lifetimePlanAmount: _currentLifetimePlanAmount,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -1787,11 +1837,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 child: Text(
                   buildPlanDisplayLabel(
                     plan: 'Yearly',
-                    amount: widget.yearlyAmount,
+                    amount: _currentYearlyAmount,
                     currencyCode: _localCurrency,
-                    monthlyAmount: widget.monthlyAmount,
-                    yearlyAmount: widget.yearlyAmount,
-                    lifetimePlanAmount: widget.lifetimePlanAmount,
+                    monthlyAmount: _currentMonthlyAmount,
+                    yearlyAmount: _currentYearlyAmount,
+                    lifetimePlanAmount: _currentLifetimePlanAmount,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -1802,11 +1852,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 child: Text(
                   buildPlanDisplayLabel(
                     plan: 'Lifetime',
-                    amount: widget.lifetimePlanAmount,
+                    amount: _currentLifetimePlanAmount,
                     currencyCode: _localCurrency,
-                    monthlyAmount: widget.monthlyAmount,
-                    yearlyAmount: widget.yearlyAmount,
-                    lifetimePlanAmount: widget.lifetimePlanAmount,
+                    monthlyAmount: _currentMonthlyAmount,
+                    yearlyAmount: _currentYearlyAmount,
+                    lifetimePlanAmount: _currentLifetimePlanAmount,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -1817,6 +1867,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
               if (value != null) {
                 setState(() {
                   _selectedPlan = value;
+                  _lastCheckoutResponse = null;
+                  _appliedPromo = null;
+                  _promoMessage = null;
                 });
               }
             },
@@ -1829,8 +1882,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
             ),
           ),
           const SizedBox(height: 10),
-          if (_selectedPlan != 'Basic')
-            Container(
+          Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -1840,10 +1892,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
               ),
               child: Text(
                 _selectedPlan == '7Days'
-                    ? 'Short access plan selected: ${_formatCurrencyAmount(widget.sevenDayAmount, _localCurrency)} for 7-day use.'
-                    : _isSubscriptionPlan(_selectedPlan)
+                    ? 'Short access plan selected: ${_formatCurrencyAmount(_currentSevenDayAmount, _localCurrency)} for 7-day use.'
+                    : _selectedPlan == 'Yearly'
                         ? 'Offer active: Pay for 10 months (${_formatCurrencyAmount(_monthlyForPlan(_selectedPlan) * 10, _localCurrency)}) and get 12 months access.'
-                        : 'One-time Lifetime plan payment: ${_formatCurrencyAmount(widget.lifetimePlanAmount, _localCurrency)}.',
+                        : 'One-time Lifetime plan payment: ${_formatCurrencyAmount(_currentLifetimePlanAmount, _localCurrency)}.',
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
@@ -1851,7 +1903,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 ),
               ),
             ),
-          if (_selectedPlan != 'Basic') const SizedBox(height: 10),
+          const SizedBox(height: 10),
           if (_lastCheckoutResponse != null) ...[
             _buildCheckoutResponseCard(),
             const SizedBox(height: 10),

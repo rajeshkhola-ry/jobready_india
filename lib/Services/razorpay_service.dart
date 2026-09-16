@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:js_util' as js_util;
+import 'dart:js_interop';
 
 import 'package:flutter/foundation.dart';
-import 'dart:js' as js;
+import 'package:web/web.dart' as web;
 
 import 'api_config.dart';
+
+@JS('eval')
+external void _jsEval(JSString code);
 
 class RazorpayCheckoutResult {
   const RazorpayCheckoutResult({
@@ -53,14 +56,10 @@ class RazorpayPaymentService {
     _scriptLoading = true;
     _scriptCompleter = Completer<void>();
 
-    final document = js.context['document'];
-    final script = document.callMethod('createElement', ['script']);
-    script['src'] = 'https://checkout.razorpay.com/v1/checkout.js';
-    script['type'] = 'text/javascript';
-    script['async'] = true;
-
-    final headElement = document['head'];
-    headElement.callMethod('appendChild', [script]);
+    final script = web.HTMLScriptElement()
+      ..src = 'https://checkout.razorpay.com/v1/checkout.js'
+      ..type = 'text/javascript'
+      ..async = true;
 
     void completeLoad() {
       _scriptLoaded = true;
@@ -79,8 +78,10 @@ class RazorpayPaymentService {
       }
     }
 
-    script.callMethod('addEventListener', ['load', js_util.allowInterop(completeLoad)]);
-    script.callMethod('addEventListener', ['error', js_util.allowInterop(completeError)]);
+    script.addEventListener('load', ((web.Event _) => completeLoad()).toJS);
+    script.addEventListener('error', ((web.Event _) => completeError()).toJS);
+
+    web.document.head?.appendChild(script);
 
     try {
       await _scriptCompleter!.future;
@@ -168,7 +169,7 @@ class RazorpayPaymentService {
   razorpay.open();
 })();
 ''';
-      js.context.callMethod('eval', [script]);
+      _jsEval(script.toJS);
       return const RazorpayCheckoutResult(
         success: true,
         message: 'Razorpay checkout opened.',

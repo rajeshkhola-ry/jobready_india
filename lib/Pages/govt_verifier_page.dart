@@ -8,6 +8,7 @@ import 'package:flutter/rendering.dart';
 import 'package:image/image.dart' as img;
 
 import '../Services/analytics_service.dart';
+import '../Services/fast_image_decode.dart';
 import '../Services/file_picker_service.dart';
 import '../Services/govt_photo_presets.dart';
 import '../Services/seo_helper.dart';
@@ -230,8 +231,7 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
     if (_resizerFile == null) return;
     setState(() { _isResizing = true; _achievedSize = null; _achievedBytes = null; _resizerStatus = 'Resizing…'; });
     try {
-      final result = await compute(
-        computeGovtPhotoResize,
+      final result = await resizeGovtPhoto(
         GovtPhotoResizeArgs(
           bytes: _resizerFile!.bytes,
           width: _selectedPreset.width,
@@ -949,7 +949,9 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
                             child: CustomPaint(
                               painter: _RedactorPainter(
                                 image: _redactorImage!,
-                                masks: _redactorMasks,
+                                // Snapshot: the painter must not hold the live
+                                // list, or shouldRepaint can never see changes.
+                                masks: List<Rect>.unmodifiable(_redactorMasks),
                                 activeDrag: _activeDrag,
                               ),
                               size: Size(maxW, h),
@@ -1180,7 +1182,7 @@ class _RedactorPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_RedactorPainter o) =>
-      o.masks != masks || o.activeDrag != activeDrag || o.image != image;
+      !listEquals(o.masks, masks) || o.activeDrag != activeDrag || o.image != image;
 }
 
 // ── Section heading ────────────────────────────────────────────────────────────
@@ -1213,21 +1215,59 @@ class GovtPhotoResizeArgs {
   });
 }
 
+/// Resizes to the preset dimensions and encodes within the KB target.
+///
+/// Prefer this over [computeGovtPhotoResize]: it lets the platform codec do the
+/// full-resolution decode and downscale, so the pure-Dart work only ever runs
+/// on the already-small output. On Flutter Web `compute()` has no isolate, so
+/// decoding a large photo with `package:image` froze the whole browser tab.
+Future<Uint8List> resizeGovtPhoto(GovtPhotoResizeArgs args) async {
+  final scaled = await decodeImageScaled(
+    args.bytes,
+    width: args.width,
+    height: args.height,
+  );
+
+  if (scaled == null) {
+    // Platform codec could not read this file - fall back to the Dart decoder.
+    return compute(computeGovtPhotoResize, args);
+  }
+
+  return _encodeGovtPhotoToTarget(
+    scaled,
+    targetKb: args.targetKb,
+    cleanSignature: args.cleanSignature,
+  );
+}
+
 Uint8List computeGovtPhotoResize(GovtPhotoResizeArgs args) {
   final src = img.decodeImage(args.bytes);
   if (src == null) throw Exception('Cannot decode image.');
 
-  var resized = img.copyResize(
+  final resized = img.copyResize(
     src,
     width: args.width,
     height: args.height,
     interpolation: img.Interpolation.cubic,
   );
 
-  if (args.cleanSignature) {
-    resized = img.grayscale(resized);
-    resized = img.normalize(resized, min: 0, max: 255);
-    resized = img.contrast(resized, contrast: 160);
+  return _encodeGovtPhotoToTarget(
+    resized,
+    targetKb: args.targetKb,
+    cleanSignature: args.cleanSignature,
+  );
+}
+
+Uint8List _encodeGovtPhotoToTarget(
+  img.Image resized, {
+  required int targetKb,
+  required bool cleanSignature,
+}) {
+  var output = resized;
+  if (cleanSignature) {
+    output = img.grayscale(output);
+    output = img.normalize(output, min: 0, max: 255);
+    output = img.contrast(output, contrast: 160);
   }
 
   // Binary search: highest quality within targetKb
@@ -1235,15 +1275,15 @@ Uint8List computeGovtPhotoResize(GovtPhotoResizeArgs args) {
   Uint8List? best;
   while (lo <= hi) {
     final mid = (lo + hi) ~/ 2;
-    final encoded = Uint8List.fromList(img.encodeJpg(resized, quality: mid));
-    if (encoded.length <= args.targetKb * 1024) {
+    final encoded = Uint8List.fromList(img.encodeJpg(output, quality: mid));
+    if (encoded.length <= targetKb * 1024) {
       best = encoded;
       lo = mid + 1;
     } else {
       hi = mid - 1;
     }
   }
-  return best ?? Uint8List.fromList(img.encodeJpg(resized, quality: 15));
+  return best ?? Uint8List.fromList(img.encodeJpg(output, quality: 15));
 }
 
 // ── 4x6" print sheet (8-up) compute isolate ────────────────────────────────────

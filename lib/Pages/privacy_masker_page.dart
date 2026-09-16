@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -536,7 +537,9 @@ class _PrivacyMaskerPageState extends State<PrivacyMaskerPage>
                                 child: CustomPaint(
                                   painter: _MaskPainter(
                                     image: _decodedImage!,
-                                    masks: _maskRects,
+                                    // Snapshot: the painter must not hold the live
+                                    // list, or shouldRepaint can never see changes.
+                                    masks: List<Rect>.unmodifiable(_maskRects),
                                     activeDrag: _activeDrag,
                                   ),
                                   size: Size(maxW, displayH),
@@ -1002,7 +1005,7 @@ class _MaskPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_MaskPainter old) =>
-      old.masks != masks || old.activeDrag != activeDrag || old.image != image;
+      !listEquals(old.masks, masks) || old.activeDrag != activeDrag || old.image != image;
 }
 
 // ── Shared stateless widget ────────────────────────────────────────────────────

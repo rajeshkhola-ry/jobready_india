@@ -5,20 +5,28 @@ import 'package:flutter/material.dart';
 
 class SignaturePadController {
   final List<List<Offset>> _strokes = <List<Offset>>[];
+  int _revision = 0;
 
   List<List<Offset>> get strokes => _strokes;
+
+  /// Bumped on every mutation. Strokes are mutated in place, so this is what
+  /// the painter compares - the list identity never changes.
+  int get revision => _revision;
 
   bool get hasSignature => _strokes.any((stroke) => stroke.length > 1);
 
   void clear() {
     _strokes.clear();
+    _revision++;
   }
 
   void startStroke(Offset point) {
     _strokes.add(<Offset>[point]);
+    _revision++;
   }
 
   void appendPoint(Offset point) {
+    _revision++;
     if (_strokes.isEmpty) {
       _strokes.add(<Offset>[point]);
       return;
@@ -120,6 +128,7 @@ class _SignaturePadCanvasState extends State<SignaturePadCanvas> {
         child: CustomPaint(
           painter: _SignaturePainter(
             strokes: widget.controller.strokes,
+            revision: widget.controller.revision,
             color: widget.strokeColor,
           ),
         ),
@@ -131,10 +140,12 @@ class _SignaturePadCanvasState extends State<SignaturePadCanvas> {
 class _SignaturePainter extends CustomPainter {
   const _SignaturePainter({
     required this.strokes,
+    required this.revision,
     required this.color,
   });
 
   final List<List<Offset>> strokes;
+  final int revision;
   final Color color;
 
   @override
@@ -165,6 +176,6 @@ class _SignaturePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _SignaturePainter oldDelegate) {
-    return oldDelegate.strokes != strokes || oldDelegate.color != color;
+    return oldDelegate.revision != revision || oldDelegate.color != color;
   }
 }

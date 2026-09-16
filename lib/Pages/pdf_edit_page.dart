@@ -15,6 +15,7 @@ import '../Services/file_storage_service.dart';
 import '../Services/ocr_quota_service.dart';
 import '../Services/pdf_ocr_service.dart';
 import '../Services/remote_ocr_service.dart';
+import '../Services/seo_helper.dart';
 import '../Services/upload_context_service.dart';
 import '../Services/voice_command_service.dart';
 import '../Widgets/production_footer.dart';
@@ -35,6 +36,48 @@ class _PdfFragmentHit {
   final Rect rect;
   final String text;
   final List<Rect> charRects;
+}
+
+/// Reconstructs word-level fragments from the flat `fullText`/`charRects`
+/// pair that `pdfrx_engine`'s newer text API exposes (it dropped the old
+/// per-word `PdfPageRawText.fragments` getter), splitting on whitespace and
+/// unioning each word's own character rects for its bounds.
+List<_PdfFragmentHit> _fragmentsFromPageText(pdfrx.PdfPageRawText? pageText, double pageHeight) {
+  if (pageText == null) return const <_PdfFragmentHit>[];
+  final fullText = pageText.fullText;
+  final charRects = pageText.charRects;
+  final fragments = <_PdfFragmentHit>[];
+
+  int? wordStart;
+  void flushWord(int endExclusive) {
+    final start = wordStart;
+    wordStart = null;
+    if (start == null) return;
+    final end = endExclusive > charRects.length ? charRects.length : endExclusive;
+    if (end <= start) return;
+    final wordCharRects = charRects.sublist(start, end);
+    final bounds = wordCharRects.boundingRect();
+    // pdfrx uses PDF-native bottom-up Y; flip to top-down to match
+    // Syncfusion's Rect.fromLTWH convention used by the exporter below.
+    final rect = Rect.fromLTWH(bounds.left, pageHeight - bounds.top, bounds.width, bounds.height);
+    final flutterCharRects = <Rect>[
+      for (final charRect in wordCharRects)
+        Rect.fromLTWH(charRect.left, pageHeight - charRect.top, charRect.width, charRect.height),
+    ];
+    fragments.add(_PdfFragmentHit(rect: rect, text: fullText.substring(start, end), charRects: flutterCharRects));
+  }
+
+  for (var i = 0; i < fullText.length; i++) {
+    final isWhitespace = fullText[i] == ' ' || fullText[i] == '\n' || fullText[i] == '\r' || fullText[i] == '\t';
+    if (isWhitespace) {
+      flushWord(i);
+    } else {
+      wordStart ??= i;
+    }
+  }
+  flushWord(fullText.length);
+
+  return fragments;
 }
 
 /// A paragraph/line detected by grouping raw text fragments (see
@@ -200,6 +243,12 @@ class _PdfEditPageState extends State<PdfEditPage> {
   @override
   void initState() {
     super.initState();
+    SeoHelper.apply(
+      title: 'Edit PDF Online Free — Edit Text, Pages & Protect PDF Documents | GetReadyJob',
+      description: 'Edit PDF text and pages, add protection, and save changes directly in your browser for free. No account, no server upload, no watermark.',
+      path: '/pdf-edit',
+      keywords: 'edit PDF online free, PDF editor no watermark, protect PDF password online, edit PDF text free, online PDF editor tool',
+    );
     _selectedBytes = widget.initialBytes;
     _selectedName = widget.initialFileName;
 
@@ -387,21 +436,7 @@ class _PdfEditPageState extends State<PdfEditPage> {
       }
 
       final pageText = await page.loadText();
-      final fragments = <_PdfFragmentHit>[];
-      for (final fragment in pageText.fragments) {
-        if (fragment.text.trim().isEmpty) {
-          continue;
-        }
-        final bounds = fragment.bounds;
-        // pdfrx uses PDF-native bottom-up Y; flip to top-down to match
-        // Syncfusion's Rect.fromLTWH convention used by the exporter below.
-        final rect = Rect.fromLTWH(bounds.left, page.height - bounds.top, bounds.width, bounds.height);
-        final charRects = <Rect>[
-          for (final charRect in fragment.charRects)
-            Rect.fromLTWH(charRect.left, page.height - charRect.top, charRect.width, charRect.height),
-        ];
-        fragments.add(_PdfFragmentHit(rect: rect, text: fragment.text, charRects: charRects));
-      }
+      final fragments = _fragmentsFromPageText(pageText, page.height);
 
       // Group fragmented words/runs into MS-Word-like paragraph/line blocks
       // (requirement #1) with best-effort inherited font metadata (#2),
@@ -1159,15 +1194,7 @@ class _PdfEditPageState extends State<PdfEditPage> {
       } else {
         final page = document.pages[i];
         final pageText = await page.loadText();
-        fragments = <_PdfFragmentHit>[
-          for (final fragment in pageText.fragments)
-            if (fragment.text.trim().isNotEmpty)
-              _PdfFragmentHit(
-                rect: Rect.fromLTWH(fragment.bounds.left, page.height - fragment.bounds.top, fragment.bounds.width, fragment.bounds.height),
-                text: fragment.text,
-                charRects: const <Rect>[],
-              ),
-        ];
+        fragments = _fragmentsFromPageText(pageText, page.height);
       }
 
       final lines = _groupFragmentsIntoLines(fragments);

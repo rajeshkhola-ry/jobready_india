@@ -1,16 +1,17 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jobready_india/Pages/home_page_v2.dart';
+import 'package:jobready_india/Pages/checkout_page.dart' show buildPlanDisplayLabel;
+import 'package:jobready_india/Pages/home_page_v1_1.dart' show resolvePreferredPaymentCurrency;
 
 void main() {
   group('resolvePreferredPaymentCurrency', () {
     test('prefers a previously saved currency selection', () {
       expect(
         resolvePreferredPaymentCurrency(
-          storedCurrency: 'EUR',
+          storedCurrency: 'USD',
           profileCountry: 'India',
           browserLanguage: 'en-IN',
         ),
-        'EUR',
+        'USD',
       );
     });
 

@@ -37,16 +37,12 @@ import '../Widgets/brand_logo_button.dart';
 import '../Widgets/production_footer.dart';
 import 'ai_resume_builder_page.dart';
 import 'checkout_page.dart';
-import 'compression_benchmark_page.dart';
 import 'compression_tool_page.dart';
 import 'convert_tool_page.dart';
 import 'govt_verifier_page.dart';
-import 'launch_readiness_page.dart';
-import 'launch_runbook_page.dart';
 import 'merge_tool_page.dart';
 import 'pdf_edit_page.dart';
 import 'plan_features_page.dart';
-import 'post_launch_control_page.dart';
 import 'split_tool_page.dart';
 import 'system_check_page.dart';
 import 'terms_conditions_page.dart';
@@ -1075,22 +1071,10 @@ class _HomePageV11State extends State<HomePageV11> {
             icon: Icons.more_horiz_rounded,
             compact: true,
             items: [
-              _NavMenuEntry(
-                'Benchmark',
-                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CompressionBenchmarkPage())),
-              ),
-              _NavMenuEntry(
-                'Readiness',
-                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LaunchReadinessPage())),
-              ),
-              _NavMenuEntry(
-                'Runbook',
-                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LaunchRunbookPage())),
-              ),
-              _NavMenuEntry(
-                'Post-Launch',
-                () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PostLaunchControlPage())),
-              ),
+              // NOTE: internal ops tools (Benchmark / Readiness / Runbook / Post-Launch)
+              // used to be linked here directly, with no auth check, visible to every
+              // site visitor. They now live inside the owner admin dashboard (behind
+              // /admin login + 2FA) — see admin_dashboard_page.dart.
               _NavMenuEntry(
                 'Support Email',
                 () => _openMailComposer(
@@ -1749,8 +1733,7 @@ class _HomePageV11State extends State<HomePageV11> {
             return;
           }
           final preset = _matchGovtPresetForVoice(params['preset']?.toString());
-          final resized = await compute(
-            computeGovtPhotoResize,
+          final resized = await resizeGovtPhoto(
             GovtPhotoResizeArgs(bytes: file.bytes, width: preset.width, height: preset.height, targetKb: preset.maxKb),
           );
           WasmDocumentService.triggerBrowserDownload(

@@ -89,10 +89,20 @@ class _PlanComparisonMatrixState extends State<PlanComparisonMatrix> {
   final ScrollController _bodyHorizontalController = ScrollController();
   bool _isSyncingHeaderScroll = false;
 
+  // Created once in initState (not per-build) - building it directly inside
+  // FutureBuilder(future: ...) would fire a brand-new HTTP request on every
+  // rebuild of this widget (scrolling, resizing, any parent state change),
+  // resetting the table to its local defaults each time before flipping back
+  // to the server values. That repeated reset was the visible quota-table
+  // flicker: creating the future once here means the fetch (and any flicker
+  // from local defaults to live server values) happens at most once.
+  late final Future<Map<String, dynamic>> _comparisonFuture;
+
   @override
   void initState() {
     super.initState();
     _config = PlanCatalogService.load();
+    _comparisonFuture = _loadComparisonData();
     _bodyHorizontalController.addListener(_syncHeaderScroll);
   }
 
@@ -158,7 +168,7 @@ class _PlanComparisonMatrixState extends State<PlanComparisonMatrix> {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<Map<String, dynamic>>(
-      future: _loadComparisonData(),
+      future: _comparisonFuture,
       builder: (context, snapshot) {
         final quotaValues = <String, String>{
           'FREE': _config.userQuotasByPlan['Free'] ?? '',

@@ -150,7 +150,7 @@ Future<bool> _showFreeFileLimitReachedDialog(BuildContext context) async {
               context: context,
               builder: (authContext) => UserAuthDialog(
                 stayOnHomeAfterAuth: true,
-                onAuthenticated: (_, _) {},
+                onAuthenticated: (_, __) {},
               ),
             );
           },
