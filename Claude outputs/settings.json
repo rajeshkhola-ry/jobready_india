@@ -1,0 +1,16 @@
+{
+  "terminal.integrated.confirmOnExit": "never",
+  "terminal.integrated.confirmOnKill": "never",
+
+  // Tool loop, switched on for THIS folder only. Nothing changes in your other projects
+  // until you turn it on there too - which is exactly what we want while it is being tried out.
+  "daiFlash.experimental.toolLoop": true,
+
+  // "commit" = the agent can inspect, build, test, and save its own work with git add/commit.
+  // git push, git reset, git checkout ., rm and anything that deploys stay blocked at every
+  // level - that is in the code, not in this file, so it cannot be switched on from here.
+  "daiFlash.shellLevel": "commit",
+
+  // Stop and ask before a write that would remove more than 40% of an existing file's lines.
+  "daiFlash.destructiveWriteRatio": 0.4
+}

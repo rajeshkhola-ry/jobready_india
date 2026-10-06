@@ -1012,7 +1012,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         setState(() { _submitting = false; });
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Please enter a valid GSTIN (checksum did not match). Leave it blank to skip the tax invoice.')),
+            const SnackBar(content: Text('Please enter a valid GSTIN (checksum did not match), or leave it blank and proceed.')),
           );
         }
         return;
@@ -1260,19 +1260,33 @@ class _CheckoutPageState extends State<CheckoutPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Asking for a GSTIN while the seller has none is asking for something
+          // that cannot be used: a buyer's GSTIN only earns them input credit on
+          // a tax invoice, and an unregistered seller cannot issue one. So the
+          // field appears only once sellerGstin is set, and until then the page
+          // says plainly that no GST is involved (6 Oct 2026).
           if (!isBusiness)
-            TextField(
-              controller: _checkoutGstinController,
-              textCapitalization: TextCapitalization.characters,
-              decoration: InputDecoration(
-                labelText: 'GSTIN (Optional)',
-                hintText: 'Please enter your GSTIN if you want a tax invoice, or leave blank and proceed.',
-                isDense: true,
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-            )
+            GstCalculator.sellerIsRegistered
+                ? TextField(
+                    controller: _checkoutGstinController,
+                    textCapitalization: TextCapitalization.characters,
+                    decoration: InputDecoration(
+                      labelText: 'GSTIN (Optional)',
+                      hintText: 'Please enter your GSTIN if you want a tax invoice, or leave blank and proceed.',
+                      isDense: true,
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  )
+                : const Text(
+                    'No GST is charged on this purchase, so a GSTIN is not needed. The price you see is the price you pay.',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF64748B),
+                    ),
+                  )
           else ...[
             const Text(
               'Fill company details for a B2B business invoice, or skip to proceed.',
@@ -1305,6 +1319,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               ),
             ),
+            // Both of these only mean anything when the seller is registered.
+            // The SEZ line in particular promised the buyer a "refund/ITC with
+            // your tax invoice" - a credit they could never claim, because no
+            // tax invoice exists to claim it against.
+            if (GstCalculator.sellerIsRegistered) ...[
             const SizedBox(height: 8),
             TextField(
               controller: _checkoutGstinController,
@@ -1341,6 +1360,18 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 ),
               ),
             ),
+            ] else
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Text(
+                  'No GST is charged on this purchase, so a GSTIN is not needed and no tax invoice is issued. The price you see is the price you pay.',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+              ),
           ],
         ],
       ),
@@ -1366,7 +1397,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
       isSezUnit: _isSezUnit,
     );
     final taxLine = gstBreakdown.summaryLine;
-    final gstBreakdownForDiscount = (!isExportSupply && hasDiscount)
+    // gstCharged, not just "not an export": with no seller GSTIN there is no
+    // split to recalculate, and printing one would state a tax that is not
+    // being collected (6 Oct 2026).
+    final gstBreakdownForDiscount = (gstBreakdown.gstCharged && !isExportSupply && hasDiscount)
         ? GstCalculator.compute(
             amountInclusive: discountedAmount,
             customerStateName: checkoutCustomerState,

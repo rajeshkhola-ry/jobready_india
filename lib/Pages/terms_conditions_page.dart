@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../Services/public_brand_config.dart';
 import '../Services/seo_helper.dart';
 import '../Widgets/brand_logo_button.dart';
 import '../Widgets/production_footer.dart';
@@ -108,7 +109,7 @@ class _TermsConditionsPageState extends State<TermsConditionsPage> {
                   const _Section(
                     title: '3. Subscription Plans & Service Modification/Termination Rights',
                     body:
-                        '- Subscription Types: GETREADYJOB offers various access options, including Weekly, Monthly, Yearly, and Lifetime plans.\n\n- Definition of "Lifetime Plan": The term "Lifetime" in any plan, promotional offer, or pricing model refers strictly to a maximum product lifecycle of up to 10 (ten) calendar years from the date of purchase, or for as long as GETREADYJOB continues to operate and maintain the specific tool/service, whichever is shorter.\n\n- Absolute Authority to Terminate or Modify Services: GETREADYJOB reserves full, unconditional, and sole authority to modify, suspend, restrict, degrade, or completely terminate any subscription plan (Weekly, Monthly, Yearly, or Lifetime) or any individual tool/service at any time, for any reason, with or without prior notice to users.\n\n- Waiver of Claims: Users explicitly agree and acknowledge that they cannot raise any legal claims, disputes, demands, or questions against GETREADYJOB, its founders, or its parent company regarding service modification, plan termination, or tool deprecation.',
+                        '- Subscription Types: GETREADYJOB offers various access options, including Weekly, Monthly, Yearly, and Lifetime plans.\n\n- Definition of "Lifetime Plan": The term "Lifetime" in any plan, promotional offer, or pricing model refers strictly to a maximum product lifecycle of up to 10 (ten) calendar years from the date of purchase, or for as long as GETREADYJOB continues to operate and maintain the specific tool/service, whichever is shorter.\n\n- Authority to Modify or Discontinue Services: GETREADYJOB reserves the right to modify, suspend, restrict, degrade, or discontinue any subscription plan (Weekly, Monthly, Yearly, or Lifetime) or any individual tool/service at any time, for any reason, subject to the Refund Policy in Section 4 below.\n\n- Service Modification Acknowledgment: Users acknowledge that such modification, suspension, or discontinuation, by itself, is not a breach of these Terms. This does not limit any right or remedy available to users under applicable consumer protection law, and does not waive claims arising from fraud, willful misconduct, or gross negligence on the part of GETREADYJOB.',
                   ),
                   const _Section(
                     title: '4. Refund & Cancellation Policy',
@@ -138,15 +139,35 @@ class _TermsConditionsPageState extends State<TermsConditionsPage> {
                   const _Section(
                     title: '9. Limitation of Liability',
                     body:
-                        'GETREADYJOB shall not be liable for any direct, indirect, incidental, or consequential damages resulting from service disruption, data loss, or tool termination during file conversion or media editing.',
+                        'GETREADYJOB shall not be liable for any direct, indirect, incidental, or consequential damages resulting from service disruption, data loss, or tool termination during file conversion or media editing. Where liability cannot be excluded under applicable law, GETREADYJOB\'s total liability for any claim relating to these Terms or the Services is limited to the amount, if any, paid by the user to GETREADYJOB for the specific paid plan giving rise to the claim in the 12 months preceding the claim.',
                   ),
                   const _Section(
-                    title: '10. Contact Information',
-                    body: 'For legal and support matters, please contact: support@drutasystems.com',
+                    title: '10. Governing Law & Jurisdiction',
+                    body:
+                        'These Terms are governed by the laws of India. Subject to Section 11 (Dispute Resolution), the courts at Delhi, India shall have exclusive jurisdiction over any dispute arising out of or relating to these Terms or the Services.',
+                  ),
+                  const _Section(
+                    title: '11. Dispute Resolution',
+                    body:
+                        'Before initiating any formal proceeding, users agree to first raise a dispute with our Grievance Officer (Section 12) and allow a reasonable opportunity to resolve it. If a dispute is not resolved within 30 days, either party may refer it to arbitration under the Arbitration and Conciliation Act, 1996, with a sole arbitrator appointed by mutual agreement, seated in Delhi, India, with proceedings conducted in English. This clause does not affect any right a consumer has under applicable consumer protection law to approach a consumer forum or court directly.',
+                  ),
+                  const _Section(
+                    title: '12. Grievance Officer',
+                    body:
+                        'In accordance with the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021, the following Grievance Officer can be contacted for complaints regarding these Terms or use of the platform:\n\nName: Rajesh Kumar Yadav\nDesignation: Grievance Officer, GETREADYJOB (Druta Systems)\nEmail: ${PublicBrandConfig.supportEmail}\n\nWe will acknowledge complaints within 24 hours and aim to resolve them within 15 days, as prescribed under the Rules.',
+                  ),
+                  const _Section(
+                    title: '13. Severability',
+                    body:
+                        'If any provision of these Terms is held invalid or unenforceable by a court or arbitrator of competent jurisdiction, that provision will be limited or eliminated to the minimum extent necessary, and the remaining provisions will continue in full force and effect.',
+                  ),
+                  const _Section(
+                    title: '14. Contact Information',
+                    body: 'For legal and support matters, please contact: ${PublicBrandConfig.supportEmail}',
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'Last updated: 2026-08-20',
+                    'Last updated: 2026-09-09',
                     style: TextStyle(
                       fontSize: 12,
                       color: Color(0xFF6B7280),

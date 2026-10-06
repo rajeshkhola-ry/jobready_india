@@ -321,6 +321,40 @@ class _JobReadyV11AppState extends State<JobReadyV11App> {
         '/dashboard': (_) => const UserDashboardPage(),
     };
 
+    // Routes backed by `deferred as` imports (DeferredRoutePage). dart2js's
+    // deferred-library loader is not safely usable until the engine has
+    // painted its first frame - triggering one as the very FIRST route of a
+    // fresh boot (via onGenerateInitialRoutes, below) throws early and never
+    // recovers, leaving the pre-boot HTML loading screen up forever. That
+    // only affects the initial/deep-linked route: once the app has booted,
+    // navigating to the very same route from within the app (Navigator.
+    // pushNamed) works fine, which is why this only ever showed up on a
+    // direct link to a tool page, never on an in-app click.
+    const Set<String> deferredRoutes = <String>{
+      '/compress',
+      '/convert',
+      '/merge',
+      '/split',
+      '/extract',
+      '/pdf-edit',
+      '/pdf-tools',
+      '/micro-canva',
+      '/poster-banner-studio',
+      '/canvas-templates',
+      '/smart-pdf',
+      '/history',
+      '/resume',
+      '/photo-hd',
+      '/poster-workspace',
+      '/privacy-masker',
+      '/govt-verifier',
+      '/csv-to-excel-converter',
+      '/fraud-seal',
+      '/doc-packager',
+      '/ai-mock-interview',
+      '/voice-interview',
+    };
+
     return MaterialApp(
       navigatorKey: _navigatorKey,
       navigatorObservers: [_routeObserver],
@@ -465,6 +499,23 @@ class _JobReadyV11AppState extends State<JobReadyV11App> {
         // when the user never sees it, racing with the real target page's SEO
         // metadata. Build only the actually-requested route instead.
         final normalized = initialRouteName.isEmpty ? '/' : initialRouteName;
+
+        // Exception: a deferred tool route can't be built directly here (see
+        // deferredRoutes above) - boot to Home instead. _JobReadyV11AppState.
+        // initState()'s existing post-frame correction below will see that
+        // the Navigator's actual route ('/') doesn't match the originally
+        // requested path and will pushNamedAndRemoveUntil() the real target
+        // once the engine has safely finished booting - the same code path
+        // a normal in-app link click already uses successfully.
+        if (deferredRoutes.contains(normalized)) {
+          return <Route<dynamic>>[
+            MaterialPageRoute<void>(
+              builder: routeTable['/']!,
+              settings: const RouteSettings(name: '/'),
+            ),
+          ];
+        }
+
         final builder = routeTable[normalized];
         return <Route<dynamic>>[
           MaterialPageRoute<void>(

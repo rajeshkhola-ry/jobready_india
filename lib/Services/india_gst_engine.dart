@@ -4,9 +4,23 @@
 // CGST/SGST vs. IGST tax-breakdown calculation for domestic, SEZ, and
 // export-of-services supplies (`GstCalculator`).
 
+/// The seller's own GSTIN, or null while this business is not GST-registered.
+///
+/// Deliberately null (6 Oct 2026). Section 32(1) of the CGST Act says a person
+/// who is not registered "shall not collect ... any amount by way of tax", and
+/// a PAN is not a GSTIN - the GSTIN contains the PAN, but only exists after
+/// registering on the GST portal. Until this holds a real 15-character GSTIN,
+/// GstCalculator charges and displays no tax at all.
+///
+/// Setting this is the ONLY change needed to switch GST back on: the amount
+/// charged never depends on it (see _chargeAmountForPlan in checkout_page.dart),
+/// so turning it on reinterprets the same price as tax-inclusive rather than
+/// raising it.
+const String? sellerGstin = null;
+
 /// The seller's own GST-registered home state. A domestic supply is taxed as
 /// CGST+SGST (intra-state) when the customer's billing state matches this,
-/// and as IGST (inter-state) otherwise.
+/// and as IGST (inter-state) otherwise. Only consulted once sellerGstin is set.
 const String _sellerHomeState = 'Delhi';
 
 /// Validates Indian GSTIN numbers: 15-character structure plus the official
@@ -44,7 +58,10 @@ class IndiaGstEngine {
 }
 
 /// How a supply is taxed under Indian GST.
-enum GstTaxType { intraState, interState, export }
+///
+/// [notRegistered] is not a GST treatment at all - it means the seller has no
+/// GSTIN, so no tax is charged, no tax is shown and no tax invoice is issued.
+enum GstTaxType { notRegistered, intraState, interState, export }
 
 /// The computed tax breakdown of a GST-inclusive amount.
 class GstBreakdown {
@@ -57,9 +74,16 @@ class GstBreakdown {
     required this.totalTax,
     required this.totalAmount,
     required this.summaryLine,
+    this.gstCharged = true,
   });
 
   final GstTaxType taxType;
+
+  /// False when nothing in this breakdown is tax: either the seller is not
+  /// registered, or the supply is a zero-rated export. UI that prints a
+  /// "Base + GST = Total" split must check this first - printing that split
+  /// when no tax exists tells a paying customer something untrue.
+  final bool gstCharged;
   final double baseAmount;
   final double cgst;
   final double sgst;
@@ -78,6 +102,10 @@ class GstCalculator {
 
   static const double gstRate = 0.18;
 
+  /// Whether this business may charge tax at all. Everything else in here is
+  /// downstream of it - see the note on [sellerGstin].
+  static bool get sellerIsRegistered => (sellerGstin ?? '').trim().isNotEmpty;
+
   /// [amountInclusive] is the final, tax-inclusive amount charged.
   /// [customerStateName] is the customer's billing state (used to decide
   /// intra-state vs. inter-state for domestic, non-SEZ supplies).
@@ -87,6 +115,24 @@ class GstCalculator {
     required bool isExportSupply,
     required bool isSezUnit,
   }) {
+    // Checked before everything else, including export. An unregistered seller
+    // has no tax treatment to describe - not even a zero-rated one, because
+    // "zero-rated export supply" is itself a statement made by a registered
+    // person. The whole amount is simply the price.
+    if (!sellerIsRegistered) {
+      return GstBreakdown(
+        taxType: GstTaxType.notRegistered,
+        baseAmount: amountInclusive,
+        cgst: 0,
+        sgst: 0,
+        igst: 0,
+        totalTax: 0,
+        totalAmount: amountInclusive,
+        summaryLine: 'No GST is charged on this purchase - the seller is not GST-registered.',
+        gstCharged: false,
+      );
+    }
+
     if (isExportSupply) {
       return GstBreakdown(
         taxType: GstTaxType.export,
@@ -97,6 +143,7 @@ class GstCalculator {
         totalTax: 0,
         totalAmount: amountInclusive,
         summaryLine: 'Tax: Export of Services (0% GST) - zero-rated supply, no GST charged.',
+        gstCharged: false,
       );
     }
 

@@ -1375,6 +1375,11 @@ class _HomePageV11State extends State<HomePageV11> {
                   discountPercent: _pricingDiscountPercent,
                   selectedPlan: _selectedPlanForPayment,
                   usageType: _selectedUsageType,
+                  onUsageTypeChanged: (value) {
+                    setState(() {
+                      _selectedUsageType = value;
+                    });
+                  },
                   onPlanSelected: _handlePlanSelection,
                 ),
                 const SizedBox(height: 12),
@@ -2122,6 +2127,7 @@ class _PlanCardsSection extends StatelessWidget {
   final int discountPercent;
   final String selectedPlan;
   final String? usageType;
+  final ValueChanged<String>? onUsageTypeChanged;
   final ValueChanged<String> onPlanSelected;
 
   const _PlanCardsSection({
@@ -2134,12 +2140,18 @@ class _PlanCardsSection extends StatelessWidget {
     required this.discountPercent,
     required this.selectedPlan,
     required this.usageType,
+    this.onUsageTypeChanged,
     required this.onPlanSelected,
   });
 
   @override
   Widget build(BuildContext context) {
-    final showGstTag = selectedCurrency.trim().toUpperCase() == 'INR';
+    // INR alone is not enough to claim the price includes GST - the seller has
+    // to be registered to charge any. Without a GSTIN the tag said 18% of every
+    // price was tax that nobody collects or remits (6 Oct 2026). Comes back on
+    // its own the day sellerGstin is set.
+    final showGstTag = selectedCurrency.trim().toUpperCase() == 'INR'
+        && GstCalculator.sellerIsRegistered;
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWide = constraints.maxWidth > 980;
@@ -2152,6 +2164,8 @@ class _PlanCardsSection extends StatelessWidget {
             buttonLabel: 'Select Plan',
             selected: selectedPlan == 'Free',
             onSelected: () => onPlanSelected('Free'),
+            usageType: usageType,
+            onUsageTypeChanged: onUsageTypeChanged,
           ),
           _PlanCardTile(
             title: '7 DAYS',
@@ -2162,6 +2176,8 @@ class _PlanCardsSection extends StatelessWidget {
             buttonLabel: 'Select Plan',
             selected: selectedPlan == '7Days',
             onSelected: () => onPlanSelected('7Days'),
+            usageType: usageType,
+            onUsageTypeChanged: onUsageTypeChanged,
           ),
           _PlanCardTile(
             title: 'MONTHLY',
@@ -2173,6 +2189,8 @@ class _PlanCardsSection extends StatelessWidget {
             badgeLabel: 'Popular',
             selected: selectedPlan == 'Monthly',
             onSelected: () => onPlanSelected('Monthly'),
+            usageType: usageType,
+            onUsageTypeChanged: onUsageTypeChanged,
           ),
           _PlanCardTile(
             title: 'YEARLY',
@@ -2185,6 +2203,8 @@ class _PlanCardsSection extends StatelessWidget {
             recommended: true,
             selected: selectedPlan == 'Yearly',
             onSelected: () => onPlanSelected('Yearly'),
+            usageType: usageType,
+            onUsageTypeChanged: onUsageTypeChanged,
           ),
           _PlanCardTile(
             title: 'LIFETIME LAUNCH OFFER',
@@ -2195,6 +2215,8 @@ class _PlanCardsSection extends StatelessWidget {
             buttonLabel: 'Select Plan',
             selected: selectedPlan == 'Lifetime',
             onSelected: () => onPlanSelected('Lifetime'),
+            usageType: usageType,
+            onUsageTypeChanged: onUsageTypeChanged,
           ),
         ];
 
@@ -2265,6 +2287,11 @@ class _PlanCardTile extends StatefulWidget {
   final bool recommended;
   final bool selected;
   final VoidCallback onSelected;
+  /// Personal / Business, shared with the selector at the top of the Plans
+  /// section - the same single value, not a second copy, so the two can never
+  /// disagree with each other.
+  final String? usageType;
+  final ValueChanged<String>? onUsageTypeChanged;
 
   const _PlanCardTile({
     required this.title,
@@ -2277,6 +2304,8 @@ class _PlanCardTile extends StatefulWidget {
     this.recommended = false,
     required this.selected,
     required this.onSelected,
+    this.usageType,
+    this.onUsageTypeChanged,
   });
 
   @override
@@ -2285,6 +2314,40 @@ class _PlanCardTile extends StatefulWidget {
 
 class _PlanCardTileState extends State<_PlanCardTile> {
   bool _hovered = false;
+
+  // Personal / Business sits right above the button because that is where the
+  // decision is actually made. The selector at the top of the section explains
+  // what the two mean and stays as it is; this is the same value, reachable
+  // without scrolling back up after reading a plan (6 Oct 2026).
+  Widget _usageChip(String value) {
+    final bool isOn = widget.usageType == value;
+    return Expanded(
+      child: InkWell(
+        onTap: () => widget.onUsageTypeChanged?.call(value),
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 7),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: isOn ? const Color(0xFF0F172A) : Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isOn ? const Color(0xFF0F172A) : const Color(0xFFCBD5E1),
+              width: 1.2,
+            ),
+          ),
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+              color: isOn ? Colors.white : const Color(0xFF475569),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   String _getFormattedEnabledTools(String title, List<String> rawTools) {
     final upperTitle = title.toUpperCase();
@@ -2512,6 +2575,26 @@ class _PlanCardTileState extends State<_PlanCardTile> {
                     ],
                   ),
                 ),
+                if (widget.onUsageTypeChanged != null) ...[
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Use as',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.3,
+                      color: Color(0xFF94A3B8),
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Row(
+                    children: [
+                      _usageChip('Personal'),
+                      const SizedBox(width: 6),
+                      _usageChip('Business'),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 11),
                 SizedBox(
                   width: double.infinity,
@@ -6602,7 +6685,9 @@ class _UserAccountPrivacySectionState extends State<_UserAccountPrivacySection> 
               ),
             ],
           ),
-          if (showBusinessFields) ...[
+          // Collecting a buyer's GSTIN is only useful if we can put it on a tax
+          // invoice, which an unregistered seller cannot issue.
+          if (showBusinessFields && GstCalculator.sellerIsRegistered) ...[
             const SizedBox(height: 8),
             TextField(
               controller: _gstinController,

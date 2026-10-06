@@ -20,10 +20,10 @@ class _PlanFeaturesPageState extends State<PlanFeaturesPage> {
   void initState() {
     super.initState();
     SeoHelper.apply(
-      title: 'GetReadyJob Pricing — Plans with GST-Compliant Tax Invoices | Weekly, Monthly, Yearly',
-      description: 'Simple, transparent pricing for GetReadyJob tools with GST-compliant tax invoices, GSTIN billing, and SEZ/LUT support for Indian businesses. Weekly, Monthly, Yearly and Lifetime plans.',
+      title: 'GetReadyJob Pricing — Weekly, Monthly, Yearly and Lifetime Plans',
+      description: 'Simple, transparent pricing for GetReadyJob tools. The price shown is the price you pay - no GST is added. Weekly, Monthly, Yearly and Lifetime plans.',
       path: '/pricing',
-      keywords: 'GetReadyJob pricing, GST compliant invoice India, GSTIN billing tool, SEZ LUT bond invoice, business tax invoice India, document tools subscription price',
+      keywords: 'GetReadyJob pricing, document tools subscription price, PDF tools plans India, resume builder pricing, weekly monthly yearly lifetime plan',
     );
   }
 
