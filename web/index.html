@@ -221,7 +221,7 @@
         {
           "@type": "Question",
           "name": "Is my document data safe? Are my files uploaded to a server?",
-          "acceptedAnswer": { "@type": "Answer", "text": "No — GetReadyJob.com processes all files entirely in your browser using WebAssembly and Flutter web. No file, byte, or metadata is ever transmitted to any server. Your documents never leave your device. This applies to all tools: photo resizer, watermark, redactor, resume builder, PDF tools, and ZIP packager." }
+          "acceptedAnswer": { "@type": "Answer", "text": "It depends on the tool. These run entirely in your browser and the file never leaves your device: merge, split, Aadhaar/PAN redaction, the purpose watermark and authenticity seal, the job application ZIP bundle, and standard government photo and signature resizing. These send the file to our processing server, because they need software a browser cannot run: PDF compression, PDF to Word and spreadsheet conversion, and text recognition on scanned PDFs. In that second case the file travels over an encrypted connection, is processed, and is deleted as soon as the result is returned — it is not retained, not backed up and not reviewed by anyone." }
         },
         {
           "@type": "Question",
@@ -470,7 +470,7 @@
         {
           test: function (route) { return route === '/micro-canva'; },
           title: 'Background Remover, Photo Upscaler & PNG to SVG Converter | GetReadyJob',
-          description: 'Remove image backgrounds, upscale photos to HD, resize govt passport photos, and convert PNG to SVG instantly in your browser. 100% local, free to start.',
+          description: 'Remove image backgrounds, upscale photos to HD, resize govt passport photos, and convert PNG to SVG in your browser. Free to start.',
           keywords: 'remove background from photo online, photo upscaler free, png to svg converter, govt passport photo resizer, HD image upscaling online',
           url: 'https://getreadyjob.com/micro-canva',
           appName: 'GetReadyJob Micro-Canva Utilities',
@@ -555,7 +555,7 @@
         {
           test: function (route) { return route === '/privacy'; },
           title: 'Privacy Policy | GetReadyJob',
-          description: 'Read the GetReadyJob privacy policy covering our 100% client-side, browser-based document and photo tools that never upload your files.',
+          description: 'How GetReadyJob handles your files: which tools run entirely in your browser, which send the file to our processing server, and what happens to it there.',
           keywords: 'getreadyjob privacy policy, document tools privacy, browser based privacy',
           url: 'https://getreadyjob.com/privacy'
         },
@@ -746,6 +746,62 @@
 })(window, document, "clarity", "script", "xrbk0aa08z");
 </script>
 
+  <style>
+    /*
+      THE PAGE IS NO LONGER JUST THE APP (7 Oct 2026).
+
+      Until now #grj-seo-static held ~5,900 characters of real content - headings, a
+      section per tool, an FAQ - parked at left:-9999px in a 1x1 box with aria-hidden,
+      and the comment beside it said so plainly: "for search engine crawlers. Flutter
+      renders over this in-browser."
+
+      Google's spam policy names that exact technique - "using CSS to position text
+      off-screen" - and the stated consequence is ranking lower or not appearing at all.
+      Search Console showed 2 clicks in 7 days, so it was not working either.
+
+      The content is good. It only needed to be shown. So the Flutter app now mounts
+      into #grj-app, which keeps the full viewport exactly as before, and the same text
+      sits below it as an ordinary part of the page that a person can read and scroll to.
+      Nothing is hidden from anyone any more, and screen readers get it too.
+    */
+    html, body { margin: 0; padding: 0; }
+    #grj-app { width: 100%; height: 100vh; }
+
+    /*
+      NO prefers-color-scheme BLOCK HERE, ON PURPOSE (7 Oct 2026).
+
+      The first cut of this change had one: in dark mode the text went light
+      (#e8e8ee) but nothing set a dark background, and the Flutter app above
+      renders its light theme regardless of the OS setting. So on a machine with
+      Windows dark mode on, the headings were near-white on white - unreadable.
+      That is the same failure this whole change exists to remove: Google's spam
+      policy counts text coloured to match its background as hidden text, exactly
+      like the left:-9999px it replaced.
+
+      The app has one theme, so this block has one theme. Every colour below is
+      stated against an explicit white background, and the background is set here
+      rather than inherited, so no parent or extension can turn it dark under
+      text that stays dark.
+    */
+    #grj-seo-static {
+      box-sizing: border-box;
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 40px 20px 72px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background: #ffffff;
+      color: #24242c;
+      line-height: 1.65;
+      font-size: 15px;
+      overflow-wrap: break-word;
+    }
+    #grj-seo-static h1 { font-size: 26px; line-height: 1.3; margin: 0 0 10px; color: #16161c; }
+    #grj-seo-static h2 { font-size: 18px; line-height: 1.35; margin: 32px 0 8px; color: #16161c; }
+    #grj-seo-static header p { font-size: 16px; color: #4a4a55; margin: 0 0 8px; }
+    #grj-seo-static section { border-top: 1px solid #e6e6ec; }
+    #grj-seo-static dt { font-weight: 600; margin-top: 14px; color: #16161c; }
+    #grj-seo-static dd { margin: 4px 0 0; color: #4a4a55; }
+  </style>
 </head>
 <body>
   <!-- Google Tag Manager (noscript) -->
@@ -753,8 +809,14 @@
   height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <!-- End Google Tag Manager (noscript) -->
 
-  <!-- Static semantic HTML for search engine crawlers. Flutter renders over this in-browser. -->
-  <div id="grj-seo-static" aria-hidden="true" style="position:absolute;left:-9999px;top:0;width:1px;height:1px;overflow:hidden;">
+  <!-- The Flutter app mounts here (see web/flutter_bootstrap.js, hostElement). It keeps the
+       whole first screen, so the tool looks and behaves exactly as it did before. -->
+  <div id="grj-app"></div>
+
+  <!-- The same content that used to be hidden off-screen for crawlers, now simply part of the
+       page. The script after this block still rewrites it per route, so /compress shows the
+       compress copy and its FAQ rather than the homepage's. -->
+  <div id="grj-seo-static">
     <header>
       <h1>Get Ready Job — World-First Document Tools Suite</h1>
       <p>Free, browser-based tools for SSC/UPSC candidates, job seekers, and professionals. No server. No upload. No signup.</p>
@@ -782,7 +844,7 @@
       </section>
       <section aria-label="AI Resume Builder PDF Suite">
         <h2>AI Resume Builder &amp; PDF Tool Suite</h2>
-        <p>Build ATS-compliant US resumes and EU Europass CVs with 18+ modern templates and AI-guided content. Convert, merge, split, compress, and edit PDFs. Extract text from scanned PDFs using OCR. All tools work 100% in the browser — no account, no server, no data upload.</p>
+        <p>Build ATS-compliant US resumes and EU Europass CVs with 18+ modern templates and AI-guided content. Convert, merge, split, compress, and edit PDFs. Extract text from scanned PDFs using OCR. No account needed. Merging, splitting and editing run inside your browser; compression, conversion and OCR on scanned pages are done on our server, and the file is deleted as soon as the result comes back.</p>
       </section>
       <section aria-label="FAQ">
         <h2>Frequently Asked Questions</h2>
@@ -798,7 +860,7 @@
           <dt>How do I create a job application document bundle?</dt>
           <dd>Open the Doc Packager, upload your Photo, Signature, Identity Proof, and Supporting Document. Each file is auto-optimised. Click Pack &amp; Download ZIP to get a structured bundle in seconds.</dd>
           <dt>Is my data safe? Are my documents uploaded anywhere?</dt>
-          <dd>No. All GetReadyJob tools process files entirely in your browser. No file, byte, or metadata is ever sent to any server. Your documents never leave your device.</dd>
+          <dd>It depends on the tool. Merge, split, Aadhaar/PAN masking, the watermark and authenticity seal, the ZIP bundle and standard photo and signature resizing all run inside your browser, so those files never leave your device. PDF compression, PDF to Word and spreadsheet conversion, and text recognition on scanned PDFs need software a browser cannot run, so for those the file is sent over an encrypted connection to our processing server, processed, and deleted the moment the result is returned. Nothing is retained, backed up or reviewed by anyone.</dd>
           <dt>Is masking my PAN card secure?</dt>
           <dd>Yes. All masking happens 100% locally in your browser &mdash; your PAN card, Aadhaar, or ID image is never uploaded to any server.</dd>
           <dt>Why mask ID numbers on resumes or job applications?</dt>
@@ -819,10 +881,18 @@
     // crawler that doesn't wait for the Dart app to hydrate still sees
     // per-page text instead of every route serving identical homepage copy.
     (function () {
-      var seo = window.__grjMatchedSeo;
-      if (!seo) { return; }
       var el = document.getElementById('grj-seo-static');
       if (!el) { return; }
+
+      // A pre-rendered page (scripts/prerender.js, 7 Oct 2026) already carries
+      // this route's own copy in the HTML, written at build time so a crawler
+      // sees it without running any JavaScript. Rewriting it here would throw
+      // that away and put back the one-line title+description fallback - which
+      // is exactly the thin content that left /merge at position 82.
+      if (el.getAttribute('data-grj-prerendered') === '1') { return; }
+
+      var seo = window.__grjMatchedSeo;
+      if (!seo) { return; }
 
       function esc(value) {
         return String(value || '')

@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:syncfusion_flutter_pdf/pdf.dart' as sfpdf;
 
 import 'api_config.dart';
+import 'ocr_quota_service.dart';
 import 'wasm_document_service.dart';
 
 enum PdfExtractionMode { auto, forceOcr, tableAware }
@@ -102,8 +103,29 @@ class PdfOcrService {
       );
     }
 
+    // EVERYTHING ABOVE THIS LINE IS FREE AND LOCAL. BELOW IT COSTS MONEY.
+    //
+    // The backend OCR route rasterizes the pages and sends them to Google
+    // Cloud Vision, which is a paid per-page API, and every page it processes
+    // comes out of one shared global pool (990 pages a month, enforced on the
+    // server). OcrQuotaService has always said the Free plan gets 0 of those
+    // pages - but nothing ever asked it, so free sessions quietly drew on the
+    // pool that paying plans are sold. A paid user could be told the monthly
+    // limit was reached because free sessions had spent it. (7 Oct 2026)
+    final ocrPageCount = _countPages(pdfBytes);
+    if (!OcrQuotaService.canUseOcr(ocrPageCount)) {
+      return PdfOcrResult(
+        success: false,
+        text: '',
+        message: OcrQuotaService.blockedReasonMessage(ocrPageCount),
+        usedEmbeddedText: false,
+        usedBackendOcr: false,
+      );
+    }
+
     final backend = await _extractViaBackendOcr(pdfBytes: pdfBytes, fileName: fileName);
     if (backend != null && backend.trim().isNotEmpty) {
+      await OcrQuotaService.recordUsage(ocrPageCount);
       return PdfOcrResult(
         success: true,
         text: backend.trim(),
@@ -226,6 +248,23 @@ class PdfOcrService {
       }
     } catch (_) {
       return _extractEmbeddedText(pdfBytes);
+    }
+  }
+
+  /// Page count for quota purposes. A PDF that cannot be opened here would
+  /// also fail on the server, so 1 is a safe floor: it never under-reserves
+  /// into a free ride, and never blocks a readable file over a parse error.
+  int _countPages(Uint8List pdfBytes) {
+    try {
+      final document = sfpdf.PdfDocument(inputBytes: pdfBytes);
+      try {
+        final count = document.pages.count;
+        return count > 0 ? count : 1;
+      } finally {
+        document.dispose();
+      }
+    } catch (_) {
+      return 1;
     }
   }
 

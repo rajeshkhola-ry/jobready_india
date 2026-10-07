@@ -12,6 +12,19 @@ import 'package:syncfusion_flutter_pdf/pdf.dart' as sfpdf;
 import 'package:flutter/foundation.dart';
 import 'package:universal_html/html.dart' as html;
 
+/// Raised by [WasmDocumentService.mergePdfDocuments] when one specific input
+/// file cannot be used, carrying a message meant to be shown to the person
+/// as-is. Anything else that goes wrong stays an ordinary exception and keeps
+/// the generic failure message.
+class PdfMergeException implements Exception {
+  const PdfMergeException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
 enum WasmImageOutputFormat {
   jpg,
   png,
@@ -140,20 +153,73 @@ function loadImage(src) {
 }
 ''';
 
-  static Future<Uint8List> mergePdfDocuments(List<Uint8List> pdfFiles) async {
+  /// Merges [pdfFiles] in the order given.
+  ///
+  /// Each output page is created at the SIZE OF THE PAGE IT CAME FROM. Until
+  /// 7 Oct 2026 this added every page at the document default (A4) and drew the
+  /// source template at Offset.zero without a size, so anything on a page
+  /// larger than A4 was silently cropped and anything smaller was padded. Most
+  /// of what people merge here are scans of government certificates, which are
+  /// routinely not A4, so this lost real content and nothing told the user it
+  /// had happened. Margins go to zero for the same reason: the graphics origin
+  /// is the client area, so a default margin shifts the whole copied page down
+  /// and to the right.
+  ///
+  /// [fileNames], when supplied, is used only to name the offending file in an
+  /// error message. It may be shorter than [pdfFiles]; missing entries fall
+  /// back to the file's position.
+  static Future<Uint8List> mergePdfDocuments(
+    List<Uint8List> pdfFiles, {
+    List<String>? fileNames,
+  }) async {
     if (pdfFiles.isEmpty) {
       throw ArgumentError('At least one PDF is required for merge.');
     }
 
     final merged = sfpdf.PdfDocument();
     try {
-      for (final bytes in pdfFiles) {
-        final source = sfpdf.PdfDocument(inputBytes: bytes);
+      for (var fileIndex = 0; fileIndex < pdfFiles.length; fileIndex++) {
+        final bytes = pdfFiles[fileIndex];
+        final label = (fileNames != null && fileIndex < fileNames.length)
+            ? fileNames[fileIndex]
+            : 'File ${fileIndex + 1}';
+
+        late final sfpdf.PdfDocument source;
+        try {
+          source = sfpdf.PdfDocument(inputBytes: bytes);
+        } catch (e) {
+          // A password-protected PDF lands here. It is a perfectly valid file,
+          // so telling the person it is invalid sends them away believing the
+          // tool is broken. Name the file and say what to do about it.
+          final reason = e.toString().toLowerCase();
+          if (reason.contains('password') || reason.contains('encrypt')) {
+            throw PdfMergeException(
+              '$label is password-protected. Remove the password first in the '
+              'Smart PDF Suite (Protect / Unlock PDF), then merge.',
+            );
+          }
+          throw PdfMergeException(
+            '$label could not be opened. It may be damaged, or not a PDF.',
+          );
+        }
+
         try {
           for (var pageIndex = 0; pageIndex < source.pages.count; pageIndex++) {
-            final template = source.pages[pageIndex].createTemplate();
+            final sourcePage = source.pages[pageIndex];
+            final template = sourcePage.createTemplate();
+
+            // pageSettings applies to pages added AFTER it is set, so this has
+            // to run before every pages.add() - page sizes can differ inside a
+            // single document as well as between documents.
+            merged.pageSettings.size = sourcePage.size;
+            merged.pageSettings.margins.all = 0;
+
             final newPage = merged.pages.add();
-            newPage.graphics.drawPdfTemplate(template, Offset.zero);
+            newPage.graphics.drawPdfTemplate(
+              template,
+              Offset.zero,
+              sourcePage.size,
+            );
           }
         } finally {
           source.dispose();

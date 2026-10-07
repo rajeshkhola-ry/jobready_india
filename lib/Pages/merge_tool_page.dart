@@ -674,7 +674,10 @@ class _MergeToolPageState extends State<MergeToolPage> {
     await Future.delayed(const Duration(milliseconds: 60));
 
     try {
-      final mergedPdf = await WasmDocumentService.mergePdfDocuments(_selectedFileBytes);
+      final mergedPdf = await WasmDocumentService.mergePdfDocuments(
+        _selectedFileBytes,
+        fileNames: _selectedFiles,
+      );
 
       if (!mounted) return;
 
@@ -699,14 +702,22 @@ class _MergeToolPageState extends State<MergeToolPage> {
       );
     } catch (e) {
       if (!mounted) return;
+      // A PdfMergeException already names the file and says what to do about
+      // it. The old generic line told someone whose PDF was merely
+      // password-protected that their file was not valid, which is both wrong
+      // and the kind of thing that makes a person give up on the tool.
+      final message = e is PdfMergeException
+          ? e.message
+          : 'Merge failed. Please use valid PDF files and try again.';
       setState(() {
         _isMerging = false;
-        _statusMessage = '✗ Merge failed. Please check your PDF files and try again.';
+        _statusMessage = '✗ $message';
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Merge failed. Please use valid PDF files and try again.'),
+        SnackBar(
+          content: Text(message),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 6),
         ),
       );
     }

@@ -10,15 +10,19 @@ class PrivacyPolicyPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return SiteContentPage(
       title: 'Privacy Policy',
-      intro: 'This privacy policy explains how GETREADYJOB (operated by Druta Systems) handles your data across its free, browser-based tools and its paid plans. Last updated: 2026-09-09.',
+      intro: 'This privacy policy explains how GETREADYJOB (operated by Druta Systems) handles your data across its free, browser-based tools and its paid plans. Last updated: 2026-10-07.',
       seoTitle: 'Privacy Policy | GetReadyJob',
-      seoDescription: 'Read the GetReadyJob privacy policy covering our 100% client-side, browser-based document and photo tools that never upload your files.',
+      seoDescription: 'How GetReadyJob handles your files: which tools run entirely in your browser, which send your file to our processing server, and what happens to it there.',
       canonicalPath: '/privacy',
       highlights: const ['Privacy First', 'File Handling', 'Your Rights', 'Grievance Officer'],
       sections: [
         const SiteContentSection(
-          title: 'File Handling (Client-Side Processing)',
-          body: 'For our free tools (PDF utilities, photo enhancement, document conversion, and similar features), your files, images, and their contents are processed entirely in your browser and are never uploaded to, or stored on, our servers. Users should still keep their own copies of important files, since we retain no backup of anything processed locally.',
+          title: 'File Handling',
+          body: 'Whether a file leaves your device depends on which tool you use, so we set it out tool by tool rather than making one claim for all of them.\n\n'
+              'Processed entirely in your browser — the file never leaves your device: merge PDF, split PDF, the Aadhaar/PAN smart redactor and privacy masker, the purpose watermark and fraud-check authenticity seal, the job application document bundle, and government photo and signature resizing at standard sizes.\n\n'
+              'Sent to our processing server: PDF compression, image compression, PDF to Word conversion, spreadsheet and CSV conversion, PDF to image conversion, text recognition (OCR) when a scanned PDF holds no selectable text, and poster-size photo rendering at very large canvases. These need software that cannot run inside a browser.\n\n'
+              'For that second group, your file is sent over an encrypted connection to our processing server, written to a temporary working directory, processed, and deleted as soon as the result is returned to you. It is not retained, not backed up, not reviewed by any person, not linked to your account, and not used for anything other than producing the output you asked for.\n\n'
+              'We keep no copy of anything you process, so please keep your own copies of files that matter to you.',
         ),
         const SiteContentSection(
           title: 'Data We Collect',
@@ -26,11 +30,11 @@ class PrivacyPolicyPage extends StatelessWidget {
         ),
         const SiteContentSection(
           title: 'Third-Party Services & Cookies',
-          body: 'Account and subscription data for paid plans is processed on our own backend servers. We use Razorpay to process payments for paid plans, Google Firebase to host this website, and Google Tag Manager for basic site analytics. These providers may set cookies or use similar technologies in your browser; each is governed by its own privacy policy. You can control or clear cookies at any time through your browser settings; this will not affect your ability to use our free, client-side tools.',
+          body: 'Account and subscription data for paid plans is processed on our own backend servers. The document-processing server described under File Handling is operated by us and hosted on Render. We use Razorpay to process payments for paid plans, Google Firebase to host this website, and Google Tag Manager for basic site analytics. These providers may set cookies or use similar technologies in your browser; each is governed by its own privacy policy. You can control or clear cookies at any time through your browser settings; this will not affect your ability to use our free, client-side tools.',
         ),
         const SiteContentSection(
           title: 'Data Retention',
-          body: 'Uploaded files and processed outputs from our free tools are never stored, so there is nothing to retain or delete. Account and subscription data for paid users is kept for as long as your account is active, or as required to meet our legal, accounting, or tax obligations, after which it is deleted or anonymized.',
+          body: 'We keep no copy of your files. Files handled entirely in your browser never reach us at all. Files sent to our processing server exist there only for the length of that one request and are deleted when it finishes; they are not added to any backup. Account and subscription data for paid users is kept for as long as your account is active, or as required to meet our legal, accounting, or tax obligations, after which it is deleted or anonymized.',
         ),
         const SiteContentSection(
           title: 'Your Rights',
