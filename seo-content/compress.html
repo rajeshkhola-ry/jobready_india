@@ -1,0 +1,59 @@
+<header>
+  <h1>Compress a PDF or Image to an Exact Size in KB</h1>
+  <p>Most government and job portals do not ask for a smaller file. They ask for one under a specific number of kilobytes, and reject anything over it without saying so clearly. This tool takes that number and works down to it.</p>
+</header>
+<main>
+  <section aria-label="How to compress to a target size">
+    <h2>How to compress to a target size</h2>
+    <ol>
+      <li>Add your PDF or image — JPEG, PNG and WebP are supported alongside PDF.</li>
+      <li>Enter the size the portal asks for, in KB or MB. This is the point of the tool: you are not guessing at a quality slider, you are naming the limit.</li>
+      <li>Click Compress. The result downloads to your device.</li>
+    </ol>
+    <p>The compressor makes several passes, stepping quality down until the file fits, rather than applying one fixed setting and hoping. If the target cannot be reached without destroying the document, it tells you how close it got instead of handing you something unreadable.</p>
+    <p>Compression is free, with a limit of 100 compressions a day. Files up to 100 MB are accepted.</p>
+  </section>
+
+  <section aria-label="Where your file goes">
+    <h2>Where your file goes</h2>
+    <p>This one is worth being plain about, because many of the people using it are compressing an Aadhaar card or a marksheet.</p>
+    <p><strong>Compression runs on our server, not in your browser.</strong> Squeezing a PDF to a precise kilobyte target needs Ghostscript, which cannot run inside a web page. So your file is sent over an encrypted connection to our processing server, written to a temporary working directory, compressed, and deleted as soon as the result is sent back to you.</p>
+    <p>It is not retained, not backed up, not reviewed by anyone, not linked to an account, and not used for anything other than producing the file you asked for. But it does leave your device, and you should know that before you upload an identity document.</p>
+    <p>If that matters to you for a particular file, several of our other tools never send anything anywhere: <a href="https://getreadyjob.com/merge">merging</a>, splitting, <a href="https://getreadyjob.com/privacy-masker">Aadhaar and PAN masking</a>, the <a href="https://getreadyjob.com/fraud-seal">purpose watermark</a> and standard <a href="https://getreadyjob.com/govt-verifier">photo and signature resizing</a> all run entirely in your browser.</p>
+  </section>
+
+  <section aria-label="Compressing for a government form">
+    <h2>Compressing for a government form</h2>
+    <p>The limits that catch people out are nearly always on the photograph and signature rather than the document: SSC photo at 20–50 KB, SSC signature at 10–20 KB, UPSC photo at 20–240 KB, RRB signature at 30–49 KB. If that is what you are doing, the <a href="https://getreadyjob.com/govt-verifier">Govt Verifier</a> is the better tool — it already knows each board's pixel and KB rules, and it does the work in your browser.</p>
+    <p>Use the compressor when the file is a scanned certificate, a marksheet, or a merged application bundle that came out over the portal's cap. The usual order is to <a href="https://getreadyjob.com/merge">merge</a> everything first and compress the finished document once, rather than compressing each part and hoping the total lands under the limit.</p>
+  </section>
+
+  <section aria-label="What affects the result">
+    <h2>What affects the result</h2>
+    <p>A PDF full of text compresses a long way with no visible change, because the text stays text. A PDF that is really a photograph of a page — which is what most scans are — compresses by throwing away image detail, so there is a point past which the writing starts to break up. Asking a 4 MB scan for 50 KB will produce 50 KB, and you may not be able to read it.</p>
+    <p>If a scan has to get very small, it is usually better to rescan it in greyscale at a lower DPI than to compress a high-resolution colour scan into the ground.</p>
+  </section>
+
+  <section aria-label="FAQ">
+    <h2>Frequently Asked Questions</h2>
+    <dl>
+      <dt>Can I compress a PDF to an exact KB size?</dt>
+      <dd>Yes. Enter the target in KB or MB and the compressor works down to it in several passes. If it cannot reach the target without ruining the document, it says so and tells you what it managed.</dd>
+
+      <dt>Is my file uploaded to a server?</dt>
+      <dd>Yes, for this tool. Compression needs software that cannot run in a browser, so the file is sent over an encrypted connection, processed, and deleted as soon as the result is returned. Nothing is retained, backed up or reviewed by anyone.</dd>
+
+      <dt>Is it free?</dt>
+      <dd>Yes, up to 100 compressions a day. No account is needed and there is no watermark on the result.</dd>
+
+      <dt>What file types and sizes are supported?</dt>
+      <dd>PDF, JPEG, PNG and WebP, up to 100 MB per file.</dd>
+
+      <dt>Will compressing make my document unreadable?</dt>
+      <dd>It can, if you ask for a target far below what the content allows — scans are the usual case. The tool will reach the number you give it, so set a target the document can survive, or rescan at a lower DPI instead.</dd>
+
+      <dt>My merged application bundle is over the portal limit. What should I do?</dt>
+      <dd>Merge everything into one PDF first, then compress that single file to the portal's cap. Compressing each piece separately makes the total hard to predict.</dd>
+    </dl>
+  </section>
+</main>

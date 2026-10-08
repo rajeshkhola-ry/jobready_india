@@ -1,0 +1,55 @@
+<header>
+  <h1>Extract Text from a PDF — Instantly if It Has Text, by OCR if It Is a Scan</h1>
+  <p>There are two completely different jobs hiding behind "get the text out of a PDF", and which one you have decides how fast it is, whether your file leaves your device, and whether it costs anything. This page explains both, so you know which one you are about to do.</p>
+</header>
+<main>
+  <section aria-label="Which kind of PDF do you have">
+    <h2>Which kind of PDF do you have?</h2>
+    <p>Open your PDF in any reader and try to select a sentence with your mouse.</p>
+    <p><strong>If the text highlights</strong>, the PDF already carries a text layer. Extracting it is instant, happens entirely inside your browser, costs nothing, and the file never leaves your device. Most PDFs produced by a computer — bank statements, tickets, offer letters, anything exported from Word — are like this.</p>
+    <p><strong>If nothing highlights and you just drag a blue box over a picture</strong>, your PDF is a photograph of a page. The words are pixels. Getting text out of it needs optical character recognition, which is a much heavier job.</p>
+  </section>
+
+  <section aria-label="PDFs that already contain text">
+    <h2>PDFs that already contain text</h2>
+    <p>Add the file and the text comes out. The work is done by your own browser, so nothing is uploaded, there is no queue and no limit on how many you do.</p>
+    <p>Tables are handled separately from ordinary paragraphs: where the layout looks like a table, rows are rebuilt with column separators rather than being flattened into a run-on line, which is what makes the difference between usable output and a wall of words when you are pulling figures out of a statement.</p>
+  </section>
+
+  <section aria-label="Scanned PDFs and OCR">
+    <h2>Scanned PDFs, and what OCR actually costs</h2>
+    <p>If the page is an image, every page has to be rendered and read by a text-recognition engine. We use Google Cloud Vision for this, and it is a paid service that charges per page. That has two consequences worth stating plainly rather than burying.</p>
+    <p><strong>Your file is sent to our server for this step.</strong> Pages are rasterized and sent over an encrypted connection to be read, then deleted as soon as the result comes back. Nothing is retained, backed up or reviewed by anyone. But a scanned PDF does leave your device, and if it is an identity document you should decide that knowingly.</p>
+    <p><strong>OCR is a paid-plan feature.</strong> Free use covers everything on this page except this one step. The 7-Day plan includes 50 OCR pages a month, Monthly 200, and Yearly and Lifetime 300 each, shared between scanned-PDF text extraction and scanned-to-Word conversion. The pool resets on the 1st of each month.</p>
+    <p>The reason for the limit is simply that the pages cost money to read. Everything that can be done for nothing on your own device is done that way and is not metered.</p>
+  </section>
+
+  <section aria-label="Getting a better OCR result">
+    <h2>Getting a better result from a scan</h2>
+    <p>Recognition quality is decided mostly before the file reaches us. A scan at 300 DPI, straight rather than tilted, evenly lit and in greyscale will read far better than a dim phone photograph taken at an angle. If the output is full of mistakes, rescanning is usually faster than correcting it.</p>
+    <p>Handwriting is a different problem from print and should not be expected to come out cleanly. Stamps, seals and signatures over text also tend to confuse recognition in exactly the place you most want it to be right.</p>
+  </section>
+
+  <section aria-label="FAQ">
+    <h2>Frequently Asked Questions</h2>
+    <dl>
+      <dt>Is extracting text from a PDF free?</dt>
+      <dd>If the PDF already contains text, yes — completely, with no limit, and the file never leaves your browser. OCR on scanned pages is included with the paid plans, because each page costs money to process.</dd>
+
+      <dt>How do I know whether my PDF needs OCR?</dt>
+      <dd>Try to select a line of text in any PDF reader. If it highlights, no OCR is needed. If it does not, the page is an image and OCR is the only way to read it.</dd>
+
+      <dt>Is my file uploaded anywhere?</dt>
+      <dd>Not for a PDF that already has text — that runs entirely in your browser. A scanned PDF is sent to our server for recognition, then deleted as soon as the result is returned.</dd>
+
+      <dt>How many OCR pages do I get?</dt>
+      <dd>50 a month on the 7-Day plan, 200 on Monthly, and 300 on Yearly and Lifetime. The allowance is shared with scanned-to-Word conversion and resets on the 1st of each month.</dd>
+
+      <dt>Will OCR read my handwriting?</dt>
+      <dd>Not reliably. The engine is built for printed text. Handwriting, stamps and signatures over print are where it is weakest.</dd>
+
+      <dt>The extracted text has mistakes. What can I do?</dt>
+      <dd>Rescan at about 300 DPI, keep the page straight and evenly lit, and use greyscale rather than a low-quality colour photograph. Input quality decides almost everything about the result.</dd>
+    </dl>
+  </section>
+</main>
