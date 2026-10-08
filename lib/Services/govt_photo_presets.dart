@@ -12,6 +12,11 @@ class GovtPhotoPreset {
   final int maxKb;
   final String notes;
 
+  /// True for the one open-ended entry, where [width] and [height] are only
+  /// starting values and the person types their own. Every other preset is a
+  /// board's published specification and is not editable.
+  final bool isCustom;
+
   const GovtPhotoPreset({
     required this.id,
     required this.label,
@@ -20,6 +25,7 @@ class GovtPhotoPreset {
     required this.minKb,
     required this.maxKb,
     required this.notes,
+    this.isCustom = false,
   });
 }
 
@@ -94,6 +100,33 @@ const List<GovtPhotoPreset> kGovtPhotoPresets = [
     width: 200, height: 200,
     minKb: 10, maxKb: 100,
     notes: 'UIDAI: square crop preferred, max 100 KB, JPG/JPEG. Face clearly visible.',
+  ),
+
+  // Open-ended entry, added 8 Oct 2026. Every preset above is a published
+  // specification we can point at; this one carries no numbers of its own and
+  // asks the person for theirs instead.
+  //
+  // It exists because the list above can only cover boards we are able to
+  // verify. Pakistani portals (FPSC, PPSC, NTS, KPPSC, SPSC, PTS) are the
+  // clearest case: their sites are not reachable from India, so their figures
+  // cannot be checked today or kept right when they change. Printing a KB limit
+  // we cannot verify would be worse than printing none — someone would trust
+  // it, build their photo to it, and have the application rejected.
+  //
+  // Letting them enter what their own form says is the honest answer, and it
+  // also covers every state board, university and employer form that will never
+  // be worth a preset of its own.
+  GovtPhotoPreset(
+    id: 'custom',
+    label: 'Other portal — enter your own size',
+    width: 200, height: 230,
+    minKb: 5, maxKb: 500,
+    isCustom: true,
+    notes: 'For any form not listed above — a government job in any country, a '
+        'state or provincial board, a university, or an employer. Type the '
+        'pixel size and KB limit your own form asks for and the tool will hit '
+        'them. We only print figures for boards we can check ourselves, '
+        'because a wrong number here is what gets an application rejected.',
   ),
 ];
 

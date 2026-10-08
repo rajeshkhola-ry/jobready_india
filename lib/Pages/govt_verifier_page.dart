@@ -51,6 +51,34 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
   Uint8List? _lastResizedBytes;
   bool _isGeneratingPrintSheet = false;
 
+  // Only used by the open-ended 'custom' preset, where the person types the
+  // size their own form asks for. Every other preset carries a board's
+  // published figures and these are ignored.
+  final TextEditingController _customWCtrl = TextEditingController(text: '200');
+  final TextEditingController _customHCtrl = TextEditingController(text: '230');
+
+  /// Starting KB target for the open-ended preset. The slider there spans
+  /// 5-500 KB because it has to cover every form, and defaulting to the top of
+  /// that range would mean every person drags the whole way down. Most
+  /// government photo limits sit between 20 and 100 KB, so it starts there.
+  static const int _defaultCustomKb = 50;
+
+  final TextEditingController _customKbCtrl =
+      TextEditingController(text: '$_defaultCustomKb');
+
+  bool get _isCustomPreset => _selectedPreset.isCustom;
+
+  /// The dimensions actually used for the resize: the person's own numbers on
+  /// the custom preset, the board's on every other. Clamped so a stray keypress
+  /// cannot ask for a 0-pixel or absurd image.
+  int get _effectiveWidth => _isCustomPreset
+      ? (int.tryParse(_customWCtrl.text.trim()) ?? _selectedPreset.width).clamp(20, 5000)
+      : _selectedPreset.width;
+
+  int get _effectiveHeight => _isCustomPreset
+      ? (int.tryParse(_customHCtrl.text.trim()) ?? _selectedPreset.height).clamp(20, 5000)
+      : _selectedPreset.height;
+
   // ── Tab 3: Smart Redactor ──────────────────────────────────────────────────
   PickedFileData? _redactorFile;
   ui.Image? _redactorImage;
@@ -162,6 +190,9 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
     _tabs.dispose();
     _nameCtrl.dispose();
     _dopCtrl.dispose();
+    _customWCtrl.dispose();
+    _customHCtrl.dispose();
+    _customKbCtrl.dispose();
     _overlayImage?.dispose();
     _redactorImage?.dispose();
     super.dispose();
@@ -234,8 +265,8 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
       final result = await resizeGovtPhoto(
         GovtPhotoResizeArgs(
           bytes: _resizerFile!.bytes,
-          width: _selectedPreset.width,
-          height: _selectedPreset.height,
+          width: _effectiveWidth,
+          height: _effectiveHeight,
           targetKb: _targetKb,
           cleanSignature: _isSignaturePreset && _cleanSignatureMode,
         ),
@@ -243,10 +274,10 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
       if (!mounted) return;
       final achievedKb = (result.length / 1024).toStringAsFixed(1);
       setState(() {
-        _achievedSize = '${achievedKb} KB  •  ${_selectedPreset.width}×${_selectedPreset.height} px';
+        _achievedSize = '${achievedKb} KB  •  ${_effectiveWidth}×${_effectiveHeight} px';
         _achievedBytes = result.length;
         _lastResizedBytes = result;
-        _resizerStatus = 'Done — ${achievedKb} KB, ${_selectedPreset.width}×${_selectedPreset.height} px.';
+        _resizerStatus = 'Done — ${achievedKb} KB, ${_effectiveWidth}×${_effectiveHeight} px.';
       });
       final label = _selectedPreset.id.replaceAll('_', '-');
       WasmDocumentService.triggerBrowserDownload(
@@ -597,8 +628,11 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
                 icon: Icons.compress_rounded,
                 color: const Color(0xFF1E5B88),
                 title: 'Exact KB & Dimension Resizer',
-                body: 'Resize your photo/signature to the exact pixel dimensions and KB required by '
-                    'SSC, UPSC, IBPS, RRB, and other govt portals. Binary-quality compression stays within limits.',
+                body: 'Resize your photo or signature to an exact pixel size and KB limit. '
+                    'Pick a preset for SSC, UPSC, IBPS or RRB, or choose "Other portal" and '
+                    'type the size your own form asks for — any government job, any country, '
+                    'any university or employer form. Binary-quality compression stays within '
+                    'whatever limit you set.',
               ),
               const SizedBox(height: 14),
 
@@ -616,7 +650,10 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
                       return GestureDetector(
                         onTap: () => setState(() {
                           _selectedPreset = preset;
-                          _targetKb = preset.maxKb;
+                          _targetKb = preset.isCustom ? _defaultCustomKb : preset.maxKb;
+                          if (preset.isCustom) {
+                            _customKbCtrl.text = '$_defaultCustomKb';
+                          }
                           _achievedSize = null;
                           _achievedBytes = null;
                           _lastResizedBytes = null;
@@ -653,6 +690,60 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
                       );
                     }).toList(),
                   ),
+                  if (_isCustomPreset) ...[
+                    const SizedBox(height: 14),
+                    Row(children: [
+                      Expanded(child: TextField(
+                        controller: _customWCtrl,
+                        keyboardType: TextInputType.number,
+                        onChanged: (_) => setState(() {}),
+                        decoration: const InputDecoration(
+                          labelText: 'Width (px)',
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                        ),
+                      )),
+                      const SizedBox(width: 10),
+                      Expanded(child: TextField(
+                        controller: _customHCtrl,
+                        keyboardType: TextInputType.number,
+                        onChanged: (_) => setState(() {}),
+                        decoration: const InputDecoration(
+                          labelText: 'Height (px)',
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                        ),
+                      )),
+                      const SizedBox(width: 10),
+                      Expanded(child: TextField(
+                        controller: _customKbCtrl,
+                        keyboardType: TextInputType.number,
+                        onChanged: (value) {
+                          final parsed = int.tryParse(value.trim());
+                          if (parsed == null) return;
+                          setState(() {
+                            _targetKb = parsed.clamp(
+                              _selectedPreset.minKb,
+                              _selectedPreset.maxKb,
+                            );
+                          });
+                        },
+                        decoration: const InputDecoration(
+                          labelText: 'Target (KB)',
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                        ),
+                      )),
+                    ]),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Enter the size your own form asks for. Type the KB limit directly '
+                      'rather than dragging, if you need an exact number. If your form '
+                      'gives no pixel size, leave the width and height alone and set only '
+                      'the KB target.',
+                      style: TextStyle(fontSize: 11.5, color: Color(0xFF64748B), height: 1.45),
+                    ),
+                  ],
                   const SizedBox(height: 14),
                   Container(
                     padding: const EdgeInsets.all(12),
@@ -684,7 +775,17 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
                           divisions: p.maxKb - p.minKb > 0 ? p.maxKb - p.minKb : 1,
                           activeColor: const Color(0xFF0F2D4A),
                           label: '$_targetKb KB',
-                          onChanged: (v) => setState(() => _targetKb = v.round()),
+                          onChanged: (v) => setState(() {
+                            _targetKb = v.round();
+                            // Mirror the slider into the box so the two never
+                            // disagree. Only on the custom preset: the box does
+                            // not exist for the others. Never the other way
+                            // round - rewriting the field while someone is
+                            // typing moves their cursor.
+                            if (_isCustomPreset) {
+                              _customKbCtrl.text = '$_targetKb';
+                            }
+                          }),
                         ),
                       ],
                     ),
@@ -735,7 +836,7 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
                       : const Icon(Icons.compress_rounded),
                   label: Text(_isResizing
                       ? 'Resizing…'
-                      : 'Resize to ${p.width}×${p.height}px / $_targetKb KB & Download'),
+                      : 'Resize to ${_effectiveWidth}×${_effectiveHeight}px / $_targetKb KB & Download'),
                   style: _primaryBtn(const Color(0xFF1E5B88)),
                 ),
               ),
@@ -819,7 +920,7 @@ class _GovtVerifierPageState extends State<GovtVerifierPage>
             ],
           ),
           const SizedBox(height: 8),
-          row(dimensionsPass, 'Dimensions: ${p.width}×${p.height}px Match'),
+          row(dimensionsPass, 'Dimensions: ${_effectiveWidth}×${_effectiveHeight}px Match'),
           row(kbPass, 'Target KB: ${achievedKb.toStringAsFixed(1)} KB within ${p.minKb}-${p.maxKb} KB range'),
           row(formatPass, 'Format: .jpg valid'),
         ],

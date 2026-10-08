@@ -1,0 +1,89 @@
+<header>
+  <h1>Resize a Photo or Signature to an Exact Pixel Size and KB Limit</h1>
+  <p>Recruitment portals reject uploads for one reason more than any other: the file is a few kilobytes over, or a few pixels off. This tool takes the dimensions and the KB limit your form asks for and produces a file that meets both. It runs inside your browser — the photo never leaves your device.</p>
+</header>
+<main>
+  <section aria-label="How it works">
+    <h2>How it works</h2>
+    <ol>
+      <li>Pick the preset for your exam, or choose <strong>Other portal</strong> and type your own size.</li>
+      <li>Upload the photo or signature.</li>
+      <li>Set the KB target and download. The compressor steps quality down until the file fits, instead of applying one fixed setting and hoping.</li>
+    </ol>
+    <p>No account, no watermark, nothing uploaded anywhere.</p>
+  </section>
+
+  <section aria-label="Presets we have checked">
+    <h2>Presets we have checked</h2>
+    <p>These carry the figures published by the board itself, so you can select one and not think about numbers at all.</p>
+    <dl>
+      <dt>SSC — photo 200×230 px, 20–50 KB; signature 140×60 px, 10–20 KB</dt>
+      <dd>For CGL, CHSL and MTS. Note that SSC CGL and CHSL now require the photograph to be captured live during the application itself, so a prepared photo can no longer be uploaded for those. The preset remains useful for the signature and for other documents in the bundle.</dd>
+
+      <dt>UPSC — photo 350×350 to 1000×1000 px square, 20–240 KB; signature approx. 350–500 px, 20–100 KB</dt>
+      <dd>White background, full face visible. UPSC asks for all three required handwritten signatures combined into one image.</dd>
+
+      <dt>IBPS and bank exams — photo 200×230 px, 20–50 KB; signature 140×60 px, 10–20 KB</dt>
+      <dd>For PO, Clerk and SO. Plain white background; blue or black ink for the signature.</dd>
+
+      <dt>RRB and railways — photo 320×240 px, 50–100 KB; signature 140×60 px, 30–49 KB</dt>
+      <dd>For NTPC, Group D and ALP. The signature also has a minimum resolution requirement of 100 DPI.</dd>
+
+      <dt>JEE Main and NEET-UG — approx. 3.5×4.5 cm, 10–100 KB</dt>
+      <dd>Plain white background.</dd>
+
+      <dt>Aadhaar photo update — square crop, up to 100 KB</dt>
+      <dd>Face clearly visible.</dd>
+    </dl>
+  </section>
+
+  <section aria-label="Any other form in any country">
+    <h2>Any other form, in any country</h2>
+    <p>The presets above cover a handful of Indian boards. They are not the only forms people have to fill in, so the tool does not stop there. Choose <strong>Other portal — enter your own size</strong>, type the pixel dimensions and the KB limit printed on your own form, and the tool works to those numbers instead.</p>
+    <p>That covers a government job application in any country, a provincial or state board, a university admission form, a licence renewal, or an employer's own portal. If your form gives a KB limit but no pixel size — which is common — leave the dimensions alone and set only the KB target.</p>
+
+    <h3>Why there is no FPSC, PPSC or NTS preset</h3>
+    <p>People applying through Pakistan's federal and provincial commissions ask for this, and the honest answer is that we do not have figures we can stand behind. Those portals are not reachable from where this tool is maintained, so their published limits cannot be checked now or kept correct when they change.</p>
+    <p>We could copy numbers from somewhere else and label them FPSC. We will not, because of what happens next: you would trust the label, build your photograph to it, and the portal would reject your application. A wrong number presented confidently is worse than no number at all.</p>
+    <p>So for those forms, and for every board we cannot verify, use <strong>Other portal</strong> and enter what your own form tells you. Your form is the authority, and it is in front of you.</p>
+  </section>
+
+  <section aria-label="Why uploads get rejected">
+    <h2>Why uploads get rejected</h2>
+    <p>Four things account for nearly all of it.</p>
+    <p><strong>The file is over the KB limit.</strong> The most common one, and the reason this tool exists. Phone cameras produce files in megabytes; forms ask for tens of kilobytes.</p>
+    <p><strong>The dimensions are wrong.</strong> Some portals check pixel dimensions as strictly as file size and reject anything that does not match.</p>
+    <p><strong>The background is not plain.</strong> Most boards want white or a light plain background. A photograph taken against a wall with a door frame or a patterned curtain in it can be refused even at the right size.</p>
+    <p><strong>The signature is too faint or scanned in colour.</strong> Black or blue ink on white, scanned cleanly. A phone photograph of a signature on lined paper is the usual failure.</p>
+  </section>
+
+  <section aria-label="Privacy">
+    <h2>Nothing is uploaded</h2>
+    <p>Resizing, the Name and Date of Photo strip, and the Aadhaar and PAN redactor all run inside your browser using local image processing. No photograph, document or identity image is sent to any server.</p>
+    <p>You can check this: open your browser's developer tools, switch to the Network tab, and resize a photo. No request carries your image, because none is made.</p>
+    <p>Some of our other tools do work differently — compression, PDF to Word conversion and text recognition on scanned pages are done on our server, and we say so on those pages. This one is not among them.</p>
+  </section>
+
+  <section aria-label="FAQ">
+    <h2>Frequently Asked Questions</h2>
+    <dl>
+      <dt>Can I set my own pixel size and KB limit?</dt>
+      <dd>Yes. Choose "Other portal — enter your own size", type the width, height and KB target your form asks for, and the tool works to those instead of a preset.</dd>
+
+      <dt>Does this work for government job forms outside India?</dt>
+      <dd>Yes, through the custom option. The built-in presets are Indian boards because those are the figures we can verify; for any other country's form, enter the size it asks for.</dd>
+
+      <dt>Why is there no preset for FPSC, PPSC or NTS?</dt>
+      <dd>Because we cannot check their published figures from here, and a wrong number would get your application rejected. Use the custom option with the size your own form states.</dd>
+
+      <dt>Is my photo or Aadhaar card uploaded to a server?</dt>
+      <dd>No. Resizing and redaction happen entirely in your browser. Nothing is sent anywhere, so there is nothing stored and nothing to delete.</dd>
+
+      <dt>My form gives a KB limit but no pixel size. What do I do?</dt>
+      <dd>Leave the dimensions as they are and set only the KB target. Many portals, especially outside India, specify size in kilobytes alone.</dd>
+
+      <dt>Is it free?</dt>
+      <dd>Yes, and no account is needed. There is no watermark on the result.</dd>
+    </dl>
+  </section>
+</main>

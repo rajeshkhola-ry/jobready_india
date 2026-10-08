@@ -7,6 +7,8 @@ import 'package:archive/archive.dart';
 import 'package:archive/archive_io.dart';
 import 'package:flutter/material.dart';
 import 'package:pdfrx/pdfrx.dart' as pdfrx;
+
+import '../Services/pdfrx_bootstrap.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart' as sfpdf;
 import 'package:universal_html/html.dart' as html;
 
@@ -358,6 +360,7 @@ class _PdfEditPageState extends State<PdfEditPage> {
     });
 
     try {
+      ensurePdfrxInitialized();
       final document = await pdfrx.PdfDocument.openData(bytes, sourceName: _selectedName ?? 'document.pdf');
       await previousDoc?.dispose();
       if (!mounted) {

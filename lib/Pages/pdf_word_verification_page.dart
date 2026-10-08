@@ -7,6 +7,8 @@ import 'package:archive/archive_io.dart';
 import 'package:flutter/material.dart';
 import 'package:pdfrx/pdfrx.dart' as pdfrx;
 
+import '../Services/pdfrx_bootstrap.dart';
+
 import '../Widgets/download_result_dialog.dart';
 
 /// One editable paragraph extracted from the converted DOCX - only the
@@ -149,6 +151,7 @@ class _PdfWordVerificationPageState extends State<PdfWordVerificationPage> {
 
   Future<void> _openOriginalPdf() async {
     try {
+      ensurePdfrxInitialized();
       final document = await pdfrx.PdfDocument.openData(widget.originalPdfBytes, sourceName: 'original.pdf');
       if (!mounted) {
         await document.dispose();
